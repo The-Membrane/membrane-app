@@ -1,0 +1,3624 @@
+{
+  "schema": 1,
+  "units": "fraction/year",
+  "maxDays": 90,
+  "method": "Measured daily protocol APR only. A bounded common nominal date grid retains actual block timestamps, null gaps and IRM regime seams. No forecasts, accrual integration or user account data.",
+  "source": {
+    "repo": "triccs/membrane-datasets",
+    "commit": "2ca6d162207ae84c41255e35c2317abce61517d7",
+    "sha256": {
+      "depositor-balances/reserve-state.csv": "430532cd3cef4e6f6413b77279940a21fe9cfa7d8e381f49913e8bf56f3a4478",
+      "depositor-balances/blocks.csv": "c59020cf9c734416936e75de7182ab4aa116625b0bd7727048fe25cd883e313e",
+      "depositor-balances/PROVENANCE.md": "f2cc70a2daa0ced4123f9bccaa3c4803099b6d9f5a7d3a263b0448b86e3c2155",
+      "venue-stress/summary.json": "05b20397cbf0876cefc5d36fe08906ef423fbeb70d6bb790e47def8888484a10",
+      "venue-stress/PROVENANCE.md": "43a029c421adda0f84700a95068f7450a76867533570204c7af6335b1718da62"
+    }
+  },
+  "excluded": [
+    "Morpho Steakhouse history.apr is withdraw-queue market count, not APR.",
+    "LST daily ratio indices lack exact observation timestamps: do not invent midnight freshness or an exact 7-day realized interval.",
+    "Other venues and tokens have no admitted supply/borrow pair in this table."
+  ],
+  "series": [
+    {
+      "id": "aave-core-usdc-borrow",
+      "symbol": "USDC",
+      "identity": {
+        "chainId": 1,
+        "protocol": "aave-v3",
+        "venueAddress": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+        "marketId": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "tokenAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+      },
+      "side": "borrow",
+      "rateConvention": "apr",
+      "feeBasis": "borrower-before-incentives",
+      "componentScope": "variable-debt-only",
+      "sourcePaths": [
+        "depositor-balances/reserve-state.csv",
+        "depositor-balances/blocks.csv",
+        "depositor-balances/PROVENANCE.md",
+        "venue-stress/summary.json",
+        "venue-stress/PROVENANCE.md"
+      ],
+      "sampling": "Daily archive snapshot immediately before nominal UTC date; observedAt is the actual block timestamp, not the date label. APR = source ray / 1e27.",
+      "limitations": [
+        "Last 90 nominal daily slots only; irregular asof snapshot excluded.",
+        "Snapshot APR at current fixed size is not accrued interest or realized earnings.",
+        "No rewards, gas, Membrane charges or price changes are included.",
+        "Only the variable-rate debt component; never apply to stable, fixed or unknown-basis debt.",
+        "IRM parameter and fee regime boundaries are explicit gaps; no rate is carried across them."
+      ],
+      "latestRegime": "5d66cd8baa51ff77",
+      "regimes": {
+        "25d21d07f6d63b3d": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "920000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "40000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+          "variableDebtTokenAddress": "0x72e95b8931767c79ba4eee721354d6e99a61d004"
+        },
+        "6a10eaa916a6d9d4": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "920000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "41000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+          "variableDebtTokenAddress": "0x72e95b8931767c79ba4eee721354d6e99a61d004"
+        },
+        "cbc5ded45c1388a4": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "41000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+          "variableDebtTokenAddress": "0x72e95b8931767c79ba4eee721354d6e99a61d004"
+        },
+        "726b2e45d4af32d8": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "43000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+          "variableDebtTokenAddress": "0x72e95b8931767c79ba4eee721354d6e99a61d004"
+        },
+        "5d66cd8baa51ff77": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "44000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+          "variableDebtTokenAddress": "0x72e95b8931767c79ba4eee721354d6e99a61d004"
+        }
+      },
+      "points": [
+        {
+          "date": "2026-07-10",
+          "observedAt": 1783641599,
+          "apr": 0.13930778502334895,
+          "block": 25498467,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-11",
+          "observedAt": 1783727999,
+          "apr": 0.13644808841492717,
+          "block": 25505640,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-12",
+          "observedAt": 1783814399,
+          "apr": 0.13888913173748035,
+          "block": 25512815,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-13",
+          "observedAt": 1783900799,
+          "apr": 0.13623064857784836,
+          "block": 25519987,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-14",
+          "observedAt": 1783987199,
+          "apr": 0.13926574612180762,
+          "block": 25527154,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-15",
+          "observedAt": 1784073599,
+          "apr": 0.13902182496661275,
+          "block": 25534324,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-16",
+          "observedAt": 1784159999,
+          "apr": 0.13963463580496702,
+          "block": 25541499,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-17",
+          "observedAt": 1784246399,
+          "apr": 0.13312497337805496,
+          "block": 25548675,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-18",
+          "observedAt": 1784332799,
+          "apr": 0.12917451565881344,
+          "block": 25555858,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-19",
+          "observedAt": 1784419199,
+          "apr": 0.1348705811584979,
+          "block": 25563031,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-20",
+          "observedAt": 1784505599,
+          "apr": 0.13081685487232103,
+          "block": 25570200,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-21",
+          "observedAt": 1784591999,
+          "apr": 0.1329477710002459,
+          "block": 25577369,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-22",
+          "observedAt": 1784678399,
+          "apr": 0.12521691667831142,
+          "block": 25584545,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-23",
+          "observedAt": 1784764799,
+          "apr": 0.1254688437612636,
+          "block": 25591708,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-24",
+          "observedAt": 1784851199,
+          "apr": 0.1227006817841222,
+          "block": 25598869,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-25",
+          "observedAt": 1784937599,
+          "apr": 0.11910018298703082,
+          "block": 25606052,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-26",
+          "observedAt": 1785023999,
+          "apr": 0.11802279752320191,
+          "block": 25613233,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-27",
+          "observedAt": 1785110399,
+          "apr": 0.1176409039130406,
+          "block": 25620417,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-28",
+          "observedAt": 1785196799,
+          "apr": 0.12489401513801691,
+          "block": 25627590,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-29",
+          "observedAt": 1785283199,
+          "apr": 0.12486630318507441,
+          "block": 25634763,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-30",
+          "observedAt": 1785369599,
+          "apr": 0.12828121488792962,
+          "block": 25641938,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-31",
+          "observedAt": 1785455999,
+          "apr": 0.13404991684840425,
+          "block": 25649110,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-01",
+          "observedAt": 1785542399,
+          "apr": 0.13961108250445575,
+          "block": 25656292,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-02",
+          "observedAt": 1785628799,
+          "apr": 0.13997356786288856,
+          "block": 25663469,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-03",
+          "observedAt": 1785715199,
+          "apr": 0.1399916093363288,
+          "block": 25670641,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-04",
+          "observedAt": 1785801599,
+          "apr": 0.13976450274840288,
+          "block": 25677819,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-05",
+          "observedAt": 1785887999,
+          "apr": 0.13986371914447257,
+          "block": 25684999,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-06",
+          "observedAt": 1785974399,
+          "apr": 0.13990552714797644,
+          "block": 25692172,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-07",
+          "observedAt": 1786060799,
+          "apr": 0.13932518268133592,
+          "block": 25699361,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-08",
+          "observedAt": 1786147199,
+          "apr": 0.13986083362821145,
+          "block": 25706531,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-09",
+          "observedAt": 1786233599,
+          "apr": 0.1396262229534946,
+          "block": 25713689,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-10",
+          "observedAt": 1786319999,
+          "apr": 0.13953854258384887,
+          "block": 25720867,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-11",
+          "observedAt": 1786406399,
+          "apr": 0.13985840478191106,
+          "block": 25728039,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-12",
+          "observedAt": 1786492799,
+          "apr": 0.13579277205847345,
+          "block": 25735200,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-13",
+          "observedAt": 1786579199,
+          "apr": 0.13968695327102051,
+          "block": 25742366,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-14",
+          "observedAt": 1786665599,
+          "apr": 0.13980217521999283,
+          "block": 25749550,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-15",
+          "observedAt": 1786751999,
+          "apr": 0.13740446955890173,
+          "block": 25756720,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-16",
+          "observedAt": 1786838399,
+          "apr": 0.1397056147587884,
+          "block": 25763887,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-17",
+          "observedAt": 1786924799,
+          "apr": 0.13980587966477181,
+          "block": 25771073,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-18",
+          "observedAt": 1787011199,
+          "apr": 0.13962646676887294,
+          "block": 25778250,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-19",
+          "observedAt": 1787097599,
+          "apr": 0.13935529935460575,
+          "block": 25785424,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-20",
+          "observedAt": 1787183999,
+          "apr": 0.1354950873500588,
+          "block": 25792601,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-21",
+          "observedAt": 1787270399,
+          "apr": 0.1393238488101949,
+          "block": 25799779,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-22",
+          "observedAt": 1787356799,
+          "apr": 0.13969166504285077,
+          "block": 25806958,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-23",
+          "observedAt": 1787443199,
+          "apr": 0.13910166111439373,
+          "block": 25814126,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-24",
+          "observedAt": 1787529599,
+          "apr": 0.13937380750646172,
+          "block": 25821305,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-25",
+          "observedAt": 1787615999,
+          "apr": 0.13942230288537544,
+          "block": 25828483,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-26",
+          "observedAt": 1787702399,
+          "apr": 0.13964435205451853,
+          "block": 25835657,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-27",
+          "observedAt": 1787788799,
+          "apr": 0.11382290231507548,
+          "block": 25842829,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-28",
+          "observedAt": 1787875199,
+          "apr": 0.13969400625691678,
+          "block": 25850009,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-29",
+          "observedAt": 1787961599,
+          "apr": null,
+          "block": 25857181,
+          "regime": "6a10eaa916a6d9d4",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-08-30",
+          "observedAt": 1788047999,
+          "apr": 0.12558244754541228,
+          "block": 25864358,
+          "regime": "6a10eaa916a6d9d4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-31",
+          "observedAt": 1788134399,
+          "apr": 0.12409771254819509,
+          "block": 25871535,
+          "regime": "6a10eaa916a6d9d4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-01",
+          "observedAt": 1788220799,
+          "apr": 0.1260703260737866,
+          "block": 25878704,
+          "regime": "6a10eaa916a6d9d4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-02",
+          "observedAt": 1788307199,
+          "apr": null,
+          "block": 25885878,
+          "regime": "cbc5ded45c1388a4",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-03",
+          "observedAt": 1788393599,
+          "apr": 0.1403398679167475,
+          "block": 25893051,
+          "regime": "cbc5ded45c1388a4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-04",
+          "observedAt": 1788479999,
+          "apr": null,
+          "block": 25900226,
+          "regime": "726b2e45d4af32d8",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-05",
+          "observedAt": 1788566399,
+          "apr": 0.14234943071482903,
+          "block": 25907399,
+          "regime": "726b2e45d4af32d8",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-06",
+          "observedAt": 1788652799,
+          "apr": 0.14281053820178022,
+          "block": 25914574,
+          "regime": "726b2e45d4af32d8",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-07",
+          "observedAt": 1788739199,
+          "apr": 0.14278094802191454,
+          "block": 25921753,
+          "regime": "726b2e45d4af32d8",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-08",
+          "observedAt": 1788825599,
+          "apr": 0.14206380165414556,
+          "block": 25928919,
+          "regime": "726b2e45d4af32d8",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-09",
+          "observedAt": 1788911999,
+          "apr": 0.14281237072025277,
+          "block": 25936089,
+          "regime": "726b2e45d4af32d8",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-10",
+          "observedAt": 1788998399,
+          "apr": null,
+          "block": 25943260,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-11",
+          "observedAt": 1789084799,
+          "apr": 0.10582539785880568,
+          "block": 25950430,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-12",
+          "observedAt": 1789171199,
+          "apr": 0.14365247268083894,
+          "block": 25957605,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-13",
+          "observedAt": 1789257599,
+          "apr": 0.13872987264221784,
+          "block": 25964780,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-14",
+          "observedAt": 1789343999,
+          "apr": 0.13984336864387564,
+          "block": 25971961,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-15",
+          "observedAt": 1789430399,
+          "apr": 0.14382642712805424,
+          "block": 25979136,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-16",
+          "observedAt": 1789516799,
+          "apr": 0.14374356261345347,
+          "block": 25986306,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-17",
+          "observedAt": 1789603199,
+          "apr": 0.14318011480144485,
+          "block": 25993481,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-18",
+          "observedAt": 1789689599,
+          "apr": 0.14004064570260205,
+          "block": 26000650,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-19",
+          "observedAt": 1789775999,
+          "apr": 0.14206079734169572,
+          "block": 26007835,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-20",
+          "observedAt": 1789862399,
+          "apr": 0.14346151638044552,
+          "block": 26014997,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-21",
+          "observedAt": 1789948799,
+          "apr": 0.14310486909693554,
+          "block": 26022169,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-22",
+          "observedAt": 1790035199,
+          "apr": 0.14398873877144297,
+          "block": 26029315,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-23",
+          "observedAt": 1790121599,
+          "apr": 0.142303692657467,
+          "block": 26036463,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-24",
+          "observedAt": 1790207999,
+          "apr": 0.1398900086457432,
+          "block": 26043610,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-25",
+          "observedAt": 1790294399,
+          "apr": 0.1398963698379524,
+          "block": 26050748,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-26",
+          "observedAt": 1790380799,
+          "apr": 0.1398333064513022,
+          "block": 26057904,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-27",
+          "observedAt": 1790467199,
+          "apr": 0.1376410042084926,
+          "block": 26065069,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-28",
+          "observedAt": 1790553599,
+          "apr": 0.13881424100044895,
+          "block": 26072221,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-29",
+          "observedAt": 1790639999,
+          "apr": 0.14252928745314242,
+          "block": 26079396,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-30",
+          "observedAt": 1790726399,
+          "apr": 0.14006022238655083,
+          "block": 26086569,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-01",
+          "observedAt": 1790812799,
+          "apr": 0.14104984132622872,
+          "block": 26093737,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-02",
+          "observedAt": 1790899199,
+          "apr": 0.14017356377532014,
+          "block": 26100913,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-03",
+          "observedAt": 1790985599,
+          "apr": 0.1393440125511332,
+          "block": 26108081,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-04",
+          "observedAt": 1791071999,
+          "apr": 0.13980873961234425,
+          "block": 26115260,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-05",
+          "observedAt": 1791158399,
+          "apr": 0.13977670984424811,
+          "block": 26122439,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-06",
+          "observedAt": 1791244799,
+          "apr": 0.1410989336904057,
+          "block": 26129614,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-07",
+          "observedAt": 1791331199,
+          "apr": 0.13738684269606108,
+          "block": 26136782,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        }
+      ]
+    },
+    {
+      "id": "aave-core-usdc-supply",
+      "symbol": "USDC",
+      "identity": {
+        "chainId": 1,
+        "protocol": "aave-v3",
+        "venueAddress": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+        "marketId": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "tokenAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+      },
+      "side": "supply",
+      "rateConvention": "apr",
+      "feeBasis": "protocol-fees-already-deducted",
+      "componentScope": "all-supply",
+      "sourcePaths": [
+        "depositor-balances/reserve-state.csv",
+        "depositor-balances/blocks.csv",
+        "depositor-balances/PROVENANCE.md",
+        "venue-stress/summary.json",
+        "venue-stress/PROVENANCE.md"
+      ],
+      "sampling": "Daily archive snapshot immediately before nominal UTC date; observedAt is the actual block timestamp, not the date label. APR = source ray / 1e27.",
+      "limitations": [
+        "Last 90 nominal daily slots only; irregular asof snapshot excluded.",
+        "Snapshot APR at current fixed size is not accrued interest or realized earnings.",
+        "No rewards, gas, Membrane charges or price changes are included.",
+        "Aave liquidityRate already deducts protocol reserve factor; do not deduct it again.",
+        "IRM parameter and fee regime boundaries are explicit gaps; no rate is carried across them."
+      ],
+      "latestRegime": "5d66cd8baa51ff77",
+      "regimes": {
+        "25d21d07f6d63b3d": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "920000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "40000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+          "variableDebtTokenAddress": "0x72e95b8931767c79ba4eee721354d6e99a61d004"
+        },
+        "6a10eaa916a6d9d4": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "920000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "41000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+          "variableDebtTokenAddress": "0x72e95b8931767c79ba4eee721354d6e99a61d004"
+        },
+        "cbc5ded45c1388a4": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "41000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+          "variableDebtTokenAddress": "0x72e95b8931767c79ba4eee721354d6e99a61d004"
+        },
+        "726b2e45d4af32d8": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "43000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+          "variableDebtTokenAddress": "0x72e95b8931767c79ba4eee721354d6e99a61d004"
+        },
+        "5d66cd8baa51ff77": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "44000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+          "variableDebtTokenAddress": "0x72e95b8931767c79ba4eee721354d6e99a61d004"
+        }
+      },
+      "points": [
+        {
+          "date": "2026-07-10",
+          "observedAt": 1783641599,
+          "apr": 0.12530757614832488,
+          "block": 25498467,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-11",
+          "observedAt": 1783727999,
+          "apr": 0.12245433036293664,
+          "block": 25505640,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-12",
+          "observedAt": 1783814399,
+          "apr": 0.12488913144351203,
+          "block": 25512815,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-13",
+          "observedAt": 1783900799,
+          "apr": 0.12223786276652406,
+          "block": 25519987,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-14",
+          "observedAt": 1783987199,
+          "apr": 0.1252655467914864,
+          "block": 25527154,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-15",
+          "observedAt": 1784073599,
+          "apr": 0.1250217312416612,
+          "block": 25534324,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-16",
+          "observedAt": 1784159999,
+          "apr": 0.12563443952653902,
+          "block": 25541499,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-17",
+          "observedAt": 1784246399,
+          "apr": 0.11915350477542218,
+          "block": 25548675,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-18",
+          "observedAt": 1784332799,
+          "apr": 0.11525023277933139,
+          "block": 25555858,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-19",
+          "observedAt": 1784419199,
+          "apr": 0.12088542140154855,
+          "block": 25563031,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-20",
+          "observedAt": 1784505599,
+          "apr": 0.11687022597388276,
+          "block": 25570200,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-21",
+          "observedAt": 1784591999,
+          "apr": 0.11897793755453047,
+          "block": 25577369,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-22",
+          "observedAt": 1784678399,
+          "apr": 0.11136243860064349,
+          "block": 25584545,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-23",
+          "observedAt": 1784764799,
+          "apr": 0.1116092499884215,
+          "block": 25591708,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-24",
+          "observedAt": 1784851199,
+          "apr": 0.10890231405868882,
+          "block": 25598869,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-25",
+          "observedAt": 1784937599,
+          "apr": 0.10539796074285632,
+          "block": 25606052,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-26",
+          "observedAt": 1785023999,
+          "apr": 0.10435297382741193,
+          "block": 25613233,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-27",
+          "observedAt": 1785110399,
+          "apr": 0.10398296556213373,
+          "block": 25620417,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-28",
+          "observedAt": 1785196799,
+          "apr": 0.1110462276225906,
+          "block": 25627590,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-29",
+          "observedAt": 1785283199,
+          "apr": 0.11101909686096545,
+          "block": 25634763,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-30",
+          "observedAt": 1785369599,
+          "apr": 0.11437071731485102,
+          "block": 25641938,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-31",
+          "observedAt": 1785455999,
+          "apr": 0.12007064719926903,
+          "block": 25649110,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-01",
+          "observedAt": 1785542399,
+          "apr": 0.12561088017497787,
+          "block": 25656292,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-02",
+          "observedAt": 1785628799,
+          "apr": 0.12597354711952183,
+          "block": 25663469,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-03",
+          "observedAt": 1785715199,
+          "apr": 0.12599160257376782,
+          "block": 25670641,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-04",
+          "observedAt": 1785801599,
+          "apr": 0.12576435418068227,
+          "block": 25677819,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-05",
+          "observedAt": 1785887999,
+          "apr": 0.12586362339232238,
+          "block": 25684999,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-06",
+          "observedAt": 1785974399,
+          "apr": 0.12590545789705956,
+          "block": 25692172,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-07",
+          "observedAt": 1786060799,
+          "apr": 0.12532497060208736,
+          "block": 25699361,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-08",
+          "observedAt": 1786147199,
+          "apr": 0.1258607361411203,
+          "block": 25706531,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-09",
+          "observedAt": 1786233599,
+          "apr": 0.12562602442442924,
+          "block": 25713689,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-10",
+          "observedAt": 1786319999,
+          "apr": 0.12553832663883624,
+          "block": 25720867,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-11",
+          "observedAt": 1786406399,
+          "apr": 0.12585830584298024,
+          "block": 25728039,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-12",
+          "observedAt": 1786492799,
+          "apr": 0.12180215073292464,
+          "block": 25735200,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-13",
+          "observedAt": 1786579199,
+          "apr": 0.12568677329478417,
+          "block": 25742366,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-14",
+          "observedAt": 1786665599,
+          "apr": 0.1258020450394579,
+          "block": 25749550,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-15",
+          "observedAt": 1786751999,
+          "apr": 0.12340724351907767,
+          "block": 25756720,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-16",
+          "observedAt": 1786838399,
+          "apr": 0.12570544155000862,
+          "block": 25763887,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-17",
+          "observedAt": 1786924799,
+          "apr": 0.12580575140257863,
+          "block": 25771073,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-18",
+          "observedAt": 1787011199,
+          "apr": 0.12562626830446819,
+          "block": 25778250,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-19",
+          "observedAt": 1787097599,
+          "apr": 0.12535508275706692,
+          "block": 25785424,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-20",
+          "observedAt": 1787183999,
+          "apr": 0.12150609517788094,
+          "block": 25792601,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-21",
+          "observedAt": 1787270399,
+          "apr": 0.12532363696275797,
+          "block": 25799779,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-22",
+          "observedAt": 1787356799,
+          "apr": 0.12569148672842176,
+          "block": 25806958,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-23",
+          "observedAt": 1787443199,
+          "apr": 0.12510152339597816,
+          "block": 25814126,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-24",
+          "observedAt": 1787529599,
+          "apr": 0.12537358878014204,
+          "block": 25821305,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-25",
+          "observedAt": 1787615999,
+          "apr": 0.12542208091999912,
+          "block": 25828483,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-26",
+          "observedAt": 1787702399,
+          "apr": 0.12564415850974045,
+          "block": 25835657,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-27",
+          "observedAt": 1787788799,
+          "apr": 0.10029533368083322,
+          "block": 25842829,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-28",
+          "observedAt": 1787875199,
+          "apr": 0.12569382877983304,
+          "block": 25850009,
+          "regime": "25d21d07f6d63b3d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-29",
+          "observedAt": 1787961599,
+          "apr": null,
+          "block": 25857181,
+          "regime": "6a10eaa916a6d9d4",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-08-30",
+          "observedAt": 1788047999,
+          "apr": 0.11163015744453308,
+          "block": 25864358,
+          "regime": "6a10eaa916a6d9d4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-31",
+          "observedAt": 1788134399,
+          "apr": 0.11017771585746099,
+          "block": 25871535,
+          "regime": "6a10eaa916a6d9d4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-01",
+          "observedAt": 1788220799,
+          "apr": 0.11210811740092227,
+          "block": 25878704,
+          "regime": "6a10eaa916a6d9d4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-02",
+          "observedAt": 1788307199,
+          "apr": null,
+          "block": 25885878,
+          "regime": "cbc5ded45c1388a4",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-03",
+          "observedAt": 1788393599,
+          "apr": 0.12625585389099392,
+          "block": 25893051,
+          "regime": "cbc5ded45c1388a4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-04",
+          "observedAt": 1788479999,
+          "apr": null,
+          "block": 25900226,
+          "regime": "726b2e45d4af32d8",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-05",
+          "observedAt": 1788566399,
+          "apr": 0.12806447913770125,
+          "block": 25907399,
+          "regime": "726b2e45d4af32d8",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-06",
+          "observedAt": 1788652799,
+          "apr": 0.12851487342954682,
+          "block": 25914574,
+          "regime": "726b2e45d4af32d8",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-07",
+          "observedAt": 1788739199,
+          "apr": 0.1284859638415178,
+          "block": 25921753,
+          "regime": "726b2e45d4af32d8",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-08",
+          "observedAt": 1788825599,
+          "apr": 0.1277856014497531,
+          "block": 25928919,
+          "regime": "726b2e45d4af32d8",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-09",
+          "observedAt": 1788911999,
+          "apr": 0.12851666383052535,
+          "block": 25936089,
+          "regime": "726b2e45d4af32d8",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-10",
+          "observedAt": 1788998399,
+          "apr": null,
+          "block": 25943260,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-11",
+          "observedAt": 1789084799,
+          "apr": 0.09306134307736276,
+          "block": 25950430,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-12",
+          "observedAt": 1789171199,
+          "apr": 0.12926026681160072,
+          "block": 25957605,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-13",
+          "observedAt": 1789257599,
+          "apr": 0.1244620782738629,
+          "block": 25964780,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-14",
+          "observedAt": 1789343999,
+          "apr": 0.1255451419283447,
+          "block": 25971961,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-15",
+          "observedAt": 1789430399,
+          "apr": 0.12943030356274265,
+          "block": 25979136,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-16",
+          "observedAt": 1789516799,
+          "apr": 0.12934930119687071,
+          "block": 25986306,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-17",
+          "observedAt": 1789603199,
+          "apr": 0.12879871194852732,
+          "block": 25993481,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-18",
+          "observedAt": 1789689599,
+          "apr": 0.12573716695307308,
+          "block": 26000650,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-19",
+          "observedAt": 1789775999,
+          "apr": 0.12770595578942115,
+          "block": 26007835,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-20",
+          "observedAt": 1789862399,
+          "apr": 0.12907364874312216,
+          "block": 26014997,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-21",
+          "observedAt": 1789948799,
+          "apr": 0.12872520939467724,
+          "block": 26022169,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-22",
+          "observedAt": 1790035199,
+          "apr": 0.12958898919637943,
+          "block": 26029315,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-23",
+          "observedAt": 1790121599,
+          "apr": 0.12794297226871174,
+          "block": 26036463,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-24",
+          "observedAt": 1790207999,
+          "apr": 0.12559053645813312,
+          "block": 26043610,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-25",
+          "observedAt": 1790294399,
+          "apr": 0.12559672796398955,
+          "block": 26050748,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-26",
+          "observedAt": 1790380799,
+          "apr": 0.12553534874514896,
+          "block": 26057904,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-27",
+          "observedAt": 1790467199,
+          "apr": 0.1234042640720129,
+          "block": 26065069,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-28",
+          "observedAt": 1790553599,
+          "apr": 0.12454409392245841,
+          "block": 26072221,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-29",
+          "observedAt": 1790639999,
+          "apr": 0.1281631640248894,
+          "block": 26079396,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-30",
+          "observedAt": 1790726399,
+          "apr": 0.12575622474828393,
+          "block": 26086569,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-01",
+          "observedAt": 1790812799,
+          "apr": 0.12672015262088673,
+          "block": 26093737,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-02",
+          "observedAt": 1790899199,
+          "apr": 0.12586657009952948,
+          "block": 26100913,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-03",
+          "observedAt": 1790985599,
+          "apr": 0.1250592678612383,
+          "block": 26108081,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-04",
+          "observedAt": 1791071999,
+          "apr": 0.12551143915232094,
+          "block": 26115260,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-05",
+          "observedAt": 1791158399,
+          "apr": 0.12548026726508246,
+          "block": 26122439,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-06",
+          "observedAt": 1791244799,
+          "apr": 0.12676799805468097,
+          "block": 26129614,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-07",
+          "observedAt": 1791331199,
+          "apr": 0.12315753550562966,
+          "block": 26136782,
+          "regime": "5d66cd8baa51ff77",
+          "quality": "observed",
+          "missingReason": null
+        }
+      ]
+    },
+    {
+      "id": "aave-core-usdt-borrow",
+      "symbol": "USDT",
+      "identity": {
+        "chainId": 1,
+        "protocol": "aave-v3",
+        "venueAddress": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+        "marketId": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "tokenAddress": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+      },
+      "side": "borrow",
+      "rateConvention": "apr",
+      "feeBasis": "borrower-before-incentives",
+      "componentScope": "variable-debt-only",
+      "sourcePaths": [
+        "depositor-balances/reserve-state.csv",
+        "depositor-balances/blocks.csv",
+        "depositor-balances/PROVENANCE.md",
+        "venue-stress/summary.json",
+        "venue-stress/PROVENANCE.md"
+      ],
+      "sampling": "Daily archive snapshot immediately before nominal UTC date; observedAt is the actual block timestamp, not the date label. APR = source ray / 1e27.",
+      "limitations": [
+        "Last 90 nominal daily slots only; irregular asof snapshot excluded.",
+        "Snapshot APR at current fixed size is not accrued interest or realized earnings.",
+        "No rewards, gas, Membrane charges or price changes are included.",
+        "Only the variable-rate debt component; never apply to stable, fixed or unknown-basis debt.",
+        "IRM parameter and fee regime boundaries are explicit gaps; no rate is carried across them."
+      ],
+      "latestRegime": "762f3cd600fc166d",
+      "regimes": {
+        "8b00587ae2a89179": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "920000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "40000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        },
+        "907d2c78faf11afc": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "920000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "41000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        },
+        "08d580d2d5ef2920": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "41000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        },
+        "06e73fdfd6c6d0a7": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "43000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        },
+        "762f3cd600fc166d": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "44000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        },
+        "bbe44d88a24605b4": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "930000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "44000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        }
+      },
+      "points": [
+        {
+          "date": "2026-07-10",
+          "observedAt": 1783641599,
+          "apr": 0.04693211116663081,
+          "block": 25498467,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-11",
+          "observedAt": 1783727999,
+          "apr": 0.032281880460243294,
+          "block": 25505640,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-12",
+          "observedAt": 1783814399,
+          "apr": 0.03421042380074873,
+          "block": 25512815,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-13",
+          "observedAt": 1783900799,
+          "apr": 0.03476896682480146,
+          "block": 25519987,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-14",
+          "observedAt": 1783987199,
+          "apr": 0.03481385188163199,
+          "block": 25527154,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-15",
+          "observedAt": 1784073599,
+          "apr": 0.03638836274373486,
+          "block": 25534324,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-16",
+          "observedAt": 1784159999,
+          "apr": 0.03580808865976724,
+          "block": 25541499,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-17",
+          "observedAt": 1784246399,
+          "apr": 0.035666618923353946,
+          "block": 25548675,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-18",
+          "observedAt": 1784332799,
+          "apr": 0.03468657089014228,
+          "block": 25555858,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-19",
+          "observedAt": 1784419199,
+          "apr": 0.03475508313441462,
+          "block": 25563031,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-20",
+          "observedAt": 1784505599,
+          "apr": 0.035499748364780294,
+          "block": 25570200,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-21",
+          "observedAt": 1784591999,
+          "apr": 0.03639904513988376,
+          "block": 25577369,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-22",
+          "observedAt": 1784678399,
+          "apr": 0.036605910364419736,
+          "block": 25584545,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-23",
+          "observedAt": 1784764799,
+          "apr": 0.03647154112619463,
+          "block": 25591708,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-24",
+          "observedAt": 1784851199,
+          "apr": 0.03653812712251118,
+          "block": 25598869,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-25",
+          "observedAt": 1784937599,
+          "apr": 0.036550196862390555,
+          "block": 25606052,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-26",
+          "observedAt": 1785023999,
+          "apr": 0.036645179719498766,
+          "block": 25613233,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-27",
+          "observedAt": 1785110399,
+          "apr": 0.03694586284320442,
+          "block": 25620417,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-28",
+          "observedAt": 1785196799,
+          "apr": 0.03601085010445102,
+          "block": 25627590,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-29",
+          "observedAt": 1785283199,
+          "apr": 0.036157177015145786,
+          "block": 25634763,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-30",
+          "observedAt": 1785369599,
+          "apr": 0.036071997404674525,
+          "block": 25641938,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-31",
+          "observedAt": 1785455999,
+          "apr": 0.0359975541923024,
+          "block": 25649110,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-01",
+          "observedAt": 1785542399,
+          "apr": 0.03591813217113967,
+          "block": 25656292,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-02",
+          "observedAt": 1785628799,
+          "apr": 0.036483690622580674,
+          "block": 25663469,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-03",
+          "observedAt": 1785715199,
+          "apr": 0.03634838966078981,
+          "block": 25670641,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-04",
+          "observedAt": 1785801599,
+          "apr": 0.03662209248226335,
+          "block": 25677819,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-05",
+          "observedAt": 1785887999,
+          "apr": 0.036182983885125794,
+          "block": 25684999,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-06",
+          "observedAt": 1785974399,
+          "apr": 0.03619496158534263,
+          "block": 25692172,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-07",
+          "observedAt": 1786060799,
+          "apr": 0.036239264787756964,
+          "block": 25699361,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-08",
+          "observedAt": 1786147199,
+          "apr": 0.036485227351275684,
+          "block": 25706531,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-09",
+          "observedAt": 1786233599,
+          "apr": 0.036888598951490936,
+          "block": 25713689,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-10",
+          "observedAt": 1786319999,
+          "apr": 0.03643764297378923,
+          "block": 25720867,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-11",
+          "observedAt": 1786406399,
+          "apr": 0.03649897440578322,
+          "block": 25728039,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-12",
+          "observedAt": 1786492799,
+          "apr": 0.03665394922562376,
+          "block": 25735200,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-13",
+          "observedAt": 1786579199,
+          "apr": 0.03687835300106959,
+          "block": 25742366,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-14",
+          "observedAt": 1786665599,
+          "apr": 0.0370122769668297,
+          "block": 25749550,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-15",
+          "observedAt": 1786751999,
+          "apr": 0.03734311413857032,
+          "block": 25756720,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-16",
+          "observedAt": 1786838399,
+          "apr": 0.03761108861085112,
+          "block": 25763887,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-17",
+          "observedAt": 1786924799,
+          "apr": 0.03738546409207333,
+          "block": 25771073,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-18",
+          "observedAt": 1787011199,
+          "apr": 0.03740872618061297,
+          "block": 25778250,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-19",
+          "observedAt": 1787097599,
+          "apr": 0.03734505562024033,
+          "block": 25785424,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-20",
+          "observedAt": 1787183999,
+          "apr": 0.03783229265054401,
+          "block": 25792601,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-21",
+          "observedAt": 1787270399,
+          "apr": 0.03839132198544528,
+          "block": 25799779,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-22",
+          "observedAt": 1787356799,
+          "apr": 0.039416082472902195,
+          "block": 25806958,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-23",
+          "observedAt": 1787443199,
+          "apr": 0.03991665255898983,
+          "block": 25814126,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-24",
+          "observedAt": 1787529599,
+          "apr": 0.040872006242930456,
+          "block": 25821305,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-25",
+          "observedAt": 1787615999,
+          "apr": 0.04479017775951148,
+          "block": 25828483,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-26",
+          "observedAt": 1787702399,
+          "apr": 0.04571362190334382,
+          "block": 25835657,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-27",
+          "observedAt": 1787788799,
+          "apr": 0.04851658238528658,
+          "block": 25842829,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-28",
+          "observedAt": 1787875199,
+          "apr": 0.039886573340123056,
+          "block": 25850009,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-29",
+          "observedAt": 1787961599,
+          "apr": null,
+          "block": 25857181,
+          "regime": "907d2c78faf11afc",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-08-30",
+          "observedAt": 1788047999,
+          "apr": 0.04083832988666674,
+          "block": 25864358,
+          "regime": "907d2c78faf11afc",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-31",
+          "observedAt": 1788134399,
+          "apr": 0.040783353237570645,
+          "block": 25871535,
+          "regime": "907d2c78faf11afc",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-01",
+          "observedAt": 1788220799,
+          "apr": 0.040699554563459014,
+          "block": 25878704,
+          "regime": "907d2c78faf11afc",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-02",
+          "observedAt": 1788307199,
+          "apr": null,
+          "block": 25885878,
+          "regime": "08d580d2d5ef2920",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-03",
+          "observedAt": 1788393599,
+          "apr": 0.04045677634263741,
+          "block": 25893051,
+          "regime": "08d580d2d5ef2920",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-04",
+          "observedAt": 1788479999,
+          "apr": null,
+          "block": 25900226,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-05",
+          "observedAt": 1788566399,
+          "apr": 0.042543374423725494,
+          "block": 25907399,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-06",
+          "observedAt": 1788652799,
+          "apr": 0.04448959560303954,
+          "block": 25914574,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-07",
+          "observedAt": 1788739199,
+          "apr": 0.04241386708263721,
+          "block": 25921753,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-08",
+          "observedAt": 1788825599,
+          "apr": 0.042797165710476766,
+          "block": 25928919,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-09",
+          "observedAt": 1788911999,
+          "apr": 0.04252902348582433,
+          "block": 25936089,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-10",
+          "observedAt": 1788998399,
+          "apr": null,
+          "block": 25943260,
+          "regime": "762f3cd600fc166d",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-11",
+          "observedAt": 1789084799,
+          "apr": 0.04264936112055759,
+          "block": 25950430,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-12",
+          "observedAt": 1789171199,
+          "apr": 0.04065658169339679,
+          "block": 25957605,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-13",
+          "observedAt": 1789257599,
+          "apr": 0.04074602062367957,
+          "block": 25964780,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-14",
+          "observedAt": 1789343999,
+          "apr": 0.040758593364663157,
+          "block": 25971961,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-15",
+          "observedAt": 1789430399,
+          "apr": 0.040493528586250285,
+          "block": 25979136,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-16",
+          "observedAt": 1789516799,
+          "apr": 0.04022167657888969,
+          "block": 25986306,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-17",
+          "observedAt": 1789603199,
+          "apr": null,
+          "block": 25993481,
+          "regime": "bbe44d88a24605b4",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-18",
+          "observedAt": 1789689599,
+          "apr": 0.03986641724261583,
+          "block": 26000650,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-19",
+          "observedAt": 1789775999,
+          "apr": 0.04268632775892688,
+          "block": 26007835,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-20",
+          "observedAt": 1789862399,
+          "apr": 0.04348990918001189,
+          "block": 26014997,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-21",
+          "observedAt": 1789948799,
+          "apr": 0.047069516437856,
+          "block": 26022169,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-22",
+          "observedAt": 1790035199,
+          "apr": 0.047783404117515166,
+          "block": 26029315,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-23",
+          "observedAt": 1790121599,
+          "apr": 0.04984856881118266,
+          "block": 26036463,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-24",
+          "observedAt": 1790207999,
+          "apr": 0.043981574764111867,
+          "block": 26043610,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-25",
+          "observedAt": 1790294399,
+          "apr": 0.046589591386530134,
+          "block": 26050748,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-26",
+          "observedAt": 1790380799,
+          "apr": 0.043815091794710714,
+          "block": 26057904,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-27",
+          "observedAt": 1790467199,
+          "apr": 0.055405340984410696,
+          "block": 26065069,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-28",
+          "observedAt": 1790553599,
+          "apr": 0.04932781222540225,
+          "block": 26072221,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-29",
+          "observedAt": 1790639999,
+          "apr": 0.04353310088785721,
+          "block": 26079396,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-30",
+          "observedAt": 1790726399,
+          "apr": null,
+          "block": 26086569,
+          "regime": "762f3cd600fc166d",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-10-01",
+          "observedAt": 1790812799,
+          "apr": 0.04366667191921131,
+          "block": 26093737,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-02",
+          "observedAt": 1790899199,
+          "apr": 0.04382014157952502,
+          "block": 26100913,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-03",
+          "observedAt": 1790985599,
+          "apr": 0.043816464877243035,
+          "block": 26108081,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-04",
+          "observedAt": 1791071999,
+          "apr": 0.043761521632819565,
+          "block": 26115260,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-05",
+          "observedAt": 1791158399,
+          "apr": 0.043860375937960994,
+          "block": 26122439,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-06",
+          "observedAt": 1791244799,
+          "apr": 0.043941346124293,
+          "block": 26129614,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-07",
+          "observedAt": 1791331199,
+          "apr": 0.06797823979820868,
+          "block": 26136782,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        }
+      ]
+    },
+    {
+      "id": "aave-core-usdt-supply",
+      "symbol": "USDT",
+      "identity": {
+        "chainId": 1,
+        "protocol": "aave-v3",
+        "venueAddress": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+        "marketId": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "tokenAddress": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+      },
+      "side": "supply",
+      "rateConvention": "apr",
+      "feeBasis": "protocol-fees-already-deducted",
+      "componentScope": "all-supply",
+      "sourcePaths": [
+        "depositor-balances/reserve-state.csv",
+        "depositor-balances/blocks.csv",
+        "depositor-balances/PROVENANCE.md",
+        "venue-stress/summary.json",
+        "venue-stress/PROVENANCE.md"
+      ],
+      "sampling": "Daily archive snapshot immediately before nominal UTC date; observedAt is the actual block timestamp, not the date label. APR = source ray / 1e27.",
+      "limitations": [
+        "Last 90 nominal daily slots only; irregular asof snapshot excluded.",
+        "Snapshot APR at current fixed size is not accrued interest or realized earnings.",
+        "No rewards, gas, Membrane charges or price changes are included.",
+        "Aave liquidityRate already deducts protocol reserve factor; do not deduct it again.",
+        "IRM parameter and fee regime boundaries are explicit gaps; no rate is carried across them."
+      ],
+      "latestRegime": "762f3cd600fc166d",
+      "regimes": {
+        "8b00587ae2a89179": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "920000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "40000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        },
+        "907d2c78faf11afc": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "920000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "41000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        },
+        "08d580d2d5ef2920": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "41000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        },
+        "06e73fdfd6c6d0a7": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "43000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        },
+        "762f3cd600fc166d": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "940000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "44000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        },
+        "bbe44d88a24605b4": {
+          "strategy": "0x9ec6f08190dea04a54f8afc53db96134e5e3fdfb",
+          "reserveFactorBps": 1000,
+          "optimalUtilizationRay": "930000000000000000000000000",
+          "baseBorrowRay": "0",
+          "slope1Ray": "44000000000000000000000000",
+          "slope2Ray": "100000000000000000000000000",
+          "aTokenAddress": "0x23878914efe38d27c4d67ab83ed1b93a74d4086a",
+          "variableDebtTokenAddress": "0x6df1c1e379bc5a00a7b4c6e67a203333772f45a8"
+        }
+      },
+      "points": [
+        {
+          "date": "2026-07-10",
+          "observedAt": 1783641599,
+          "apr": 0.03909403183275307,
+          "block": 25498467,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-11",
+          "observedAt": 1783727999,
+          "apr": 0.02157187997911969,
+          "block": 25505640,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-12",
+          "observedAt": 1783814399,
+          "apr": 0.02422630909292274,
+          "block": 25512815,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-13",
+          "observedAt": 1783900799,
+          "apr": 0.025023837811603812,
+          "block": 25519987,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-14",
+          "observedAt": 1783987199,
+          "apr": 0.025088488647155505,
+          "block": 25527154,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-15",
+          "observedAt": 1784073599,
+          "apr": 0.027409137915595162,
+          "block": 25534324,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-16",
+          "observedAt": 1784159999,
+          "apr": 0.02654193771129192,
+          "block": 25541499,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-17",
+          "observedAt": 1784246399,
+          "apr": 0.026332629494838306,
+          "block": 25548675,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-18",
+          "observedAt": 1784332799,
+          "apr": 0.02490537473559624,
+          "block": 25555858,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-19",
+          "observedAt": 1784419199,
+          "apr": 0.025003857129330963,
+          "block": 25563031,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-20",
+          "observedAt": 1784505599,
+          "apr": 0.02608680516575101,
+          "block": 25570200,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-21",
+          "observedAt": 1784591999,
+          "apr": 0.02742523307511006,
+          "block": 25577369,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-22",
+          "observedAt": 1784678399,
+          "apr": 0.02773784833584385,
+          "block": 25584545,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-23",
+          "observedAt": 1784764799,
+          "apr": 0.027534587553066134,
+          "block": 25591708,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-24",
+          "observedAt": 1784851199,
+          "apr": 0.027635218978129594,
+          "block": 25598869,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-25",
+          "observedAt": 1784937599,
+          "apr": 0.02765347962927702,
+          "block": 25606052,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-26",
+          "observedAt": 1785023999,
+          "apr": 0.027797392363342815,
+          "block": 25613233,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-27",
+          "observedAt": 1785110399,
+          "apr": 0.028255433363492326,
+          "block": 25620417,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-28",
+          "observedAt": 1785196799,
+          "apr": 0.026843373425179194,
+          "block": 25627590,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-29",
+          "observedAt": 1785283199,
+          "apr": 0.02706196800140176,
+          "block": 25634763,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-30",
+          "observedAt": 1785369599,
+          "apr": 0.026934612225604723,
+          "block": 25641938,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-07-31",
+          "observedAt": 1785455999,
+          "apr": 0.026823554884668213,
+          "block": 25649110,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-01",
+          "observedAt": 1785542399,
+          "apr": 0.026705322919002183,
+          "block": 25656292,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-02",
+          "observedAt": 1785628799,
+          "apr": 0.02755293539828565,
+          "block": 25663469,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-03",
+          "observedAt": 1785715199,
+          "apr": 0.027348952412757355,
+          "block": 25670641,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-04",
+          "observedAt": 1785801599,
+          "apr": 0.027762377508322292,
+          "block": 25677819,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-05",
+          "observedAt": 1785887999,
+          "apr": 0.027100612275166493,
+          "block": 25684999,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-06",
+          "observedAt": 1785974399,
+          "apr": 0.027118557546757377,
+          "block": 25692172,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-07",
+          "observedAt": 1786060799,
+          "apr": 0.02718498525831287,
+          "block": 25699361,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-08",
+          "observedAt": 1786147199,
+          "apr": 0.02755525656031735,
+          "block": 25706531,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-09",
+          "observedAt": 1786233599,
+          "apr": 0.028167912757136114,
+          "block": 25713689,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-10",
+          "observedAt": 1786319999,
+          "apr": 0.027483427780051455,
+          "block": 25720867,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-11",
+          "observedAt": 1786406399,
+          "apr": 0.02757602523884466,
+          "block": 25728039,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-12",
+          "observedAt": 1786492799,
+          "apr": 0.027810698264791846,
+          "block": 25735200,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-13",
+          "observedAt": 1786579199,
+          "apr": 0.0281522674377217,
+          "block": 25742366,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-14",
+          "observedAt": 1786665599,
+          "apr": 0.02835710896992706,
+          "block": 25749550,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-15",
+          "observedAt": 1786751999,
+          "apr": 0.02886631918481262,
+          "block": 25756720,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-16",
+          "observedAt": 1786838399,
+          "apr": 0.029282095512205782,
+          "block": 25763887,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-17",
+          "observedAt": 1786924799,
+          "apr": 0.028931829547263997,
+          "block": 25771073,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-18",
+          "observedAt": 1787011199,
+          "apr": 0.028967844837103573,
+          "block": 25778250,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-19",
+          "observedAt": 1787097599,
+          "apr": 0.02886932080295999,
+          "block": 25785424,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-20",
+          "observedAt": 1787183999,
+          "apr": 0.029627544992633804,
+          "block": 25792601,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-21",
+          "observedAt": 1787270399,
+          "apr": 0.030509597589815873,
+          "block": 25799779,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-22",
+          "observedAt": 1787356799,
+          "apr": 0.03216009043137659,
+          "block": 25806958,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-23",
+          "observedAt": 1787443199,
+          "apr": 0.03298212042706913,
+          "block": 25814126,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-24",
+          "observedAt": 1787529599,
+          "apr": 0.03386768242371854,
+          "block": 25821305,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-25",
+          "observedAt": 1787615999,
+          "apr": 0.03724074527196614,
+          "block": 25828483,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-26",
+          "observedAt": 1787702399,
+          "apr": 0.038038935978201474,
+          "block": 25835657,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-27",
+          "observedAt": 1787788799,
+          "apr": 0.04046923094257951,
+          "block": 25842829,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-28",
+          "observedAt": 1787875199,
+          "apr": 0.03293243175969783,
+          "block": 25850009,
+          "regime": "8b00587ae2a89179",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-29",
+          "observedAt": 1787961599,
+          "apr": null,
+          "block": 25857181,
+          "regime": "907d2c78faf11afc",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-08-30",
+          "observedAt": 1788047999,
+          "apr": 0.033680802126988915,
+          "block": 25864358,
+          "regime": "907d2c78faf11afc",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-08-31",
+          "observedAt": 1788134399,
+          "apr": 0.03359018082627372,
+          "block": 25871535,
+          "regime": "907d2c78faf11afc",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-01",
+          "observedAt": 1788220799,
+          "apr": 0.03345228530977523,
+          "block": 25878704,
+          "regime": "907d2c78faf11afc",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-02",
+          "observedAt": 1788307199,
+          "apr": null,
+          "block": 25885878,
+          "regime": "08d580d2d5ef2920",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-03",
+          "observedAt": 1788393599,
+          "apr": 0.033772954532240586,
+          "block": 25893051,
+          "regime": "08d580d2d5ef2920",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-04",
+          "observedAt": 1788479999,
+          "apr": null,
+          "block": 25900226,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-05",
+          "observedAt": 1788566399,
+          "apr": 0.03560949176699998,
+          "block": 25907399,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-06",
+          "observedAt": 1788652799,
+          "apr": 0.03767398448253055,
+          "block": 25914574,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-07",
+          "observedAt": 1788739199,
+          "apr": 0.0353930222755196,
+          "block": 25921753,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-08",
+          "observedAt": 1788825599,
+          "apr": 0.0360356138117316,
+          "block": 25928919,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-09",
+          "observedAt": 1788911999,
+          "apr": 0.035585471885276075,
+          "block": 25936089,
+          "regime": "06e73fdfd6c6d0a7",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-10",
+          "observedAt": 1788998399,
+          "apr": null,
+          "block": 25943260,
+          "regime": "762f3cd600fc166d",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-11",
+          "observedAt": 1789084799,
+          "apr": 0.034973793885094515,
+          "block": 25950430,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-12",
+          "observedAt": 1789171199,
+          "apr": 0.031781867246066346,
+          "block": 25957605,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-13",
+          "observedAt": 1789257599,
+          "apr": 0.03192185259093337,
+          "block": 25964780,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-14",
+          "observedAt": 1789343999,
+          "apr": 0.031941555477155846,
+          "block": 25971961,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-15",
+          "observedAt": 1789430399,
+          "apr": 0.03152745624914855,
+          "block": 25979136,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-16",
+          "observedAt": 1789516799,
+          "apr": 0.03110556007630617,
+          "block": 25986306,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-17",
+          "observedAt": 1789603199,
+          "apr": null,
+          "block": 25993481,
+          "regime": "bbe44d88a24605b4",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-09-18",
+          "observedAt": 1789689599,
+          "apr": 0.030233414407527373,
+          "block": 26000650,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-19",
+          "observedAt": 1789775999,
+          "apr": 0.0346617408401964,
+          "block": 26007835,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-20",
+          "observedAt": 1789862399,
+          "apr": 0.035979057530615755,
+          "block": 26014997,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-21",
+          "observedAt": 1789948799,
+          "apr": 0.0394882080591529,
+          "block": 26022169,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-22",
+          "observedAt": 1790035199,
+          "apr": 0.04010860310917792,
+          "block": 26029315,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-23",
+          "observedAt": 1790121599,
+          "apr": 0.041906924037114164,
+          "block": 26036463,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-24",
+          "observedAt": 1790207999,
+          "apr": 0.03679716260241893,
+          "block": 26043610,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-25",
+          "observedAt": 1790294399,
+          "apr": 0.0390714962219899,
+          "block": 26050748,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-26",
+          "observedAt": 1790380799,
+          "apr": 0.036519114060626495,
+          "block": 26057904,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-27",
+          "observedAt": 1790467199,
+          "apr": 0.04677237797809669,
+          "block": 26065069,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-28",
+          "observedAt": 1790553599,
+          "apr": 0.04145294869269906,
+          "block": 26072221,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-29",
+          "observedAt": 1790639999,
+          "apr": 0.03605055773089513,
+          "block": 26079396,
+          "regime": "bbe44d88a24605b4",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-09-30",
+          "observedAt": 1790726399,
+          "apr": null,
+          "block": 26086569,
+          "regime": "762f3cd600fc166d",
+          "quality": "regime-change",
+          "missingReason": "IRM or fee regime changed; line breaks at this observation"
+        },
+        {
+          "date": "2026-10-01",
+          "observedAt": 1790812799,
+          "apr": 0.03666214517265888,
+          "block": 26093737,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-02",
+          "observedAt": 1790899199,
+          "apr": 0.036920301525523155,
+          "block": 26100913,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-03",
+          "observedAt": 1790985599,
+          "apr": 0.03691410623469931,
+          "block": 26108081,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-04",
+          "observedAt": 1791071999,
+          "apr": 0.036821588083946456,
+          "block": 26115260,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-05",
+          "observedAt": 1791158399,
+          "apr": 0.036988130909409965,
+          "block": 26122439,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-06",
+          "observedAt": 1791244799,
+          "apr": 0.037124823778436164,
+          "block": 26129614,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        },
+        {
+          "date": "2026-10-07",
+          "observedAt": 1791331199,
+          "apr": 0.05838979006034115,
+          "block": 26136782,
+          "regime": "762f3cd600fc166d",
+          "quality": "observed",
+          "missingReason": null
+        }
+      ]
+    }
+  ]
+}

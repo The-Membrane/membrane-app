@@ -468,7 +468,12 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
     l.collDecimals === null ? null : Number(need<bigint | number>(l.collDecimals, `decimals() on collateral token ${r.collateralToken}`))
 
   // --- borrow rate and accrual: Morpho's own _accrueInterest at this block --------
-  const ratePerSec: bigint | null = ZERO.test(r.irm) ? 0n : (optional(res[l.rate as number]) as bigint | null)
+  const rateRead = l.rate === null ? null : optional(res[l.rate])
+  const ratePerSec: bigint | null = ZERO.test(r.irm)
+    ? 0n
+    : typeof rateRead === 'bigint'
+      ? rateRead
+      : null
   const rateError = l.rate === null ? null : res[l.rate]?.status === 'failure' ? res[l.rate]?.error?.message ?? 'reverted' : null
   const canAccrue = ratePerSec !== null && ctx.blockTs !== null
   const w = canAccrue ? accrueMarket(r.words, ratePerSec as bigint, Number(ctx.blockTs)) : r.words
@@ -548,6 +553,11 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
       // exactly the number Morpho itself liquidates against.
       priceUsd: collateralValueUsd / collateralAmount,
       valueUsd: collateralValueUsd,
+      // Morpho collateral is not the market's loan-token supply. Token-native
+      // growth is separate; this zero describes only Morpho protocol interest.
+      supplyApr: 0,
+      supplyAprSource: 'Morpho Blue: posted collateral earns no protocol supply interest',
+      supplyAprFeeBasis: 'protocol-fee-net',
       // Morpho has ONE line per market: lltv is both the borrow cap and the
       // liquidation line. There is no borrow/liquidation gap.
       liquidationThreshold: r.lltv,
@@ -570,6 +580,7 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
       priceUsd: loanPriceUsd,
       valueUsd: debtValueUsd,
       borrowApr,
+      borrowRateBasis: 'variable',
     })
   }
 
@@ -622,6 +633,9 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
 
   return {
     protocol: 'morpho-blue',
+    usdValuationBasis: stableSymbol === undefined ? 'source-oracle' : 'assumed-peg',
+    chainId: 1,
+    venueAddress: MORPHO_BLUE_MAINNET,
     label: `Morpho · ${ctx.name}`,
     marketId: r.m.id,
     collateral,

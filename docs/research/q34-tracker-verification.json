@@ -1,0 +1,594 @@
+{
+  "combinations": 52,
+  "checks": [
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "measured",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "stale",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "loading",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "clock-error",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "missing-cost",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "missing-income",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "mixed-rate",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "assumed-peg",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "same-asset",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "no-debt",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "no-income",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "eth-ratio",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "mixed-comet",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "measured",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "stale",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "loading",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "clock-error",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "missing-cost",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "missing-income",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "mixed-rate",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "assumed-peg",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "same-asset",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "no-debt",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "no-income",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "eth-ratio",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "mixed-comet",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "measured",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "stale",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "loading",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "clock-error",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "missing-cost",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "missing-income",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "mixed-rate",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "assumed-peg",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "same-asset",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "no-debt",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "no-income",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "eth-ratio",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "mixed-comet",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "measured",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "stale",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "loading",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "clock-error",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "missing-cost",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "missing-income",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "mixed-rate",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "assumed-peg",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "same-asset",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "no-debt",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "no-income",
+      "overflow": false,
+      "minimum_control_height": 44
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "eth-ratio",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "mixed-comet",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    }
+  ],
+  "page_errors": [],
+  "live_position_idle_tracker_absent": true,
+  "history_buttons_and_keyboard_slider": true,
+  "limits": [
+    "Real component rendered in explicit synthetic test harness; no fixture values enter product routes.",
+    "Browser matrix does not prove live RPC availability or a real wallet accounting result.",
+    "No manual screen-reader session.",
+    "No forecast, cumulative accrual or time-to-line claim.",
+    "Repository quality script baseline files absent at base; full TypeScript baseline compared directly instead."
+  ],
+  "source_hashes": {
+    "components/PositionV0/CostRewardTracker.tsx": "cdd96ba6ddad142116989f4b1ec08e1063e4d138cd81707ff0f7df571d6b20e2",
+    "components/PositionV0/useCostReward.ts": "14c3094b2aa5bf4106f4dd029b615a8f905bd32b85907139139f22e59eefa3f0",
+    "lib/position/costReward.ts": "d23d8e374be7777faddfb5f703e9ecab65db305e286ca438f02a22710309718c",
+    "lib/position/rateHistory.ts": "65d3ee07c356d0ae47e02c264b687faf0e4515e4e88f3601b1022cb0e826eeca",
+    "lib/position/rateHistory.generated.json": "40da44960edef3847da2acd4399de82ded45d5f7c092a287e0690ba15f0fc2df",
+    "scripts/position/build-rate-history.mjs": "244822ac994ede9a6403c0c25dbc06766139db16f55a632aef9385d93cd6e63d"
+  },
+  "base_sha": "4533ce22057121cfc6fa617f0443fefbad0667fb",
+  "typecheck": {
+    "base_sha": "4533ce22057121cfc6fa617f0443fefbad0667fb",
+    "base_errors": 101,
+    "current_errors": 101,
+    "added": [],
+    "removed": [],
+    "normalized_diagnostics": [
+      "components/Bid/RiskChart.tsx(LINE): error TS2353: Object literal may only specify known properties, and 'capitalAheadAmount' does not exist in type '{ premium: number; tvl: number; }'.",
+      "components/Bid/Summary.tsx(LINE): error TS2322: Type 'Asset | undefined' is not assignable to type 'Asset'.",
+      "components/Bid/UpdateBidSummary.tsx(LINE): error TS2322: Type 'Asset | undefined' is not assignable to type 'Asset'.",
+      "components/Bid/hooks/useCollateralAtRisk.ts(LINE): error TS2345: Argument of type 'EvmBasket' is not assignable to parameter of type 'Basket'.",
+      "components/Disco/DiscoPageUserTotals.tsx(LINE): error TS2339: Property 'isLoading' does not exist on type '{ isApproved: boolean; data: undefined; variables: undefined; error: null; isError: false; isIdle: true; isPending: false; isSuccess: false; status: \"idle\"; mutate: UseMutateFunction<TxResult, Error, void | EvmCall[], unknown>; ... 6 more ...; mutateAsync: UseMutateAsyncFunction<...>; } | { ...; } | { ...; } | { ......'.",
+      "components/Disco/SectionInfoCard.tsx(LINE): error TS2322: Type '{ layout: { duration: number; ease: string; }; }' is not assignable to type 'ResponsiveValue<Transition<string & {}>> | undefined'.",
+      "components/Disco/hooks/useDiscoClaim.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
+      "components/Disco/hooks/useDiscoClaim.ts(LINE): error TS2322: Type '`0x${string}` | undefined' is not assignable to type 'string'.",
+      "components/Disco/hooks/useDiscoDeposit.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
+      "components/Disco/hooks/useDiscoDeposit.ts(LINE): error TS2322: Type '`0x${string}` | undefined' is not assignable to type 'string'.",
+      "components/Disco/hooks/useDiscoDeposit.ts(LINE): error TS2322: Type 'number' is not assignable to type 'string'.",
+      "components/Disco/hooks/useDiscoDeposit.ts(LINE): error TS2322: Type 'string | undefined' is not assignable to type 'string'.",
+      "components/Disco/hooks/useDiscoDepositsData.ts(LINE): error TS2339: Property 'unstakeRequests' does not exist on type '{ deposits: any; pendingClaims: any[]; lifetimeRevenue: {}[]; dailyTVL: any; totalInsurance: string; isLoading: boolean; }'.",
+      "components/Disco/hooks/useDiscoMoveDeposit.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
+      "components/Disco/hooks/useDiscoMoveDeposit.ts(LINE): error TS2322: Type '`0x${string}` | undefined' is not assignable to type 'string'.",
+      "components/Disco/hooks/useDiscoMoveDeposit.ts(LINE): error TS2322: Type 'number' is not assignable to type 'string'.",
+      "components/Disco/hooks/useDiscoMoveDeposit.ts(LINE): error TS2322: Type 'number' is not assignable to type 'string'.",
+      "components/Disco/hooks/useDiscoMoveDeposit.ts(LINE): error TS2322: Type 'string | undefined' is not assignable to type 'string'.",
+      "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type 'EvmCall[] | MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[] | undefined'.",
+      "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
+      "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type '`0x${string}` | undefined' is not assignable to type 'string'.",
+      "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type 'number' is not assignable to type 'string'.",
+      "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type 'string | undefined' is not assignable to type 'string'.",
+      "components/DittoSpeechBox/sections/AcquisitionSection.tsx(LINE): error TS2322: Type 'ChartDataPoint[]' is not assignable to type 'import(\"SOURCE/services/manic\").ChartDataPoint[]'.",
+      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2339: Property 'targetLtv' does not exist on type 'IntentConfig'.",
+      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2339: Property 'targetMaxBorrowLtv' does not exist on type 'IntentConfig'.",
+      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2353: Object literal may only specify known properties, and 'target_ltv' does not exist in type '{ asset: string; slot: number; }'.",
+      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2741: Property 'lockDays' is missing in type '{ type: \"send\"; enabled: false; ratio: number; address: string; }' but required in type 'IntentConfig'.",
+      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2741: Property 'lockDays' is missing in type '{ type: \"send\"; enabled: false; ratio: number; address: string; }' but required in type 'IntentConfig'.",
+      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2741: Property 'lockDays' is missing in type '{ type: \"send\"; enabled: true; ratio: number; address: string; }' but required in type 'IntentConfig'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2322: Type '{ symbol: \"USDC\" | \"CDT\"; denom: string; logo: string; price: number | null; }' is not assignable to type '{ symbol: \"USDC\" | \"CDT\"; denom: string; logo: string; price: number; }'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_asset' does not exist on type 'EvmBasket'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_asset' does not exist on type 'EvmBasket'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_interest' does not exist on type 'never'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_interest' does not exist on type 'never'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'peg_rate_at_target' does not exist on type 'EvmRatesConfig'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'peg_rate_at_target' does not exist on type 'EvmRatesConfig'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'peg_rate_at_target' does not exist on type 'EvmRatesConfig'.",
+      "components/NeutronMint/NeutronMint.tsx(LINE): error TS2339: Property 'positions' does not exist on type 'EvmUserPosition | BasketPositionsResponse'.",
+      "components/NeutronMint/NeutronMint.tsx(LINE): error TS2345: Argument of type 'EvmUserPosition[] | BasketPositionsResponse[]' is not assignable to parameter of type 'BasketPositionsResponse[] | undefined'.",
+      "components/NeutronMint/NeutronMint.tsx(LINE): error TS2345: Argument of type 'EvmUserPosition[] | BasketPositionsResponse[]' is not assignable to parameter of type 'BasketPositionsResponse[] | undefined'.",
+      "components/NeutronMint/hooks/useBorrowModalData.ts(LINE): error TS2345: Argument of type 'EvmUserPosition[] | BasketPositionsResponse[]' is not assignable to parameter of type 'BasketPositionsResponse[] | undefined'.",
+      "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2322: Type 'EvmBasketSupplyCap | SupplyCap' is not assignable to type 'SupplyCap | undefined'.",
+      "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2339: Property 'debt_total' does not exist on type 'EvmBasketSupplyCap | SupplyCap'.",
+      "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2339: Property 'debt_total' does not exist on type 'EvmBasketSupplyCap | SupplyCap'.",
+      "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2339: Property 'lastest_collateral_rates' does not exist on type 'EvmRatesConfig'.",
+      "components/NeutronMint/mockCollateralData.ts(LINE): error TS2339: Property 'native_token' does not exist on type 'AssetInfo'.",
+      "components/NeutronMint/mockCollateralData.ts(LINE): error TS2741: Property 'prices' is missing in type '{ price: string; decimals: number; }' but required in type 'PriceResponse'.",
+      "components/acquisition/hooks/useAcquisitionClaim.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
+      "components/acquisition/hooks/useAcquisitionDeposit.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
+      "components/acquisition/hooks/useAcquisitionWithdraw.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
+      "contracts/codegen/auction/Auction.client.ts(LINE): error TS2459: Module '\"./Auction.types\"' declares 'AssetInfo' locally, but it is not exported.",
+      "contracts/codegen/auction/Auction.message-composer.ts(LINE): error TS2459: Module '\"./Auction.types\"' declares 'AssetInfo' locally, but it is not exported.",
+      "contracts/codegen/brane_auction/BraneAuction.message-composer.ts(LINE): error TS2459: Module '\"./BraneAuction.types\"' declares 'Coin' locally, but it is not exported.",
+      "contracts/codegen/positions/Positions.message-composer.ts(LINE): error TS2416: Property 'editRedeemability' in type 'PositionsMsgComposer' is not assignable to the same property in base type 'PositionsMsg'.",
+      "contracts/codegen/stability_pool/StabilityPool.message-composer.ts(LINE): error TS2459: Module '\"./StabilityPool.types\"' declares 'Coin' locally, but it is not exported.",
+      "hooks/useAffiliate.ts(LINE): error TS2352: Conversion of type '{ getItem: () => null; setItem: () => void; removeItem: () => void; }' to type 'Storage' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
+      "hooks/useDiscoData.ts(LINE): error TS2339: Property 'claims' does not exist on type '{}'.",
+      "hooks/useTransmuterData.ts(LINE): error TS2345: Argument of type 'CosmWasmClient | undefined' is not assignable to parameter of type 'CosmWasmClient | null'.",
+      "hooks/useTransmuterData.ts(LINE): error TS2345: Argument of type 'CosmWasmClient | undefined' is not assignable to parameter of type 'CosmWasmClient | null'.",
+      "hooks/useTransmuterData.ts(LINE): error TS2345: Argument of type 'CosmWasmClient | undefined' is not assignable to parameter of type 'CosmWasmClient | null'.",
+      "hooks/useTransmuterData.ts(LINE): error TS2345: Argument of type 'CosmWasmClient | undefined' is not assignable to parameter of type 'CosmWasmClient | null'.",
+      "hooks/useTransmuterData.ts(LINE): error TS2345: Argument of type 'CosmWasmClient | undefined' is not assignable to parameter of type 'CosmWasmClient | null'.",
+      "hooks/useTransmuterData.ts(LINE): error TS2345: Argument of type 'CosmWasmClient | undefined' is not assignable to parameter of type 'CosmWasmClient | null'.",
+      "tests/unit/alarms.test.ts(LINE): error TS18047: 'e.evidence' is possibly 'null'.",
+      "tests/unit/alarms.test.ts(LINE): error TS18047: 'e.evidence' is possibly 'null'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2339: Property 'redemptionDelaySec' does not exist on type '{ instantUsd: number; worstDayOutflowUsd: number; windowDays: 90; ratio: number; totalRatio: number; }'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '1' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; costPct: any; } | null' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; costPct: any; } | null' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2345: Argument of type '{ grossIn: number; grossOut: number; net: number; }' is not assignable to parameter of type '{ grossIn: any; grossOut: any; net: any; tvl: any; }'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'decimalsIdentity' does not exist on type '{ kind: any; }'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'reads' does not exist on type '{ kind: any; }'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingDecimalsOnchain' does not exist on type '{ kind: any; }'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingIdentity' does not exist on type '{ kind: any; }'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingIdentity' does not exist on type '{ kind: any; }'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingOnchain' does not exist on type '{ kind: any; }'."
+    ],
+    "normalization": "Only checkout absolute path and line/column are normalized; error file, code and message must remain identical."
+  },
+  "unit_tests": {
+    "passed": 96,
+    "suites": 6,
+    "last_adapter_only_rerun": 14
+  },
+  "lint": {
+    "new_file_messages": 0,
+    "modified_existing_non_format_messages": 0,
+    "preexisting_formatting_debt_retained": true,
+    "modified_files_base": {
+      "PositionV0/PositionV0.tsx": {
+        "format_messages": 12,
+        "other_messages": 0
+      },
+      "position-sim/adapters/aaveV3.ts": {
+        "format_messages": 26,
+        "other_messages": 0
+      },
+      "position-sim/adapters/compoundV3.ts": {
+        "format_messages": 16,
+        "other_messages": 0
+      },
+      "position-sim/adapters/morphoBlue.ts": {
+        "format_messages": 34,
+        "other_messages": 0
+      },
+      "position-sim/types.ts": {
+        "format_messages": 0,
+        "other_messages": 0
+      }
+    },
+    "modified_files_current": {
+      "PositionV0/PositionV0.tsx": {
+        "format_messages": 12,
+        "other_messages": 0
+      },
+      "position-sim/adapters/aaveV3.ts": {
+        "format_messages": 26,
+        "other_messages": 0
+      },
+      "position-sim/adapters/compoundV3.ts": {
+        "format_messages": 16,
+        "other_messages": 0
+      },
+      "position-sim/adapters/morphoBlue.ts": {
+        "format_messages": 33,
+        "other_messages": 0
+      },
+      "position-sim/types.ts": {
+        "format_messages": 0,
+        "other_messages": 0
+      }
+    }
+  },
+  "builder": {
+    "command": "node scripts/position/build-rate-history.mjs --check (sibling checkout), or MEMBRANE_DATASETS_DIR=/private/membrane-datasets override",
+    "result": "pass",
+    "source_commit": "2ca6d162207ae84c41255e35c2317abce61517d7",
+    "max_series": 4,
+    "slots_per_series": 90,
+    "output_bytes": 113265,
+    "raw_source_files_modified": false
+  },
+  "screenshots": [
+    {
+      "path": "docs/design/q34-tracker-1280.png",
+      "sha256": "b8f80a0199dc023b1f5a3c0e294e9912a3beb1021133f6a21e937b707463d92e",
+      "fixture_label": "Test harness \u00b7 synthetic position/rates; sourced historical aggregate"
+    },
+    {
+      "path": "docs/design/q34-tracker-390.png",
+      "sha256": "ce7321bd3c33ce0be21305cabd1f2c32a3780e4d012be97b5ac9f04f97832b89",
+      "fixture_label": "Test harness \u00b7 synthetic position/rates; sourced historical aggregate"
+    },
+    {
+      "path": "docs/design/q34-tracker-eth-ratio-390.png",
+      "sha256": "ae4b3e0b37d8b548c84c77912d63df5b22fe456813f5035858cbc5e6d82a4988",
+      "fixture_label": "Test harness \u00b7 synthetic position/rates; sourced historical aggregate"
+    },
+    {
+      "path": "docs/design/q34-tracker-stale-390.png",
+      "sha256": "1caa8507cfd5b73126735dc7651eb8ca32d2e1b127ece4e02f0145b829df5360",
+      "fixture_label": "Test harness \u00b7 synthetic position/rates; sourced historical aggregate"
+    }
+  ],
+  "screenshots_use_final_source_metadata": true,
+  "parent_verification": {
+    "recorded_at_utc": "2026-10-17T02:14:36.394674+00:00",
+    "unit_suites": 6,
+    "unit_tests_passed": 96,
+    "unit_log_sha256": "7de8cb975400ca666a0cb049f6c46cfa63556b41a04791a0058962597c29108d",
+    "builder_check": "canonical MEMBRANE_DATASETS_DIR=/workspace/membrane-datasets --check passed; source/hash/output deterministic",
+    "independent_review": "Three corrected issues verified: independent per-side history timing, source-oracle dollar valuation basis and exact all-active-leg ratio copy. No remaining blocking correctness finding.",
+    "visual_inspection": "Parent inspected the actual390px component screenshot, explicitly labeled synthetic test fixture."
+  }
+}

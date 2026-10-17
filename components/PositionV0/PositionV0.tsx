@@ -16,6 +16,7 @@ import { DEFAULT_HORIZON } from '@/lib/position/reverseSolve'
 import { TOUCH_TABLE, staleDays, type HorizonId } from '@/lib/position/touchHistory'
 
 import { Actions } from './Actions'
+import { CostRewardTracker } from './CostRewardTracker'
 import { AddressForm } from './AddressForm'
 import { ForecastBlock } from './ForecastBlock'
 import { Hero } from './Hero'
@@ -139,7 +140,8 @@ const Positions: React.FC<{
   address: string
   /** Days the forecast's data is past STALE, or null while fresh. */
   staleAge: number | null
-}> = ({ views, selected, onSelect, failures, address, staleAge }) => {
+  readId: string
+}> = ({ views, selected, onSelect, failures, address, staleAge, readId }) => {
   // One horizon drives the forecast, the curve and the levers (FORECAST_VISUALS.md §3).
   const [horizon, setHorizon] = useState<HorizonId>(DEFAULT_HORIZON)
   const hasLine = selected.hero.kind !== 'no-debt'
@@ -151,6 +153,11 @@ const Positions: React.FC<{
       <Actions view={selected} horizon={horizon} address={address} staleDays={staleAge} />
       {/* With no debt there is no line for the window to sit on. */}
       {hasLine && <MembraneLine />}
+      <CostRewardTracker
+        key={`${readId}:${selected.key}`}
+        scope={readId}
+        position={selected.position}
+      />
       <Rule strong mt={SPACING.xl} />
       <Instrument view={selected} failures={failures} />
       {(hasLine || selected.assumption) && (
@@ -196,6 +203,7 @@ const Body: React.FC<{
       failures={items.filter((i) => i.state === 'error' || (i.skipped?.length ?? 0) > 0 || partialDiscovery(i))}
       address={address}
       staleAge={staleAge}
+      readId={readId}
     />
   )
 }

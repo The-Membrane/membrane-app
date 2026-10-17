@@ -277,7 +277,7 @@ def cmd_run(out):
         raise SystemExit("STOP: R10.3 target differs from Q33 outcome")
     P = P.sort_values("origin").reset_index(drop=True)
     dates = pd.DatetimeIndex(P["origin"])
-    if not (np.diff(dates.asi8) == 86400 * 10**9).all():
+    if not (pd.Series(dates).diff().iloc[1:] == pd.Timedelta(days=1)).all():   # unit-safe (pandas 3 resolutions)
         raise SystemExit("STOP: C3 origins are not consecutive days")
     y = P["outcome"].to_numpy()
     Qc = np.array(P["c3"].tolist(), float)
@@ -301,7 +301,7 @@ def cmd_run(out):
     Q["EMP"] = np.array(emp, float)
     emp_abst = np.isnan(Q["EMP"]).any(1)
     apr0 = st["apr"].reindex(dates).to_numpy(float)
-    if np.abs(apr0 - P["r0"].to_numpy()).max() > 1e-12:
+    if np.isnan(apr0).any() or not np.abs(apr0 - P["r0"].to_numpy()).max() <= 1e-12:
         raise SystemExit("STOP: APR_t0 differs from Q33 R0")
     Q["NC"] = np.repeat(apr0[:, None], 5, axis=1)
     names = ["M1", "M2", "C3", "R103", "EMP", "NC"]

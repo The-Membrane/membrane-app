@@ -27,7 +27,12 @@ sys.path.insert(0, HERE)
 import r7_live as R7  # noqa: E402
 
 PREREG_R8 = {"repo": "triccs/membrane-board", "path": "design/Q26_ROUND8_PREREG.md", "commit": "91a3eba"}
+PREREG_R8B = {"repo": "triccs/membrane-board", "path": "design/Q26_ROUND8_PREREG.md", "commit": "c090fb1",
+              "section": "D1 R8.1b"}
 SEED = 20261018
+SEED_R8B = 20261019
+GATE_WINDOWS_R8B = (20, 30)
+REPORT_WINDOWS_R8B = (20, 30, 90)
 RATE_LO, RATE_HI = 0.03, 0.07
 GATE_WINDOWS = (10, 30)              # provisional and full minimum evidence (R8.1)
 REPORT_WINDOWS = (10, 30, 90)
@@ -64,6 +69,16 @@ DECISIONS_GATE = [
     "PASSES iff every (log, horizon) rate at N = 10 and at N = 30 lies in [3%, 7%] (inclusive). N = 90 and the per "
     "design-point rates are reported and decide nothing. Runs per design point: 4000; seeds numpy "
     "default_rng([20261018, log, T_h, N, point]).",
+]
+
+DECISIONS_GATE_R8B = [
+    "G1b-G5b (--rule r8b, Q26_ROUND8_PREREG.md D1 R8.1b @c090fb1): the simulator, design points, statistic (HH, "
+    "Bartlett fallback) and 4000 runs per point are G1-G4 unchanged; seeds default_rng([20261019, log, T_h, N, "
+    "point]); N in {20, 30} gated, 90 reported. A run shows a light iff r7_live.evidence_tier_v2(E, O, N) is full "
+    "(E >= 20, O + E >= 30, N >= 30) or provisional (E >= 10, N >= 20); O = sum d + E. Rates are over runs with a "
+    "light (either tier; per-tier rates reported); a run without a light is 'no light', not a failure, and the share "
+    "of runs with a light is reported. Verdict: PASS iff every (log, horizon, N in {20, 30}) with at least one light "
+    "has a rate in [3%, 7%]; a cell with no light at all is reported as 'no light' and does not fail.",
 ]
 
 
@@ -135,18 +150,29 @@ def touch_point_runs(T, N, sigma, runs, rng, batch=None):
     return {k: (np.concatenate(v[0]), np.concatenate(v[1])) for k, v in acc.items()}
 
 
-def rates(d, E, T_h):
+def rates(d, E, T_h, rule="r81", N=None):
     L = R7.nw_lag(T_h)
     v2, fb = R7.lr_variance_v2(d, L)
     vb = R7.bartlett_variance(d, L)
     s = d.sum(1)
-    show = E >= R7.MIN_E
+    if rule == "r8b":
+        tier = R7.evidence_tier_v2(E, s + E, np.full(len(E), N))
+        show = tier > 0
+    else:
+        tier = None
+        show = E >= R7.MIN_E
     with np.errstate(divide="ignore", invalid="ignore"):
         z2 = np.where(v2 > 0, s / np.sqrt(np.where(v2 > 0, v2, 1.0)), np.nan)
         zb = np.where(vb > 0, s / np.sqrt(np.where(vb > 0, vb, 1.0)), np.nan)
     show = show & np.isfinite(z2)
     ns = int(show.sum())
-    return {"runs": int(len(E)), "shown": ns,
+    extra = {}
+    if tier is not None:
+        for name, c in (("Full", 2), ("Prov", 1)):
+            m = show & (tier == c)
+            extra["shown" + name] = int(m.sum())
+            extra["hit2" + name] = int((np.abs(z2[m]) >= 2).sum())
+    return {**extra, "runs": int(len(E)), "shown": ns,
             "hit2": int((np.abs(z2[show]) >= 2).sum()), "hit3": int((np.abs(z2[show]) >= 3).sum()),
             "hit2Bartlett": int((np.abs(zb[show]) >= 2).sum()), "fallback": int(np.asarray(fb)[show].sum()),
             "meanE": float(E[show].mean()) if ns else None}
@@ -154,6 +180,10 @@ def rates(d, E, T_h):
 
 def finish(r):
     ns = r["shown"]
+    r["lightShare"] = ns / r["runs"] if r["runs"] else None
+    for name in ("Full", "Prov"):
+        if r.get("shown" + name):
+            r["rate2" + name] = r["hit2" + name] / r["shown" + name]
     if ns:
         r["rate2"] = r["hit2"] / ns
         r["rate3"] = r["hit3"] / ns
@@ -164,11 +194,14 @@ def finish(r):
 
 
 def add(tot, r):
-    for k in ("runs", "shown", "hit2", "hit3", "hit2Bartlett", "fallback"):
-        tot[k] = tot.get(k, 0) + r[k]
+    for k in ("runs", "shown", "hit2", "hit3", "hit2Bartlett", "fallback", "shownFull", "hit2Full", "shownProv",
+              "hit2Prov"):
+        if k in r:
+            tot[k] = tot.get(k, 0) + r[k]
 
 
-def run(runs, log=print, windows=REPORT_WINDOWS, dep_h=DEP_HORIZONS_H, touch_h=TOUCH_HORIZONS_H):
+def run(runs, log=print, windows=REPORT_WINDOWS, dep_h=DEP_HORIZONS_H, touch_h=TOUCH_HORIZONS_H, rule="r81"):
+    seed = SEED_R8B if rule == "r8b" else SEED
     res = {"deposit": {}, "touch": {}}
     for li, (logname, hs) in enumerate((("deposit", dep_h), ("touch", touch_h))):
         for T in hs:
@@ -181,18 +214,18 @@ def run(runs, log=print, windows=REPORT_WINDOWS, dep_h=DEP_HORIZONS_H, touch_h=T
                         for pw in DEP_PW:
                             for regime in (False, True):
                                 for como in ((False,) if K == 1 else (False, True)):
-                                    rng = np.random.default_rng([SEED, li, T, N, pi])
+                                    rng = np.random.default_rng([seed, li, T, N, pi])
                                     d, E = dep_point_runs(H, N, K, pw, regime, como, runs, rng)
-                                    r = rates(d, E, T)
+                                    r = rates(d, E, T, rule, N)
                                     add(tot, r)
                                     points.append(finish(dict(r, K=K, pw=pw, regime=regime, comonotone=como)))
                                     pi += 1
                 else:
                     for pi, sig in enumerate(TOUCH_SIGMA_H):
-                        rng = np.random.default_rng([SEED, li, T, N, pi])
+                        rng = np.random.default_rng([seed, li, T, N, pi])
                         units = touch_point_runs(T, N, sig, runs, rng)
                         for k, (d, E) in units.items():
-                            r = rates(d, E, T)
+                            r = rates(d, E, T, rule, N)
                             add(tot, r)
                             points.append(finish(dict(r, sigmaPerHour=sig, unit=k if k == "pooled" else float(k))))
                 tot = finish(tot)
@@ -201,12 +234,12 @@ def run(runs, log=print, windows=REPORT_WINDOWS, dep_h=DEP_HORIZONS_H, touch_h=T
                 shown_rates = [p["rate2"] for p in points if p["shown"] >= 200]
                 tot["pointRate2Range"] = [min(shown_rates), max(shown_rates)] if shown_rates else None
                 res[logname].setdefault(f"{T}h", {})[str(N)] = tot
-                log(f"{logname:7s} T={T:4d}h N={N:3d}: shown {tot['shown']:6d}  |z|>=2 HH {tot.get('rate2', float('nan')):.4f}"
+                log(f"{logname:7s} T={T:4d}h N={N:3d}: shown {tot['shown']:6d}/{tot['runs']:6d}  |z|>=2 HH {tot.get('rate2', float('nan')):.4f}"
                     f"  Bartlett {tot.get('rate2Bartlett', float('nan')):.4f}  fallback {tot.get('fallbackShare', float('nan')):.4f}")
     return res
 
 
-def verdict(res, windows=GATE_WINDOWS):
+def verdict(res, windows=GATE_WINDOWS, rule="r81"):
     rows, ok = [], True
     for logname, byh in res.items():
         for th, byn in byh.items():
@@ -215,9 +248,14 @@ def verdict(res, windows=GATE_WINDOWS):
                 if r is None:
                     continue
                 rate = r.get("rate2")
+                if rule == "r8b" and rate is None:
+                    rows.append({"log": logname, "T": th, "N": N, "rate2": None, "inBand": None, "noLight": True,
+                                 "lightShare": r.get("lightShare")})
+                    continue
                 inside = rate is not None and RATE_LO <= rate <= RATE_HI
                 ok = ok and inside
-                rows.append({"log": logname, "T": th, "N": N, "rate2": rate, "inBand": inside})
+                rows.append({"log": logname, "T": th, "N": N, "rate2": rate, "inBand": inside,
+                             "lightShare": r.get("lightShare")})
     return {"pass": bool(ok), "band": [RATE_LO, RATE_HI], "windows": list(windows), "rows": rows}
 
 
@@ -232,19 +270,27 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--runs", type=int, default=4000)
+    ap.add_argument("--rule", choices=("r81", "r8b"), default="r81")
     a = ap.parse_args()
     t0 = time.time()
-    res = run(a.runs)
-    g = verdict(res)
-    doc = {"schema": "q26-r8/gate-r81/1", "prereg": PREREG_R8, "code": {"commit": git_head(), "file": "r8_gate.py"},
-           "runsPerPoint": a.runs, "decisions": DECISIONS_GATE, "gate": g, "results": res,
+    if a.rule == "r8b":
+        res = run(a.runs, windows=REPORT_WINDOWS_R8B, rule="r8b")
+        g = verdict(res, GATE_WINDOWS_R8B, rule="r8b")
+        meta = {"schema": "q26-r8/gate-r81b/1", "prereg": PREREG_R8B, "decisions": DECISIONS_GATE + DECISIONS_GATE_R8B}
+    else:
+        res = run(a.runs)
+        g = verdict(res)
+        meta = {"schema": "q26-r8/gate-r81/1", "prereg": PREREG_R8, "decisions": DECISIONS_GATE}
+    doc = {**meta, "code": {"commit": git_head(), "file": "r8_gate.py"}, "rule": a.rule,
+           "runsPerPoint": a.runs, "gate": g, "results": res,
            "seconds": round(time.time() - t0, 1)}
     with open(a.out, "w") as f:
         json.dump(doc, f, indent=1, sort_keys=True, allow_nan=False)
     print("GATE", "PASS" if g["pass"] else "FAIL")
     for r in g["rows"]:
         rate = "no run shown" if r["rate2"] is None else f"{r['rate2']:.4f}"
-        print(f"  {r['log']:7s} {r['T']:>5s} N={r['N']:3d} rate {rate} {'ok' if r['inBand'] else 'OUT'}")
+        flag = "no light" if r.get("noLight") else ("ok" if r["inBand"] else "OUT")
+        print(f"  {r['log']:7s} {r['T']:>5s} N={r['N']:3d} rate {rate} {flag} lightShare {r.get('lightShare')}")
 
 
 if __name__ == "__main__":

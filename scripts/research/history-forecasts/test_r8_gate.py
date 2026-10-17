@@ -85,6 +85,27 @@ class TestRatesAndVerdict(unittest.TestCase):
         self.assertFalse(g["pass"])
         self.assertEqual([r["inBand"] for r in g["rows"]], [True, True, False, True])
 
+    def test_rates_r8b_tiers(self):
+        d = np.array([[1.0] * 5, [1.0] * 5, [1.0] * 5, [1.0] * 5])     # z = 2.24, O = E + 5
+        E = np.array([25.0, 22.0, 12.0, 9.0])
+        r = G.rates(d, E, 24, "r8b", 30)
+        # run 1: full (O + E = 55); run 2: O + E = 49 -> full; run 3: provisional; run 4: none
+        self.assertEqual((r["shown"], r["shownFull"], r["shownProv"], r["hit2"]), (3, 2, 1, 3))
+        r = G.rates(d, E, 24, "r8b", 20)                                 # 20 windows: provisional only
+        self.assertEqual((r["shown"], r["shownFull"], r["shownProv"]), (3, 0, 3))
+        r = G.rates(d, E, 24, "r8b", 19)
+        self.assertEqual(r["shown"], 0)
+        self.assertAlmostEqual(G.finish(r)["lightShare"], 0.0)
+
+    def test_verdict_r8b_no_light(self):
+        res = {"deposit": {"1h": {"20": {"rate2": None, "lightShare": 0.0}, "30": {"rate2": 0.05}}}}
+        g = G.verdict(res, (20, 30), rule="r8b")
+        self.assertTrue(g["pass"])
+        self.assertTrue(g["rows"][0]["noLight"])
+        res["deposit"]["1h"]["30"]["rate2"] = 0.08
+        self.assertFalse(G.verdict(res, (20, 30), rule="r8b")["pass"])
+        self.assertFalse(G.verdict({"d": {"1h": {"20": {"rate2": None}}}}, (20,))["pass"])   # R8.1 reading kept
+
     def test_run_smoke(self):
         res = G.run(30, log=lambda *a: None, windows=(10,), dep_h=(48,), touch_h=(72,))
         self.assertIn("48h", res["deposit"])
@@ -94,6 +115,9 @@ class TestRatesAndVerdict(unittest.TestCase):
         self.assertEqual(r["issueDays"], 20)
         self.assertEqual(len(r["designPoints"]), 12)
         self.assertEqual(len(res["touch"]["72h"]["10"]["designPoints"]), 10)
+        rb = G.run(30, log=lambda *a: None, windows=(20,), dep_h=(168,), touch_h=(), rule="r8b")
+        self.assertIn("lightShare", rb["deposit"]["168h"]["20"])
+        self.assertEqual(rb["deposit"]["168h"]["20"].get("shownFull", 0), 0)
 
 
 if __name__ == "__main__":

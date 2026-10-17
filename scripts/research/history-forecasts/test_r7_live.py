@@ -116,6 +116,19 @@ class TestR8Kernel(unittest.TestCase):
                 self.assertEqual(bool(fb[i]), bool(vh[i] <= 0))
 
 
+class TestR8bTier(unittest.TestCase):
+    def test_edges(self):
+        f = R7.evidence_tier_v2
+        self.assertEqual(f(20, 10, 30), "full")
+        self.assertEqual(f(20, 9.99, 30), "provisional")               # O + E < 30
+        self.assertEqual(f(19.99, 50, 30), "provisional")              # E < 20
+        self.assertEqual(f(30, 30, 29), "provisional")                 # < 30 windows
+        self.assertEqual(f(10, 0, 20), "provisional")
+        self.assertIsNone(f(9.99, 50, 40))
+        self.assertIsNone(f(15, 50, 19))
+        self.assertEqual(list(f([20, 10, 5], [10, 0, 0], [30, 20, 40])), [2, 1, 0])
+
+
 class TestGatingAndBands(unittest.TestCase):
     def test_evidence_gating(self):
         ds = days(30)

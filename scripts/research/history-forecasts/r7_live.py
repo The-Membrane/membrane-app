@@ -145,6 +145,24 @@ def lr_variance_v2(d, lag):
     return v, fb
 
 
+# R8.1b evidence rule (Q26_ROUND8_PREREG.md D1 @c090fb1): windows = resolved issue days / ceil(T_h / 24)
+V2_FULL_E, V2_FULL_OE, V2_FULL_WINDOWS = 20.0, 30.0, 30
+V2_PROV_E, V2_PROV_WINDOWS = 10.0, 20
+TIER_FULL, TIER_PROVISIONAL, TIER_NONE = "full", "provisional", None
+
+
+def evidence_tier_v2(E, O, windows):
+    """R8.1b: 'full' iff E >= 20 and O + E >= 30 and windows >= 30; else 'provisional' iff E >= 10 and windows >= 20;
+    else None (no light). Vectorized: arrays give an array of codes 2 (full), 1 (provisional), 0 (none)."""
+    E, O, w = np.asarray(E, float), np.asarray(O, float), np.asarray(windows, float)
+    full = (E >= V2_FULL_E) & (O + E >= V2_FULL_OE) & (w >= V2_FULL_WINDOWS)
+    prov = ~full & (E >= V2_PROV_E) & (w >= V2_PROV_WINDOWS)
+    code = np.where(full, 2, np.where(prov, 1, 0))
+    if np.ndim(code) == 0:
+        return {2: TIER_FULL, 1: TIER_PROVISIONAL, 0: TIER_NONE}[int(code)]
+    return code
+
+
 def band_of(z):
     if z is None:
         return INSUFFICIENT

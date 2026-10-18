@@ -24,6 +24,9 @@ import { fmtAmount, fmtUsd, fmtUtc } from '@/lib/position/format'
 import {
   APR_NOTE,
   FORECAST_DAYS,
+  amountDp,
+  exitBaseline,
+  flatHistoryNote,
   PAPER_UTILIZATION,
   HISTORY_DAYS,
   PENDING_MODEL,
@@ -40,7 +43,7 @@ import {
   type SeriesPoint,
 } from '@/lib/position/lender'
 import { fmtGap, gapSummary, unobservedLine } from '@/lib/position/oracleGap'
-import { BASELINE_LABEL, BASELINE_LOOKBACK_D, baselineFan, type Baseline } from '@/lib/position/baselineFan'
+import { BASELINE_LABEL, BASELINE_LOOKBACK_D, type Baseline } from '@/lib/position/baselineFan'
 import type { ProtocolPosition } from '@/lib/position-sim/types'
 
 import { Headline, Kicker, Mono, Section, Small } from './primitives'
@@ -111,6 +114,8 @@ interface SeriesChartProps {
    * halftone and labelled model-only in place of the hatch. Absent or not ok: the hatch and `pending`.
    */
   fan?: Baseline | null
+  /** A line over the history region, near its floor (a real history too flat to see). */
+  note?: string | null
 }
 
 const TONE = { ink: NEWS.ink, muted: NEWS.muted } as const
@@ -141,6 +146,7 @@ const SeriesSvg: React.FC<SeriesChartProps & { width: number; height: number; ui
   empty,
   nowS,
   fan = null,
+  note = null,
   width,
   height,
   uid,
@@ -255,6 +261,11 @@ const SeriesSvg: React.FC<SeriesChartProps & { width: number; height: number; ui
           </g>
         )
       })}
+      {has && note && (
+        <text x={midHist} y={floorY - 8} textAnchor="middle" fill={NEWS.ink} style={{ ...halo, fontWeight: 700 }} data-flat-note="">
+          {note}
+        </text>
+      )}
       {!has && (
         <text x={midHist} y={M.top + ph / 2} textAnchor="middle" fill={NEWS.ink2} style={halo}>
           {state === 'reading' ? 'history reading…' : state === 'error' ? 'history not read' : empty}
@@ -390,7 +401,8 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
   // untested baseline (expected = today's level; ranges and paths from this series' real
   // 1–7-day moves over the last 12 months), model-only, or "model pending" when the source
   // does not give 12 months (vaults). No chance figure: none has a realized-outcome record.
-  const fan: Baseline | null = isVault || !report ? null : baselineFan(report.liquidityYearUsd, v.liquidityUsd, nowAxis, 'ratio')
+  const fan: Baseline | null = exitBaseline(report, v, nowAxis)
+  const flatNote = flatHistoryNote(report?.liquidityUsd.filter((p) => p.t >= nowAxis - HISTORY_DAYS * 86_400) ?? [], Math.max(v.suppliedUsd, v.liquidityUsd))
   const fanOk = fan !== null && fan.ok
   const fanWhy = isVault
     ? `no liquidity history is reported for vaults, so there is no baseline`
@@ -414,10 +426,10 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
       note: `${isVault ? 'across the vault’s markets' : 'all lenders'}, on-chain at block ${m.block.toLocaleString('en-US')}${onPaper}`,
     },
     isVault
-      ? { k: 'The vault would pay you', v: `${fmtAmount(m.vault?.maxWithdraw ?? 0, 0)} ${v.symbol}`, note: 'its maxWithdraw, on-chain' }
+      ? { k: 'The vault would pay you', v: `${fmtAmount(m.vault?.maxWithdraw ?? 0, amountDp(m.vault?.maxWithdraw ?? 0))} ${v.symbol}`, note: 'its maxWithdraw, on-chain' }
       : { k: 'Borrowed', v: `${(m.utilization * 100).toFixed(1)}%`, note: 'borrowed ÷ supplied', danger: m.utilization >= PAPER_UTILIZATION },
     ...(yieldNow ? [{ k: 'Venue yield', v: yieldNow.text, note: v.paper ? `${yieldNow.note}, a paper rate (see What it pays)` : yieldNow.note }] : []),
-    { k: 'Your supply', v: fmtUsd(v.suppliedUsd), note: `${fmtAmount(v.supplied, v.supplied >= 100 ? 0 : 2)} ${v.symbol}${onPaper}` },
+    { k: 'Your supply', v: fmtUsd(v.suppliedUsd), note: `${fmtAmount(v.supplied, amountDp(v.supplied))} ${v.symbol}${onPaper}` },
   ]
   const exit = (
     <Section id="lending-exit" aria-live="polite" key="exit">
@@ -487,6 +499,7 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
             empty={isVault ? 'no history reported for vaults' : 'no history reported'}
             nowS={nowAxis}
             fan={fan}
+            note={flatNote}
           />
           {fanOk ? (
             <>

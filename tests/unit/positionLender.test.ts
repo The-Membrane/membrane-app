@@ -17,6 +17,9 @@ import {
   reportRequest,
   rewardNote,
   shareText,
+  amountDp,
+  exitBaseline,
+  flatHistoryNote,
 } from '@/lib/position/lender'
 import type { LendMarketState, ProtocolPosition } from '@/lib/position-sim/types'
 
@@ -259,6 +262,33 @@ describe('pooled venues and vaults', () => {
     expect(r.rewards).toEqual([{ symbol: 'reward tokens', apr: 0.02 }])
     expect(r.utilization).toEqual([])
     expect(() => parseLlamaChart({ status: 'error' }, now)).toThrow(/no data/)
+  })
+
+  it('exit baseline: pending on a DefiLlama history that counts a deficit as liquidity; drawn from cash-only history', () => {
+    const NOW = 1_800_000_000
+    const year = Array.from({ length: 366 }, (_, i) => ({ t: NOW - (365 - i) * 86_400, v: 100 + (i % 5) }))
+    const rep = { ...parseLlamaChart({ data: [] }, NOW * 1000), liquidityYearUsd: year }
+    const withDeficit = lenderView(aave(5), rep)!
+    expect(exitBaseline(rep, withDeficit, NOW)).toEqual({ ok: false, reason: 'its history includes the deficit, not cash' })
+    const clean = lenderView(aave(0), rep)!
+    expect(exitBaseline(rep, clean, NOW)).toMatchObject({ ok: true, kind: 'ratio' })
+    expect(exitBaseline(null, clean, NOW)).toBeNull()
+  })
+
+  it('names a free-liquidity history too flat to see, from its own maximum', () => {
+    const pts = (vs: number[]) => vs.map((v, i) => ({ t: i, v }))
+    expect(flatHistoryNote(pts([0.0079, 0.36, 0.0135]), 331)).toBe('under $1 free all 30 days (at most $0.36)')
+    expect(flatHistoryNote(pts([0, 0]), 331)).toBe('under $1 free all 30 days (at most $0)')
+    expect(flatHistoryNote(pts([2, 5]), 1000)).toBe('at most $5 free over 30 days')
+    expect(flatHistoryNote(pts([50, 60]), 1000)).toBeNull()
+    expect(flatHistoryNote([], 1000)).toBeNull()
+  })
+
+  it('token amounts: whole units from 100 up, else 2 decimals (vault maxWithdraw and supply alike)', () => {
+    expect(amountDp(571_569.4)).toBe(0)
+    expect(amountDp(100)).toBe(0)
+    expect(amountDp(99.5)).toBe(2)
+    expect(amountDp(0.4)).toBe(2)
   })
 
   const aaveWith = (deficit: number | null, backstop: LendMarketState['backstop'], protocol: 'aave-v3' | 'spark' = 'aave-v3') => {

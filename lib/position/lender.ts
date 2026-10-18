@@ -27,6 +27,7 @@
  * unit test covers a real payload's shape.
  */
 
+import { baselineFan, type Baseline } from './baselineFan'
 import llamaPools from './llamaPools.generated.json'
 import type { LendMarketState, ProtocolId, ProtocolPosition } from '@/lib/position-sim/types'
 
@@ -614,3 +615,35 @@ export const rewardNote = (symbols: string[]): string =>
 
 /** Morpho's own app quotes APY (compounded); this page quotes simple APR. */
 export const APR_NOTE = 'APR, simple. Venue apps quote APY (compounded), which reads higher, far higher at extreme rates.'
+
+/** Token-amount decimals on this block: whole units from 100 up, else 2 (the supply row's rule). */
+export const amountDp = (x: number): number => (x >= 100 ? 0 : 2)
+
+/**
+ * The exit region's untested baseline, or why not (null: no report yet, or a vault, whose
+ * liquidity history is not reported). DefiLlama's tvlUsd is supply − borrow, so on a reserve
+ * carrying a deficit its history counts the deficit as liquidity (an Aave deficit booking
+ * reads as a jump), while "now" is cash: the moves are of a different quantity. With no
+ * history of the deficit to take out, that case stays pending.
+ */
+export function exitBaseline(report: LenderReport | null, v: LenderView, nowS: number): Baseline | null {
+  if (!report || v.venue === 'morpho-vault') return null
+  if (report.source === 'DefiLlama yields' && (v.market.deficit ?? 0) > 0) {
+    return { ok: false, reason: 'its history includes the deficit, not cash' }
+  }
+  return baselineFan(report.liquidityYearUsd, v.liquidityUsd, nowS, 'ratio')
+}
+
+/**
+ * When the history of free liquidity hugs the floor of an axis drawn to `top` (under 2% of
+ * it all window long), the line is real but invisible: say what it was. Null otherwise.
+ */
+export function flatHistoryNote(points: SeriesPoint[], top: number): string | null {
+  if (points.length === 0 || !(top > 0)) return null
+  const max = Math.max(...points.map((p) => p.v))
+  if (max >= top * 0.02) return null
+  const at = max >= 1 ? usdShort(max) : max > 0 ? `$${max.toFixed(2)}` : '$0'
+  return max < 1
+    ? `under $1 free all ${HISTORY_DAYS} days (at most ${at})`
+    : `at most ${at} free over ${HISTORY_DAYS} days`
+}

@@ -69,6 +69,7 @@ Q_SEG = {"w1": 0.04, "w2": 0.2, "w3": 1.0, "c1": 0.2, "c2": 1.0, "c3": 1.0}   # 
 SEED_SAMPLE = 20261901
 SEED_DEV = 20261902                            # dev bootstrap (30-day day blocks, 2,000 replicates)
 SEED_D1 = 20261903                             # D1 bootstrap
+SEED_D1_UNIT = 20261904                        # D1 unit-cluster bootstrap (reported only)
 PRIMARY_H = ("24h", "48h", "7d")               # B4.6 verdict horizons
 HIGH_GUARD = (("x10_24h", "w1"), ("x25_24h", "w1"))   # B4 final HIGH cells (labels-b4-d2.csv)
 GUARD_LO = -0.002
@@ -896,6 +897,31 @@ def holm(pvals, alpha=ALPHA):
     return rej
 
 
+def unit_cluster_bss(rows, PR, test, a, b, seed, n_rep=2000):
+    """Reported only: per primary h, BSS(a vs b) on the thin pool (summed over x) with units resampled."""
+    rng = np.random.default_rng(seed)
+    out = {}
+    for h in PRIMARY_H:
+        hi = G.HNAMES.index(h)
+        us, sa, sb = [], [], []
+        for xi in range(NX):
+            ci = int(G.XCELL[hi, xi])
+            m = test & rows["RES"][:, hi] & ~rows["CAP"][:, ci] & np.isin(rows["seg"], list(THIN_IDX))
+            y = rows["Y"][m, ci].astype(float)
+            us.append(rows["unit"][m])
+            sa.append((PR[a][m, ci] - y) ** 2)
+            sb.append((PR[b][m, ci] - y) ** 2)
+        u = np.concatenate(us)
+        uu, inv = np.unique(u, return_inverse=True)
+        ea = np.bincount(inv, weights=np.concatenate(sa), minlength=len(uu))
+        eb = np.bincount(inv, weights=np.concatenate(sb), minlength=len(uu))
+        draws = rng.integers(0, len(uu), size=(n_rep, len(uu)))
+        reps = 1.0 - ea[draws].sum(axis=1) / eb[draws].sum(axis=1)
+        lo, hi_ = np.percentile(reps, [2.5, 97.5])
+        out[h] = {"bss": float(1 - ea.sum() / eb.sum()), "ci95": [float(lo), float(hi_)], "units": int(len(uu))}
+    return out
+
+
 def phase_run(datasets_dir, d1_dir, out_dir, frozen_sha256, log):
     rec = json.load(open(os.path.join(out_dir, "freeze-record.json")))
     fp = os.path.join(out_dir, "frozen-r142.json")
@@ -948,9 +974,11 @@ def phase_run(datasets_dir, d1_dir, out_dir, frozen_sha256, log):
         guard[f"{cid}_{sg}"] = {"bss": c["bss"] if c else None, "ci95": c.get("ci95") if c else None,
                                 "pass": lo is not None and lo > GUARD_LO}
     passed = any(v["pass"] for v in prim.values()) and all(v["pass"] for v in guard.values())
+    ucl = unit_cluster_bss(rows, PR, test, "L0", "b4t1", SEED_D1_UNIT)
     out = {"phase": "run (D1 blind set, once)", "prereg": PREREG, "frozen_sha256": frozen_sha256, "code": meta,
            "qrt": qinfo, "units": {R.name: R.n for R in res}, "rows": int(n), "rows_scored": int(test.sum()),
-           "verdict": {"PASS": bool(passed), "primary": prim, "guard": guard}, "eval": ev, "eval_with_d1_history": ev_hist,
+           "verdict": {"PASS": bool(passed), "primary": prim, "guard": guard},
+           "unit_cluster_primary_reported_only": ucl, "eval": ev, "eval_with_d1_history": ev_hist,
            "started_utc": started, "finished_utc": utcnow(), "runtime_s": time.time() - t0}
     rp = os.path.join(out_dir, "results-d1-r142.json")
     B.write_json(rp, out, refuse_overwrite=True)

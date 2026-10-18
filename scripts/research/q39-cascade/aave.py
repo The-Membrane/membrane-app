@@ -307,6 +307,7 @@ def replay(meta: dict, work: str, days: dict[int, int], only_days: set | None = 
     sched = sorted((b, ts) for ts, b in days.items() if b >= meta["pool_deploy_block"])
     si = 0
     dtype = np.dtype([(f, "f8") for f in REC_FIELDS])
+    BT_OV = {k: int(v) for k, v in bt_fix(meta, work)["overrides"].items()}
 
     def snapshot(ts):
         st = json.load(open(os.path.join(work, "state", f"{ts}.json")))
@@ -393,6 +394,7 @@ def replay(meta: dict, work: str, days: dict[int, int], only_days: set | None = 
             bu[ri] = bu.get(ri, 0) + d
         elif kind == "aX":
             ri, u1, u2, s = r[3], r[4], r[5], r[6]
+            s = BT_OV.get(f"{blk}:{r[1]}", s)
             A.setdefault(u1, {})[ri] = A.setdefault(u1, {}).get(ri, 0) - s
             A.setdefault(u2, {})[ri] = A.setdefault(u2, {}).get(ri, 0) + s
         elif kind == "CON":
@@ -482,3 +484,70 @@ def gho_fix(meta: dict, work: str, days: dict[int, int]):
         si += 1
     json.dump(done, open(mark, "w"))
     print(f"[{meta['market']}] gho fix", stats, flush=True)
+
+
+T_ERC_TRANSFER = topic("Transfer(address,address,uint256)")
+
+
+def _bt_scaled_at(c, tokens, b, span):
+    """Behaviour of the first BalanceTransfer at or after block b: True if its value is scaled (V3.0.1+),
+    False if unscaled (V3.0.0), None if none found in [b, b + span]."""
+    lg = c.get_logs(tokens, [T_BXFER], b, b + span, step=span + 1)
+    for l in lg:
+        rc = c.call("eth_getTransactionReceipt", [l["transactionHash"]], need_logs=True)
+        bt = words(l["data"])
+        tr = [int(x["data"][:66], 16) for x in rc["logs"] if x["address"].lower() == l["address"].lower()
+              and x["topics"][0] == T_ERC_TRANSFER and x["topics"][1:3] == l["topics"][1:3]]
+        if not tr or tr[0] == 0:
+            continue
+        if abs(bt[0] - ray_div(tr[0], bt[1])) <= 2:
+            return True, int(l["blockNumber"], 16)
+        if abs(bt[0] - tr[0]) <= 2 or abs(ray_div(bt[0], bt[1]) - tr[0]) <= 2:
+            return False, int(l["blockNumber"], 16)
+    return None, None
+
+
+def bt_fix(meta: dict, work: str, span=200_000):
+    """Aave V3.0.0 aTokens emitted BalanceTransfer with the unscaled amount. Find the switch block by bisection
+    on behaviour, refetch pre-switch BalanceTransfer logs with their index, and write an override map
+    {"block:logIndex": scaled} used by replay."""
+    out = os.path.join(work, "bt-fix.json")
+    if os.path.exists(out):
+        return json.load(open(out))
+    c = Client(meta["chain"])
+    toks = [r["aToken"] for r in meta["reserves"]]
+    lo = meta["pool_deploy_block"]
+    hi = c.block_number()
+    s_lo, _ = _bt_scaled_at(c, toks, lo, span * 10)
+    if s_lo is None or s_lo:
+        res = {"switch_block": None, "note": "scaled from deployment", "overrides": {}}
+        json.dump(res, open(out, "w"))
+        return res
+    # invariant: behaviour at lo is unscaled, at hi scaled
+    while hi - lo > span:
+        mid = (lo + hi) // 2
+        s, at = _bt_scaled_at(c, toks, mid, span)
+        if s is None:
+            lo = mid  # quiet range: keep searching above (conservative)
+            continue
+        if s:
+            hi = mid
+        else:
+            lo = at
+    # exact switch: scan [lo, hi] event by event
+    lg = c.get_logs(toks, [T_BXFER], lo, hi, step=hi - lo + 1)
+    switch = hi
+    for l in lg:
+        s, at = _bt_scaled_at(c, [l["address"]], int(l["blockNumber"], 16), 0)
+        if s:
+            switch = int(l["blockNumber"], 16)
+            break
+    pre = c.get_logs(toks, [T_BXFER], meta["pool_deploy_block"], switch - 1, step=500_000)
+    ov = {}
+    for l in pre:
+        w = words(l["data"])
+        ov[f"{int(l['blockNumber'], 16)}:{int(l['logIndex'], 16)}"] = ray_div(w[0], w[1])
+    res = {"switch_block": switch, "n_overrides": len(ov), "overrides": {k: str(v) for k, v in ov.items()}}
+    json.dump(res, open(out, "w"))
+    print(f"[{meta['market']}] BalanceTransfer switch at {switch}; {len(ov)} pre-switch transfers rescaled", flush=True)
+    return res

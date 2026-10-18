@@ -76,15 +76,17 @@ def reader():
             ts = int(fn[:-4])
             if not dev_day(ts):
                 continue
-            n = len(np.load(os.path.join(d, fn), mmap_mode="r"))
-            pool.append((v, ts, n))
-    tot = sum(n for _, _, n in pool)
+            a = np.load(os.path.join(d, fn))
+            keep = np.where(a["DE"] + a["DB"] + a["DO"] >= CS.DUST_USD)[0]
+            pool.append((v, ts, keep))
+    tot = sum(len(k) for _, _, k in pool)
     rng = np.random.default_rng(SEED)
     picks = sorted(rng.choice(tot, 200, replace=False))
     sel, acc, j = [], 0, 0
-    for v, ts, n in pool:
+    for v, ts, keep in pool:
+        n = len(keep)
         while j < len(picks) and picks[j] < acc + n:
-            sel.append((v, ts, int(picks[j] - acc)))
+            sel.append((v, ts, int(keep[picks[j] - acc])))
             j += 1
         acc += n
     out = []

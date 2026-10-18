@@ -21,6 +21,7 @@ from callrule import m_call_vec
 NG = 601
 GRID = 1.0 - 0.001 * np.arange(NG)
 MAX_ROUNDS = 6
+DUST_USD = 1.0   # accounts with < $1 of debt are dust (decision D6n)
 
 
 def _arr(rec, f):
@@ -40,7 +41,7 @@ def schedule(rec: np.ndarray, kind: str, fM: float = 1.0) -> dict:
     DE, DB, DO, DM = _arr(rec, "DE"), _arr(rec, "DB"), _arr(rec, "DO"), _arr(rec, "DmaxO")
     # only accounts with shock-linked collateral can be pushed under by the shock
     hf0 = (ltE * VE + ltB * VB + ltO * VO) / np.maximum(DE + DB + DO, 1e-12)
-    alive = (VE + VB > 0) & (DE + DB + DO > 0) & (hf0 >= 1.0)
+    alive = (VE + VB > 0) & (DE + DB + DO >= DUST_USD) & (hf0 >= 1.0)
     cum = {"E": 0.0, "B": 0.0, "absE": 0.0, "absB": 0.0, "absD": 0.0}
     for k in range(NG):
         g = GRID[k]
@@ -172,7 +173,7 @@ def naive_density(rec_list: list[np.ndarray], asset: str) -> np.ndarray:
         den0 = rec["DO"]
         b = rec["DE"] + rec["DB"]
         hf0 = (a + num0) / np.maximum(den0 + b, 1e-12)
-        ok = (VE + VB > 0) & (hf0 >= 1.0)
+        ok = (VE + VB > 0) & (hf0 >= 1.0) & (den0 + b >= DUST_USD)
         # HF(g) = (a g + num0)/(b g + den0) < 1  <=>  g (a - b) < den0 - num0
         with np.errstate(divide="ignore", invalid="ignore"):
             gl = np.where(a - b > 0, (den0 - num0) / (a - b), -np.inf)

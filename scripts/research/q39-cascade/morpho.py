@@ -160,7 +160,8 @@ def daily_state(chain: str, work: str, days: dict[int, int], mk: dict, aave_orac
             r = res[k + j]
             if r:
                 st["loanpx"][l.lower()] = int.from_bytes(r[:32], "big") / 1e8
-        json.dump(st, open(out, "w"))
+        json.dump(st, open(out + ".tmp", "w"))
+        os.replace(out + ".tmp", out)
     print(f"[morpho-{chain}] daily state done (rpc {c.n_requests})", flush=True)
 
 

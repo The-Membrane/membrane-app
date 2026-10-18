@@ -250,7 +250,8 @@ def daily_state(meta: dict, work: str, days: dict[int, int], emode_ids=range(0, 
                 ent = {"ltv": w[0], "lt": w[1], "bonus": w[2], "bitmap": None}
             if ent and ent["lt"]:
                 st["emode"][str(e)] = ent
-        json.dump(st, open(out, "w"))
+        json.dump(st, open(out + ".tmp", "w"))
+        os.replace(out + ".tmp", out)
     print(f"[{meta['market']}] daily state done (rpc {c.n_requests})", flush=True)
 
 

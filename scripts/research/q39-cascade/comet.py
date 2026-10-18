@@ -218,7 +218,8 @@ def daily_state(meta: dict, work: str, days: dict[int, int], holders: dict):
                 for a, info in st["assets"].items():
                     if info["feed"] == f and r:
                         info["px"] = words(r)[0] / 1e8
-            json.dump(st, open(out, "w"))
+            json.dump(st, open(out + ".tmp", "w"))
+            os.replace(out + ".tmp", out)
     print(f"[comet-{meta['chain']}] daily state done (rpc {c.n_requests})", flush=True)
 
 

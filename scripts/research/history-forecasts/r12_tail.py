@@ -1636,7 +1636,7 @@ def cmd_freeze(a):
     if not R112.git_clean():
         raise SystemExit("STOP: code tree not clean")
     cnt = json.load(open(os.path.join(a.acq, "counts-r12-builder.json")))
-    if not cnt["equal_to_registered"]:
+    if not cnt["equal_to_registered"] and not a.counts_deviation:
         raise SystemExit("STOP: counts not equal to the registered counts")
     inputs = {}
     for sub, mn in (("b9", "manifest-acquire-b9.json"), ("b10", "manifest-acquire-b10.json")):
@@ -1656,6 +1656,9 @@ def cmd_freeze(a):
                     "path": "scripts/research/history-forecasts/r12_tail.py",
                     "sha256": R112.sha256_file(os.path.abspath(__file__)), "clean": R112.git_clean()},
            "inputs": inputs, "dev_outputs": dev,
+           "counts_deviation": a.counts_deviation, "items_to_run": ["r12.1"],
+           "items_not_run": {"r12.2": "registered, not run: no correctable bias on development data (pooled R(fH) "
+                             "0.95-1.01); B9 ends before the 2026 drift; design frozen (D-R12-acq-b)"},
            "selected_r121": pf["selected_r121"], "r122_rule": pf["r122_rule"],
            "pooled_frozen": {k: pf[k] for k in ("poisson", "theta_frozen", "e", "xi", "G", "delta_frozen")},
            "constants": {"horizons_h": list(HORIZONS), "levels": list(LEVELS), "deep": list(DEEP),
@@ -1927,6 +1930,8 @@ def cmd_run(a):
         if R112.sha256_file(os.path.join(a.dev, rel)) != h:
             raise SystemExit(f"STOP: dev output {rel} sha256 differs")
     item = a.item
+    if item not in cfg.get("items_to_run", ["r12.1", "r12.2"]):
+        raise SystemExit(f"STOP: {item} is not run under the frozen config")
     rp = os.path.join(a.out, f"results-{item}.json")
     marker = os.path.join(a.out, f"run-started-{item}.json")
     if os.path.exists(rp) or os.path.exists(marker):
@@ -1960,10 +1965,18 @@ def cmd_run(a):
             names = list(cells_all)
             pv = np.array([cells_all[c]["cell_p"] for c in names])
             hk = holm(pv)
+            devr = json.load(open(os.path.join(a.dev, "dev-readings-r12.json")))["r121"]
             for c, ok in zip(names, hk):
                 v = cells_all[c]
                 v["holm_pass"] = bool(ok)
-                v["pass"] = bool(v["all_mean_d_negative"] and ok and v["R_in_band"])
+                v["pass"] = bool(v["all_mean_d_negative"] and ok and v["R_in_band"] and
+                                 not v["reported_only_low_blocks"])
+                gs = devr[c.split()[0]]["cells"][c.split()[1]]["G_star_max"]
+                v["dev_G_star_max"] = gs
+                v["underpowered_at_dev_effect"] = bool(gs is None or gs > v["positive_blocks"])
+                v["label"] = ("PASS" if v["pass"] else "REPORTED ONLY (<30 positive blocks)"
+                              if v["reported_only_low_blocks"] else
+                              "FAIL (underpowered)" if v["underpowered_at_dev_effect"] else "FAIL")
             results["sets"][setname].update({"cells": cells_all, "per_T": extra_all, "q2_reported": q2_all})
             if setname == "b9":
                 results["sets"][setname]["full_series_variant"] = full_all
@@ -2022,6 +2035,7 @@ def main():
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--only", choices=("b10",))
+    ap.add_argument("--counts-deviation", default="")
     a = ap.parse_args()
     {"dev": cmd_dev, "acquire": cmd_acquire, "counts": cmd_counts, "freeze": cmd_freeze, "run": cmd_run}[a.cmd](a)
 

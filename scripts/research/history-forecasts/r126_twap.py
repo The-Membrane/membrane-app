@@ -424,6 +424,7 @@ N_BOOT_DEV, SEED_DEV = 1000, 20261826
 
 def dev_task(a):
     path, T, key = a["path"], a["T"], a["key"]
+    grid, cap = a.get("grid", "6h"), int(a.get("cap", END))
     d = np.load(path)
     st = int(d["startTs"])
     cols = {k: d[k] for k in ("close", "low", "high", "tw_min", "tw_end", "or_min", "or_end")}
@@ -467,7 +468,8 @@ def dev_task(a):
         coef, _ = PL.har_coef(qs)
         sH = PL.sigma_H(coef)
         te = np.arange(qs, qe)
-        te = te[lab_all[te] & (ts_all[te] + T * STEP <= END) & (ts_all[te] % ISSUE_6H == 0)]
+        te = te[lab_all[te] & (ts_all[te] + T * STEP <= min(END, cap)) &
+                ((ts_all[te] % ISSUE_6H == 0) if grid == "6h" else True)]
         if len(te) == 0:
             continue
         thr = PL.P.thresholds(sH[te])
@@ -638,6 +640,96 @@ def cmd_dev(a):
     say(f"{now_iso()} done")
 
 
+CONF_T = (1, 3, 6)
+CONF_K = SHALLOW
+N_CONF6 = len(CONF_T) * len(CONF_K)
+SEED_POW = 20261827
+
+
+def cand_cmp(S, col, ew):
+    """candidate fHA_W and its comparators on target W at one level; (e) constant ew."""
+    y = S["yW"][:, col].astype(float)
+    P = {"fHA": S["fHAW"][:, col].astype(float), "fH": S["fHW"][:, col].astype(float),
+         "f": S["fW"][:, col].astype(float), "a": S["aW"][:, col].astype(float), "e": np.full(len(y), ew)}
+    return y, P
+
+
+def cmd_power(a):
+    """development power for the R12.6 confirmatory family (hourly grid, calendar-week blocks)."""
+    from scipy.stats import norm
+    os.makedirs(a.out, exist_ok=True)
+    man = json.load(open(os.path.join(a.hours, "manifest-dev-hours.json")))
+    keys = [p["pair"] for p in man["pairs"] if p.get("hours")]
+    z = float(norm.ppf(1 - 0.05 / N_CONF6) + norm.ppf(0.8))
+    z3 = float(norm.ppf(1 - 0.05 / len(CONF_T)) + norm.ppf(0.8))
+    out = {"schema": "q26-r126-power-v1", "prereg": PREREG, "created_utc": now_iso(), "grid": "hourly",
+           "z_alpha_15_plus_z_08": z, "z_alpha_3_plus_z_08": z3, "e_constants": {}, "cells": [], "pooled_T": []}
+    import multiprocessing as mp
+    for T in CONF_T:
+        tasks = [{"path": os.path.join(a.hours, f"{k}.npz"), "T": T, "key": k, "grid": "1h"} for k in keys]
+        with mp.get_context("fork").Pool(a.workers, maxtasksperchild=4) as pool:
+            res = pool.map(dev_task, tasks, chunksize=1)
+        for r in res:
+            if r["rows"] is not None:
+                r["rows"] = {k: v for k, v in r["rows"].items() if k in ("ts", "q2", "yW", "yL", "fHAW", "fHW", "fW",
+                                                                           "aW", "fHL")}
+        S = R12.stack_rows(res, lambda rw: ~rw["q2"])
+        del res
+        w = R12.wk(S["ts"])
+        _, g = np.unique(w, return_inverse=True)
+        G = int(g.max()) + 1
+        rng = np.random.default_rng(np.random.SeedSequence([SEED_POW, T]))
+        idx = rng.integers(0, G, size=(2000, G))
+        out["e_constants"][R12.TL[T]] = {}
+        num_W = np.zeros(G)
+        den_W = np.zeros(G)
+        num_L = np.zeros(G)
+        den_L = np.zeros(G)
+        for k in CONF_K:
+            col = LEVELS.index(k)
+            ew = float(S["yW"][:, col].mean())
+            el = float(S["yL"][:, col].mean())
+            out["e_constants"][R12.TL[T]][repr(k)] = {"W": ew, "L": el}
+            y, P = cand_cmp(S, col, ew)
+            se = {m: (p - y) ** 2 for m, p in P.items()}
+            cell = {"T": R12.TL[T], "level": k, "rows": int(len(y)), "positives": int(y.sum()), "weeks": G,
+                    "positive_weeks": int((np.bincount(g, weights=y, minlength=G) > 0).sum()),
+                    "R_fHA": float(P["fHA"].sum() / y.sum()), "vs": {}}
+            gs = []
+            for c in ("fH", "f", "a", "e"):
+                d = se["fHA"] - se[c]
+                Sb = np.bincount(g, weights=d, minlength=G)
+                m_, s_ = float(Sb.mean()), float(Sb.std(ddof=1))
+                gst = (z * s_ / m_) ** 2 if m_ < 0 else None
+                gs.append(gst)
+                cell["vs"][c] = {"bss": 1 - float(se["fHA"].mean() / se[c].mean()), "week_mean_d": m_,
+                                 "week_sd_d": s_, "G_star_weeks": gst, "cr1_p": R12.cr1_test(g, d)["p_one_sided"]}
+            cell["G_star_max_weeks"] = None if any(x is None for x in gs) else float(max(gs))
+            out["cells"].append(cell)
+            print(f"{R12.TL[T]} {k:+.2f} rows {len(y)} pos {int(y.sum())} R {cell['R_fHA']:.2f} " +
+                  " ".join(f"{c} {cell['vs'][c]['bss']:+.3f}/G*{cell['vs'][c]['G_star_weeks'] or -1:.0f}"
+                           for c in ("fH", "f", "a", "e")), flush=True)
+            yl = S["yL"][:, col].astype(float)
+            num_W += np.bincount(g, weights=se["fHA"], minlength=G)
+            den_W += np.bincount(g, weights=se["e"], minlength=G)
+            num_L += np.bincount(g, weights=(S["fHL"][:, col] - yl) ** 2, minlength=G)
+            den_L += np.bincount(g, weights=(el - yl) ** 2, minlength=G)
+        dS = (1 - num_W.sum() / den_W.sum()) - (1 - num_L.sum() / den_L.sum())
+        bb = (1 - num_W[idx].sum(1) / den_W[idx].sum(1)) - (1 - num_L[idx].sum(1) / den_L[idx].sum(1))
+        sd = float(bb.std(ddof=1))
+        # weeks needed for 80% power at alpha 0.05/3, scaling the bootstrap SD by sqrt(G / G_new)
+        gneed = float(G * (z3 * sd / dS) ** 2) if dS > 0 else None
+        out["pooled_T"].append({"T": R12.TL[T], "skill_W_fHA_vs_e": float(1 - num_W.sum() / den_W.sum()),
+                                "skill_L_fH_vs_e": float(1 - num_L.sum() / den_L.sum()), "diff": float(dS),
+                                "boot_sd": sd, "boot_p_le0": float(np.mean(bb <= 0)), "weeks": G,
+                                "weeks_needed_80pct": gneed})
+        print(out["pooled_T"][-1], flush=True)
+        del S
+    p = os.path.join(a.out, "power-r126.json")
+    json.dump(out, open(p, "w"), indent=1)
+    print("sha256", sha256b(open(p, "rb").read()))
+
+
 def main():
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(dest="cmd", required=True)
@@ -653,13 +745,17 @@ def main():
     s.add_argument("--set", required=True, choices=("B13a",))
     s.add_argument("--out", required=True)
     s.add_argument("--workers", type=int, default=6)
+    s = sp.add_parser("power")
+    s.add_argument("--hours", required=True)
+    s.add_argument("--out", required=True)
+    s.add_argument("--workers", type=int, default=3)
     s = sp.add_parser("dev")
     s.add_argument("--hours", required=True)
     s.add_argument("--out", required=True)
     s.add_argument("--workers", type=int, default=4)
     a = ap.parse_args()
     {"select-kucoin": cmd_select_kucoin, "build-binance": cmd_build_binance,
-     "acquire-kucoin": cmd_acquire_kucoin, "dev": cmd_dev}[a.cmd](a)
+     "acquire-kucoin": cmd_acquire_kucoin, "dev": cmd_dev, "power": cmd_power}[a.cmd](a)
 
 
 if __name__ == "__main__":

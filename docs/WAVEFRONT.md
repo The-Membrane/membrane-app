@@ -86,7 +86,7 @@ positions are sold at t0 (the first round, unscaled at a lower line: 1,590).
   ever sell, it is excluded ('no-capacity'), and it never touches the shared book.
 - Only collateral sales are capped. Debt repayment is not.
 
-**Sensitivities** (each on its own compared set; shares; `scripts/build-evidence-census.ts:402`
+**Sensitivities** (each on its own compared set; shares; `scripts/build-evidence-census.ts:399`
 and after, `meta.sensitivities`):
 
 | run | positions | real share | Membrane share† | net | Aave | Morpho |

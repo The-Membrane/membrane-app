@@ -146,6 +146,7 @@ export function morphoSpecAt(
       value0: collUnits ?? 0,
       usd: toUsd(collUnits),
       lt: line,
+      token: anchor.collateralToken.toLowerCase(),
     },
   ]
   // The loan leg never moves in loan units: key '' reads ratio 1 at every minute.

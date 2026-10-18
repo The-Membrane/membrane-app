@@ -21,7 +21,12 @@
  *   - the venue recall rate. It is the dominant variable and it is an input.
  */
 
-import { hardCapFor, positionLtvCap } from './collateralClass'
+import {
+  MAX_LTV_HARD_CAP,
+  NO_DELAY_LTV_HARD_CAP,
+  hardCapFor,
+  positionLtvCap,
+} from './collateralClass'
 import { stamp, type Provenance } from './types'
 
 // ---------------------------------------------------------------- constants
@@ -216,7 +221,7 @@ export function membraneRepayValue(
   if (L >= 1) return applyDebtMinimum(collValueUsd, loanValueUsd, debtMinimumUsd)
   if (L <= borrowLtv) return 0 // still under the cap: nothing to do — the floor never runs
   const denomB = borrowLtv < 1 ? 1 - borrowLtv : 1
-  let frac = ((L - borrowLtv) / L) / denomB
+  let frac = (L - borrowLtv) / L / denomB
   if (frac > 1) frac = 1
   return applyDebtMinimum(frac * loanValueUsd, loanValueUsd, debtMinimumUsd)
 }
@@ -364,9 +369,11 @@ const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
 
 /** Collateral-weighted Membrane liquidation line for a basket. Returns null when any
  *  asset has no modelled LTV — we refuse to guess rather than substitute a default. */
-export function weightedMembraneLine(
-  legs: { symbol: string; valueUsd: number }[],
-): { maxLtv: number; borrowLtv: number; unknown: string[] } {
+export function weightedMembraneLine(legs: { symbol: string; valueUsd: number }[]): {
+  maxLtv: number
+  borrowLtv: number
+  unknown: string[]
+} {
   let num = 0
   let den = 0
   const unknown: string[] = []
@@ -381,4 +388,34 @@ export function weightedMembraneLine(
   }
   const maxLtv = den > 0 ? num / den : 0
   return { maxLtv, borrowLtv: membraneBorrowLtv(maxLtv), unknown }
+}
+
+/**
+ * The line of ONE HALF of a mixed position — the per-wallet simulator's rule
+ * (compare.ts `splitByDelayClass`), shared so the Oct 10-11 census
+ * (lib/wavefront/membraneLine.ts) runs exactly the same arithmetic:
+ *
+ *   own  = weightedMembraneLine(the half's legs).maxLtv   (legs with no line left out)
+ *   line = own × scale                       when own > 0
+ *        = wholeLine                          when no leg of the half has a line
+ *                                             (`lineFromWhole`: it runs at the whole
+ *                                             position's line, and the run says so)
+ *   then clamped to the half's class cap: 96% (NO_DELAY_LTV_HARD_CAP) for the stable half,
+ *   90% (MAX_LTV_HARD_CAP) otherwise.
+ *
+ * `scale` is a user override over the whole position's derived line (1 at the default).
+ */
+export function membraneHalfLine(
+  legs: { symbol: string; valueUsd: number }[],
+  stable: boolean,
+  wholeLine: number,
+  scale = 1,
+): { line: number; lineFromWhole: boolean } {
+  const own = weightedMembraneLine(legs).maxLtv
+  const lineFromWhole = !(own > 0)
+  const raw = lineFromWhole ? wholeLine : own * scale
+  return {
+    line: Math.min(raw, stable ? NO_DELAY_LTV_HARD_CAP : MAX_LTV_HARD_CAP),
+    lineFromWhole,
+  }
 }

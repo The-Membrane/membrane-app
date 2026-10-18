@@ -5,7 +5,11 @@
  *
  *   MEMBRANE_DATASETS_DIR=... npx tsx scripts/tests/wavefront-census.test.ts
  *
- * Checks: a fresh build equals the written census.json rows (determinism); 3,197 positions
+ * Checks: a fresh build equals the written census.json rows (determinism); the compared set
+ * (Membrane's own line, liquidity-capped, owner rulings 2026-10-18) partitions the walked
+ * positions with the exclusions; the protocol-line run with no liquidity model is the
+ * pre-ruling census ($157.06M); the real side is the same in every run; no liquidity window
+ * fills past its limit; the whale's figures; 3,197 positions
  * (2,421 Aave + 776 Morpho, the full scope) partitioned into walked + not walked with a reason
  * for each; both sides on the same
  * positions; every walked position located by the protocol at its t0 event; mixed splits sum
@@ -59,6 +63,9 @@ const aaveOracle = inputs.aaveOracle
 const morphoOracle = inputs.morphoOracle
 const census = buildCensus(inputs)
 const rows = census.rows
+/** The pre-2026-10-18 census: the protocol's line, no liquidity model. */
+const legacy = buildCensus(inputs, { lineMode: 'protocol', noCapacityModel: true })
+const legacyByPid = new Map(legacy.rows.map((r) => [r.pid, r]))
 const written = JSON.parse(
   fs.readFileSync(path.join(D, 'oct10-2025', 'coverage', 'census.json'), 'utf8'),
 )
@@ -95,11 +102,20 @@ test('coverage partitions the total, and every uncovered position has a reason',
   )
 })
 
-test('both sides are on the same positions', () => {
+test('both sides are on the same positions: the compared ones', () => {
   for (const r of rows) {
     assert.ok(r.real.events > 0, `${r.pid} has no real event`)
-    assert.strictEqual(r.mem !== null, r.walked, r.pid)
+    assert.strictEqual(r.mem !== null, r.walked && !r.excluded, r.pid)
+    if (r.excluded) assert.ok(r.excludedDetail, r.pid)
   }
+  const T = written.meta.coverage
+  assert.strictEqual(T.compared, rows.filter((r) => r.mem).length)
+  assert.strictEqual(
+    T.excluded.noMembraneLine,
+    rows.filter((r) => r.excluded === 'no-membrane-line').length,
+  )
+  assert.strictEqual(T.excluded.noCapacity, rows.filter((r) => r.excluded === 'no-capacity').length)
+  assert.strictEqual(T.compared + T.excluded.noMembraneLine + T.excluded.noCapacity, T.walked)
   assert.strictEqual(
     rows.reduce((a, r) => a + r.real.events, 0),
     inputs.aaveCsv.length + inputs.morphoCsv.length,
@@ -131,7 +147,9 @@ test('every walked position is located by the protocol at its t0 event', () => {
       assert.strictEqual(r.t0!.block, located[0].block_number, r.pid)
       assert.strictEqual(r.t0!.priceBasis, at(located[0], 'N') ? 'N' : 'N-1', r.pid)
       assert.strictEqual(r.t0!.shifted, located[0] !== evs[0], r.pid)
-      if (!r.mem!.subs) assert.ok(r.ltv0! > r.line!, `${r.pid}: located but LTV0 <= line`)
+      // located on the PROTOCOL's line (row.line), whatever line Membrane then walks at
+      if (!legacyByPid.get(r.pid)!.mem!.subs)
+        assert.ok(r.ltv0! > r.line!, `${r.pid}: located but LTV0 <= line`)
     } else {
       assert.strictEqual(located.length, 0, r.pid)
     }
@@ -143,7 +161,7 @@ test('mixed splits sum their debts and collateral to the whole', () => {
   let n = 0
   for (const r of rows) {
     if (!r.mem?.subs) {
-      if (r.walked) assert.notStrictEqual(r.delayClass, 'mixed', `${r.pid}: mixed but not split`)
+      if (r.mem) assert.notStrictEqual(r.delayClass, 'mixed', `${r.pid}: mixed but not split`)
       continue
     }
     n++
@@ -180,9 +198,9 @@ test('the canonical replay and the served compact replay are the same records', 
   assert.deepStrictEqual(JSON.parse(JSON.stringify(census.records)), jsonl.records)
 })
 
-test('the stream folds, and its totals are the WALKED rows sums and census.json totals', () => {
+test('the stream folds, and its totals are the COMPARED rows sums and census.json totals', () => {
   const s = replay(census.records)
-  const walked = rows.filter((r) => r.walked)
+  const walked = rows.filter((r) => r.mem)
   const near = (a: number, b: number, what: string) =>
     assert.ok(Math.abs(a - b) < 0.05, `${what}: ${a} vs ${b}`)
   near(
@@ -208,12 +226,64 @@ test('the stream folds, and its totals are the WALKED rows sums and census.json 
   const T = written.meta.totals.all
   // the reducer folds real records of WALKED positions only (same positions on both sides)
   near(s.totals.real.repaidUsd, T.realWalked.repaidUsd, 'census.json real repaid (walked)')
-  near(s.totals.real.soldUsd, T.realWalked.seizedUsd, 'census.json real seized (walked)')
   near(s.totals.mem.repaidUsd, T.mem.repaidUsd, 'census.json mem repaid')
   assert.strictEqual(s.totals.mem.positionsSold, T.mem.positionsSold)
   assert.strictEqual(s.totals.mem.positionsKept, T.mem.positionsKept)
   assert.strictEqual(s.totals.mem.positionsArmed, 0)
-  assert.strictEqual(s.coverage.walked, T.walked)
+  assert.strictEqual(s.coverage.walked, T.compared)
+  // DEBT REPAID ONLY: no collateral-seized figure is a census total any more
+  assert.strictEqual(T.realWalked.seizedUsd, undefined)
+  assert.strictEqual(T.mem.soldUsd, undefined)
+})
+
+test('the protocol line with no liquidity model is the pre-2026-10-18 census', () => {
+  // its headline was $157,056,180.33 of Membrane debt repaid on all 3,197 positions
+  const m = legacy.rows.reduce((a, r) => a + (r.mem?.repaidUsd ?? 0), 0)
+  assert.ok(Math.abs(m - 157_056_180.33) < 0.05, `${m}`)
+  assert.strictEqual(legacy.rows.filter((r) => r.mem).length, 3197)
+})
+
+test('the real side is what happened: the same in every run', () => {
+  for (const r of rows) assert.deepStrictEqual(r.real, legacyByPid.get(r.pid)!.real, r.pid)
+})
+
+test('the capacity table and the book: no window ever fills past its limit', () => {
+  const aave = census.capacity.find(
+    (c) => c.key === 'mainnet:0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
+  )!
+  assert.ok(Math.abs(aave.capacityTokens - 97_556.85) < 0.01, `${aave.capacityTokens}`)
+  assert.ok(
+    Math.abs(aave.liquidatorCapacityTokens - 96_876.22) < 0.01,
+    `${aave.liquidatorCapacityTokens}`,
+  )
+  assert.strictEqual(census.liquidity!.multiplier, 1.1)
+  let bound = 0
+  for (const [k, b] of Object.entries(census.liquidity!.byKey)) {
+    assert.ok(b.limitTokens != null && b.limitTokens > 0, k)
+    assert.ok(
+      b.peakWindowTokens <= b.limitTokens! * (1 + 1e-9),
+      `${k}: ${b.peakWindowTokens} > ${b.limitTokens}`,
+    )
+    if (b.shortOffers > 0) bound++
+  }
+  assert.ok(bound > 0, 'the cap binds somewhere')
+  assert.deepStrictEqual(
+    JSON.parse(JSON.stringify(census.capacity)),
+    written.meta.liquidity.capacity,
+  )
+})
+
+test('the whale: excluded (no Membrane line); at Aave’s line 1.1x vs unlimited', () => {
+  const W =
+    'aave-v3:mainnet:0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2:0x372cae7fa19b81a9786a9081704ea1e2dad576b7'
+  assert.strictEqual(rows.find((r) => r.pid === W)!.excluded, 'no-membrane-line')
+  const capped = buildCensus(inputs, { lineMode: 'protocol' }).rows.find((r) => r.pid === W)!
+  const unl = buildCensus(inputs, { lineMode: 'protocol', capacityMultiplier: Infinity }).rows.find(
+    (r) => r.pid === W,
+  )!
+  assert.ok(Math.abs(capped.mem!.repaidUsd - 13_097_271.37) < 0.01, `${capped.mem!.repaidUsd}`)
+  assert.ok(Math.abs(unl.mem!.repaidUsd - 29_863_534.37) < 0.01, `${unl.mem!.repaidUsd}`)
+  assert.ok(Math.abs(capped.real.repaidUsd - 3_688_252.3) < 0.01)
 })
 
 test('every unsplit single-leg walked position equals cureWalk on its composite series', () => {
@@ -231,7 +301,8 @@ test('every unsplit single-leg walked position equals cureWalk on its composite 
     const k = morphoPid(e.chain, e.market_id, e.borrower)
     mEv.set(k, [...(mEv.get(k) ?? []), e])
   }
-  for (const r of rows) {
+  // cureWalk is handed the protocol's line, so it is compared with the protocol-line run
+  for (const r of legacy.rows) {
     if (!r.walked || r.mem!.subs || r.collateral.length !== 1 || r.debt.length !== 1) continue
     let spec
     let cc: number[]

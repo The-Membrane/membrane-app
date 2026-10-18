@@ -79,7 +79,8 @@ const Detail: React.FC<{ r: CohortRow }> = ({ r }) => {
           lineHeight="1.9"
         >
           At its first liquidation ({minuteClock(r.t0Minute)}) it held {legs(r.coll)} against{' '}
-          {legs(r.debt)}, at {pct(r.ltv0, 2)} LTV against its own {pct(r.line, 2)} liquidation line.{' '}
+          {legs(r.debt)}, at {pct(r.ltv0, 2)} LTV against Membrane&rsquo;s {pct(r.line, 2)} line†
+          (the protocol&rsquo;s own: {pct(r.protocolLine, 2)}).{' '}
           {r.priced ? (
             <>
               The protocol liquidated it {times}, repaying {usd(r.realRepaidUsd)}
@@ -255,7 +256,7 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
             borderBottom="1px solid"
             borderColor={SEMANTIC_COLORS.borderMedium}
           >
-            {['Position', 'Debt', 'LTV / line', 'Protocol', 'Membrane†', 'Spared†', 'Cured'].map(
+            {['Position', 'Debt', 'LTV / line†', 'Protocol', 'Membrane†', 'Spared†', 'Cured'].map(
               (h) => (
                 <HStack key={h} spacing={SPACING.none} align="center">
                   <Eyebrow>{h}</Eyebrow>
@@ -386,10 +387,11 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
         {PAGE} — narrow the filters to reach the rest. &ldquo;Protocol&rdquo; and
         &ldquo;Membrane&rdquo; are the share of the debt at the first liquidation each closes;
         &ldquo;Spared&rdquo; is what the protocol repaid minus what Membrane would have, negative
-        where Membrane closes more. {GRID_END_MARK} = the 8-hour window was still open when the data
-        ends, booked as sold at the last price†. &ldquo;Cured&rdquo;: yes = back under the line and
-        still under it at 8h, 8h = back under then over again, no = never back under, — = no window.
-        Click any row.
+        where Membrane closes more. &ldquo;Line&rdquo; is Membrane&rsquo;s own line† (the
+        protocol&rsquo;s is in the row). Only positions Membrane can be compared on are listed.{' '}
+        {GRID_END_MARK} = the 8-hour window was still open when the data ends, booked as sold at the
+        last price†. &ldquo;Cured&rdquo;: yes = back under the line and still under it at 8h, 8h =
+        back under then over again, no = never back under, — = no window. Click any row.
       </Text>
     </VStack>
   )

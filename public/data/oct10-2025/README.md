@@ -28,6 +28,10 @@ Window: `2025-10-10T00:00:00Z` → `2025-10-11T23:59:00Z`, 1-minute grid, 2,880 
   `docs/WAVEFRONT.md`.
 - **`coverage-summary.json`** — that census's scope, coverage table, both-side totals,
   classes, clusters, sensitivities and the cross-check against `evidence.json`.
+- **2026-10-18:** all census files below run at Membrane's OWN line with liquidity-capped sales
+  (docs/WAVEFRONT.md §0). The cohort and every total are the COMPARED set: 2,280 of 3,197.
+  Only debt repaid is compared. The stream adds optional `carry` / `unfilledUsd` columns and
+  stays schema 2.
 - **`evidence-census.json`** — what the Evidence page and the landing read (owner decision
   2026-10-16): the full census above, shaped for the UI by `scripts/build-evidence-census.ts`
   from membrane-datasets `oct10-2025/coverage/census.json` (its sha256 and the code commit

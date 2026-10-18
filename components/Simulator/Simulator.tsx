@@ -219,7 +219,7 @@ const DEMO_WALLET_NOTE: Record<SimMode, string> = {
     'borrows and deploys to see yours.',
   borrower:
     'The default wallet is a real Aave V3 account that was liquidated on 10 Oct 2025, ' +
-    `selected from the ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions of the full on-chain census ` +
+    `selected from the ${OCT10_TOTALS.censusPositions.toLocaleString('en-US')} positions of the full on-chain census ` +
     '(public/data/oct10-2025/evidence-census.json): the selection’s best case, not a typical one. ' +
     'It had no deployment and none is assumed; paste any address to read a live position.',
 }

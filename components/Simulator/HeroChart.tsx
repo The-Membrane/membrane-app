@@ -24,7 +24,9 @@ const usdM1 = (value: number): string => `$${(value / 1_000_000).toFixed(1)}M`
 const REAL_CLOSED = OCT10_TOTALS.realClosedUsd
 const MEMBRANE_CLOSED = OCT10_TOTALS.membraneClosedUsd
 /** NET: Membrane closes less on some positions and more on others (OCT10_SCALE_LINE.gross). */
-const NET_LESS = OCT10_TOTALS.keptUsd
+const NET = OCT10_TOTALS.keptUsd
+/** Bars are drawn against the larger side, so a Membrane total above the real one still fits. */
+const BAR_MAX = Math.max(OCT10_TOTALS.realClosedUsd, OCT10_TOTALS.membraneClosedUsd)
 const { aave, morpho } = OCT10_TOTALS.byProtocol
 const pctLess = (s: { realClosedUsd: number; keptUsd: number }) =>
   `${Math.abs((100 * s.keptUsd) / s.realClosedUsd).toFixed(1)}% ${s.keptUsd >= 0 ? 'less' : 'more'}`
@@ -88,8 +90,9 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           color={SEMANTIC_COLORS.textSecondary}
           {...tabular}
         >
-          {OCT10_TOTALS.window} · {OCT10_TOTALS.positions.toLocaleString('en-US')} liquidated
-          positions · Aave and Morpho · four chains
+          {OCT10_TOTALS.window} · {OCT10_TOTALS.positions.toLocaleString('en-US')} of{' '}
+          {OCT10_TOTALS.censusPositions.toLocaleString('en-US')} liquidated positions · Aave and
+          Morpho · four chains · Membrane&rsquo;s own lines, liquidity-capped†
         </Text>
       </Box>
 
@@ -101,7 +104,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           color={SEMANTIC_COLORS.warning}
           {...tabular}
         >
-          {usdMillions(NET_LESS)} less, net†
+          {usdMillions(Math.abs(NET))} {OCT10_SCALE_LINE.direction}, net†
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
@@ -122,7 +125,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
       gap={SPACING.lg}
     >
       {rows.map((row) => {
-        const width = `${(row.value / REAL_CLOSED) * 100}%`
+        const width = `${(row.value / BAR_MAX) * 100}%`
         return (
           <Box key={row.label} display="grid" gap={SPACING.sm}>
             <Box display="flex" justifyContent="space-between" gap={SPACING.base}>
@@ -169,7 +172,10 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
     >
       Aave {usdM1(aave.realClosedUsd)} → {usdM1(aave.membraneClosedUsd)}† ({pctLess(aave)}) · Morpho{' '}
       {usdM1(morpho.realClosedUsd)} → {usdM1(morpho.membraneClosedUsd)}† ({pctLess(morpho)}). Debt
-      closed across the measured census; lower is less forced repayment. {MODELLED_FOOTNOTE}
+      repaid on the compared positions (
+      {OCT10_TOTALS.excluded.noMembraneLine.positions.toLocaleString('en-US')} with no Membrane line
+      and {OCT10_TOTALS.excluded.noCapacity.positions.toLocaleString('en-US')} with no observed
+      liquidity are left out of both sides); lower is less forced repayment. {MODELLED_FOOTNOTE}
     </Text>
   </Box>
 )

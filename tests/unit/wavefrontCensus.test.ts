@@ -4,7 +4,10 @@
  * hit every branch). The whole-pull run of the same invariants is
  * scripts/tests/wavefront-census.test.ts (it needs the datasets repo).
  *
- *   - the subset reproduces the full census's figures for each of its positions;
+ *   - the subset reproduces the full census's figures for each of its positions, in the two
+ *     runs where positions are independent: the protocol's own line with no liquidity model,
+ *     and Membrane's own line with unlimited capacity (the capped headline shares one book
+ *     across positions; tests/unit/wavefrontLiquidity.test.ts and the full-pull test cover it);
  *   - both sides are on the same positions; every walked position is located by the
  *     protocol's own check at its t0 event; a mixed split's halves sum to the whole;
  *   - the stream folds without error and its totals are the rows' sums;
@@ -59,37 +62,67 @@ const inputs: CensusInputs = {
     ]),
   ),
 }
-const census = buildCensus(inputs)
+/** The pre-2026-10-18 census: the protocol's line, no liquidity model. */
+const legacy = buildCensus(inputs, { lineMode: 'protocol', noCapacityModel: true })
+/** Membrane's own line, capacity unlimited, on the full census's capacity table. */
+const census = buildCensus(inputs, { capacity: fx.capacity, capacityMultiplier: Infinity })
 const rows = census.rows
 const byPid = new Map(rows.map((r) => [r.pid, r]))
+const legacyByPid = new Map(legacy.rows.map((r) => [r.pid, r]))
 
 describe('census on the fixture subset', () => {
   it('has every fixture position, once', () => {
     expect(rows.map((r) => r.pid).sort()).toEqual([...fx.pids].sort())
   })
 
-  it('reproduces the full census figures for every position', () => {
+  it('reproduces the full census figures for every position, in both independent runs', () => {
     for (const pid of fx.pids as string[]) {
       const e = fx.expected[pid]
-      const r = byPid.get(pid)!
-      expect(r.walked, pid).toBe(e.walked)
-      expect(r.t0?.priceBasis ?? null, pid).toBe(e.priceBasis)
-      expect(r.delayClass, pid).toBe(e.delayClass)
-      expect(r.line, pid).toBe(e.line)
-      expect(r.ltv0, pid).toBe(e.ltv0)
-      expect(r.real.repaidUsd, pid).toBe(e.realRepaidUsd)
-      expect(r.real.seizedUsd, pid).toBe(e.realSeizedUsd)
-      expect(r.real.protocolFeeUsd, pid).toBe(e.realProtocolFeeUsd)
-      expect(r.real.badDebtUsd, pid).toBe(e.realBadDebtUsd)
-      expect(r.mem?.repaidUsd ?? null, pid).toBe(e.memRepaidUsd)
-      expect(r.mem?.closedT0 ?? null, pid).toBe(e.memClosedT0)
-      expect(r.mem?.outcome ?? null, pid).toBe(e.memOutcome)
-      expect(r.mem?.sales ?? null, pid).toBe(e.memSales)
+      for (const [run, got] of [
+        ['protocol', legacyByPid.get(pid)!],
+        ['membrane', byPid.get(pid)!],
+      ] as const) {
+        const x = e[run]
+        const r = got
+        const at = `${run} ${pid}`
+        expect(r.walked, at).toBe(e.walked)
+        expect(r.t0?.priceBasis ?? null, at).toBe(e.priceBasis)
+        expect(r.line, at).toBe(e.line)
+        expect(r.ltv0, at).toBe(e.ltv0)
+        // provenance only: real seized is never a comparison, but it must not move
+        expect(r.real.repaidUsd, at).toBe(e.realRepaidUsd)
+        expect(r.real.seizedUsd, at).toBe(e.realSeizedUsd)
+        expect(r.real.protocolFeeUsd, at).toBe(e.realProtocolFeeUsd)
+        expect(r.real.badDebtUsd, at).toBe(e.realBadDebtUsd)
+        expect(r.excluded ?? null, at).toBe(x.excluded)
+        expect(r.delayClass, at).toBe(x.delayClass)
+        expect(r.memLine?.line ?? null, at).toBe(x.memLine)
+        expect(r.mem?.repaidUsd ?? null, at).toBe(x.memRepaidUsd)
+        expect(r.mem?.closedT0 ?? null, at).toBe(x.memClosedT0)
+        expect(r.mem?.outcome ?? null, at).toBe(x.memOutcome)
+        expect(r.mem?.sales ?? null, at).toBe(x.memSales)
+      }
     }
   })
 
+  it('walks at Membrane’s line in the headline modes, the protocol’s in the legacy run', () => {
+    for (const r of rows) {
+      if (r.excluded === 'no-membrane-line') {
+        expect(r.memLine, r.pid).toBeUndefined()
+        expect(r.mem, r.pid).toBeNull()
+        continue
+      }
+      expect(r.memLine, r.pid).toBeDefined()
+      const open = census.records.find((x) => x.kind === 'open' && x.pid === r.pid) as any
+      expect(open.line).toBe(Math.round(r.memLine!.line * 1e6) / 1e6)
+    }
+    for (const r of legacy.rows) expect(r.memLine, r.pid).toBeUndefined()
+    // the whale holds AAVE only: Membrane has no line for it
+    expect(rows.some((r) => r.excluded === 'no-membrane-line')).toBe(true)
+  })
+
   it('covers the branches it was picked for', () => {
-    const outcomes = new Set(rows.map((r) => r.mem?.outcome))
+    const outcomes = new Set(legacy.rows.map((r) => r.mem?.outcome))
     for (const o of [
       'sold-at-t0',
       'sold-at-band',
@@ -105,7 +138,7 @@ describe('census on the fixture subset', () => {
     expect(rows.some((r) => r.marketLabel === 'lido')).toBe(true)
     expect(rows.some((r) => r.protocol === 'morpho-blue' && r.chain === 'arbitrum')).toBe(true)
     expect(rows.some((r) => r.real.protocolFeeUsd > 0)).toBe(true)
-    expect(rows.some((r) => r.mem?.subs?.some((s) => s.startUnbreached))).toBe(true)
+    expect(legacy.rows.some((r) => r.mem?.subs?.some((s) => s.startUnbreached))).toBe(true)
     expect(rows.some((r) => r.real.badDebtUsd > 0)).toBe(true)
     expect(rows.some((r) => r.real.unpricedEvents > 0)).toBe(true)
   })
@@ -115,8 +148,9 @@ describe('census invariants (fixture)', () => {
   it('both sides are on the same positions', () => {
     for (const r of rows) {
       expect(r.real.events, r.pid).toBeGreaterThan(0)
-      expect(r.mem !== null, r.pid).toBe(r.walked)
+      expect(r.mem !== null, r.pid).toBe(r.walked && !r.excluded)
       if (!r.walked) expect(r.reason, r.pid).toBeTruthy()
+      if (r.excluded) expect(r.excludedDetail, r.pid).toBeTruthy()
     }
     const memPids = new Set(
       census.records.filter((x) => x.kind === 'mem').map((x) => (x as any).pid),
@@ -124,7 +158,7 @@ describe('census invariants (fixture)', () => {
     const realPids = new Set(
       census.records.filter((x) => x.kind === 'real').map((x) => (x as any).pid),
     )
-    for (const p of memPids) expect(byPid.get(p)!.walked).toBe(true)
+    for (const p of memPids) expect(byPid.get(p)!.mem).not.toBeNull()
     expect(realPids.size).toBe(rows.length)
   })
 
@@ -177,9 +211,10 @@ describe('census invariants (fixture)', () => {
 
   it('the stream folds, and its totals are the WALKED rows sums (same positions both sides)', () => {
     const s = replay(census.records)
-    const walked = rows.filter((r) => r.walked)
+    // the stream's `walked` is the compared set: located and not excluded
+    const walked = rows.filter((r) => r.mem)
     expect(s.coverage.total).toBe(rows.length)
-    expect(s.coverage.walked).toBe(rows.filter((r) => r.walked).length)
+    expect(s.coverage.walked).toBe(walked.length)
     const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThan(0.02)
     near(
       s.totals.real.repaidUsd,
@@ -202,9 +237,10 @@ describe('census invariants (fixture)', () => {
   })
 
   it('an unsplit single-leg Aave walk equals cureWalk on its composite series', () => {
+    // cureWalk is handed the protocol's line: the legacy run walks at that line.
     let n = 0
-    for (const r of rows) {
-      if (r.protocol !== 'aave-v3' || !r.walked || r.mem!.subs) continue
+    for (const r of legacy.rows) {
+      if (r.protocol !== 'aave-v3' || !r.walked || !r.mem || r.mem.subs) continue
       if (r.collateral.length !== 1 || r.debt.length !== 1) continue
       const evs = (inputs.aaveEvents as AaveEventRecord[]).filter(
         (e) => aavePid(e.chain, aavePoolOf(e), e.user) === r.pid,
@@ -246,7 +282,7 @@ describe('census invariants (fixture)', () => {
   })
 
   it('a held leg with no price at a minute it is walked through is an error, never carried forward', () => {
-    const r = rows.find(
+    const r = legacy.rows.find(
       (x) =>
         x.protocol === 'aave-v3' &&
         x.walked &&

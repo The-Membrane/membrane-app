@@ -31,6 +31,7 @@
 import { delayClassOf, isNoDelayCollateral } from '../position-sim/collateralClass'
 import { AAVE_CORE_POOL, aaveMarketLabel, aavePid } from './pid'
 import type { KernelLeg } from './kernel'
+import { liqKeyOf } from './liquidity'
 import type { DelayClass, StreamLeg } from './stream'
 
 // ------------------------------------------------------------------ pull record shapes
@@ -118,6 +119,11 @@ export interface SpecLeg {
   usd: number | null
   /** Liquidation threshold (fraction), collateral legs only. */
   lt?: number
+  /**
+   * The token's address (lower case): Aave the reserve, Morpho the collateral token. Collateral
+   * legs carry it; it keys the liquidity book (lib/wavefront/liquidity.ts liqKeyOf).
+   */
+  token?: string
 }
 
 export interface HalfSpec {
@@ -214,6 +220,7 @@ export function aaveLegsAt(
           value0: usd ?? 0,
           usd,
           lt: (p.ltUsed as number) / 1e4,
+          token: p.asset.toLowerCase(),
         })
       }
     }
@@ -414,14 +421,20 @@ export function t0Decision(ltv0: number, half: HalfSpec, band: number): T0Decisi
 
 /**
  * Kernel legs of one half, in the position's unit: its own collateral, and every debt leg
- * scaled by the half's share. Kernel leg keys are the spec legs' path keys.
+ * scaled by the half's share. Kernel leg keys are the spec legs' path keys. A collateral leg
+ * also carries its tokens and its liquidity-book key (read only by a liquidity-capped kernel).
  */
 export function kernelLegs(
   spec: PositionSpec,
   half: HalfSpec,
 ): { collateral: KernelLeg[]; debt: KernelLeg[] } {
   return {
-    collateral: half.collateral.map((l) => ({ key: l.key, symbol: l.symbol, value0: l.value0 })),
+    collateral: half.collateral.map((l) => ({
+      key: l.key,
+      symbol: l.symbol,
+      value0: l.value0,
+      ...(l.token ? { tokens0: l.amount, liqKey: liqKeyOf(spec.chain, l.token) } : {}),
+    })),
     debt: spec.debt.map((l) => ({ key: l.key, symbol: l.symbol, value0: l.value0 * half.share })),
   }
 }

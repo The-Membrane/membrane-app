@@ -152,8 +152,15 @@ describe('wavefront stream: reducer invariants over the whole Oct 10-11 replay',
 
   it('the served summary is the fold', () => {
     expect(summary.coverage.total).toBe(state.coverage.total)
-    expect(summary.coverage.walked).toBe(state.coverage.walked)
-    expect(summary.coverage.uncovered.length).toBe(state.coverage.total - state.coverage.walked)
+    // The stream's `walked` is the COMPARED set (owner rulings 2026-10-18): located, with a
+    // Membrane line and liquidity for what Membrane sells. The summary keeps both counts.
+    expect(summary.coverage.compared).toBe(state.coverage.walked)
+    expect(
+      summary.coverage.compared +
+        summary.coverage.excluded.noMembraneLine +
+        summary.coverage.excluded.noCapacity,
+    ).toBe(summary.coverage.walked)
+    expect(summary.coverage.uncovered.length).toBe(summary.coverage.total - summary.coverage.walked)
     const walkedPs = [...state.positions.values()].filter((p) => p.open.walked)
     const realWalked = walkedPs.reduce((a, p) => a + p.real.repaidUsd, 0)
     expect(Math.abs(summary.totals.walked.real.repaidUsd - realWalked)).toBeLessThan(0.05)
@@ -164,6 +171,27 @@ describe('wavefront stream: reducer invariants over the whole Oct 10-11 replay',
       0.05,
     )
     expect(summary.totals.walked.mem.positionsSold).toBe(state.totals.mem.positionsSold)
+  })
+
+  it('a carried fill follows a sale of its own half that left a remainder pending', () => {
+    // kernel.ts PENDING ORDERS: a carry record is a later fill of a sale's remainder, with the
+    // sale's own event and why; the sale before it (same pid and sub) carried unfilledUsd.
+    const last = new Map<string, MemRecord>()
+    let carries = 0
+    for (const r of records) {
+      if (r.kind !== 'mem' || (r.event !== 'sell' && r.event !== 'sell-instant')) continue
+      const k = `${r.pid}|${r.sub ?? ''}`
+      if (r.carry) {
+        const prev = last.get(k)
+        expect(prev, k).toBeDefined()
+        expect(prev!.unfilledUsd === undefined, k).toBe(false)
+        expect(r.event).toBe(prev!.event)
+        expect(r.why).toBe(prev!.why)
+        carries++
+      }
+      last.set(k, r)
+    }
+    expect(carries).toBeGreaterThan(0)
   })
 
   it('a split position carries two halves whose shares sum to 1', () => {

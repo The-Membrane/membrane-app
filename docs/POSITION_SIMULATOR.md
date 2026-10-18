@@ -103,6 +103,22 @@ daily dumps. No paid API keys.
 
 ### `public/data/oct10-2025/evidence-census.json` — what the pages read
 
+**2026-10-18 (owner rulings).** The census now walks each position at **Membrane's own line**,
+computed by this simulator's rule: `weightedMembraneLine`, with the mixed split's half line
+from `membraneHalfLine` in `lib/position-sim/membrane.ts`. That helper is now shared by
+`compare.ts` and `lib/wavefront/membraneLine.ts`. Every sale is liquidity-capped (1.1× the day's
+measured 10-minute capacity per token and chain, modelled †), and only debt repaid is compared.
+
+Headline, on 2,280 of the 3,197 positions: protocols $164.12M, Membrane $193.03M†, **17.6%
+more**, net (Aave 23.6% more, Morpho 8.3% less). Membrane closes less on 991 positions
+($33.93M†) and more on 795 ($62.84M†). Left out: 866 positions with no Membrane line and 51
+with no observed liquidity. The full method is in `docs/WAVEFRONT.md` §0.
+
+The per-wallet simulator itself is NOT liquidity-capped. It runs one position, which cannot
+draw on the day's shared book. The demo borrower was re-selected on this census
+(`0xfd4c87…`, WETH/USDC; gate 3b now runs at Membrane's line), because the old one is a
+position where the census at Membrane's line closes more.
+
 Since 2026-10-16 (owner decision) the Evidence page (`/[chain]/evidence`) and the landing
 (`/[chain]`, its hero stakes line, HeroChart, GuaranteeBlock subline, og card and the Close
 band) read the FULL on-chain census of 10-11 Oct 2025: every Aave V3 pool and Morpho Blue

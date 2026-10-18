@@ -50,6 +50,7 @@ import {
   type AaveCsvRow,
   type AaveEventRecord,
   type AaveFeeRecord,
+  type HalfSpec,
   type PositionSpec,
   type PriceBasis,
   type PriceSource,
@@ -57,6 +58,16 @@ import {
 } from '../../lib/wavefront/aave'
 import { clusterAssigner, primarySymbol } from '../../lib/wavefront/cluster'
 import { MembraneKernel, type KernelLeg, type KernelResult } from '../../lib/wavefront/kernel'
+import {
+  CAPACITY_MULTIPLIER,
+  LiquidityBook,
+  computeCapacity,
+  liqKeyOf,
+  type CapacityEntry,
+  type CapacityEvent,
+  type KernelLiquidity,
+} from '../../lib/wavefront/liquidity'
+import { membraneLinePlan, type MembraneLinePlan } from '../../lib/wavefront/membraneLine'
 import {
   morphoPositionSpec,
   morphoRealUsd,
@@ -73,6 +84,7 @@ import {
   isTickMinute,
   roundRecord,
   tickFromState,
+  type DelayClass,
   type MemRecord,
   type OpenRecord,
   type RealRecord,
@@ -155,6 +167,33 @@ export interface CensusOptions {
   /** SENSITIVITY ONLY: the cap on sales per position (MAX_SALES). */
   maxSales?: number
   /**
+   * THE LINE Membrane walks each position at. 'membrane' (the headline, owner ruling
+   * 2026-10-18): Membrane's own per-asset line, lib/wavefront/membraneLine.ts — a position with
+   * no Membrane line on any leg is excluded ('no-membrane-line'). 'protocol': the protocol's
+   * own line (Aave's weighted LT, Morpho's LLTV) — the published sensitivity and the
+   * pre-2026-10-18 census.
+   */
+  lineMode?: 'membrane' | 'protocol'
+  /**
+   * SENSITIVITY ONLY: exclude every position with ANY collateral leg that has no Membrane line
+   * (the headline leaves such legs out of the weighted line, the simulator's rule).
+   */
+  strictLines?: boolean
+  /**
+   * The liquidity cap (lib/wavefront/liquidity.ts): every Membrane sale draws on the shared
+   * book at `capacityMultiplier` x the measured capacity. Default CAPACITY_MULTIPLIER (1.1, the
+   * headline); Infinity = unlimited, on the SAME positions (a no-capacity holding is still
+   * excluded).
+   */
+  capacityMultiplier?: number
+  /**
+   * REGRESSION AND CROSS-CHECK ONLY: no liquidity model at all — no book, no no-capacity
+   * exclusion. With lineMode 'protocol' this is the pre-2026-10-18 census, row for row.
+   */
+  noCapacityModel?: boolean
+  /** The capacity table to use instead of the one measured from these inputs (fixtures). */
+  capacity?: CapacityEntry[]
+  /**
    * ANALYSIS ONLY. Called once per walked position after its walk, with its spec, each half's
    * kernel result, and the protocol path it was walked on: `ratioAt(leg, minute)` is the leg's
    * price in force at that minute's start over its t0 price (1 for a leg with no key). It reads
@@ -166,6 +205,11 @@ export interface CensusOptions {
 /** What `CensusOptions.probe` is handed for one walked position. */
 export interface CensusProbe {
   spec: PositionSpec
+  /** The halves walked (Membrane's line in the headline; the spec's own in 'protocol' mode). */
+  halves: readonly HalfSpec[]
+  /** The whole position's line walked, and its class on that line. */
+  line: number
+  delayClass: DelayClass
   results: readonly KernelResult[]
   ratioAt: (leg: KernelLeg, minute: number) => number
   usdPerUnit: (minute: number) => number | null
@@ -186,6 +230,9 @@ export interface SubRow {
   armedAtGridEnd: boolean
 }
 
+/** Why a walked position is left out of a run's comparison (both sides). */
+export type ExclusionReason = 'no-membrane-line' | 'partial-membrane-line' | 'no-capacity'
+
 export interface CensusRow {
   pid: string
   protocol: 'aave-v3' | 'morpho-blue'
@@ -199,8 +246,15 @@ export interface CensusRow {
   venue: string
   events: number
   first: { block: number; ts: number }
+  /** Located by the protocol's own check: the walk has an anchor (t0). */
   walked: boolean
   reason?: string
+  /**
+   * Walked but left out of this run's comparison, on BOTH sides: no Membrane line, or a
+   * collateral token with no observed liquidity that Membrane would have to sell. `mem` is null.
+   */
+  excluded?: ExclusionReason
+  excludedDetail?: string
   t0?: { block: number; ts: number; minute: number; shifted: boolean; priceBasis: PriceBasis }
   /**
    * What Membrane decides at t0 per half (lib/wavefront/aave.ts t0Decision) at the t0 basis,
@@ -218,9 +272,22 @@ export interface CensusRow {
   debt: { symbol: string; amount: number; usd: number | null }[]
   collUsd: number | null
   debtUsd: number | null
+  /** The PROTOCOL's line at t0 (Aave weighted LT, Morpho LLTV): provenance, and t0's locator. */
   line: number | null
+  /** Membrane's line (lineMode 'membrane'): lib/wavefront/membraneLine.ts. */
+  memLine?: {
+    line: number
+    /** Collateral symbols with no Membrane line, left out of the weighted line. */
+    unknown: string[]
+    unknownShare: number
+    /** Subs of a split running at the whole position's line (no leg of theirs has one). */
+    lineFromWhole?: number[]
+  }
   ltv0: number | null
+  /** The class Membrane walks it in (on the line walked). */
   delayClass: 'no-delay' | 'delayed' | 'mixed'
+  /** lineMode 'membrane': the class on the protocol's line, for reference. */
+  protocolDelayClass?: 'no-delay' | 'delayed' | 'mixed'
   cluster: string
   primarySymbol: string
   notes?: string[]
@@ -249,6 +316,17 @@ export interface CensusRow {
     armedAtGridEnd: boolean
     startUnbreached: boolean
     subs?: SubRow[]
+    /** Liquidity-capped runs (kernel.ts PENDING ORDERS). */
+    liquidity?: {
+      /** Sales whose order did not fill completely at their own minute. */
+      shortSales: number
+      /** Later fills of a pending remainder. */
+      carryFills: number
+      /** Remainders dropped because the position was back at or under its borrow cap. */
+      pendingCancelled: number
+      /** Repay still pending at the grid end: never sold, never credited. */
+      unfilledAtGridEndUsd: number | null
+    }
   }
 }
 
@@ -257,6 +335,25 @@ export interface CensusResult {
   records: StreamRecord[]
   finalTotals: Totals
   coverage: { walked: number; total: number }
+  /** The capacity table the run used (liquidity.ts computeCapacity), sorted by key. */
+  capacity: CapacityEntry[]
+  /** The run's liquidity settings and what the book saw (null: no liquidity model). */
+  liquidity: null | {
+    multiplier: number
+    /**
+     * Per book key: tokens filled, offers that did not fill completely, the most filled in any
+     * rolling window (never above the limit), and the limit (null: unlimited).
+     */
+    byKey: Record<
+      string,
+      {
+        filledTokens: number
+        shortOffers: number
+        peakWindowTokens: number
+        limitTokens: number | null
+      }
+    >
+  }
   stats: {
     aaveRealPriceSources: Record<string, number>
     morphoLoanPricing: Record<string, { how: string; events: number; positions: number }>
@@ -519,14 +616,20 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
   const { clusterOf, ownClusters } = clusterAssigner(prim)
   stats.ownClusters = ownClusters
 
-  // ---- per position: open, real, mem --------------------------------------------------------
+  // ---- liquidity: the capacity table and the shared book -----------------------------------
+  const capacity = opts.capacity ?? capacityTable(inp, aaveUsdAt, aaveDecimals, loanUsdFn, W)
+  const capMap = new Map(capacity.map((c) => [c.key, c.capacityTokens]))
+  const multiplier = opts.capacityMultiplier ?? CAPACITY_MULTIPLIER
+  const book = opts.noCapacityModel ? null : new LiquidityBook(capMap, multiplier, W.minutes)
+  const lineMode = opts.lineMode ?? 'membrane'
+
+  // ---- per position: open, real; the walk plan ----------------------------------------------
   interface Emitted {
     rec: StreamRecord
     pos: number
     local: number
   }
   const emitted: Emitted[] = []
-  const rows: CensusRow[] = []
   const evIndexAave = new Map(
     inp.aaveEvents.map((e) => [evKey(e.chain, e.tx_hash, e.log_index), e]),
   )
@@ -535,17 +638,90 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
   )
   const feeIndex = new Map(inp.aaveFees.map((f) => [evKey(f.chain, f.tx_hash, f.log_index), f]))
 
+  /** The halves Membrane walks for a spec: its own line (headline) or the protocol's. */
+  const planOf = (sp: PositionSpec): { halves: HalfSpec[]; plan: MembraneLinePlan | null } => {
+    if (lineMode === 'protocol') return { halves: sp.halves, plan: null }
+    const plan = membraneLinePlan(sp.collateral)
+    return { halves: plan ? plan.halves : [], plan }
+  }
+
+  interface Walk {
+    pi: number
+    spec: PositionSpec
+    halves: HalfSpec[]
+    kernels: MembraneKernel[]
+    memRecs: MemRecord[]
+    ratioAt: (leg: KernelLeg, minute: number) => number
+  }
+  interface Prepared {
+    s: PositionSpec
+    walked: boolean
+    cluster: string
+    open: OpenRecord
+    realRecs: RealRecord[]
+    feeByRec: Map<number, number>
+    halves: HalfSpec[]
+    plan: MembraneLinePlan | null
+    excluded?: { reason: ExclusionReason; detail: string }
+    walk?: Walk
+  }
+  const prepared: Prepared[] = []
+
+  const kernelsFor = (
+    s: PositionSpec,
+    halves: readonly HalfSpec[],
+    usdPerUnit: (m: number) => number | null,
+    liquidity: KernelLiquidity | undefined,
+  ) =>
+    halves.map((h) => {
+      const legs = kernelLegs(s, h)
+      return new MembraneKernel({
+        pid: s.pid,
+        ...(h.sub !== undefined ? { sub: h.sub } : {}),
+        collateral: legs.collateral,
+        debt: legs.debt,
+        line: h.line,
+        noDelay: h.delayClass === 'no-delay',
+        band: opts.band ?? MAX_THRESHOLD_TO_DELAY,
+        delaySteps: DELAY_STEPS,
+        gap: BORROW_LTV_GAP,
+        debtMinimum: opts.noDebtFloor ? 0 : s.debtMinimum,
+        maxSales: opts.maxSales ?? MAX_SALES,
+        ...(opts.noEarlyClear ? { noEarlyClear: true } : {}),
+        t0Minute: s.t0!.minute,
+        t0Ts: s.t0!.ts,
+        startTs: W.startTs,
+        stepSeconds: W.stepSeconds,
+        lastMinute,
+        usdPerUnit,
+        stopAfterT0BandSale: opts.stopAfterT0BandSale,
+        ...(liquidity ? { liquidity } : {}),
+      })
+    })
+
+  /** Walk kernels alone (no shared book): the pre-pass for a no-capacity holding. */
+  const soloSells = (w: Walk): boolean => {
+    for (const k of w.kernels) w.memRecs.push(...k.start())
+    for (let m = w.spec.t0!.minute + 1; m <= lastMinute; m++) {
+      let live = false
+      for (const k of w.kernels) {
+        if (k.isDone) continue
+        live = true
+        w.memRecs.push(...k.step(m, (leg) => w.ratioAt(leg, m)))
+      }
+      if (!live) break
+    }
+    for (const k of w.kernels) w.memRecs.push(...k.finish())
+    return w.kernels.some((k) => k.result().sales > 0)
+  }
+
   positions.forEach((P, pi) => {
     const s =
       opts.specOverride && P.spec.located && P.spec.t0
         ? opts.specOverride(P.spec, P.eventsSorted)
         : P.spec
-    let local = 0
-    const emit = (rec: StreamRecord) =>
-      emitted.push({ rec: roundRecord(rec), pos: pi, local: local++ })
     const cluster = clusterOf(prim[pi])
     stats.clusterCounts[cluster] = (stats.clusterCounts[cluster] ?? 0) + 1
-    stats.classCounts[s.delayClass] = (stats.classCounts[s.delayClass] ?? 0) + 1
     if (s.notes.some((n) => n.startsWith('collateral worth 0')))
       stats.zeroValueCollateralPositions++
     if (s.t0?.shifted) stats.t0Shifted.push(s.pid)
@@ -553,6 +729,31 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
     if (walked && s.t0)
       stats.priceBasis[s.t0.priceBasis] = (stats.priceBasis[s.t0.priceBasis] ?? 0) + 1
     const aaveScope = `${s.chain}:${s.market}`
+
+    // ---- the line Membrane walks at, and whether the headline compares this position
+    const { halves, plan } = walked ? planOf(s) : { halves: [] as HalfSpec[], plan: null }
+    let excluded: Prepared['excluded']
+    if (walked && lineMode === 'membrane') {
+      if (!plan) {
+        excluded = {
+          reason: 'no-membrane-line',
+          detail: `no Membrane line for ${[...new Set(s.collateral.map((l) => l.symbol))].join(', ')}: none of its collateral has a modelled or deploy-listed Membrane max LTV (lib/position-sim/membrane.ts MEMBRANE_ASSET_LTV)`,
+        }
+      } else if (opts.strictLines && plan.unknown.length) {
+        excluded = {
+          reason: 'partial-membrane-line',
+          detail: `strict-line sensitivity: ${plan.unknown.join(', ')} has no Membrane line`,
+        }
+      }
+    }
+    const walkedClass: DelayClass =
+      walked && !excluded
+        ? lineMode === 'protocol'
+          ? s.delayClass
+          : (plan as MembraneLinePlan).delayClass
+        : s.delayClass
+    stats.classCounts[walkedClass] = (stats.classCounts[walkedClass] ?? 0) + 1
+    const walkLine = walked && !excluded && plan ? plan.line : s.line
 
     const open: OpenRecord = {
       kind: 'open',
@@ -566,9 +767,9 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
       debtLegs: streamLegs(s.debt),
       debtUsd: s.debtUsd,
       collUsd: s.collUsd,
-      line: s.line,
+      line: walkLine,
       ltv0: s.ltv0,
-      delayClass: s.delayClass,
+      delayClass: walkedClass,
       cluster,
       walked,
     }
@@ -577,8 +778,8 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
       open.t0 = { block: s.t0.block, ts: s.t0.ts, minute: s.t0.minute }
       open.priceBasis = s.t0.priceBasis
     }
-    if (walked && s.halves.length > 1) {
-      open.subs = s.halves.map((h) => ({
+    if (walked && !excluded && halves.length > 1) {
+      open.subs = halves.map((h) => ({
         sub: h.sub as number,
         delayClass: h.delayClass,
         line: h.line,
@@ -587,7 +788,6 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
         debtUsd: s.debtUsd == null ? null : s.debtUsd * h.share,
       }))
     }
-    emit(open)
 
     // ---- real
     const realRecs: RealRecord[] = []
@@ -657,85 +857,149 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
       realRecs.push(rec)
     }
 
-    // ---- mem
-    let memRow: CensusRow['mem'] = null
-    const memRecs: MemRecord[] = []
-    if (walked && s.t0) {
-      if (s.ltv0 != null && s.line != null && !(s.ltv0 > s.line))
-        stats.locatedFloatMismatch.push(s.pid)
-      const anchors = pathAnchors(s)
-      const cols = new Map<string, Float64Array>()
-      for (const k of anchors.keys()) {
-        const col =
-          s.protocol === 'aave-v3' ? aaveCols.get(aaveScope, k) : morphoCols.get(s.chain, k)
-        if (!col) throw new Error(`census: ${s.pid} holds ${k}, which has no minute path`)
-        cols.set(k, col)
+    const prep: Prepared = { s, walked, cluster, open, realRecs, feeByRec, halves, plan, excluded }
+    prepared.push(prep)
+    if (walked && s.ltv0 != null && s.line != null && !(s.ltv0 > s.line))
+      stats.locatedFloatMismatch.push(s.pid)
+    if (!walked || excluded || !s.t0) return
+    const anchors = pathAnchors(s)
+    const cols = new Map<string, Float64Array>()
+    for (const k of anchors.keys()) {
+      const col = s.protocol === 'aave-v3' ? aaveCols.get(aaveScope, k) : morphoCols.get(s.chain, k)
+      if (!col) throw new Error(`census: ${s.pid} holds ${k}, which has no minute path`)
+      cols.set(k, col)
+    }
+    const override = opts.ratioOverride
+    // Every held leg must have a price at every minute walked: a gap throws (priceAt), it is
+    // never carried forward. The kernel would throw too (its default `missingPrice`).
+    const ratioAt = (leg: KernelLeg, m: number): number => {
+      if (override) {
+        const o = override(s, leg, m)
+        if (o !== undefined) return o as number
       }
-      const kernels = s.halves.map((h) => {
-        const legs = kernelLegs(s, h)
-        return new MembraneKernel({
-          pid: s.pid,
-          ...(h.sub !== undefined ? { sub: h.sub } : {}),
-          collateral: legs.collateral,
-          debt: legs.debt,
-          line: h.line,
-          noDelay: h.delayClass === 'no-delay',
-          band: opts.band ?? MAX_THRESHOLD_TO_DELAY,
-          delaySteps: DELAY_STEPS,
-          gap: BORROW_LTV_GAP,
-          debtMinimum: opts.noDebtFloor ? 0 : s.debtMinimum,
-          maxSales: opts.maxSales ?? MAX_SALES,
-          ...(opts.noEarlyClear ? { noEarlyClear: true } : {}),
-          t0Minute: s.t0!.minute,
-          t0Ts: s.t0!.ts,
-          startTs: W.startTs,
-          stepSeconds: W.stepSeconds,
-          lastMinute,
-          usdPerUnit: P.usdPerUnit,
-          stopAfterT0BandSale: opts.stopAfterT0BandSale,
-        })
-      })
-      for (const k of kernels) memRecs.push(...k.start())
-      let m = 0
-      const override = opts.ratioOverride
-      // Every held leg must have a price at every minute walked: a gap throws (priceAt), it is
-      // never carried forward. The kernel would throw too (its default `missingPrice`).
-      const ratioOf = (leg: KernelLeg): number | null => {
-        if (override) {
-          const o = override(s, leg, m)
-          if (o !== undefined) return o
+      if (!leg.key) return 1
+      const p0 = anchors.get(leg.key) as number
+      if (!(p0 > 0)) throw new Error(`census: ${s.pid} has no t0 price for ${leg.key}`)
+      return priceAt(cols.get(leg.key)!, m, `${s.pid} ${leg.symbol}`) / p0
+    }
+
+    // ---- NO CAPACITY: a collateral token nobody liquidated on this chain has no capacity.
+    // A position holding one is walked alone first; if Membrane would ever sell it, it is left
+    // out of the headline (it never touches the book). Before a first sale the capped and the
+    // uncapped walks are identical, so the solo walk decides exactly that.
+    if (book) {
+      const dry = [
+        ...new Set(
+          halves.flatMap((h) =>
+            h.collateral
+              .filter((l) => !l.token || !book.hasCapacity(liqKeyOf(s.chain, l.token)))
+              .map((l) => l.symbol),
+          ),
+        ),
+      ]
+      if (dry.length) {
+        const solo: Walk = {
+          pi,
+          spec: s,
+          halves,
+          kernels: kernelsFor(s, halves, P.usdPerUnit, undefined),
+          memRecs: [],
+          ratioAt,
         }
-        if (!leg.key) return 1
-        const p0 = anchors.get(leg.key) as number
-        if (!(p0 > 0)) throw new Error(`census: ${s.pid} has no t0 price for ${leg.key}`)
-        return priceAt(cols.get(leg.key)!, m, `${s.pid} ${leg.symbol}`) / p0
+        if (soloSells(solo)) {
+          prep.excluded = {
+            reason: 'no-capacity',
+            detail: `Membrane would sell ${dry.join(', ')} on ${s.chain}, where no liquidation of the window took any: no observed capacity`,
+          }
+          return
+        }
       }
-      for (m = s.t0.minute + 1; m <= lastMinute; m++) {
-        let live = false
-        for (const k of kernels) {
+    }
+    // Every offer of this position goes to the shared book; a no-capacity token is never offered.
+    const liquidity: KernelLiquidity | undefined = book
+      ? {
+          take: (m, legs) => {
+            for (const l of legs) {
+              if (l.tokens > 0 && !book.hasCapacity(l.liqKey)) {
+                throw new Error(`census: ${s.pid} offered ${l.liqKey}, which has no capacity`)
+              }
+            }
+            return book.take(m, legs)
+          },
+        }
+      : undefined
+    prep.walk = {
+      pi,
+      spec: s,
+      halves,
+      kernels: kernelsFor(s, halves, P.usdPerUnit, liquidity),
+      memRecs: [],
+      ratioAt,
+    }
+  })
+
+  // ---- THE WALK: every position, minute by minute, in one deterministic order -------------
+  // Minute, then pid (then the half's sub): the order the shared liquidity book is drawn in.
+  // Uncapped, positions are independent and this is the per-position walk, record for record.
+  const walks = prepared
+    .filter((p) => p.walk)
+    .map((p) => p.walk as Walk)
+    .sort((a, b) => (a.spec.pid < b.spec.pid ? -1 : a.spec.pid > b.spec.pid ? 1 : 0))
+  let active = walks
+  const firstMinute = walks.reduce((a, w) => Math.min(a, w.spec.t0!.minute), Infinity)
+  for (let m = firstMinute; m <= lastMinute && active.length; m++) {
+    const next: Walk[] = []
+    for (const w of active) {
+      const t0m = w.spec.t0!.minute
+      if (m < t0m) {
+        next.push(w)
+        continue
+      }
+      if (m === t0m) {
+        for (const k of w.kernels) w.memRecs.push(...k.start())
+      } else {
+        for (const k of w.kernels) {
           if (k.isDone) continue
-          live = true
-          memRecs.push(...k.step(m, ratioOf))
+          w.memRecs.push(...k.step(m, (leg) => w.ratioAt(leg, m)))
         }
-        if (!live) break
       }
-      for (const k of kernels) memRecs.push(...k.finish())
-      const results: KernelResult[] = kernels.map((k) => k.result())
+      if (w.kernels.some((k) => !k.isDone)) next.push(w)
+    }
+    active = next
+  }
+  for (const w of walks) for (const k of w.kernels) w.memRecs.push(...k.finish())
+
+  // ---- rows, in position order ---------------------------------------------------------------
+  const rows: CensusRow[] = []
+  prepared.forEach((prep, pi) => {
+    const P = positions[pi]
+    const { s, walked, cluster, open, realRecs, feeByRec, halves, plan, excluded } = prep
+    let local = 0
+    const emit = (rec: StreamRecord) =>
+      emitted.push({ rec: roundRecord(rec), pos: pi, local: local++ })
+    if (excluded) {
+      open.walked = false
+      open.reason = excluded.detail
+    }
+    emit(open)
+
+    let memRow: CensusRow['mem'] = null
+    const memRecs: MemRecord[] = prep.walk ? prep.walk.memRecs : []
+    if (prep.walk) {
+      const w = prep.walk
+      const results: KernelResult[] = w.kernels.map((k) => k.result())
       if (opts.probe) {
         opts.probe({
           spec: s,
+          halves,
+          line: (plan ? plan.line : s.line) as number,
+          delayClass: open.delayClass,
           results,
-          ratioAt: (leg, minute) => {
-            if (!leg.key) return 1
-            const p0 = anchors.get(leg.key) as number
-            if (!(p0 > 0)) throw new Error(`census: ${s.pid} has no t0 price for ${leg.key}`)
-            return priceAt(cols.get(leg.key)!, minute, `${s.pid} ${leg.symbol}`) / p0
-          },
+          ratioAt: w.ratioAt,
           usdPerUnit: P.usdPerUnit,
           lastMinute,
         })
       }
-
       // Per-half rows and the whole position's figures.
       const rounded = memRecs.map((r) => roundRecord(r))
       const sumOf = (sub: number | undefined, f: (r: MemRecord) => number | null) =>
@@ -743,8 +1007,8 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
           .filter((r) => (r.event === 'sell' || r.event === 'sell-instant') && r.sub === sub)
           .reduce((a, r) => a + (f(r) ?? 0), 0)
       const subs: SubRow[] | undefined =
-        s.halves.length > 1
-          ? s.halves.map((h, k) => ({
+        halves.length > 1
+          ? halves.map((h, k) => ({
               sub: h.sub as number,
               delayClass: h.delayClass,
               line: h.line,
@@ -767,10 +1031,14 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
       // The position's outcome: an unsplit position's own; a split one's DOMINANT half (the
       // larger share of the debt; ties: sub 0). Each half's outcome is in subs[].
       let dom = 0
-      s.halves.forEach((h, k) => {
-        if (h.share > s.halves[dom].share) dom = k
+      halves.forEach((h, k) => {
+        if (h.share > halves[dom].share) dom = k
       })
       const outcome: CureOutcome = results[dom].outcome
+      const unfilledUsd = results.reduce<number | null>(
+        (a, r) => (a == null || r.unfilledAtGridEndUsd == null ? null : a + r.unfilledAtGridEndUsd),
+        0,
+      )
       memRow = {
         outcome,
         sales: results.reduce((a, r) => a + r.sales, 0),
@@ -785,16 +1053,27 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
         armedAtGridEnd: results.some((r) => r.armedAtGridEnd),
         startUnbreached: results.every((r) => r.startUnbreached),
         ...(subs ? { subs } : {}),
+        ...(book
+          ? {
+              liquidity: {
+                shortSales: results.reduce((a, r) => a + r.shortSales, 0),
+                carryFills: results.reduce((a, r) => a + r.carryFills, 0),
+                pendingCancelled: results.reduce((a, r) => a + r.pendingCancelled, 0),
+                unfilledAtGridEndUsd:
+                  unfilledUsd == null ? null : Math.round(unfilledUsd * 100) / 100,
+              },
+            }
+          : {}),
       }
     }
     for (const r of realRecs) emit(r)
     for (const r of memRecs) emit(r)
 
-    // ---- t0 decisions at this basis and at the other one (the price-basis residual)
+    // ---- t0 decisions (on the halves walked) at this basis and at the other one
     let t0Decisions: T0Decision[] | undefined
     let t0AltBasis: CensusRow['t0AltBasis']
-    if (walked && s.t0 && s.ltv0 != null) {
-      t0Decisions = s.halves.map((h) => t0Decision(s.ltv0!, h, MAX_THRESHOLD_TO_DELAY))
+    if (walked && s.t0 && s.ltv0 != null && !excluded) {
+      t0Decisions = halves.map((h) => t0Decision(s.ltv0!, h, MAX_THRESHOLD_TO_DELAY))
       const alt: PriceBasis = s.t0.priceBasis === 'N' ? 'N-1' : 'N'
       const altSpec =
         s.protocol === 'aave-v3'
@@ -805,14 +1084,17 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
               alt,
               morphoSpecOpts(P.symbols!, P.usdPerUnit),
             )
+      const altHalves =
+        altSpec.located && altSpec.ltv0 != null && altSpec.halves.length
+          ? planOf(altSpec).halves
+          : []
       t0AltBasis = {
         priceBasis: alt,
         located: altSpec.located,
         ltv0: altSpec.ltv0,
-        decisions:
-          altSpec.located && altSpec.ltv0 != null && altSpec.halves.length
-            ? altSpec.halves.map((h) => t0Decision(altSpec.ltv0!, h, MAX_THRESHOLD_TO_DELAY))
-            : null,
+        decisions: altHalves.length
+          ? altHalves.map((h) => t0Decision(altSpec.ltv0!, h, MAX_THRESHOLD_TO_DELAY))
+          : null,
       }
     }
 
@@ -829,6 +1111,7 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
       first: s.first,
       walked,
       ...(walked ? {} : { reason: open.reason }),
+      ...(excluded ? { excluded: excluded.reason, excludedDetail: excluded.detail } : {}),
       ...(walked && s.t0
         ? {
             t0: {
@@ -838,8 +1121,7 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
               shifted: s.t0.shifted,
               priceBasis: s.t0.priceBasis,
             },
-            t0Decisions,
-            t0AltBasis,
+            ...(t0Decisions ? { t0Decisions, t0AltBasis } : {}),
           }
         : {}),
       unit: s.unit,
@@ -853,8 +1135,19 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
       collUsd: s.collUsd,
       debtUsd: s.debtUsd,
       line: s.line,
+      ...(plan
+        ? {
+            memLine: {
+              line: plan.line,
+              unknown: plan.unknown,
+              unknownShare: plan.unknownShare,
+              ...(plan.lineFromWhole.length ? { lineFromWhole: plan.lineFromWhole } : {}),
+            },
+          }
+        : {}),
       ltv0: s.ltv0,
-      delayClass: s.delayClass,
+      delayClass: open.delayClass,
+      ...(lineMode === 'membrane' ? { protocolDelayClass: s.delayClass } : {}),
       cluster,
       primarySymbol: prim[pi],
       ...(s.notes.length ? { notes: s.notes } : {}),
@@ -914,11 +1207,98 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
   }
   flushTicksBefore(Infinity)
 
+  const byKey: Record<
+    string,
+    {
+      filledTokens: number
+      shortOffers: number
+      peakWindowTokens: number
+      limitTokens: number | null
+    }
+  > = {}
+  if (book) {
+    for (const k of [...new Set([...book.filled.keys(), ...book.shortOffers.keys()])].sort()) {
+      const lim = book.limitOf(k)
+      byKey[k] = {
+        filledTokens: book.filled.get(k) ?? 0,
+        shortOffers: book.shortOffers.get(k) ?? 0,
+        peakWindowTokens: book.peakWindow(k),
+        limitTokens: lim === Infinity ? null : lim,
+      }
+    }
+  }
   return {
     rows,
     records,
     finalTotals: state.totals,
     coverage: { ...state.coverage },
     stats,
+    capacity,
+    liquidity: book ? { multiplier, byKey } : null,
   }
+}
+
+/**
+ * The capacity table from every liquidation of the inputs (lib/wavefront/liquidity.ts): each
+ * event's collateral that left the borrower — Aave liquidatedCollateralAmount + the protocol
+ * fee (aave-protocol-fee collateralSeizedTotalRaw), Morpho seized assets — in raw tokens, on the
+ * event's grid minute; its USD is the real side's own seized figure (aaveRealUsd /
+ * morphoRealUsd), so the table and the real side price the same events the same way.
+ */
+function capacityTable(
+  inp: CensusInputs,
+  aaveUsdAt: (scope: string, asset: string, minute: number) => number | null,
+  aaveDecimals: (scope: string, asset: string) => number | null,
+  loanUsdFn: (chain: string, token: string, symbol: string) => (m: number) => number | null,
+  W: StreamWindow,
+): CapacityEntry[] {
+  const evA = new Map(inp.aaveEvents.map((e) => [evKey(e.chain, e.tx_hash, e.log_index), e]))
+  const evM = new Map(inp.morphoEvents.map((e) => [evKey(e.chain, e.tx_hash, e.log_index), e]))
+  const fees = new Map(inp.aaveFees.map((f) => [evKey(f.chain, f.tx_hash, f.log_index), f]))
+  const out: CapacityEvent[] = []
+  for (const row of inp.aaveCsv) {
+    const key = evKey(row.chain, String(row.tx_hash), Number(row.log_index))
+    const fee = fees.get(key)
+    if (!fee) throw new Error(`capacity: no protocol-fee record for ${key}`)
+    const ev = evA.get(key)
+    const scope = `${row.chain}:${aavePoolOf(row)}`
+    const asset = row.collateral_asset.toLowerCase()
+    const reserve = ev?.position.find((x) => x.asset === asset)
+    const meta = inp.aaveOracle[scope]?.assets.find((a) => a.address === asset)
+    const decimals = reserve?.decimals ?? aaveDecimals(scope, asset)
+    const symbol = reserve?.symbol ?? meta?.symbol
+    if (decimals == null || !symbol) throw new Error(`capacity: no decimals/symbol for ${asset}`)
+    const minute = minuteOf(Number(row.ts), W.startTs, W.stepSeconds)
+    const total = BigInt(fee.collateralSeizedTotalRaw)
+    const usd = aaveRealUsd(row, ev, fee, decimals, (a) => aaveUsdAt(scope, a, minute)).seizedUsd
+    out.push({
+      chain: row.chain,
+      token: asset,
+      symbol,
+      decimals,
+      minute,
+      liquidatorRaw: total - BigInt(fee.protocolFeeRaw),
+      borrowerRaw: total,
+      usd,
+    })
+  }
+  for (const row of inp.morphoCsv) {
+    const key = evKey(row.chain, String(row.tx_hash), Number(row.log_index))
+    const ev = evM.get(key)
+    if (!ev) throw new Error(`capacity: no Morpho event record for ${key}`)
+    const minute = minuteOf(Number(row.ts), W.startTs, W.stepSeconds)
+    const raw = BigInt(row.seized_assets)
+    const loan = loanUsdFn(ev.chain, ev.loanToken.toLowerCase(), row.loan_symbol)(minute)
+    out.push({
+      chain: row.chain,
+      token: ev.collateralToken.toLowerCase(),
+      symbol: row.collateral_symbol,
+      decimals: ev.collateralDecimals,
+      minute,
+      liquidatorRaw: raw,
+      borrowerRaw: raw,
+      usd: morphoRealUsd(row, ev, loan).seizedUsd,
+    })
+  }
+  return computeCapacity(out, W.minutes)
 }

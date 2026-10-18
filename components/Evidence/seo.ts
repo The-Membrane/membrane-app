@@ -14,8 +14,8 @@ export function evidenceDescription(summary: EvidenceDoc | null): string {
   const m = (x: number) => `$${(x / 1e6).toFixed(1)}M`
   const g = (x: number) => `${Math.abs(x).toFixed(1)}% ${x >= 0 ? 'less' : 'more'}`
   return (
-    `Every Aave and Morpho liquidation of ${summary.meta.window.label}: ${m(d.all.realRepaidUsd)} of debt force-closed vs ` +
-    `${m(d.all.memRepaidUsd)} on Membrane (modelled), ${g(d.all.gapPct)} ` +
+    `Aave and Morpho liquidations of ${summary.meta.window.label}, ${summary.meta.positions.toLocaleString('en-US')} compared: ${m(d.all.realRepaidUsd)} of debt force-closed vs ` +
+    `${m(d.all.memRepaidUsd)} on Membrane at its own lines (modelled), ${g(d.all.gapPct)} net ` +
     `(Aave ${g(d.byProtocol['aave-v3'].gapPct)}, Morpho ${g(d.byProtocol['morpho-blue'].gapPct)}).`
   )
 }

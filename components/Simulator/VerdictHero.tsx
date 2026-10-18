@@ -72,7 +72,7 @@ import { fmtLocalClock, fmtLocalDayClock, useLocalZone } from './localClock'
 import Stamp from './Stamp'
 import { stamp as stampFn } from '@/lib/position-sim/types'
 
-import { OCT10_STAKES_LINE, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
+import { OCT10_DAY, OCT10_STAKES_LINE } from '@/lib/position-sim/oct10Totals'
 
 import AddressBar, { type AddressBarProps } from './AddressBar'
 import HeroChart from './HeroChart'
@@ -85,7 +85,7 @@ import { usd, usdSigned } from './format'
  */
 const OCT10_PROV = stampFn(
   'dataset',
-  `census · ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions · on-chain`,
+  `census · ${OCT10_DAY.positions.toLocaleString('en-US')} positions · on-chain`,
   'The stakes line only: public/data/oct10-2025/evidence-census.json — every Aave V3 and Morpho Blue liquidation on Ethereum, Arbitrum, Optimism and Base, 10-11 Oct 2025, each position walked on its own protocol’s oracle read on chain. The wallet verdict under it is a simulator replay, not this census.',
 )
 
@@ -458,7 +458,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
             {/* THE STAKES (owner ruling 2026-09-12): the hero must say how big that day
                 was and that it WAS Oct 10, before it says what happened to this wallet.
                 One line, above the two verdict sentences, nothing added to it — the
-                verdict stays the headline. Numbers come from OCT10_TOTALS (the full
+                verdict stays the headline. Numbers come from OCT10_DAY (the full
                 on-chain census), which the unit test re-derives from its rows. */}
             <Box display="flex" flexWrap="wrap" alignItems="center" gap={SPACING.sm}>
               <Text

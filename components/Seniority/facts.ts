@@ -50,10 +50,11 @@ const OUTCOME_PHRASE: Record<string, string> = {
 
 /** The census in one sentence, both protocols on it. Shared by every hero variant. */
 const CENSUS_LINE =
-  `Replayed on every liquidation of ${census.window} — ${n(census.positions)} positions on Aave and Morpho across four chains, ` +
-  `each walked on its protocol’s own oracle read on chain — the protocols force-closed ${usdM(census.all.realRepaidUsd)} of debt ` +
-  `and Membrane’s rules would have closed ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)}, net ` +
-  `(Aave ${gap(census.aave.gapPct)}, Morpho ${gap(census.morpho.gapPct)}): less on ${n(census.less)} positions, more on ${n(census.more)}.`
+  `Replayed on ${n(census.positions)} of the ${n(census.censusPositions)} positions liquidated on Aave and Morpho across four chains on ${census.window} ` +
+  `(${n(census.excluded.noMembraneLine.positions)} hold collateral Membrane has no line for and ${n(census.excluded.noCapacity.positions)} would sell a token nobody liquidated on that chain), ` +
+  `each walked at Membrane’s own line on its protocol’s oracle read on chain, every sale capped by the liquidity the day showed† — ` +
+  `the protocols force-closed ${usdM(census.all.realRepaidUsd)} of debt and Membrane’s rules would have closed ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)}, net ` +
+  `(Aave ${gap(census.aave.gapPct)}, Morpho ${gap(census.morpho.gapPct)}): less on ${n(census.less)} positions (${usdM(census.lessUsd)}†), more on ${n(census.more)} (${usdM(census.moreUsd)}†).`
 
 const CENSUS_CITE =
   `public/data/oct10-2025/evidence-census.json debt.all and debt.byProtocol (${n(census.positions)} positions: ` +
@@ -143,7 +144,6 @@ const BC_BRIDGE = {
     CENSUS_LINE +
     ' Stablecoin collateral gets no window†. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
 }
-
 
 /**
  * THE THREE HEROES.
@@ -253,9 +253,24 @@ export const WATERFALL_FLOOR = {
  * same block. No protocol-specific numbers here; those live in MIMICRY with a source.
  */
 export const SUPPLY_SIDE_WATERFALL: WaterfallStep[] = [
-  { label: 'Borrower', who: 'you', how: 'liquidated at the threshold, same block, no window.', cite: 'pooled-lending design' },
-  { label: 'Safety module', who: 'stakers', how: 'if one exists, and only after a vote.', cite: 'pooled-lending design' },
-  { label: 'Suppliers', who: 'lenders', how: 'shortfall socialised across the pool.', cite: 'pooled-lending design' },
+  {
+    label: 'Borrower',
+    who: 'you',
+    how: 'liquidated at the threshold, same block, no window.',
+    cite: 'pooled-lending design',
+  },
+  {
+    label: 'Safety module',
+    who: 'stakers',
+    how: 'if one exists, and only after a vote.',
+    cite: 'pooled-lending design',
+  },
+  {
+    label: 'Suppliers',
+    who: 'lenders',
+    how: 'shortfall socialised across the pool.',
+    cite: 'pooled-lending design',
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -285,8 +300,10 @@ export const BOND_COVERAGE = {
   title: 'Bond coverage',
   definition: 'curator bonds posted ÷ the redemption volume they could fail to serve',
   /** What the bond actually backs. Anything else is a promise the contract does not make. */
-  backs: 'Bonds are slashed for failing to serve a redemption: min(shortfall, bond ÷ 10) per incident. The slash is booked as protocol revenue; the unserved redeemer holds an open claim.',
-  backsCite: 'contracts/RedemptionEngine.sol:156-160,273-287 · contracts/CuratorRegistry.sol:130,676-686',
+  backs:
+    'Bonds are slashed for failing to serve a redemption: min(shortfall, bond ÷ 10) per incident. The slash is booked as protocol revenue; the unserved redeemer holds an open claim.',
+  backsCite:
+    'contracts/RedemptionEngine.sol:156-160,273-287 · contracts/CuratorRegistry.sol:130,676-686',
   bases: [
     {
       id: 'redemption',
@@ -324,21 +341,24 @@ export interface Consequence {
 
 export const CONSEQUENCES: Consequence[] = [
   {
-    effect: 'Redemption never touches a borrower. Curator vaults deliver the served asset; no position is read or written.',
+    effect:
+      'Redemption never touches a borrower. Curator vaults deliver the served asset; no position is read or written.',
     proof: 'RedemptionEngine.redeem',
     proofHref: '/simulator',
     cite: 'contracts/RedemptionEngine.sol:142-164 · Cdp.sol has 0 occurrences of redeem',
     note: 'Brief said "redemption touches debt only". WRONG: it touches no borrower at all. This is the stronger claim.',
   },
   {
-    effect: 'Nobody else’s loss lands on you. Reserve, MBRN and both lender tranches absorb it; the cascade never writes to a position.',
+    effect:
+      'Nobody else’s loss lands on you. Reserve, MBRN and both lender tranches absorb it; the cascade never writes to a position.',
     proof: 'Cdp._absorbBadDebt',
     proofHref: '/simulator',
     cite: 'contracts/Cdp.sol:2758-2869 · contracts/Cdp.sol:3214-3260',
     note: 'Brief listed "can’t be repriced when exit is blocked" here. Owner, 14 Sep: that may be an old claim; the section must state seniority, so this is the loss-order effect. For the record the rate fact is real and unconditional (segments snapshot their rate at draw, Cdp.sol:1516-1521, 4396) but it is a rate property, not a seniority one, and is kept off this row.',
   },
   {
-    effect: 'A breach gets 8 hours to cure while it stays inside the asset’s band. Launch collateral is set to 4%. Past the band, the sale is immediate.',
+    effect:
+      'A breach gets 8 hours to cure while it stays inside the asset’s band. Launch collateral is set to 4%. Past the band, the sale is immediate.',
     proof: 'run your position through 10 Oct 2025',
     proofHref: '/simulator',
     cite: 'script/DeployFullSystem.s.sol:164,178,219 · contracts/LiquidationEngine.sol:803-819,1501-1503,2099-2103 · contracts/Collateral.sol:223,232',
@@ -372,26 +392,32 @@ export interface MimicryCard {
 export const MIMICRY: MimicryCard[] = [
   {
     name: 'Aave',
-    membrane: 'Every breach gets a cure window, and the window’s length sits behind a 14-day timelock.',
-    wontCopy: 'Aave has no cure window to offer. Adding one makes the borrower’s time a fixed term instead of a parameter the DAO prices.',
+    membrane:
+      'Every breach gets a cure window, and the window’s length sits behind a 14-day timelock.',
+    wontCopy:
+      'Aave has no cure window to offer. Adding one makes the borrower’s time a fixed term instead of a parameter the DAO prices.',
     cite: 'contracts/LiquidationEngine.sol:803-819 · contracts/lib/Constants.sol:144,148',
   },
   {
     name: 'Morpho',
     membrane: 'Curators post a bond and are slashed when they fail to serve a redemption.',
-    wontCopy: 'Morpho’s distribution runs through supply-side partners. Telling curators they are bonded and junior is a business-model concession.',
+    wontCopy:
+      'Morpho’s distribution runs through supply-side partners. Telling curators they are bonded and junior is a business-model concession.',
     cite: 'contracts/CuratorRegistry.sol:194,676-678 · contracts/RedemptionEngine.sol:273-287',
   },
   {
     name: 'Liquity',
     membrane: 'Redemption is served by curator vaults. It never opens a borrower’s position.',
-    wontCopy: 'Redeeming against borrower collateral IS Liquity’s peg defence. Removing it removes the peg.',
+    wontCopy:
+      'Redeeming against borrower collateral IS Liquity’s peg defence. Removing it removes the peg.',
     cite: 'contracts/RedemptionEngine.sol:142-164 · Cdp.sol: 0 occurrences of redeem',
   },
   {
     name: 'Recall',
-    membrane: 'The engine pulls deployed CDT back from venues and burns it against debt inside the unwind.',
-    wontCopy: 'To copy it Aave would have to become a yield router and own venue liability, abandoning neutral base-layer positioning.',
+    membrane:
+      'The engine pulls deployed CDT back from venues and burns it against debt inside the unwind.',
+    wontCopy:
+      'To copy it Aave would have to become a yield router and own venue liability, abandoning neutral base-layer positioning.',
     cite: 'contracts/LiquidationEngine.sol:1105-1280 · contracts/Cdp.sol:3023,3127-3151',
   },
 ]
@@ -456,16 +482,10 @@ const moreRest = more.atOrAboveFloor.positions - moreBand - moreT0
 
 /** The stress list: the same walk, one rule changed. Which corners cross the protocols' total is computed. */
 const S = census.sensitivity
-const bandAt = (b: number) => S.band.find((x) => x.band === b)?.memRepaidUsd ?? NaN
-const STRESS: { label: string; usd: number }[] = [
-  { label: 'a 2% band', usd: bandAt(0.02) },
-  { label: 'an 8% band', usd: bandAt(0.08) },
-  { label: 'nobody clears a timer early', usd: S.noEarlyClearUsd },
-  { label: 'no $2,000 floor', usd: S.noDebtFloorUsd },
-  { label: 'one sale per position', usd: S.singleSaleUsd },
-  { label: 't0 read at the block before', usd: S.t0AtNm1Usd },
-]
-const crossing = STRESS.filter((x) => x.usd >= census.all.realRepaidUsd).map((x) => x.label)
+/** Every published sensitivity but the headline, each against ITS OWN set's real side. */
+const STRESS = S.table.filter((x) => !x.headline)
+const stressLine = (x: (typeof STRESS)[number]) =>
+  `${x.label}: ${usdM(x.memRepaidUsd)}† against ${usdM(x.realRepaidUsd)} on its ${n(x.positions)} positions, ${gap(x.gapPct)} (Aave ${gap(x.aaveGapPct)}, Morpho ${gap(x.morphoGapPct)})`
 
 export const CLOSE = {
   eyebrow: `Counterfactual · ${census.window}`,
@@ -482,15 +502,16 @@ export const CLOSE = {
   contains: {
     title: 'What the number contains',
     lines: [
-      `Every liquidation, both protocols, never folded. Aave V3: ${n(census.aave.positions)} positions, the protocol closed ${usdM(census.aave.realRepaidUsd)} and Membrane would close ${usdM(census.aave.memRepaidUsd)}†, ${gap(census.aave.gapPct)}. Morpho Blue: ${n(census.morpho.positions)} positions, ${usdM(census.morpho.realRepaidUsd)} against ${usdM(census.morpho.memRepaidUsd)}†, ${gap(census.morpho.gapPct)}. Together ${usdM(census.all.realRepaidUsd)} against ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)}, net: Membrane closes less on ${n(census.less)} positions (${usdM(census.lessUsd)}†) and more on ${n(census.more)} (${usdM(census.moreUsd)}†). The lens above shows each chain.`,
-      'What Membrane’s figure is: a breach inside the 4% band waits eight hours; a return under the line clears the timer and a later breach starts a fresh one; a move past line × 1.04, or still over the line at expiry, repays to the borrow cap at that minute’s price; the position then walks on. Stablecoin collateral has no window† and is repaid to cap the minute it crosses. Each position is its whole composition at its first liquidation, every leg on its protocol’s own oracle read on chain. The protocols’ figure is every liquidation the position took across 10 and 11 Oct, measured.',
+      `Every compared liquidation, both protocols, never folded. Aave V3: ${n(census.aave.positions)} positions, the protocol closed ${usdM(census.aave.realRepaidUsd)} and Membrane would close ${usdM(census.aave.memRepaidUsd)}†, ${gap(census.aave.gapPct)}. Morpho Blue: ${n(census.morpho.positions)} positions, ${usdM(census.morpho.realRepaidUsd)} against ${usdM(census.morpho.memRepaidUsd)}†, ${gap(census.morpho.gapPct)}. Together ${usdM(census.all.realRepaidUsd)} against ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)}, net: Membrane closes less on ${n(census.less)} positions (${usdM(census.lessUsd)}†) and more on ${n(census.more)} (${usdM(census.moreUsd)}†). The lens above shows each chain.`,
+      `What Membrane’s figure is: each position walked at Membrane’s own line — the value-weighted modelled max LTV of its collateral (WETH 80%, wstETH 78%, WBTC 75%, …)†, below most protocol lines, so a position is further past it at its first liquidation — and every sale capped by the liquidity the day showed: all of Membrane’s sales of a token on a chain share ${census.capacityMultiplier}× the most tokens liquidators absorbed in any 10 minutes†, and what does not fill sells in later minutes at those minutes’ prices. ` +
+        'A breach inside the 4% band waits eight hours; a return under the line clears the timer and a later breach starts a fresh one; a move past line × 1.04, or still over the line at expiry, repays to the borrow cap at that minute’s price; the position then walks on. Stablecoin collateral has no window† and is repaid to cap the minute it crosses. Each position is its whole composition at its first liquidation, every leg on its protocol’s own oracle read on chain. The protocols’ figure is every liquidation the position took across 10 and 11 Oct, measured. Only debt repaid is compared: Membrane’s liquidation fee is not assumed.',
       topLine,
       `${n(census.neverSold.positions)} positions were never sold at all†, ${usdM(census.neverSold.debtUsd)} of debt: back under their line inside the window, or never over it. The protocols closed ${usdM(census.neverSold.realRepaidUsd)} of it.`,
       `Under $2,000 of debt both sides close the loan whole: ${n(B.underFloor.positions)} positions, the protocols a median ${pct1(B.underFloor.realMedianFrac)}, Membrane ${pct1(B.underFloor.memMedianFrac)}†. Membrane’s $2,000 minimum exists because below it a liquidation costs more in gas than it recovers, so the contract indexes the floor to the gas price rather than to a choice of ours. Between $2,000 and $4,000 the minimum still closes ${n(B.floorToTwice.memClosesWhole)} of ${n(B.floorToTwice.positions)} loans whole† where the protocols took a median ${pct1(B.floorToTwice.realMedianFrac)}. From $4,000 up the median position loses ${pct1(B.twiceFloorUp.realMedianFrac)} of the loan to the protocols and ${pct1(B.twiceFloorUp.memMedianFrac)} to Membrane†, across ${n(B.twiceFloorUp.positions)} positions.`,
       `${n(more.positions)} positions lose more on Membrane† and ${n(census.equal)} come out equal to the cent. ${n(more.underFloor.positions)} of the ${n(more.positions)} are under the $2,000 minimum and total ${usdAny(more.underFloor.extraUsd)}. The other ${n(more.atOrAboveFloor.positions)} (${n(moreBand)} sold at the band, ${n(moreT0)} already past it at the first liquidation, ${n(moreRest)} otherwise) are where repay to cap restores the line in one pass while the protocols’ liquidators took a median ${pct1(more.atOrAboveFloor.realMedianFrac)} bite: ${usdM(more.atOrAboveFloor.extraUsd)}†.`,
       `${n(census.gridEnd.positions)} positions were still inside their 8-hour window when the data ends (23:59 UTC 11 Oct). A window still open is not a completed sale; the census books each at the last price, ${usdAny(census.gridEnd.memRepaidUsd)}† of Membrane’s total, the conservative choice.`,
       `${n(census.unpricedPositions)} Morpho positions borrow a token with no USD price that day: they are in every count above and in no dollar figure, on either side.`,
-      `Stress it, same walk, one rule changed: ${STRESS.map((x) => `${x.label}, ${usdM(x.usd)}†`).join('; ')}. ${crossing.length ? `Every one keeps Membrane under the protocols’ ${usdM(census.all.realRepaidUsd)} except ${crossing.join(' and ')}.` : `Every one keeps Membrane under the protocols’ ${usdM(census.all.realRepaidUsd)}.`}`,
+      `Stress it, same census, one rule changed, each on its own set of positions: ${STRESS.map(stressLine).join('; ')}.`,
     ],
     /** The one footer line for every † above (DESIGN_RULES.md §3). Rendered. */
     footnote: MODELLED_FOOTNOTE,

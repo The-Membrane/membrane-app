@@ -19,11 +19,13 @@ const census = JSON.parse(
 )
 const m0 = (x) => `$${Math.round(x / 1e6)}M`
 const m1 = (x) => `$${(x / 1e6).toFixed(1)}M`
+// Direction-aware: the word is the sign's (at Membrane's own lines the net runs MORE).
+const dir = (g) => (g >= 0 ? 'less' : 'more')
 const proof =
-  `Replayed on every Aave and Morpho liquidation of ${census.window}, ` +
-  `${census.positions.toLocaleString('en-US')} positions: ${m0(census.all.gapUsd)} less debt force-closed, net ` +
+  `Replayed on ${census.positions.toLocaleString('en-US')} of the ${census.censusPositions.toLocaleString('en-US')} Aave and Morpho liquidations of ${census.window}, ` +
+  `at Membrane's own lines with liquidity-capped sales: ${m0(Math.abs(census.all.gapUsd))} ${dir(census.all.gapUsd)} debt force-closed, net ` +
   `(less on ${census.less.toLocaleString('en-US')}, more on ${census.more.toLocaleString('en-US')}; ` +
-  `Aave ${m1(census.aave.gapUsd)}, Morpho ${m1(census.morpho.gapUsd)}), modelled.`
+  `Aave ${m1(Math.abs(census.aave.gapUsd))} ${dir(census.aave.gapUsd)}, Morpho ${m1(Math.abs(census.morpho.gapUsd))} ${dir(census.morpho.gapUsd)}), modelled.`
 // Playwright's own browser, or the preinstalled one when the pinned build is absent.
 const executablePath = process.env.OG_CHROMIUM || undefined
 

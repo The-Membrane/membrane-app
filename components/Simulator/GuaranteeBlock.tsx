@@ -16,11 +16,14 @@ import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Tot
 const SCALE = CORPUS_SCALE_LINE.partial ? OCT10_SCALE_LINE : CORPUS_SCALE_LINE
 // (When the corpus is partial the census line leads and carries its own scope; when it is
 // complete the census line is a SEPARATE block below, never a slice of the corpus figure.)
+// The census figure's word is its own sign's (OCT10_SCALE_LINE.direction): never typed.
 const SCALE_LEAD = CORPUS_SCALE_LINE.partial
-  ? '4% sounds small.'
+  ? OCT10_SCALE_LINE.direction === 'less'
+    ? '4% sounds small.'
+    : 'At its own, lower lines:'
   : '4% sounds small. It would have kept'
 const SCALE_TAIL = CORPUS_SCALE_LINE.partial
-  ? `less debt force-closed, net† (${OCT10_SCALE_LINE.scope}).`
+  ? `${OCT10_SCALE_LINE.direction} debt force-closed, net† (${OCT10_SCALE_LINE.scope}).`
   : `of collateral ${CORPUS_SCALE_LINE.window}.`
 const WINDOW_FIGURE = CORPUS_SCALE_LINE.partial ? '1' : String(CORPUS_SCALE_LINE.years)
 const WINDOW_UNIT = CORPUS_SCALE_LINE.partial ? 'day measured' : 'years measured'

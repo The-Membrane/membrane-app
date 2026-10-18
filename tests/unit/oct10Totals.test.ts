@@ -10,6 +10,12 @@
 // closed, $67M kept) to every Aave and Morpho liquidation of 10-11 Oct 2025 on four chains
 // (3,197 positions, $188.1M closed by the protocols, $157.1M by Membrane, $31.1M kept), and
 // the lines now say Aave and Morpho and carry the per-protocol split and the †.
+//
+// UPDATED 2026-10-18, deliberately (owner rulings): Membrane is walked at its OWN line with
+// liquidity-capped sales, on the COMPARED set (2,280 of 3,197: the rest have no Membrane line or
+// would sell a token with no observed liquidity). Debt repaid only. At those lines Membrane
+// closes MORE debt, net ($164.1M by the protocols, $193.0M by Membrane), so every line is
+// direction-aware. The stakes line is the size of the DAY (real side, all 3,197) and did not move.
 
 import { describe, expect, it } from 'vitest'
 
@@ -17,6 +23,7 @@ import file from '@/public/data/oct10-2025/evidence-census.json'
 import headline from '@/public/data/oct10-2025/evidence-census-headline.json'
 import { decodeEvidence, type EvidenceFile } from '@/components/Evidence/types'
 import {
+  OCT10_DAY,
   OCT10_SCALE_LINE,
   OCT10_SPLIT_LINE,
   OCT10_STAKES_LINE,
@@ -32,9 +39,25 @@ const sum = (
 const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThan(0.02)
 
 describe('OCT10_TOTALS', () => {
-  it('counts every position of the census', () => {
+  it('counts every compared position, and the census it is a part of', () => {
     expect(OCT10_TOTALS.positions).toBe(rows.length)
     expect(OCT10_TOTALS.positions).toBe(doc.meta.positions)
+    expect(OCT10_TOTALS.censusPositions).toBe(doc.meta.censusPositions)
+    expect(
+      OCT10_TOTALS.positions +
+        OCT10_TOTALS.excluded.noMembraneLine.positions +
+        OCT10_TOTALS.excluded.noCapacity.positions,
+    ).toBe(OCT10_TOTALS.censusPositions)
+  })
+
+  it('the day is every position, the real side only: compared + excluded', () => {
+    expect(OCT10_DAY.positions).toBe(doc.meta.censusPositions)
+    near(
+      OCT10_DAY.realClosedUsd,
+      sum(rows, 'realRepaidUsd') +
+        doc.meta.exclusions.noMembraneLine.realRepaidUsd +
+        doc.meta.exclusions.noCapacity.realRepaidUsd,
+    )
   })
 
   it('counts every liquidation event', () => {
@@ -114,7 +137,7 @@ describe('the headline file the landing imports', () => {
 })
 
 describe('OCT10_STAKES_LINE', () => {
-  it('states the size, the window, the count, both protocols, and nothing else', () => {
+  it('states the size of the day, the window, the count, both protocols, and nothing else', () => {
     expect(OCT10_STAKES_LINE).toBe(
       '$188M of loans force-closed on Aave and Morpho · 10–11 Oct 2025 · 3,197 positions',
     )
@@ -125,18 +148,19 @@ describe('OCT10 kept figure', () => {
   // UPDATED 2026-10-16 (review): the figure is NET — Membrane closes less on some positions
   // and more on others — and it is a separate measure from the multi-year corpus line, with
   // its own scope. So it says "net", never "protected", and never "alone".
-  it('is the NET census gap, marked modelled, with its scope, the split and the gross', () => {
+  it('is the NET census gap, direction-aware, marked modelled, with its set, split and gross', () => {
+    expect(OCT10_SCALE_LINE.direction).toBe(OCT10_TOTALS.keptUsd >= 0 ? 'less' : 'more')
     expect(OCT10_SCALE_LINE.line).toBe(
-      '4% sounds small. $31M less debt force-closed, net†, across every Aave and Morpho liquidation of 10–11 Oct 2025.',
+      'At its own, lower lines, Membrane would have force-closed $29M more debt, net†, across 2,280 of the 3,197 Aave and Morpho liquidations of 10–11 Oct 2025.',
     )
-    expect(OCT10_SCALE_LINE.result).toBe('$31M less debt force-closed, net†')
+    expect(OCT10_SCALE_LINE.result).toBe('$29M more debt force-closed, net†')
     expect(OCT10_SCALE_LINE.scope).toBe(
-      'debt closed on every Aave V3 and Morpho Blue liquidation of 10–11 Oct 2025, Ethereum, Arbitrum, Optimism and Base',
+      'debt repaid on 2,280 of the 3,197 Aave V3 and Morpho Blue liquidations of 10–11 Oct 2025, Ethereum, Arbitrum, Optimism and Base, at Membrane’s own lines with liquidity-capped sales†',
     )
-    expect(OCT10_SPLIT_LINE).toBe('Aave $8.6M · Morpho $22.4M')
+    expect(OCT10_SPLIT_LINE).toBe('Aave $31.5M more · Morpho $2.6M less')
     expect(OCT10_SCALE_LINE.split).toBe(OCT10_SPLIT_LINE)
     expect(OCT10_SCALE_LINE.gross).toBe(
-      `less on ${doc.debt.all.less.toLocaleString('en-US')} positions ($95.1M†), more on ${doc.debt.all.more.toLocaleString('en-US')} ($64.0M†)`,
+      `less on ${doc.debt.all.less.toLocaleString('en-US')} positions ($33.9M†), more on ${doc.debt.all.more.toLocaleString('en-US')} ($62.8M†)`,
     )
     for (const v of Object.values(OCT10_SCALE_LINE)) {
       expect(v).not.toMatch(/protected|\balone\b/i)

@@ -1,5 +1,116 @@
 # Wavefront — the Oct 10-11 2025 full-coverage census (Real vs Membrane)
 
+> **2026-10-18 — the headline changed (owner rulings).** Membrane now walks every position at
+> **its own per-asset line** (not the protocol's), every sale is **liquidity-capped**, and only
+> **debt repaid** is compared. §0 below is the current headline and method; the tables after it
+> are the census at the protocol's own line with unlimited liquidity — the pre-ruling census,
+> kept as the sensitivity "Membrane at the protocol's line" and as the cross-check's base.
+
+## 0. The headline: Membrane's own line, liquidity-capped sales
+
+| set (compared: walked, with a Membrane line and liquidity for what it sells) | positions | Real repaid | Membrane repaid† | net | gross less / more† |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Aave V3 | 1,727 | $133.44M | $164.91M | 23.6% more | 729 / 741 |
+| Morpho Blue | 553 | $30.67M | $28.12M | 8.3% less | 262 / 54 |
+| **all** | **2,280 of 3,197** | **$164.12M** | **$193.03M** | **17.6% more** | **991 ($33.93M) / 795 ($62.84M)** |
+
+Left out of both sides (`meta.exclusions`): **866** positions with no Membrane line on any
+collateral leg (Aave 643, Morpho 223; $23.34M real repaid; OP, ARB, AAVE, Mog, UNI, AERO, …) and
+**51** that would have to sell a token nobody liquidated on that chain (all Aave; $0.66M; EURC
+and USDbC on Base, sUSD on Optimism, DAI and tBTC on Arbitrum, osETH on mainnet). 735 compared
+positions hold some collateral with no Membrane line ($39.04M of collateral at t0); that
+collateral is left out of the weighted line (the simulator's rule). The strict-lines run below
+excludes those positions as well. No collateral-seized figure is compared any more: Membrane's
+liquidation fee is not assumed. Real seized stays in each row as provenance.
+
+**The line** (`lib/wavefront/membraneLine.ts`). The per-wallet simulator's own rule:
+`weightedMembraneLine` of the t0 collateral (`MEMBRANE_ASSET_LTV`, modelled: WETH 0.80, wstETH
+0.78, WBTC/cbBTC 0.75, …; `DEPLOY_LAUNCH_LTV` for sUSDS/syrupUSDC/scrvUSD), value-weighted at
+t0. A mixed position splits like `compare.ts splitByDelayClass`, each half at `membraneHalfLine`
+(now shared by both engines, `lib/position-sim/membrane.ts`). The class is
+`delayClassOf(symbols, Membrane line)`. t0 is still the protocol's first liquidation, so on a
+lower line a position starts further past its line. That is intended.
+
+**The liquidity cap** (`lib/wavefront/liquidity.ts`, `kernel.ts` PENDING ORDERS):
+- *Capacity* per (chain, collateral token) is the most tokens that left liquidated borrowers
+  in any rolling 10-minute window (census minute buckets m-9..m) of 10-11 Oct. It covers every
+  Aave V3 and Morpho Blue liquidation in the census on that chain. "Left the borrower" means
+  Aave's liquidatedCollateralAmount plus the protocol fee, and Morpho's seized assets. Raw
+  integers, exact. The liquidators-only figure (no fee) is beside it: AAVE on mainnet is
+  97,556.85 with the fee and 96,876.22 without. The 96.9k quoted in the ruling is the second.
+- *Rate, shared:* every Membrane sale of that token on that chain draws on one trailing window
+  of **1.1×** capacity (modelled †: the delay lets liquidity recover). Order: minute, then pid,
+  then sub. Capacity is available at any minute.
+- *Split:* a sale offers the same fraction of every collateral leg's tokens (pro rata by value,
+  as `cureSale`'s scalar walk). Each leg fills against its own window. Repaid = sized repay ×
+  value filled / value offered. If every leg fills fully, the kernel takes `cureSale`'s own
+  result, so an unlimited run is the old walk bit for bit (tested).
+- *Pending:* what did not fill stays pending, in debt units. At each later minute, before
+  anything else:
+  - the timer is idle (the sale already deleted it, `:1724-1727`), so there is no arm, save or
+    band test;
+  - the order is re-sized at that minute's price as min(pending, repay-to-cap), so it never
+    goes past the cap. If the position is back at or under the cap, the remainder is cancelled;
+  - the LTV moves on the collateral still held;
+  - a later fill is a `sell` record with `carry: true` and the sale's own event and why. It is
+    not a new sale; `maxSales` counts decisions;
+  - once the order is done, the timer classifies afresh.
+  A remainder still pending at the grid end is never credited (`unfilledAtGridEnd`; $0 in this
+  build).
+- *No capacity:* a position that holds a token with capacity 0 is first walked alone. If it
+  would ever sell, it is excluded ('no-capacity'). Before a first sale the capped and uncapped
+  walks are identical, so this solo walk decides it exactly, and the excluded position never
+  touches the shared book.
+- Only collateral sales are capped. Debt repayment is not.
+
+| run (each on its own compared set) | positions | Real | Membrane† | net | Aave | Morpho |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.5× capacity | 2,280 | $164.12M | $155.66M | 5.2% less | 2.8% less | 15.4% less |
+| 1.0× | 2,280 | $164.12M | $191.89M | 16.9% more | 22.8% more | 8.8% less |
+| **1.1× (headline)** | **2,280** | **$164.12M** | **$193.03M** | **17.6% more** | **23.6% more** | **8.3% less** |
+| 2.0× | 2,280 | $164.12M | $209.79M | 27.8% more | 35.8% more | 6.8% less |
+| unlimited (the old assumption) | 2,280 | $164.12M | $220.52M | 34.4% more | 43.8% more | 6.8% less |
+| protocol's own line, 1.1× | 3,127 | $187.36M | $123.26M | 34.2% less | 28.2% less | 56.5% less |
+| protocol's own line, unlimited | 3,127 | $187.36M | $156.57M | 16.4% less | 5.7% less | 56.1% less |
+| strict lines, 1.1× | 1,545 | $135.17M | $149.67M | 10.7% more | 16.3% more | 8.3% less |
+| band 2% | 2,277 | $164.08M | $195.83M | 19.4% more | 25.2% more | 6.1% less |
+| band 8% | 2,283 | $164.16M | $165.31M | 0.7% more | 2.5% more | 7.0% less |
+| nobody clears early | 2,279 | $164.11M | $193.09M | 17.7% more | 23.6% more | 8.3% less |
+| no $2,000 floor | 2,280 | $164.12M | $192.38M | 17.2% more | 23.2% more | 8.8% less |
+| one sale per position | 2,280 | $164.12M | $177.27M | 8.0% more | 11.9% more | 8.7% less |
+| stop after a t0 sale | 2,280 | $164.12M | $182.86M | 11.4% more | 16.0% more | 8.7% less |
+| t0 at N-1 prices | 2,280 | $164.12M | $192.79M | 17.5% more | 23.5% more | 8.6% less |
+
+**Why Membrane now closes MORE.** The modelled lines are mostly below the protocols' lines
+(wstETH 0.78 against Aave's 0.81; Morpho LLTVs of 0.86). At t0 most positions are therefore
+already past `line × 1.04`: 1,590 are sold at t0, repaid to a lower cap (line − 3pp), while the
+protocols' liquidators took partial bites. 1,906 compared positions have a lower line ($158.06M
+real → $173.25M Membrane). 374 have a HIGHER Membrane line. These are mostly positions that also
+hold collateral with no Membrane line, which inherit their known legs' line ($6.06M → $19.78M).
+The largest single difference is one of them: a mainnet AAVE + other-collateral account at 0.80
+instead of Aave's 0.765, sold at the band for $17.98M against Aave's $3.99M. E-mode is not the
+driver (15 positions).
+
+**The whale** (`0x372cae…`, 284,393 AAVE, $34.86M debt, LTV0 0.912 on Aave's 0.76): Aave's
+liquidators took 5 bites, $3.69M. AAVE has no Membrane line, so it is not in the headline. At
+Aave's line, Membrane repays **$29.86M unlimited** and **$13.10M at 1.1×**: it fills the
+window's remainder at t0, and before the window frees AAVE recovers above the borrow cap, so the
+rest is cancelled.
+
+**Capacity** (top per chain, peak USD): mainnet WBTC 321.3 ($34.9M), WETH 4,950 ($17.8M), AAVE
+97,557 ($13.9M), cbBTC 127.5 ($13.8M); Base cbBTC 197.3 ($21.5M), WETH 426 ($1.6M); Arbitrum
+WETH 2,003 ($7.2M), WBTC 55.2 ($5.9M); Optimism OP 1.52M ($0.6M), WETH 104 ($0.4M). 83 tokens
+in all (`meta.liquidity.capacity`). 335 compared positions had a sale the cap did not fill at
+once.
+
+**The stream stays schema 2.** The change is additive: `mem.carry?` and `mem.unfilledUsd?`
+(compact columns `carry`, `unfilledUsd`; a reader without them folds the same totals).
+`open.line` / `delayClass` / `subs` are the line Membrane walks. `walked` is now the COMPARED
+set: an excluded position is `walked: false` with its reason, so `coverage.walked` reads 2,280
+of 3,197.
+
+---
+
 Every position liquidated on an **Aave V3 pool or the Morpho Blue singleton of mainnet,
 Arbitrum, Optimism or Base** between 2025-10-10T00:00Z and 2025-10-11T23:59Z (scope: §1), with
 what the protocol actually did on one side and what Membrane's engine would have done on the
@@ -486,7 +597,30 @@ The ten largest per-row differences, with the all-toggled figure, are in
   each position (price basis and protocol fee included); both sides on the same positions;
   walked ⇒ located at t0; mixed halves sum to the whole; the stream folds to the rows' sums;
   single-leg walks equal `cureWalk`; a held leg with no price at a walked minute throws.
-- `scripts/tests/wavefront-census.test.ts` (needs the datasets repo) — the same invariants on
+- `tests/unit/wavefrontLiquidity.test.ts` — the capacity model. It covers:
+  - the table (rolling max, fee in, liquidator part);
+  - the trailing window;
+  - the 1.1× multiplier and unlimited;
+  - no capacity;
+  - two positions sharing one window (pid order, the remainder filling when it frees);
+  - the carry at a later price (more tokens);
+  - cancellation on recovery and the remainder unfilled at the grid end;
+  - the multi-leg split;
+  - unlimited ≡ uncapped, record for record;
+  - on the fixture, a no-capacity exclusion and the whale at Aave's line (1.1× vs unlimited).
+
+  The census fixture test now checks the two runs whose positions are independent: protocol
+  line with no model, and Membrane line unlimited. The shared book cannot be reproduced on a
+  subset.
+- `scripts/tests/wavefront-census.test.ts` (needs the datasets repo). Since 2026-10-18 it also
+  checks:
+  - the compared/excluded partition;
+  - the protocol-line, no-model run equals the pre-ruling $157,056,180.33;
+  - the real side is identical in every run;
+  - no window ever fills past its limit;
+  - the whale's exact figures.
+
+  And the same invariants on
   all 3,197 positions, a fresh build equal to the written `census.json`, the canonical and
   served replays equal, and **1,770 single-leg walked positions equal `cureWalk`** on their
   composite series.
@@ -525,7 +659,14 @@ its 22 positions.
   the t0 decision depends on which, worth $106,073.23 of Membrane repaid ($104,357.43 at N-1);
   the whole census moves −$75,440.28 at N-1 first (§5).
 - The line is held at its t0 value while a multi-leg basket's weights drift (as `cureWalk`
-  holds it); sales take every leg pro rata.
+  holds it). Sales offer every leg pro rata. Under the cap a leg can fill less than the others,
+  and the weights then follow what is held.
+- Liquidity-capped fills are priced at the oracle, not at a market-impact price. Capacity is
+  what liquidators absorbed on the day (a floor on what the market could take, ×1.1 modelled).
+  The debt side is never capped.
+- Membrane's per-asset lines are modelled (no deployment). Collateral with no line is either
+  excluded (no leg has a line) or left out of the weighted line (some legs), which can give that
+  collateral a higher line than its protocol's (§0).
 - Morpho interest after t0 is not accrued.
 - Morpho loan USD for a non-$1 loan is the price in force at the minute START of the event's
   minute, not at block N.

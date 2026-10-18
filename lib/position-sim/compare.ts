@@ -26,17 +26,12 @@
  *   - the venue recall + fast rates     user inputs; the dominant variable
  */
 
-import {
-  MAX_LTV_HARD_CAP,
-  NO_DELAY_LTV_HARD_CAP,
-  delayClassOf,
-  heldAtReadPrice,
-  isNoDelayCollateral,
-} from './collateralClass'
+import { delayClassOf, heldAtReadPrice, isNoDelayCollateral } from './collateralClass'
 import { DelayTimer } from './curePath'
 import {
   fullRepayValue,
   membraneBorrowLtv,
+  membraneHalfLine,
   membraneRepayValue,
   membraneSaleAfterRecall,
   weightedMembraneLine,
@@ -564,10 +559,8 @@ export function splitByDelayClass(
   const scale = opts.membraneMaxLtv !== undefined && whole > 0 ? opts.membraneMaxLtv / whole : 1
   const wholeLine = opts.membraneMaxLtv ?? whole
   const subs = halves.map((h, k): MembraneSub => {
-    const own = weightedMembraneLine(h.legs).maxLtv
-    const lineFromWhole = !(own > 0)
-    const raw = lineFromWhole ? wholeLine : own * scale
-    const line = Math.min(raw, h.stable ? NO_DELAY_LTV_HARD_CAP : MAX_LTV_HARD_CAP)
+    // membrane.ts membraneHalfLine: the one definition, shared with the Oct 10-11 census.
+    const { line, lineFromWhole } = membraneHalfLine(h.legs, h.stable, wholeLine, scale)
     const symbols = h.legs.map((c) => c.symbol)
     // The half's class is COMPUTED from its own symbols and line, and labels it.
     const noDelay = delayClassOf(symbols, line) === 'no-delay'

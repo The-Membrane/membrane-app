@@ -125,11 +125,11 @@ function findingCard(): CardProps {
       line: CORPUS_SCALE_LINE.figure,
     }
   }
-  // The Oct 10-11 census card (every Aave and Morpho liquidation, four chains). An image has
+  // The Oct 10-11 census card (the compared Aave and Morpho liquidations, four chains). An image has
   // no footnote line, so the modelled side says "modelled" in words instead of a †.
   return {
     eyebrow: 'finding · 10–11 oct 2025 · aave + morpho',
-    title: `Less debt force-closed, net, on every Aave and Morpho liquidation of ${OCT10_TOTALS.window}, modelled (${OCT10_SCALE_LINE.split})`,
+    title: `${OCT10_SCALE_LINE.direction === 'less' ? 'Less' : 'More'} debt force-closed, net, on ${OCT10_TOTALS.positions.toLocaleString('en-US')} Aave and Morpho liquidations of ${OCT10_TOTALS.window} at Membrane’s own lines, liquidity-capped, modelled (${OCT10_SCALE_LINE.split})`,
     line: OCT10_SCALE_LINE.figure,
   }
 }

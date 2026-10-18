@@ -24,8 +24,15 @@
  *      oracle path;
  *   2. the one-repay-at-t0 counterfactual (the delay credit) and the first minute back under
  *      the line (where the credit comes from);
- *   3. the sensitivities the kernel takes as options (band, early clear, debt floor, one sale).
+ *   3. the sensitivities the census takes as options — the liquidity cap (0.5x, 1.0x, 2.0x,
+ *      unlimited), Membrane at the protocol's own line, strict lines, and the kernel's own
+ *      (band, early clear, debt floor, one sale, walk-on, t0 basis) — each on ITS OWN compared
+ *      set, with both sides, the Aave / Morpho split and the position counts.
  * The headline rerun must reproduce census.json's rows exactly, or the build stops.
+ *
+ * DEBT REPAID ONLY (owner ruling 2026-10-18). No collateral-seized figure is compared or served:
+ * Membrane's liquidation fee cannot be assumed. The headline set is the census's COMPARED set
+ * (rows with `mem`): walked, with a Membrane line, and with liquidity for what Membrane sells.
  *
  * DETERMINISTIC. No clock, no randomness, sorted keys where order is not already fixed. The
  * git commit recorded is the last one that touched the code this build runs (CODE_PATHS), so
@@ -47,6 +54,7 @@ import {
 } from '../lib/position-sim/membrane'
 import { kernelLegs, type PositionSpec } from '../lib/wavefront/aave'
 import type { KernelLeg } from '../lib/wavefront/kernel'
+import { CAPACITY_MULTIPLIER, CAPACITY_WINDOW_MINUTES } from '../lib/wavefront/liquidity'
 import { AAVE_CORE_POOL } from '../lib/wavefront/pid'
 import { datasetsDir } from './lib/datasetsDir.mjs'
 import {
@@ -78,6 +86,8 @@ const CODE_PATHS = [
   'lib/wavefront/stream.ts',
   'lib/wavefront/pid.ts',
   'lib/wavefront/cluster.ts',
+  'lib/wavefront/liquidity.ts',
+  'lib/wavefront/membraneLine.ts',
   'lib/position-sim/curePath.ts',
   'lib/position-sim/membrane.ts',
   'lib/position-sim/collateralClass.ts',
@@ -106,9 +116,13 @@ const census = JSON.parse(censusBuf.toString('utf8')) as {
   rows: CensusRow[]
 }
 const M = census.meta
-const rows = census.rows
-if (rows.length !== M.coverage.total) fail('row count != meta.coverage.total')
-if (rows.some((r) => !r.walked || !r.mem || !r.t0)) fail('every census row must be walked')
+const allRows = census.rows
+if (allRows.length !== M.coverage.total) fail('row count != meta.coverage.total')
+if (allRows.some((r) => !r.walked || !r.t0)) fail('every census row must be walked')
+if (allRows.some((r) => !r.mem !== !!r.excluded)) fail('a row is compared iff it is not excluded')
+/** The COMPARED set: every total, median and row on the page is over these. */
+const rows = allRows.filter((r) => r.mem)
+if (rows.length !== M.coverage.compared) fail('compared rows != meta.coverage.compared')
 
 // ---- rerun the walk: probe for the cure diagnostic, one repay and first cure ---------------
 const inputs = loadCensusInputs(DATASETS)
@@ -136,7 +150,8 @@ interface Probed {
 function probeOf(p: CensusProbe): Probed {
   const s: PositionSpec = p.spec
   const t0 = s.t0!.minute
-  const line = s.line as number
+  // The line WALKED (Membrane's own in the headline), and the class on it.
+  const line = p.line
   const ltv0 = s.ltv0 as number
 
   // --- the cure diagnostic: build-evidence.ts's definition on the whole t0 composition.
@@ -168,7 +183,7 @@ function probeOf(p: CensusProbe): Probed {
       }
       if (i === i1) end = ltv
     }
-    const noWindow = s.delayClass === 'no-delay'
+    const noWindow = p.delayClass === 'no-delay'
     cure = {
       curedInWindow: !noWindow && best <= line,
       healthyAt8h: end <= line,
@@ -181,9 +196,10 @@ function probeOf(p: CensusProbe): Probed {
   }
 
   // --- one repay to cap at t0, no window: each half over its own line takes the same
-  // cureSale the kernel runs at t0 (repay-to-cap, the floor, seized == repaid).
+  // cureSale the kernel runs at t0 (repay-to-cap, the floor). Not liquidity-capped: the delay
+  // credit is computed against the UNLIMITED walk, so neither side carries the cap.
   let oneUnits = 0
-  for (const h of s.halves) {
+  for (const h of p.halves) {
     if (!(ltv0 > h.line)) continue
     const kl = kernelLegs(s, h)
     const d = sum(kl.debt.map((l) => l.value0))
@@ -207,13 +223,15 @@ const probed = new Map<string, Probed>()
 const headline = buildCensus(inputs, {
   probe: (p) => probed.set(p.spec.pid, probeOf(p)),
 })
-if (headline.rows.length !== rows.length) fail('rerun row count differs from census.json')
-for (let i = 0; i < rows.length; i++) {
-  if (JSON.stringify(headline.rows[i]) !== JSON.stringify(rows[i])) {
-    fail(`the rerun does not reproduce census.json row ${i} (${rows[i].pid}); rebuild the census`)
+if (headline.rows.length !== allRows.length) fail('rerun row count differs from census.json')
+for (let i = 0; i < allRows.length; i++) {
+  if (JSON.stringify(headline.rows[i]) !== JSON.stringify(allRows[i])) {
+    fail(
+      `the rerun does not reproduce census.json row ${i} (${allRows[i].pid}); rebuild the census`,
+    )
   }
 }
-if (probed.size !== rows.length) fail('the probe did not see every position')
+if (probed.size !== rows.length) fail('the probe did not see every compared position')
 
 // Grid-end sales, per position, from the rerun's own stream (why: grid-end).
 const gridEndUsd = new Map<string, number>()
@@ -223,7 +241,7 @@ for (const rec of headline.records) {
   }
 }
 
-// ---- sensitivities: the same walk, one kernel option changed --------------------------------
+// ---- sensitivities: the same census, one rule changed, EACH ON ITS OWN COMPARED SET ----------
 type ProtoTotals = { all: number; 'aave-v3': number; 'morpho-blue': number }
 const memTotals = (rs: readonly CensusRow[]): ProtoTotals => {
   const t: ProtoTotals = { all: 0, 'aave-v3': 0, 'morpho-blue': 0 }
@@ -235,20 +253,67 @@ const memTotals = (rs: readonly CensusRow[]): ProtoTotals => {
   return { all: r2(t.all), 'aave-v3': r2(t['aave-v3']), 'morpho-blue': r2(t['morpho-blue']) }
 }
 const headlineMem = memTotals(rows)
-function sensitivity(opts: CensusOptions) {
+/** Both sides, gross less / more and the counts, over a run's own compared set. */
+function setFigures(rs: readonly CensusRow[]) {
+  const cmp = rs.filter((r) => r.mem)
+  const priced = (r: CensusRow) =>
+    r.debtUsd != null &&
+    r.collUsd != null &&
+    r.real.unpricedEvents === 0 &&
+    r.mem!.unpricedSales === 0
+  const one = (xs: CensusRow[]) => {
+    const real = sum(xs.map((r) => r.real.repaidUsd))
+    const mem = sum(xs.map((r) => r.mem!.repaidUsd))
+    const p = xs.filter(priced)
+    const less = p.filter((r) => r2(r.mem!.repaidUsd) < r2(r.real.repaidUsd))
+    const more = p.filter((r) => r2(r.mem!.repaidUsd) > r2(r.real.repaidUsd))
+    return {
+      positions: xs.length,
+      realRepaidUsd: r2(real),
+      memRepaidUsd: r2(mem),
+      gapUsd: r2(real - mem),
+      gapPct: real > 0 ? pct2((real - mem) / real) : 0,
+      less: less.length,
+      more: more.length,
+      lessUsd: r2(sum(less.map((r) => r.real.repaidUsd - r.mem!.repaidUsd))),
+      moreUsd: r2(sum(more.map((r) => r.mem!.repaidUsd - r.real.repaidUsd))),
+    }
+  }
+  return {
+    ...one(cmp),
+    byProtocol: {
+      'aave-v3': one(cmp.filter((r) => r.protocol === 'aave-v3')),
+      'morpho-blue': one(cmp.filter((r) => r.protocol === 'morpho-blue')),
+    },
+    excluded: {
+      noMembraneLine: rs.filter((r) => r.excluded === 'no-membrane-line').length,
+      partialMembraneLine: rs.filter((r) => r.excluded === 'partial-membrane-line').length,
+      noCapacity: rs.filter((r) => r.excluded === 'no-capacity').length,
+    },
+  }
+}
+type SetFigures = ReturnType<typeof setFigures>
+const sensRuns = new Map<string, CensusRow[]>()
+function sensitivity(key: string, opts: CensusOptions) {
   const res = buildCensus(inputs, opts)
-  const byPid = new Map(rows.map((r) => [r.pid, r]))
+  sensRuns.set(key, res.rows)
+  const byPid = new Map(allRows.map((r) => [r.pid, r]))
   const changed = res.rows.filter(
     (r) => Math.abs((r.mem?.repaidUsd ?? 0) - (byPid.get(r.pid)!.mem?.repaidUsd ?? 0)) > 0.005,
   ).length
-  const t = memTotals(res.rows)
+  const f = setFigures(res.rows)
   return {
-    memRepaidUsd: t.all,
-    byProtocol: { 'aave-v3': t['aave-v3'], 'morpho-blue': t['morpho-blue'] },
-    deltaUsd: r2(headlineMem.all - t.all),
+    memRepaidUsd: f.memRepaidUsd,
+    byProtocol: {
+      'aave-v3': f.byProtocol['aave-v3'].memRepaidUsd,
+      'morpho-blue': f.byProtocol['morpho-blue'].memRepaidUsd,
+    },
+    deltaUsd: r2(headlineMem.all - f.memRepaidUsd),
     positionsChanged: changed,
+    set: f,
   }
 }
+const headlineSet = setFigures(allRows)
 const bands = [0.02, MAX_THRESHOLD_TO_DELAY, 0.08]
 const bandSensitivity = bands.map((band) => {
   if (band === MAX_THRESHOLD_TO_DELAY) {
@@ -256,18 +321,19 @@ const bandSensitivity = bands.map((band) => {
       band,
       memRepaidUsd: headlineMem.all,
       byProtocol: { 'aave-v3': headlineMem['aave-v3'], 'morpho-blue': headlineMem['morpho-blue'] },
+      set: headlineSet,
     }
   }
-  const s = sensitivity({ band })
-  return { band, memRepaidUsd: s.memRepaidUsd, byProtocol: s.byProtocol }
+  const s = sensitivity(`band${band}`, { band })
+  return { band, memRepaidUsd: s.memRepaidUsd, byProtocol: s.byProtocol, set: s.set }
 })
-const noEarlyClear = sensitivity({ noEarlyClear: true })
-const noDebtFloor = sensitivity({ noDebtFloor: true })
-const singleSale = sensitivity({ maxSales: 1 })
+const noEarlyClear = sensitivity('noEarlyClear', { noEarlyClear: true })
+const noDebtFloor = sensitivity('noDebtFloor', { noDebtFloor: true })
+const singleSale = sensitivity('singleSale', { maxSales: 1 })
 // The census's own two sensitivities, rerun here so each carries its per-protocol split; the
 // totals must be the ones census.json publishes.
-const noWalkOn = sensitivity({ stopAfterT0BandSale: true })
-const nm1First = sensitivity({ basisOrder: ['N-1', 'N'] })
+const noWalkOn = sensitivity('noWalkOn', { stopAfterT0BandSale: true })
+const nm1First = sensitivity('nm1First', { basisOrder: ['N-1', 'N'] })
 if (Math.abs(noWalkOn.memRepaidUsd - M.sensitivity.noWalkOnAfterT0BandSale.memRepaidUsd) > 0.011) {
   fail('noWalkOnAfterT0BandSale rerun differs from census.json')
 }
@@ -276,6 +342,134 @@ if (
   0.011
 ) {
   fail('t0PriceBasis rerun differs from census.json')
+}
+// THE LIQUIDITY CAP AND THE LINE (owner ruling 2026-10-18).
+const MULTIPLIERS = [0.5, 1.0, CAPACITY_MULTIPLIER, 2.0, Infinity]
+const capacityRuns = MULTIPLIERS.map((m) => {
+  if (m === CAPACITY_MULTIPLIER) return { multiplier: m, set: headlineSet }
+  const s = sensitivity(`cap${m}`, { capacityMultiplier: m })
+  return { multiplier: m, set: s.set }
+})
+const unlimitedRows = sensRuns.get('capInfinity')!
+const protocolLine = sensitivity('protocolLine', { lineMode: 'protocol' })
+const protocolLineUnlimited = sensitivity('protocolLineUnlimited', {
+  lineMode: 'protocol',
+  capacityMultiplier: Infinity,
+})
+const strictLines = sensitivity('strictLines', { strictLines: true })
+for (const c of capacityRuns) {
+  if (c.set.positions !== headlineSet.positions) {
+    fail(`capacity x${c.multiplier} is not on the headline's positions`)
+  }
+}
+
+/** One row of the published sensitivity table: what changed, both sides, the split, the set. */
+const sensRow = (key: string, label: string, rule: string, f: SetFigures, headline = false) => ({
+  key,
+  label,
+  rule,
+  headline,
+  ...f,
+})
+const capLabel = (m: number) =>
+  m === Infinity ? 'unlimited (the old assumption)' : `${m}x capacity`
+const sensitivityTable = [
+  ...capacityRuns.map((c) =>
+    sensRow(
+      `capacity-${c.multiplier === Infinity ? 'unlimited' : c.multiplier}`,
+      capLabel(c.multiplier) + (c.multiplier === CAPACITY_MULTIPLIER ? ' (headline)' : ''),
+      c.multiplier === Infinity
+        ? 'Every sale fills at once at the oracle price, in any size: the assumption before 2026-10-18. Same positions as the headline.'
+        : `Membrane's sales of a token on a chain share ${c.multiplier}x the most tokens liquidators absorbed in any rolling ${CAPACITY_WINDOW_MINUTES} minutes of the window.`,
+      c.set,
+      c.multiplier === CAPACITY_MULTIPLIER,
+    ),
+  ),
+  sensRow(
+    'protocol-line',
+    "Membrane at the protocol's own line, 1.1x capacity",
+    "Each position walked at its protocol's line (Aave weighted LT, Morpho LLTV) instead of Membrane's; positions with no Membrane line are back in. Its own compared set.",
+    protocolLine.set,
+  ),
+  sensRow(
+    'protocol-line-unlimited',
+    "Membrane at the protocol's own line, unlimited",
+    'The census before 2026-10-18 (its 157.06M), less the positions that would have to sell a token with no observed liquidity.',
+    protocolLineUnlimited.set,
+  ),
+  sensRow(
+    'strict-lines',
+    'Strict lines, 1.1x capacity',
+    'A position with ANY collateral leg that has no Membrane line is excluded too (the headline leaves those legs out of the weighted line).',
+    strictLines.set,
+  ),
+  ...bandSensitivity
+    .filter((b) => b.band !== MAX_THRESHOLD_TO_DELAY)
+    .map((b) =>
+      sensRow(
+        `band-${b.band}`,
+        `band ${(b.band * 100).toFixed(0)}%`,
+        `The delay band at ${(b.band * 100).toFixed(0)}% instead of 4%.`,
+        b.set,
+      ),
+    ),
+  sensRow(
+    'no-early-clear',
+    'nobody clears the timer early',
+    'A return under the line does not stop the timer.',
+    noEarlyClear.set,
+  ),
+  sensRow(
+    'no-debt-floor',
+    'no $2,000 floor',
+    'Every sale is the bare repay to cap.',
+    noDebtFloor.set,
+  ),
+  sensRow(
+    'single-sale',
+    'one sale per position',
+    'The walk stops after the first sale (its pending remainder still fills).',
+    singleSale.set,
+  ),
+  sensRow(
+    'no-walk-on',
+    'stop after a sale at t0',
+    M.sensitivity.noWalkOnAfterT0BandSale.rule,
+    noWalkOn.set,
+  ),
+  sensRow('t0-n-1', 't0 at block N-1 prices', M.sensitivity.t0PriceBasis.rule, nm1First.set),
+]
+
+// ---- the whale: the sale the cap was ruled for --------------------------------------------
+const WHALE =
+  'aave-v3:mainnet:0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2:0x372cae7fa19b81a9786a9081704ea1e2dad576b7'
+const whaleOf = (rs: readonly CensusRow[] | undefined) => {
+  const r = rs?.find((x) => x.pid === WHALE)
+  return r
+    ? { memRepaidUsd: r.mem ? r2(r.mem.repaidUsd) : null, excluded: r.excluded ?? null }
+    : null
+}
+const whaleRow = allRows.find((r) => r.pid === WHALE) ?? fail('the whale is not in the census')
+const aaveCap = M.liquidity.capacity.find(
+  (c: any) => c.key === 'mainnet:0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
+)
+const whale = {
+  pid: WHALE,
+  collateral: whaleRow.collateral.map((l) => ({
+    symbol: l.symbol,
+    amount: r2(l.amount),
+    usd: l.usd == null ? null : r2(l.usd),
+  })),
+  debtUsd: whaleRow.debtUsd == null ? null : r2(whaleRow.debtUsd),
+  protocolLine: whaleRow.line,
+  ltv0: whaleRow.ltv0,
+  realEvents: whaleRow.real.events,
+  realRepaidUsd: r2(whaleRow.real.repaidUsd),
+  headline: whaleOf(allRows),
+  protocolLineCapped: whaleOf(sensRuns.get('protocolLine')),
+  protocolLineUnlimited: whaleOf(sensRuns.get('protocolLineUnlimited')),
+  aaveMainnetCapacityTokens: aaveCap ? aaveCap.capacityTokens : null,
+  aaveMainnetLiquidatorTokens: aaveCap ? aaveCap.liquidatorCapacityTokens : null,
 }
 
 // ---- per position ---------------------------------------------------------------------------
@@ -387,7 +581,6 @@ function debtSet(key: string, label: string, ps: readonly Pos[]) {
     unpricedPositions: ps.filter((p) => !p.priced).length,
     events: sum(ps.map((p) => p.r.real.events)),
     realRepaidUsd: r2(real),
-    realSeizedUsd: r2(sum(ps.map((p) => p.r.real.seizedUsd))),
     realBadDebtUsd: r2(sum(ps.map((p) => p.r.real.badDebtUsd))),
     memRepaidUsd: r2(mem),
     gapUsd: r2(gap),
@@ -435,21 +628,20 @@ const close = (a: number, b: number, what: string) => {
 }
 close(all.realRepaidUsd, M.totals.all.realWalked.repaidUsd, 'real repaid')
 close(all.memRepaidUsd, M.totals.all.mem.repaidUsd, 'Membrane repaid')
-close(all.realSeizedUsd, M.totals.all.realWalked.seizedUsd, 'real seized')
 for (const [k, s] of [
   ['aave-v3', aave],
   ['morpho-blue', morpho],
 ] as const) {
   close(s.realRepaidUsd, M.totals.byProtocol[k].realWalked.repaidUsd, `${k} real repaid`)
   close(s.memRepaidUsd, M.totals.byProtocol[k].mem.repaidUsd, `${k} Membrane repaid`)
-  if (s.positions !== M.totals.byProtocol[k].positions) fail(`${k} positions`)
+  if (s.positions !== M.totals.byProtocol[k].compared) fail(`${k} positions`)
 }
 for (const v of byVenueChain) {
   const t = M.totals.byProtocolChain[v.key]
   if (!t) fail(`no census total for ${v.key}`)
   close(v.realRepaidUsd, t.realWalked.repaidUsd, `${v.key} real repaid`)
   close(v.memRepaidUsd, t.mem.repaidUsd, `${v.key} Membrane repaid`)
-  if (v.positions !== t.positions) fail(`${v.key} positions`)
+  if (v.positions !== t.compared) fail(`${v.key} positions`)
 }
 if (all.events !== M.totals.all.realWalked.events) fail('events')
 if (all.memNeverSold !== M.totals.all.mem.positionsKept) fail('positions never sold')
@@ -483,11 +675,15 @@ const cureSummary = (ps: readonly Pos[]) => {
   }
 }
 
-// The delay credit: one repay to cap at t0 (no window) minus the walked headline, on the
-// positions whose loan has a USD price (the same set every dollar total uses).
+// The delay credit: one repay to cap at t0 (no window) minus the walk, on the positions whose
+// loan has a USD price (the same set every dollar total uses). BOTH SIDES UNCAPPED: one repay at
+// t0 is not offered to the liquidity book, so it is set against the UNLIMITED walk on the same
+// positions (the capacity sensitivity 'unlimited'), never against the capped headline.
 const priced = pos.filter((p) => p.priced)
+const unlimitedMem = new Map(unlimitedRows.map((r) => [r.pid, r.mem?.repaidUsd ?? 0]))
+const memUnl = (p: Pos) => unlimitedMem.get(p.r.pid) ?? fail(`no unlimited walk for ${p.r.pid}`)
 const oneRepayOf = (ps: readonly Pos[]) => sum(ps.map((p) => p.probe.oneRepayUsd ?? 0))
-const creditOf = (p: Pos) => Math.max(0, (p.probe.oneRepayUsd ?? 0) - p.mem)
+const creditOf = (p: Pos) => Math.max(0, (p.probe.oneRepayUsd ?? 0) - memUnl(p))
 const curedRows = priced.filter((p) => p.probe.minutesToFirstCure != null)
 const cureCreditUsd = sum(curedRows.map(creditOf))
 const within = (mins: number) =>
@@ -498,13 +694,16 @@ const within = (mins: number) =>
       )
     : 0
 const oneRepay = {
+  basis:
+    'Both sides without the liquidity cap: one repay to cap at t0 against the unlimited walk on the same positions.',
   memOneRepayUsd: r2(oneRepayOf(priced)),
-  delayCreditUsd: r2(oneRepayOf(priced) - all.memRepaidUsd),
+  memWalkUnlimitedUsd: r2(sum(priced.map(memUnl))),
+  delayCreditUsd: r2(oneRepayOf(priced) - sum(priced.map(memUnl))),
   byProtocol: Object.fromEntries(
     (['aave-v3', 'morpho-blue'] as const).map((k) => {
       const ps = priced.filter((p) => p.r.protocol === k)
       const one = oneRepayOf(ps)
-      return [k, { memOneRepayUsd: r2(one), delayCreditUsd: r2(one - sum(ps.map((p) => p.mem))) }]
+      return [k, { memOneRepayUsd: r2(one), delayCreditUsd: r2(one - sum(ps.map(memUnl))) }]
     }),
   ),
   cureCreditUsd: r2(cureCreditUsd),
@@ -512,8 +711,9 @@ const oneRepay = {
   cureCreditShareWithin1h: within(60),
   cureCreditShareWithin8h: within(DELAY_STEPS),
   cureCreditGrossUsd: r2(sum(priced.map(creditOf))),
-  counterCreditUsd: r2(sum(priced.map((p) => Math.max(0, p.mem - (p.probe.oneRepayUsd ?? 0))))),
-  counterCreditPositions: priced.filter((p) => p.mem > (p.probe.oneRepayUsd ?? 0) + 0.01).length,
+  counterCreditUsd: r2(sum(priced.map((p) => Math.max(0, memUnl(p) - (p.probe.oneRepayUsd ?? 0))))),
+  counterCreditPositions: priced.filter((p) => memUnl(p) > (p.probe.oneRepayUsd ?? 0) + 0.01)
+    .length,
 }
 
 // Fresh oracle prints: minutes where the mainnet AaveOracle WETH price differs from the minute
@@ -744,7 +944,7 @@ const meta = {
       ).map(([k, t]) => [
         k,
         {
-          positions: t.positions,
+          positions: t.compared,
           events: t.realWalked.events,
           realRepaidUsd: t.realWalked.repaidUsd,
           memRepaidUsd: t.mem.repaidUsd,
@@ -782,8 +982,50 @@ const meta = {
       `${M.scope.outOfScope.avalancheAaveV3LiquidationCalls} Aave V3 liquidations in the window), Aave V2, Spark and the other Aave forks.`,
   },
   oracle: `Every position’s line and its minute-by-minute LTV walk use its own protocol’s oracle, read on chain: each Aave V3 market’s AaveOracle and each Morpho Blue market’s own oracle, the price in force at each minute start (no look-ahead). Dollars: an Aave liquidation is valued at the liquidating block’s AaveOracle prices. A Morpho position is walked in its loan token; its dollars are the loan token at $1 for a dollar stablecoin, else that token’s Aave oracle price on the same chain at the minute start (${aaveOracleLoans}), and a loan token with neither is left out of every dollar figure.`,
+  /** The COMPARED positions: every total on the page is over these. */
   positions: rows.length,
   walked: M.coverage.walked,
+  /** Every position the census holds (walked or not, compared or excluded). */
+  censusPositions: allRows.length,
+  exclusions: {
+    rule: M.exclusions.rule,
+    noMembraneLine: { ...M.exclusions.noMembraneLine, top: M.exclusions.noMembraneLine.top },
+    noCapacity: M.exclusions.noCapacity,
+    partialLine: M.exclusions.partialLine,
+  },
+  line: {
+    rule: M.method.line,
+    source:
+      'lib/position-sim/membrane.ts MEMBRANE_ASSET_LTV (modelled) and DEPLOY_LAUNCH_LTV (script/DeployFullSystem.s.sol:243-251), through lib/wavefront/membraneLine.ts — the per-wallet simulator’s own rule.',
+  },
+  liquidity: {
+    rule: M.liquidity.rule,
+    multiplier: M.liquidity.multiplier,
+    multiplierBasis: M.liquidity.multiplierBasis,
+    windowMinutes: M.liquidity.windowMinutes,
+    /** Top tokens per chain by peak USD (the full table is census meta.liquidity.capacity). */
+    topByChain: Object.fromEntries(
+      [...new Set((M.liquidity.capacity as any[]).map((c) => c.chain as string))]
+        .sort()
+        .map((chain) => [
+          chain,
+          (M.liquidity.capacity as any[])
+            .filter((c) => c.chain === chain)
+            .sort((a, b) => (b.peakUsd ?? 0) - (a.peakUsd ?? 0) || (a.key < b.key ? -1 : 1))
+            .slice(0, 6)
+            .map((c) => ({
+              symbol: c.symbol,
+              capacityTokens: +Number(c.capacityTokens).toPrecision(6),
+              peakUsd: c.peakUsd == null ? null : Math.round(c.peakUsd),
+            })),
+        ]),
+    ),
+    tokens: (M.liquidity.capacity as any[]).length,
+    positionsShortFilled: M.liquidity.positionsShortFilled,
+    unfilledAtGridEndUsd: M.liquidity.unfilledAtGridEndUsd,
+    whale,
+  },
+  sensitivities: sensitivityTable,
   events: all.events,
   chains: [...new Set(rows.map((r) => r.chain))],
   params: {
@@ -792,6 +1034,9 @@ const meta = {
     borrowLtvGap: BORROW_LTV_GAP,
     liqDebtMinimumUsd: LIQ_DEBT_MINIMUM_USD,
     maxSales: MAX_SALES,
+    lineMode: 'membrane',
+    capacityMultiplier: CAPACITY_MULTIPLIER,
+    capacityWindowMinutes: CAPACITY_WINDOW_MINUTES,
   },
   realConstants: {
     borrowLtvGapSource: 'lib/Constants.sol:30',
@@ -801,8 +1046,14 @@ const meta = {
     debtMinimumRuleSource: 'LiquidationEngine.sol:2241-2269 (floor + remainder guard)',
   },
   method:
-    'Every position liquidated on an Aave V3 pool or a Morpho Blue market of Ethereum, Arbitrum, Optimism or Base between 00:00 UTC 10 Oct and 23:59 UTC 11 Oct 2025, all of them walked. The real side is every liquidation of the position in that window, measured on chain: the debt the liquidators repaid (Aave: at the liquidating block’s AaveOracle prices; Morpho: in the loan token, priced as below). Membrane’s side starts from the same position at the first liquidation the protocol’s own health check confirms (t0), with its whole composition read the block before, and walks it minute by minute on each leg’s own protocol-oracle path: a breach inside line × 1.04 waits eight hours; a return under the line clears the timer; past the band, or still over the line at expiry, the position is repaid to its borrow cap (line − 3pp) with the $2,000 floor, and it walks on. Stablecoin collateral, or a line above 90%, gets no window and is repaid the minute it is over its line†. A position holding both is split the way Membrane would hold it. Both sides are summed over the same positions; the ' +
-    `${unpriced.positions} whose loan token has no USD price count in every position total and in no dollar total.`,
+    'Every position liquidated on an Aave V3 pool or a Morpho Blue market of Ethereum, Arbitrum, Optimism or Base between 00:00 UTC 10 Oct and 23:59 UTC 11 Oct 2025: ' +
+    `${allRows.length.toLocaleString('en-US')} positions, of which ${rows.length.toLocaleString('en-US')} are compared. Only DEBT REPAID is compared: Membrane’s liquidation fee cannot be assumed, so collateral taken is not. ` +
+    'The real side is every liquidation of the position in that window, measured on chain: the debt the liquidators repaid (Aave: at the liquidating block’s AaveOracle prices; Morpho: in the loan token, priced as below). ' +
+    'Membrane’s side starts from the same position at the first liquidation the protocol’s own health check confirms (t0), with its whole composition read the block before, and walks it minute by minute on each leg’s own protocol-oracle path, at MEMBRANE’S OWN LINE: the value-weighted modelled max LTV of its collateral (WETH 80%, wstETH 78%, WBTC 75%, …)†, lower than most protocol lines, so a position is further past its line at t0. ' +
+    'A breach inside line × 1.04 waits eight hours; a return under the line clears the timer; past the band, or still over the line at expiry, the position is repaid to its borrow cap (line − 3pp) with the $2,000 floor, and it walks on. Stablecoin collateral, or a line above 90%, gets no window and is repaid the minute it is over its line†. A position holding both is split the way Membrane would hold it. ' +
+    `Every sale is LIQUIDITY-CAPPED†: all of Membrane’s sales of a token on a chain share ${CAPACITY_MULTIPLIER}× the most tokens liquidators actually absorbed in any ${CAPACITY_WINDOW_MINUTES} minutes of the two days (Aave and Morpho together); what does not fill waits and sells in later minutes at those minutes’ prices, never past the borrow cap. ` +
+    `Left out of both sides: ${M.exclusions.noMembraneLine.positions.toLocaleString('en-US')} positions whose collateral has no Membrane line (${money(M.exclusions.noMembraneLine.realRepaidUsd)} repaid by the protocols) and ${M.exclusions.noCapacity.positions.toLocaleString('en-US')} that would have to sell a token nobody liquidated on that chain (${money(M.exclusions.noCapacity.realRepaidUsd)}). ` +
+    `Both sides are summed over the same positions; the ${unpriced.positions} whose loan token has no USD price count in every position total and in no dollar total.`,
   sameSet: M.method.sameSet,
   unpriced,
   gridEnd: {
@@ -831,8 +1082,10 @@ const meta = {
     'Membrane has no mainnet deployment. Everything on its side is the contract’s rules run against the day’s real prices†, not a measurement of a live protocol.',
     `${all.gridEnd.positions} positions were still inside their 8-hour window when the data ends (23:59 UTC 11 Oct). A window still open is not a completed sale; the census books each as sold at the last price, which is the conservative choice. Those sales are ${money(all.gridEnd.memRepaidUsd)} of Membrane’s total† and are marked in the table.`,
     `${unpriced.positions} Morpho positions borrow a token with no USD price on that day (${unpriced.loanSymbols.join(', ')}). They are walked and counted in every position total, and left out of every dollar total and median on both sides.`,
+    'Only debt repaid is compared. Membrane’s liquidation fee is not assumed, so collateral taken from the borrower is not a comparison on either side.',
     'The real side can repay more than the debt at t0: a borrower can borrow again between liquidations, and interest accrues. Membrane’s walk starts from the t0 position and adds neither.',
-    'The repay to cap is sized from the oracle value of the collateral and assumes the sale executes at that price. On an illiquid leg that is an upper bound.',
+    `Membrane’s line is modelled†: no Membrane market is deployed, and the per-asset max LTVs (WETH 80%, wstETH 78%, WBTC 75%, …) are our assumption. Most are below the protocols’ own lines, so the same position is further past Membrane’s line at the first liquidation and is repaid further down. ${M.exclusions.noMembraneLine.positions.toLocaleString('en-US')} positions whose collateral has no Membrane line (${money(M.exclusions.noMembraneLine.realRepaidUsd)} repaid by the protocols) are left out of both sides; the protocol’s-line run is published beside the headline.`,
+    `Sales are capped by the liquidity the day actually showed: ${CAPACITY_MULTIPLIER}× the most tokens liquidators absorbed in any ${CAPACITY_WINDOW_MINUTES} minutes, per token and chain, shared by every Membrane sale. The 1.1× is a modelled assumption† (the delay lets some liquidity recover); 0.5×, 1×, 2× and unlimited are published. Each fill is priced at the oracle, not at a market impact price.`,
     'The timer is cleared the minute a position is back under its line. Both clearing paths are permissionless calls somebody has to make; the sensitivity where nobody does is published below.',
     'The cure column is a price-only diagnostic: it ignores the band and re-arming, and no dollar is computed from it.',
     'The result is path-dependent. 10 Oct was a sharp wick with a partial recovery; a market that keeps falling would not cure.',
@@ -854,6 +1107,7 @@ const COLUMNS = [
   'collUsd',
   'debtUsd',
   'line',
+  'protocolLine',
   'ltv0',
   'delayClass',
   'primary',
@@ -862,6 +1116,7 @@ const COLUMNS = [
   'realRepaidUsd',
   'realBadDebtUsd',
   'memRepaidUsd',
+  'memUnlimitedUsd',
   'realFrac',
   'memFrac',
   'outcome',
@@ -891,7 +1146,8 @@ const cohort = pos.map((p) => {
     debt: legsOut(r.debt),
     collUsd: r.collUsd == null ? null : r2(r.collUsd),
     debtUsd: r.debtUsd == null ? null : r2(r.debtUsd),
-    line: r5(r.line!),
+    line: r5(r.memLine ? r.memLine.line : r.line!),
+    protocolLine: r5(r.line!),
     ltv0: r5(r.ltv0!),
     delayClass: r.delayClass,
     primary: r.primarySymbol,
@@ -900,6 +1156,7 @@ const cohort = pos.map((p) => {
     realRepaidUsd: r2(p.real),
     realBadDebtUsd: r2(r.real.badDebtUsd),
     memRepaidUsd: r2(p.mem),
+    memUnlimitedUsd: r2(memUnl(p)),
     realFrac: p.realFrac == null ? null : r5(p.realFrac),
     memFrac: p.memFrac == null ? null : r5(p.memFrac),
     outcome: r.mem!.outcome,
@@ -927,7 +1184,8 @@ const debt = { all, byProtocol: { 'aave-v3': aave, 'morpho-blue': morpho }, byVe
 const landing = {
   brackets,
   membraneMore,
-  collateralAtRiskUsd: r2(sum(priced.map((p) => p.r.collUsd!))),
+  // Summed on the published cents, so the cohort's own rows re-derive it exactly.
+  collateralAtRiskUsd: r2(sum(priced.map((p) => r2(p.r.collUsd!)))),
 }
 const doc = {
   meta,
@@ -952,12 +1210,27 @@ const doc = {
 }
 
 // ---- the headline file: what the landing imports without fetching the cohort -----------------
+const setPick = (f: {
+  positions: number
+  realRepaidUsd: number
+  memRepaidUsd: number
+  gapPct: number
+}) => ({
+  positions: f.positions,
+  realRepaidUsd: f.realRepaidUsd,
+  memRepaidUsd: f.memRepaidUsd,
+  gapPct: f.gapPct,
+})
 const setBrief = (s: typeof all) => ({
   positions: s.positions,
   realRepaidUsd: s.realRepaidUsd,
   memRepaidUsd: s.memRepaidUsd,
   gapUsd: s.gapUsd,
   gapPct: s.gapPct,
+  less: s.less,
+  more: s.more,
+  lessUsd: s.lessUsd,
+  moreUsd: s.moreUsd,
 })
 const headlineDoc = {
   source:
@@ -965,7 +1238,26 @@ const headlineDoc = {
   censusSha256: meta.source.sha256,
   window: meta.window.label,
   scope: meta.scope.line,
+  /** The COMPARED positions (both sides); censusPositions is every position the census holds. */
   positions: meta.positions,
+  censusPositions: meta.censusPositions,
+  excluded: {
+    noMembraneLine: {
+      positions: M.exclusions.noMembraneLine.positions,
+      realRepaidUsd: M.exclusions.noMembraneLine.realRepaidUsd,
+    },
+    noCapacity: {
+      positions: M.exclusions.noCapacity.positions,
+      realRepaidUsd: M.exclusions.noCapacity.realRepaidUsd,
+    },
+  },
+  capacityMultiplier: CAPACITY_MULTIPLIER,
+  /** THE SIZE OF THE DAY (the real side only, every position of the census): the stakes line. */
+  day: {
+    positions: allRows.length,
+    events: sum(allRows.map((r) => r.real.events)),
+    realRepaidUsd: r2(sum(allRows.map((r) => r.real.repaidUsd))),
+  },
   events: meta.events,
   chains: meta.chains,
   all: setBrief(all),
@@ -1003,6 +1295,34 @@ const headlineDoc = {
     singleSaleUsd: singleSale.memRepaidUsd,
     noWalkOnUsd: time.sensitivity.noWalkOnAfterT0BandSale.memRepaidUsd,
     t0AtNm1Usd: time.sensitivity.t0PriceBasis.memRepaidUsd,
+    /** The whole published table, each row on its own compared set, with the split. */
+    table: sensitivityTable.map((r) => ({
+      key: r.key,
+      label: r.label,
+      headline: r.headline,
+      positions: r.positions,
+      realRepaidUsd: r.realRepaidUsd,
+      memRepaidUsd: r.memRepaidUsd,
+      gapPct: r.gapPct,
+      aaveGapPct: r.byProtocol['aave-v3'].gapPct,
+      morphoGapPct: r.byProtocol['morpho-blue'].gapPct,
+    })),
+    /** Each on its own compared set: positions and both sides. */
+    capacity: capacityRuns.map((c) => ({
+      multiplier: c.multiplier === Infinity ? null : c.multiplier,
+      positions: c.set.positions,
+      realRepaidUsd: c.set.realRepaidUsd,
+      memRepaidUsd: c.set.memRepaidUsd,
+      gapPct: c.set.gapPct,
+    })),
+    protocolLine: {
+      positions: protocolLine.set.positions,
+      realRepaidUsd: protocolLine.set.realRepaidUsd,
+      memRepaidUsd: protocolLine.set.memRepaidUsd,
+      gapPct: protocolLine.set.gapPct,
+      aave: setPick(protocolLine.set.byProtocol['aave-v3']),
+      morpho: setPick(protocolLine.set.byProtocol['morpho-blue']),
+    },
   },
 }
 
@@ -1022,7 +1342,12 @@ console.log('  outcomes', JSON.stringify(outcomes))
 console.log('  cure', JSON.stringify({ ...cureSummary(pos), noDelay: time.cure.noDelay }))
 console.log('  one repay', JSON.stringify(oneRepay))
 console.log('  bands', JSON.stringify(bandSensitivity.map((b) => [b.band, b.memRepaidUsd])))
-console.log('  sens', JSON.stringify({ noEarlyClear, noDebtFloor, singleSale }))
+for (const r of sensitivityTable) {
+  console.log(
+    `  sens ${r.key.padEnd(26)} ${String(r.positions).padStart(5)}  real ${m(r.realRepaidUsd)}  mem ${m(r.memRepaidUsd)}  ${r.gapPct}%  less ${m(r.lessUsd)} more ${m(r.moreUsd)} | aave ${r.byProtocol['aave-v3'].positions} ${m(r.byProtocol['aave-v3'].realRepaidUsd)}→${m(r.byProtocol['aave-v3'].memRepaidUsd)} (${r.byProtocol['aave-v3'].gapPct}%) | morpho ${r.byProtocol['morpho-blue'].positions} ${m(r.byProtocol['morpho-blue'].realRepaidUsd)}→${m(r.byProtocol['morpho-blue'].memRepaidUsd)} (${r.byProtocol['morpho-blue'].gapPct}%)`,
+  )
+}
+console.log('  whale', JSON.stringify(whale))
 console.log('  grid end', JSON.stringify(meta.gridEnd))
 console.log('  fresh WETH minutes', freshWethMinutes)
 console.log('  concentration', JSON.stringify({ ...all.concentration, top5: undefined }))

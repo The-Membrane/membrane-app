@@ -186,80 +186,408 @@
   "total": 3197,
   "walked": 3197,
   "notWalked": 0,
+  "compared": 2280,
+  "excluded": {
+   "noMembraneLine": 866,
+   "noCapacity": 51
+  },
   "byProtocolChain": [
    {
     "key": "aave-v3:core:arbitrum",
     "total": 776,
     "walked": 776,
-    "notWalked": 0
+    "notWalked": 0,
+    "compared": 529
    },
    {
     "key": "aave-v3:core:base",
     "total": 426,
     "walked": 426,
-    "notWalked": 0
+    "notWalked": 0,
+    "compared": 380
    },
    {
     "key": "aave-v3:core:mainnet",
     "total": 623,
     "walked": 623,
-    "notWalked": 0
+    "notWalked": 0,
+    "compared": 494
    },
    {
     "key": "aave-v3:core:optimism",
     "total": 593,
     "walked": 593,
-    "notWalked": 0
+    "notWalked": 0,
+    "compared": 321
    },
    {
     "key": "aave-v3:lido:mainnet",
     "total": 3,
     "walked": 3,
-    "notWalked": 0
+    "notWalked": 0,
+    "compared": 3
    },
    {
     "key": "morpho-blue:arbitrum",
     "total": 31,
     "walked": 31,
-    "notWalked": 0
+    "notWalked": 0,
+    "compared": 30
    },
    {
     "key": "morpho-blue:base",
     "total": 553,
     "walked": 553,
-    "notWalked": 0
+    "notWalked": 0,
+    "compared": 458
    },
    {
     "key": "morpho-blue:mainnet",
     "total": 192,
     "walked": 192,
-    "notWalked": 0
+    "notWalked": 0,
+    "compared": 65
    }
   ],
   "uncovered": []
  },
+ "method": {
+  "line": "MEMBRANE'S OWN LINE (owner ruling 2026-10-18; lib/wavefront/membraneLine.ts): the per-wallet simulator's rule — weightedMembraneLine of the t0 collateral (MEMBRANE_ASSET_LTV, modelled: WETH 0.80, wstETH 0.78, WBTC 0.75, …; DEPLOY_LAUNCH_LTV, the deploy script's own: sUSDS 0.88, syrupUSDC 0.86, scrvUSD 0.86), value-weighted at t0, each asset clamped to its class cap. Legs with no Membrane line are left out of the weighted line; a position with no leg that has one is excluded ('no-membrane-line'). The protocol's line (Aave weighted LT, Morpho LLTV) stays in each row as `line`: it locates t0 and is the published sensitivity 'Membrane at the protocol's line'. The position still enters at the protocol's liquidation (t0); on a lower line it is further past its line there.",
+  "liquidity": "LIQUIDITY-CAPPED SALES (owner ruling 2026-10-18; lib/wavefront/liquidity.ts, meta.liquidity): every sale is an order offered to a shared per-(chain, token) book that allows 1.1x (modelled †) the most tokens liquidators absorbed in any rolling 10 minutes of the window, at any minute, in order minute then pid. The order splits across collateral legs pro rata by value; each leg fills against its own book. The unfilled part stays pending: while it is, the timer is idle, the order is re-sized each minute at that minute’s price (never more than pending, never past the borrow cap: back at or under the cap cancels it) and the LTV moves on the collateral still held. A remainder still pending at the grid end is never credited. A position that would have to sell a token with no observed liquidity on its chain is excluded (no-capacity).",
+  "comparison": "DEBT REPAID ONLY (owner ruling 2026-10-18): Membrane’s liquidation fee cannot be assumed, so no collateral-seized figure is compared. Real seized (with the Aave protocol fee) stays in each row as provenance."
+ },
+ "exclusions": {
+  "rule": "A position is compared only when Membrane can walk it: (1) at least one collateral leg has a Membrane line (otherwise \"no-membrane-line\": nothing is invented for AAVE, tETH, LBTC, …), and (2) every collateral token it would have to sell had observed liquidity on its chain (otherwise \"no-capacity\"). Excluded positions are left out of BOTH sides of every total; their real side stays in the rows.",
+  "noMembraneLine": {
+   "positions": 866,
+   "realRepaidUsd": 23335372.59,
+   "byProtocol": {
+    "aave-v3": {
+     "positions": 643,
+     "realRepaidUsd": 14060909.99
+    },
+    "morpho-blue": {
+     "positions": 223,
+     "realRepaidUsd": 9274462.6
+    }
+   },
+   "debtUsdAtT0": 67465783.48
+  },
+  "noCapacity": {
+   "positions": 51,
+   "realRepaidUsd": 661545.23,
+   "byProtocol": {
+    "aave-v3": {
+     "positions": 51,
+     "realRepaidUsd": 661545.23
+    },
+    "morpho-blue": {
+     "positions": 0,
+     "realRepaidUsd": 0
+    }
+   },
+   "debtUsdAtT0": 1331916.57
+  },
+  "partialLine": {
+   "rule": "Compared, but some collateral legs have no Membrane line: those legs are left out of the value-weighted line (the per-wallet simulator's rule, weightedMembraneLine) and still count as collateral. The strict alternative — exclude these too — is the sensitivity strictLines (scripts/build-evidence-census.ts).",
+   "positions": 735,
+   "realRepaidUsd": 28947604.59,
+   "unknownCollateralUsdAtT0": 39042047.15
+  }
+ },
+ "liquidity": {
+  "rule": "Every Membrane collateral sale draws on one shared book per (chain, token): at most 1.1 x capacity tokens in any rolling 10 minutes, where CAPACITY is the most tokens that left liquidated borrowers in any rolling 10 minutes of 10-11 Oct on that chain, over every Aave V3 and Morpho Blue liquidation of the census (Aave: liquidatedCollateralAmount + the protocol fee; Morpho: seized assets). Capacity is a rate, available at any minute. Sales draw in order minute, then pid. A sale's unfilled part stays pending and sells at later minutes at those minutes' prices, never past the borrow cap (lib/wavefront/kernel.ts PENDING ORDERS). Debt repayment is not limited; only collateral sales are.",
+  "multiplier": 1.1,
+  "multiplierBasis": "MODELLED (†): the 8-hour delay lets some of the market liquidity recover. 0.5x, 1.0x, 2.0x and unlimited are published beside it.",
+  "windowMinutes": 10,
+  "topByChain": {
+   "arbitrum": [
+    {
+     "symbol": "WETH",
+     "token": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+     "capacityTokens": 2003.3083,
+     "peakUsd": 7223053.77,
+     "headlineLimitTokens": 2203.6391,
+     "events": 218
+    },
+    {
+     "symbol": "WBTC",
+     "token": "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
+     "capacityTokens": 55.214579,
+     "peakUsd": 5939600.06,
+     "headlineLimitTokens": 60.736037,
+     "events": 92
+    },
+    {
+     "symbol": "LINK",
+     "token": "0xf97f4df75117a78c1a5a0dbb814af92458539fb4",
+     "capacityTokens": 82278.801,
+     "peakUsd": 1346854.68,
+     "headlineLimitTokens": 90506.681,
+     "events": 155
+    },
+    {
+     "symbol": "wstETH",
+     "token": "0x5979d7b546e38e414f7e9822514be443a4800529",
+     "capacityTokens": 302.27107,
+     "peakUsd": 1306890.02,
+     "headlineLimitTokens": 332.49818,
+     "events": 45
+    },
+    {
+     "symbol": "ARB",
+     "token": "0x912ce59144191c1204e64559fe8253a0e49e6548",
+     "capacityTokens": 1793200.1,
+     "peakUsd": 418503.18,
+     "headlineLimitTokens": 1972520.1,
+     "events": 346
+    },
+    {
+     "symbol": "AAVE",
+     "token": "0xba5ddd1f9d7f570dc94a51479a000e3bce967196",
+     "capacityTokens": 1297.2883,
+     "peakUsd": 229423.76,
+     "headlineLimitTokens": 1427.0172,
+     "events": 75
+    },
+    {
+     "symbol": "weETH",
+     "token": "0x35751007a407ca6feffe80b3cb397736d2cf4dbe",
+     "capacityTokens": 12.9005,
+     "peakUsd": 49721.84,
+     "headlineLimitTokens": 14.19055,
+     "events": 9
+    },
+    {
+     "symbol": "USDC",
+     "token": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+     "capacityTokens": 26026.177,
+     "peakUsd": 26021.21,
+     "headlineLimitTokens": 28628.795,
+     "events": 12
+    }
+   ],
+   "base": [
+    {
+     "symbol": "cbBTC",
+     "token": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+     "capacityTokens": 197.32351,
+     "peakUsd": 21545493.85,
+     "headlineLimitTokens": 217.05586,
+     "events": 495
+    },
+    {
+     "symbol": "WETH",
+     "token": "0x4200000000000000000000000000000000000006",
+     "capacityTokens": 425.96598,
+     "peakUsd": 1555342.19,
+     "headlineLimitTokens": 468.56258,
+     "events": 335
+    },
+    {
+     "symbol": "cbETH",
+     "token": "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22",
+     "capacityTokens": 144.83637,
+     "peakUsd": 584550.41,
+     "headlineLimitTokens": 159.32001,
+     "events": 31
+    },
+    {
+     "symbol": "TOSHI",
+     "token": "0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4",
+     "capacityTokens": 668523100,
+     "peakUsd": 397082.66,
+     "headlineLimitTokens": 735375410,
+     "events": 3
+    },
+    {
+     "symbol": "weETH",
+     "token": "0x04c0599ae5a44757c0af6f9ec3b93da8976c150a",
+     "capacityTokens": 80.846628,
+     "peakUsd": 307998.99,
+     "headlineLimitTokens": 88.93129,
+     "events": 9
+    },
+    {
+     "symbol": "AAVE",
+     "token": "0x63706e401c06ac8513145b7687a14804d17f814b",
+     "capacityTokens": 1041.7152,
+     "peakUsd": 155931.38,
+     "headlineLimitTokens": 1145.8867,
+     "events": 62
+    },
+    {
+     "symbol": "wstETH",
+     "token": "0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452",
+     "capacityTokens": 31.404345,
+     "peakUsd": 141086.24,
+     "headlineLimitTokens": 34.544779,
+     "events": 24
+    },
+    {
+     "symbol": "uXRP",
+     "token": "0x2615a94df961278dcbc41fb0a54fec5f10a693ae",
+     "capacityTokens": 47606.019,
+     "peakUsd": 119444.05,
+     "headlineLimitTokens": 52366.621,
+     "events": 10
+    }
+   ],
+   "mainnet": [
+    {
+     "symbol": "WBTC",
+     "token": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+     "capacityTokens": 321.29841,
+     "peakUsd": 34909529.66,
+     "headlineLimitTokens": 353.42825,
+     "events": 99
+    },
+    {
+     "symbol": "WETH",
+     "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+     "capacityTokens": 4949.6898,
+     "peakUsd": 17752397.2,
+     "headlineLimitTokens": 5444.6588,
+     "events": 271
+    },
+    {
+     "symbol": "AAVE",
+     "token": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+     "capacityTokens": 97556.854,
+     "peakUsd": 13928431.89,
+     "headlineLimitTokens": 107312.54,
+     "events": 96
+    },
+    {
+     "symbol": "cbBTC",
+     "token": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+     "capacityTokens": 127.51,
+     "peakUsd": 13813864.86,
+     "headlineLimitTokens": 140.261,
+     "events": 30
+    },
+    {
+     "symbol": "LINK",
+     "token": "0x514910771af9ca656af840dff83e8264ecf986ca",
+     "capacityTokens": 504279.45,
+     "peakUsd": 6698414.08,
+     "headlineLimitTokens": 554707.4,
+     "events": 145
+    },
+    {
+     "symbol": "UNI",
+     "token": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+     "capacityTokens": 778241.19,
+     "peakUsd": 3354588.15,
+     "headlineLimitTokens": 856065.31,
+     "events": 102
+    },
+    {
+     "symbol": "Mog",
+     "token": "0xaaee1a9723aadb7afa2810263653a34ba2c21c7a",
+     "capacityTokens": 5520666200000,
+     "peakUsd": 2207405.26,
+     "headlineLimitTokens": 6072732800000,
+     "events": 115
+    },
+    {
+     "symbol": "USDT",
+     "token": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+     "capacityTokens": 1517431.5,
+     "peakUsd": 1517816.97,
+     "headlineLimitTokens": 1669174.7,
+     "events": 22
+    }
+   ],
+   "optimism": [
+    {
+     "symbol": "OP",
+     "token": "0x4200000000000000000000000000000000000042",
+     "capacityTokens": 1516055.1,
+     "peakUsd": 594115.64,
+     "headlineLimitTokens": 1667660.6,
+     "events": 469
+    },
+    {
+     "symbol": "WETH",
+     "token": "0x4200000000000000000000000000000000000006",
+     "capacityTokens": 104.28448,
+     "peakUsd": 374145.04,
+     "headlineLimitTokens": 114.71293,
+     "events": 130
+    },
+    {
+     "symbol": "WBTC",
+     "token": "0x68f180fcce6836688e9084f035309e29bf0a2095",
+     "capacityTokens": 3.0501559,
+     "peakUsd": 329060.43,
+     "headlineLimitTokens": 3.3551715,
+     "events": 28
+    },
+    {
+     "symbol": "LINK",
+     "token": "0x350a791bfc2c21f9ed5d10980dad2e2638ffa7f6",
+     "capacityTokens": 8552.8923,
+     "peakUsd": 135447.26,
+     "headlineLimitTokens": 9408.1815,
+     "events": 60
+    },
+    {
+     "symbol": "wstETH",
+     "token": "0x1f32b1c2345538c0c6f582fcb022739c4a194ebb",
+     "capacityTokens": 11.869131,
+     "peakUsd": 51037.6,
+     "headlineLimitTokens": 13.056044,
+     "events": 10
+    },
+    {
+     "symbol": "AAVE",
+     "token": "0x76fb31fb4af56892a25e32cfc43de717950c9278",
+     "capacityTokens": 231.5777,
+     "peakUsd": 40993.58,
+     "headlineLimitTokens": 254.73547,
+     "events": 59
+    },
+    {
+     "symbol": "USDC",
+     "token": "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+     "capacityTokens": 6149.0552,
+     "peakUsd": 6147.39,
+     "headlineLimitTokens": 6763.9607,
+     "events": 11
+    },
+    {
+     "symbol": "USDT",
+     "token": "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
+     "capacityTokens": 3315.9453,
+     "peakUsd": 3316.6,
+     "headlineLimitTokens": 3647.5398,
+     "events": 13
+    }
+   ]
+  }
+ },
  "totals": {
   "walked": {
    "real": {
-    "positions": 3197,
-    "events": 4031,
-    "repaidUsd": 188114622.65,
-    "seizedUsd": 199287229.69,
-    "protocolFeeUsd": 920995.99,
-    "badDebtUsd": 275716.58,
-    "unpricedEvents": 13,
-    "unpricedPositions": 13
+    "positions": 2280,
+    "events": 2749,
+    "repaidUsd": 164117704.83,
+    "badDebtUsd": 0,
+    "unpricedEvents": 7,
+    "unpricedPositions": 7
    },
    "mem": {
-    "positions": 3197,
-    "repaidUsd": 157056180.33,
-    "soldUsd": 157012764.37,
-    "sales": 3402,
-    "positionsSold": 2570,
-    "positionsSoldAtGridEnd": 73,
-    "positionsKept": 627,
-    "unpricedSales": 11,
-    "unpricedPositions": 13
+    "positions": 2280,
+    "repaidUsd": 193030640.1,
+    "sales": 2630,
+    "positionsSold": 2079,
+    "positionsSoldAtGridEnd": 9,
+    "positionsKept": 201,
+    "unpricedSales": 9,
+    "unpricedPositions": 7,
+    "positionsShortFilled": 335,
+    "unfilledAtGridEndUsd": 0
    }
   },
   "all": {
@@ -267,8 +595,6 @@
     "positions": 3197,
     "events": 4031,
     "repaidUsd": 188114622.65,
-    "seizedUsd": 199287229.69,
-    "protocolFeeUsd": 920995.99,
     "badDebtUsd": 275716.58,
     "unpricedEvents": 13,
     "unpricedPositions": 13
@@ -277,142 +603,136 @@
   "byProtocol": {
    "aave-v3": {
     "real": {
-     "positions": 2421,
-     "events": 3114,
-     "repaidUsd": 148165495.34,
-     "seizedUsd": 157358666.71,
-     "protocolFeeUsd": 920995.99,
+     "positions": 1727,
+     "events": 2181,
+     "repaidUsd": 133443040.12,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
     },
     "mem": {
-     "positions": 2421,
-     "repaidUsd": 139525125.48,
-     "soldUsd": 139494792.47,
-     "sales": 2850,
-     "positionsSold": 2040,
-     "positionsSoldAtGridEnd": 58,
-     "positionsKept": 381,
+     "positions": 1727,
+     "repaidUsd": 164907284.26,
+     "sales": 2062,
+     "positionsSold": 1527,
+     "positionsSoldAtGridEnd": 9,
+     "positionsKept": 200,
      "unpricedSales": 0,
-     "unpricedPositions": 0
+     "unpricedPositions": 0,
+     "positionsShortFilled": 326,
+     "unfilledAtGridEndUsd": 0
     }
    },
    "morpho-blue": {
     "real": {
-     "positions": 776,
-     "events": 917,
-     "repaidUsd": 39949127.31,
-     "seizedUsd": 41928562.98,
-     "protocolFeeUsd": 0,
-     "badDebtUsd": 275716.58,
-     "unpricedEvents": 13,
-     "unpricedPositions": 13
+     "positions": 553,
+     "events": 568,
+     "repaidUsd": 30674664.71,
+     "badDebtUsd": 0,
+     "unpricedEvents": 7,
+     "unpricedPositions": 7
     },
     "mem": {
-     "positions": 776,
-     "repaidUsd": 17531054.85,
-     "soldUsd": 17517971.9,
-     "sales": 552,
-     "positionsSold": 530,
-     "positionsSoldAtGridEnd": 15,
-     "positionsKept": 246,
-     "unpricedSales": 11,
-     "unpricedPositions": 13
+     "positions": 553,
+     "repaidUsd": 28123355.84,
+     "sales": 568,
+     "positionsSold": 552,
+     "positionsSoldAtGridEnd": 0,
+     "positionsKept": 1,
+     "unpricedSales": 9,
+     "unpricedPositions": 7,
+     "positionsShortFilled": 9,
+     "unfilledAtGridEndUsd": 0
     }
    }
   },
   "byProtocolChain": {
    "aave-v3:core:arbitrum": {
     "real": {
-     "positions": 776,
-     "events": 938,
-     "repaidUsd": 17974004.55,
-     "seizedUsd": 19160541.72,
-     "protocolFeeUsd": 118653.7,
+     "positions": 529,
+     "events": 644,
+     "repaidUsd": 17361052.4,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
     },
     "mem": {
-     "positions": 776,
-     "repaidUsd": 8770378.83,
-     "soldUsd": 8769122.13,
-     "sales": 952,
-     "positionsSold": 649,
-     "positionsSoldAtGridEnd": 2,
-     "positionsKept": 127,
+     "positions": 529,
+     "repaidUsd": 14631123.11,
+     "sales": 699,
+     "positionsSold": 481,
+     "positionsSoldAtGridEnd": 0,
+     "positionsKept": 48,
      "unpricedSales": 0,
-     "unpricedPositions": 0
+     "unpricedPositions": 0,
+     "positionsShortFilled": 118,
+     "unfilledAtGridEndUsd": 0
     }
    },
    "aave-v3:core:base": {
     "real": {
-     "positions": 426,
-     "events": 470,
-     "repaidUsd": 5761282.35,
-     "seizedUsd": 6152549.1,
-     "protocolFeeUsd": 39121.04,
+     "positions": 380,
+     "events": 418,
+     "repaidUsd": 5123222.25,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
     },
     "mem": {
-     "positions": 426,
-     "repaidUsd": 1980057.7,
-     "soldUsd": 1980057.7,
-     "sales": 410,
-     "positionsSold": 323,
-     "positionsSoldAtGridEnd": 22,
-     "positionsKept": 103,
+     "positions": 380,
+     "repaidUsd": 4278845.85,
+     "sales": 381,
+     "positionsSold": 345,
+     "positionsSoldAtGridEnd": 3,
+     "positionsKept": 35,
      "unpricedSales": 0,
-     "unpricedPositions": 0
+     "unpricedPositions": 0,
+     "positionsShortFilled": 0,
+     "unfilledAtGridEndUsd": 0
     }
    },
    "aave-v3:core:mainnet": {
     "real": {
-     "positions": 623,
-     "events": 902,
-     "repaidUsd": 120947258.85,
-     "seizedUsd": 128317961.78,
-     "protocolFeeUsd": 738726.68,
+     "positions": 494,
+     "events": 670,
+     "repaidUsd": 107982514.14,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
     },
     "mem": {
-     "positions": 623,
-     "repaidUsd": 125589136.11,
-     "soldUsd": 125560882.04,
-     "sales": 854,
-     "positionsSold": 527,
-     "positionsSoldAtGridEnd": 19,
-     "positionsKept": 96,
+     "positions": 494,
+     "repaidUsd": 142550207.75,
+     "sales": 722,
+     "positionsSold": 479,
+     "positionsSoldAtGridEnd": 4,
+     "positionsKept": 15,
      "unpricedSales": 0,
-     "unpricedPositions": 0
+     "unpricedPositions": 0,
+     "positionsShortFilled": 173,
+     "unfilledAtGridEndUsd": 0
     }
    },
    "aave-v3:core:optimism": {
     "real": {
-     "positions": 593,
-     "events": 801,
-     "repaidUsd": 1756181.33,
-     "seizedUsd": 1897239.77,
-     "protocolFeeUsd": 14133.96,
+     "positions": 321,
+     "events": 446,
+     "repaidUsd": 1249483.07,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
     },
     "mem": {
-     "positions": 593,
-     "repaidUsd": 1667475.36,
-     "soldUsd": 1666653.12,
-     "sales": 632,
-     "positionsSold": 539,
-     "positionsSoldAtGridEnd": 15,
-     "positionsKept": 54,
+     "positions": 321,
+     "repaidUsd": 1095461.66,
+     "sales": 256,
+     "positionsSold": 219,
+     "positionsSoldAtGridEnd": 2,
+     "positionsKept": 102,
      "unpricedSales": 0,
-     "unpricedPositions": 0
+     "unpricedPositions": 0,
+     "positionsShortFilled": 35,
+     "unfilledAtGridEndUsd": 0
     }
    },
    "aave-v3:lido:mainnet": {
@@ -420,232 +740,229 @@
      "positions": 3,
      "events": 3,
      "repaidUsd": 1726768.26,
-     "seizedUsd": 1830374.34,
-     "protocolFeeUsd": 10360.61,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
     },
     "mem": {
      "positions": 3,
-     "repaidUsd": 1518077.48,
-     "soldUsd": 1518077.48,
-     "sales": 2,
-     "positionsSold": 2,
+     "repaidUsd": 2351645.89,
+     "sales": 4,
+     "positionsSold": 3,
      "positionsSoldAtGridEnd": 0,
-     "positionsKept": 1,
+     "positionsKept": 0,
      "unpricedSales": 0,
-     "unpricedPositions": 0
+     "unpricedPositions": 0,
+     "positionsShortFilled": 0,
+     "unfilledAtGridEndUsd": 0
     }
    },
    "morpho-blue:arbitrum": {
     "real": {
-     "positions": 31,
-     "events": 31,
-     "repaidUsd": 373172.88,
-     "seizedUsd": 389533.29,
-     "protocolFeeUsd": 0,
+     "positions": 30,
+     "events": 30,
+     "repaidUsd": 373171.89,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
     },
     "mem": {
-     "positions": 31,
-     "repaidUsd": 56981.45,
-     "soldUsd": 56981.45,
-     "sales": 29,
-     "positionsSold": 26,
+     "positions": 30,
+     "repaidUsd": 219646.16,
+     "sales": 33,
+     "positionsSold": 30,
      "positionsSoldAtGridEnd": 0,
-     "positionsKept": 5,
+     "positionsKept": 0,
      "unpricedSales": 0,
-     "unpricedPositions": 0
+     "unpricedPositions": 0,
+     "positionsShortFilled": 0,
+     "unfilledAtGridEndUsd": 0
     }
    },
    "morpho-blue:base": {
     "real": {
-     "positions": 553,
-     "events": 618,
-     "repaidUsd": 19200226.49,
-     "seizedUsd": 20063592.83,
-     "protocolFeeUsd": 0,
-     "badDebtUsd": 617.42,
-     "unpricedEvents": 5,
-     "unpricedPositions": 5
+     "positions": 458,
+     "events": 471,
+     "repaidUsd": 17975056.78,
+     "badDebtUsd": 0,
+     "unpricedEvents": 4,
+     "unpricedPositions": 4
     },
     "mem": {
-     "positions": 553,
-     "repaidUsd": 8211782.18,
-     "soldUsd": 8210725.68,
-     "sales": 355,
-     "positionsSold": 340,
-     "positionsSoldAtGridEnd": 12,
-     "positionsKept": 213,
+     "positions": 458,
+     "repaidUsd": 15940881.93,
+     "sales": 461,
+     "positionsSold": 457,
+     "positionsSoldAtGridEnd": 0,
+     "positionsKept": 1,
      "unpricedSales": 3,
-     "unpricedPositions": 5
+     "unpricedPositions": 4,
+     "positionsShortFilled": 0,
+     "unfilledAtGridEndUsd": 0
     }
    },
    "morpho-blue:mainnet": {
     "real": {
-     "positions": 192,
-     "events": 268,
-     "repaidUsd": 20375727.94,
-     "seizedUsd": 21475436.86,
-     "protocolFeeUsd": 0,
-     "badDebtUsd": 275099.16,
-     "unpricedEvents": 8,
-     "unpricedPositions": 8
+     "positions": 65,
+     "events": 67,
+     "repaidUsd": 12326436.04,
+     "badDebtUsd": 0,
+     "unpricedEvents": 3,
+     "unpricedPositions": 3
     },
     "mem": {
-     "positions": 192,
-     "repaidUsd": 9262291.22,
-     "soldUsd": 9250264.77,
-     "sales": 168,
-     "positionsSold": 164,
-     "positionsSoldAtGridEnd": 3,
-     "positionsKept": 28,
-     "unpricedSales": 8,
-     "unpricedPositions": 8
+     "positions": 65,
+     "repaidUsd": 11962827.75,
+     "sales": 74,
+     "positionsSold": 65,
+     "positionsSoldAtGridEnd": 0,
+     "positionsKept": 0,
+     "unpricedSales": 6,
+     "unpricedPositions": 3,
+     "positionsShortFilled": 9,
+     "unfilledAtGridEndUsd": 0
     }
    }
   }
  },
  "classes": {
-  "aave-v3:delayed": 1907,
-  "aave-v3:mixed": 496,
-  "aave-v3:no-delay": 18,
-  "morpho-blue:delayed": 762,
-  "morpho-blue:no-delay": 14
+  "aave-v3:delayed": 1261,
+  "aave-v3:mixed": 450,
+  "aave-v3:no-delay": 16,
+  "morpho-blue:delayed": 551,
+  "morpho-blue:no-delay": 2
  },
  "clusters": {
   "ETH": {
    "positions": 1056,
    "walked": 1056,
-   "realRepaidUsdWalked": 77846968.8,
-   "memRepaidUsd": 62270485.75,
-   "positionsSold": 832
+   "realRepaidUsdWalked": 75715540.86,
+   "memRepaidUsd": 101829177.84,
+   "positionsSold": 937
   },
   "BTC": {
    "positions": 690,
    "walked": 690,
-   "realRepaidUsdWalked": 74211276.9,
-   "memRepaidUsd": 18912827.23,
-   "positionsSold": 416
+   "realRepaidUsdWalked": 73061455.83,
+   "memRepaidUsd": 57512340.27,
+   "positionsSold": 672
   },
   "OP": {
    "positions": 360,
    "walked": 360,
-   "realRepaidUsdWalked": 718110.37,
-   "memRepaidUsd": 784867.42,
-   "positionsSold": 340
+   "realRepaidUsdWalked": 223109.11,
+   "memRepaidUsd": 184371.1,
+   "positionsSold": 49
   },
   "ARB": {
    "positions": 281,
    "walked": 281,
-   "realRepaidUsdWalked": 886272.52,
-   "memRepaidUsd": 1106389.24,
-   "positionsSold": 250
+   "realRepaidUsdWalked": 402997.61,
+   "memRepaidUsd": 211752.86,
+   "positionsSold": 42
   },
   "LINK": {
    "positions": 261,
    "walked": 261,
    "realRepaidUsdWalked": 8571400.77,
-   "memRepaidUsd": 11811727.55,
-   "positionsSold": 225
+   "memRepaidUsd": 12267434.8,
+   "positionsSold": 261
   },
   "AAVE": {
    "positions": 183,
    "walked": 183,
-   "realRepaidUsdWalked": 12671237.61,
-   "memRepaidUsd": 50841767.42,
-   "positionsSold": 161
+   "realRepaidUsdWalked": 5689825.95,
+   "memRepaidUsd": 20825745.73,
+   "positionsSold": 83
   },
   "Other": {
    "positions": 102,
    "walked": 102,
-   "realRepaidUsdWalked": 2466145.09,
-   "memRepaidUsd": 1744993.64,
-   "positionsSold": 91
+   "realRepaidUsdWalked": 0,
+   "memRepaidUsd": 0,
+   "positionsSold": 0
   },
   "Stables": {
    "positions": 75,
    "walked": 75,
-   "realRepaidUsdWalked": 453383.69,
-   "memRepaidUsd": 188559.53,
-   "positionsSold": 75
+   "realRepaidUsdWalked": 453374.7,
+   "memRepaidUsd": 199817.5,
+   "positionsSold": 35
   },
   "Mog": {
    "positions": 57,
    "walked": 57,
-   "realRepaidUsdWalked": 5485597.04,
-   "memRepaidUsd": 4847062.15,
-   "positionsSold": 53
+   "realRepaidUsdWalked": 0,
+   "memRepaidUsd": 0,
+   "positionsSold": 0
   },
   "UNI": {
    "positions": 41,
    "walked": 41,
-   "realRepaidUsdWalked": 3168127.69,
-   "memRepaidUsd": 3142596.17,
-   "positionsSold": 40
+   "realRepaidUsdWalked": 0,
+   "memRepaidUsd": 0,
+   "positionsSold": 0
   },
   "AERO": {
    "positions": 36,
    "walked": 36,
-   "realRepaidUsdWalked": 37846.69,
-   "memRepaidUsd": 33795.98,
-   "positionsSold": 34
+   "realRepaidUsdWalked": 0,
+   "memRepaidUsd": 0,
+   "positionsSold": 0
   },
   "PEPE": {
    "positions": 35,
    "walked": 35,
-   "realRepaidUsdWalked": 775119.1,
-   "memRepaidUsd": 706469.49,
-   "positionsSold": 33
+   "realRepaidUsdWalked": 0,
+   "memRepaidUsd": 0,
+   "positionsSold": 0
   },
   "CRV": {
    "positions": 20,
    "walked": 20,
-   "realRepaidUsdWalked": 823136.38,
-   "memRepaidUsd": 664638.76,
-   "positionsSold": 20
+   "realRepaidUsdWalked": 0,
+   "memRepaidUsd": 0,
+   "positionsSold": 0
   }
  },
  "outcomes": {
-  "sold-no-delay": 59,
-  "sold-at-band": 1650,
-  "cured-then-held": 711,
-  "sold-at-t0": 652,
-  "held": 30,
-  "sold-at-expiry": 22,
-  "sold-at-grid-end": 73
+  "held": 165,
+  "sold-at-t0": 1590,
+  "sold-at-band": 433,
+  "cured-then-held": 59,
+  "sold-no-delay": 9,
+  "sold-at-expiry": 15,
+  "sold-at-grid-end": 9
  },
  "concentration": {
   "top1": {
-   "pid": "aave-v3:mainnet:0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2:0x372cae7fa19b81a9786a9081704ea1e2dad576b7",
-   "ltv0": 0.911798,
-   "line": 0.76,
-   "outcome": "sold-at-t0",
-   "memRepaidUsd": 29863534.37,
-   "shareOfMem": 0.1901
+   "pid": "aave-v3:mainnet:0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2:0xebb4ee6fe7a3cb6c207e62d46a6519e1878c5855",
+   "ltv0": 0.780093,
+   "line": 0.765457,
+   "memLine": 0.8,
+   "outcome": "sold-at-band",
+   "memRepaidUsd": 17976307.61,
+   "shareOfMem": 0.0931
   },
-  "top10ShareOfMem": 0.5167
+  "top10ShareOfMem": 0.4291
  },
  "sensitivity": {
   "noWalkOnAfterT0BandSale": {
    "rule": "The headline walks a delayed position sold at t0 past line x (1 + band) on after that sale, like every other sale: a sale leaves no timer (a band break or an expiry deletes it, LiquidationEngine.sol:1724-1727 at 16e12329; an Immediate sale, :1694-1703, never had one) and nothing closes the position. This rebuild stops it after the one t0 repay — the behaviour before 2026-10-14.",
-   "memRepaidUsd": 151255719.33,
-   "deltaUsd": 5800461,
+   "memRepaidUsd": 182858998.81,
+   "deltaUsd": 10171641.29,
    "deltaNote": "headline minus this rebuild: the Membrane sales the old stop hid",
-   "positionsChanged": 72,
-   "positionsSoldAtT0PastBand": 678
+   "positionsChanged": 355,
+   "positionsSoldAtT0PastBand": 1599
   },
   "t0PriceBasis": {
    "rule": "t0 is valued at block-N oracle prices, or at block N-1 where N does not show the breach the protocol liquidated. For positions the protocol's own check locates at BOTH bases, this counts those whose t0 decision (per half: under the line / inside the band / past the band / no-delay sale) differs between the two, and rebuilds the census valuing every position at N-1 wherever N-1 locates it.",
-   "positionsLocatedAtBoth": 2450,
-   "positionsDecisionDiffers": 13,
-   "memRepaidUsdOnThem": 106073.23,
-   "memRepaidUsdOnThemAtNm1": 104357.43,
-   "wholeCensusAtNm1FirstMemRepaidUsd": 156980740.05,
-   "wholeCensusDeltaUsd": -75440.28
+   "positionsLocatedAtBoth": 1685,
+   "positionsDecisionDiffers": 3,
+   "memRepaidUsdOnThem": 10049.81,
+   "memRepaidUsdOnThemAtNm1": 8140.79,
+   "wholeCensusAtNm1FirstMemRepaidUsd": 192787301.54,
+   "wholeCensusDeltaUsd": -243338.56
   }
  },
  "morphoBadDebt": {

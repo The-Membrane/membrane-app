@@ -6,8 +6,11 @@
 // Ethereum, Arbitrum, Optimism and Base, all walked. Both sides are priced by each protocol's
 // own oracle, read on chain. The real side is every liquidation the position took in the
 // window; Membrane's side is the contract's delay window and repay-to-cap walked minute by
-// minute from the first liquidation the protocol's own health check confirms (t0). Every
-// Membrane figure is MODELLED (†).
+// minute from the first liquidation the protocol's own health check confirms (t0), at
+// MEMBRANE'S OWN LINE, with every sale capped by the liquidity the day showed (owner rulings
+// 2026-10-18). The COMPARED set — the cohort and every total — is the positions with a
+// Membrane line and liquidity for what Membrane sells; meta.exclusions has the rest. Only DEBT
+// REPAID is compared. Every Membrane figure is MODELLED (†).
 //
 // The old census (public/data/oct10-2025/evidence.json, 2,347 Aave rows) is no longer read
 // by any page. It is kept as a test fixture and its builder still runs.
@@ -43,7 +46,6 @@ export interface DebtSet {
   unpricedPositions: number
   events: number
   realRepaidUsd: number
-  realSeizedUsd: number
   /** Morpho only: realised bad debt, reported apart (not repaid). */
   realBadDebtUsd: number
   memRepaidUsd: number
@@ -105,6 +107,60 @@ export interface Sensitivity {
   positionsChanged?: number
   positionsDecisionDiffers?: number
   byProtocol?: Record<ProtocolKey, number>
+  /** Both sides over the run's own compared set. */
+  set?: SetFigures
+}
+
+/** Both sides and the gross over one run's own compared set. */
+export interface SetFigures {
+  positions: number
+  realRepaidUsd: number
+  memRepaidUsd: number
+  gapUsd: number
+  gapPct: number
+  less: number
+  more: number
+  lessUsd: number
+  moreUsd: number
+}
+
+/** One row of the published sensitivity table (meta.sensitivities). */
+export interface SensitivityRow extends SetFigures {
+  key: string
+  label: string
+  rule: string
+  headline: boolean
+  byProtocol: Record<ProtocolKey, SetFigures>
+  excluded: { noMembraneLine: number; partialMembraneLine: number; noCapacity: number }
+}
+
+export interface ExclusionBlock {
+  positions: number
+  realRepaidUsd: number
+  byProtocol: Record<ProtocolKey, { positions: number; realRepaidUsd: number }>
+  debtUsdAtT0: number
+  top: { key: string; positions: number }[]
+}
+
+export interface CapacityBrief {
+  symbol: string
+  capacityTokens: number
+  peakUsd: number | null
+}
+
+export interface WhaleCase {
+  pid: string
+  collateral: { symbol: string; amount: number; usd: number | null }[]
+  debtUsd: number | null
+  protocolLine: number | null
+  ltv0: number | null
+  realEvents: number
+  realRepaidUsd: number
+  headline: { memRepaidUsd: number | null; excluded: string | null } | null
+  protocolLineCapped: { memRepaidUsd: number | null; excluded: string | null } | null
+  protocolLineUnlimited: { memRepaidUsd: number | null; excluded: string | null } | null
+  aaveMainnetCapacityTokens: number | null
+  aaveMainnetLiquidatorTokens: number | null
 }
 
 export interface TimeSummary {
@@ -125,7 +181,10 @@ export interface TimeSummary {
     noDelay: { accounts: number; wouldHaveCuredWithWindow: number }
   }
   oneRepay: {
+    /** Both sides without the liquidity cap (one repay vs the unlimited walk). */
+    basis: string
     memOneRepayUsd: number
+    memWalkUnlimitedUsd: number
     delayCreditUsd: number
     byProtocol: Record<ProtocolKey, { memOneRepayUsd: number; delayCreditUsd: number }>
     cureCreditUsd: number
@@ -198,8 +257,35 @@ export interface EvidenceMeta {
     outOfScope: string
   }
   oracle: string
+  /** The COMPARED positions: every total and cohort row is over these. */
   positions: number
   walked: number
+  /** Every position the census holds. */
+  censusPositions: number
+  exclusions: {
+    rule: string
+    noMembraneLine: ExclusionBlock
+    noCapacity: ExclusionBlock
+    partialLine: {
+      rule: string
+      positions: number
+      realRepaidUsd: number
+      unknownCollateralUsdAtT0: number
+    }
+  }
+  line: { rule: string; source: string }
+  liquidity: {
+    rule: string
+    multiplier: number
+    multiplierBasis: string
+    windowMinutes: number
+    topByChain: Record<string, CapacityBrief[]>
+    tokens: number
+    positionsShortFilled: number
+    unfilledAtGridEndUsd: number
+    whale: WhaleCase
+  }
+  sensitivities: SensitivityRow[]
   events: number
   chains: string[]
   params: {
@@ -208,6 +294,9 @@ export interface EvidenceMeta {
     borrowLtvGap: number
     liqDebtMinimumUsd: number
     maxSales: number
+    lineMode: string
+    capacityMultiplier: number
+    capacityWindowMinutes: number
   }
   realConstants: {
     borrowLtvGapSource: string
@@ -274,8 +363,10 @@ export interface CohortRow {
   debt: [string, number | null][]
   collUsd: number | null
   debtUsd: number | null
-  /** The position's own liquidation line (Aave: weighted LT; Morpho: LLTV). */
+  /** The line Membrane walks it at: Membrane's own (modelled †). */
   line: number
+  /** The protocol's own liquidation line (Aave: weighted LT; Morpho: LLTV). */
+  protocolLine: number
   ltv0: number
   delayClass: 'no-delay' | 'delayed' | 'mixed'
   /** Largest collateral leg at t0. */
@@ -287,6 +378,8 @@ export interface CohortRow {
   realBadDebtUsd: number
   /** MODELLED (†). */
   memRepaidUsd: number
+  /** The same walk without the liquidity cap (†): the delay credit's basis. */
+  memUnlimitedUsd: number
   /** Real repaid over the t0 debt. Can exceed 1: new borrowing and interest. */
   realFrac: number | null
   /** Debt Membrane closes, on the t0 basis, over the t0 debt (†). */
@@ -375,6 +468,7 @@ export function decodeEvidence(file: EvidenceFile): EvidenceDoc {
       'collUsd',
       'debtUsd',
       'line',
+      'protocolLine',
       'ltv0',
       'delayClass',
       'primary',
@@ -383,6 +477,7 @@ export function decodeEvidence(file: EvidenceFile): EvidenceDoc {
       'realRepaidUsd',
       'realBadDebtUsd',
       'memRepaidUsd',
+      'memUnlimitedUsd',
       'realFrac',
       'memFrac',
       'outcome',
@@ -426,6 +521,7 @@ export function decodeEvidence(file: EvidenceFile): EvidenceDoc {
       collUsd: v[c.collUsd] as number | null,
       debtUsd: v[c.debtUsd] as number | null,
       line: v[c.line] as number,
+      protocolLine: v[c.protocolLine] as number,
       ltv0: v[c.ltv0] as number,
       delayClass: v[c.delayClass] as CohortRow['delayClass'],
       primary: v[c.primary] as string,
@@ -434,6 +530,7 @@ export function decodeEvidence(file: EvidenceFile): EvidenceDoc {
       realRepaidUsd: v[c.realRepaidUsd] as number,
       realBadDebtUsd: v[c.realBadDebtUsd] as number,
       memRepaidUsd: v[c.memRepaidUsd] as number,
+      memUnlimitedUsd: v[c.memUnlimitedUsd] as number,
       realFrac: v[c.realFrac] as number | null,
       memFrac: v[c.memFrac] as number | null,
       outcome: v[c.outcome] as string,

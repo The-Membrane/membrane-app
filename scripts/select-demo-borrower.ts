@@ -126,6 +126,8 @@ interface CensusRow {
   collUsd: number | null
   debtUsd: number | null
   line: number | null
+  /** Membrane's own line, the one the census headline walks at (owner ruling 2026-10-18). */
+  memLine?: { line: number }
   ltv0: number | null
   real: { repaidUsd: number; unpricedEvents: number }
   mem: null | {
@@ -163,6 +165,7 @@ function toEvidenceRow(r: CensusRow): EvidenceRow | null {
     debtUsd: r.debtUsd,
     healthFactor: r.line / r.ltv0,
     liqLine: r.line,
+    memLine: r.memLine ? r.memLine.line : r.line,
     ltv0: r.ltv0,
     collSymbol: c.symbol,
     debtSymbol: d.symbol,
@@ -197,6 +200,8 @@ interface EvidenceRow {
   debtUsd: number
   healthFactor: number
   liqLine: number
+  /** The line the census walked Membrane at (its own line since 2026-10-18). */
+  memLine: number
   ltv0: number
   collSymbol: string
   debtSymbol: string
@@ -598,7 +603,8 @@ for (const row of cohort) {
    * scripts/tests/position-sim.test.ts.
    */
   {
-    const atLine = oct10Run(position, null, row.liqLine)
+    // the census walks Membrane at ITS OWN line since 2026-10-18 (row.memLine), entering at t0
+    const atLine = oct10Run(position, null, row.memLine)
     const sales = atLine.membrane.events.filter((e) => e.repaidUsd > 0)
     const closed = sales.reduce((a, e) => a + e.repaidUsd, 0)
     const srcFirst = atLine.source.events.find((e) => e.kind === 'liquidation')

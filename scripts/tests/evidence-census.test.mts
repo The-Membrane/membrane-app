@@ -12,7 +12,12 @@
  *   2. the lens text — DebtLens, TimeLens, CohortLens, ForecastGate and the landing copy in
  *      facts.ts render with the census figures, the split beside every blended figure, and a
  *      † on the Membrane side;
- *   3. the filters and sorts the cohort table drives, over all 3,197 positions.
+ *   3. the filters and sorts the cohort table drives, over the 2,280 compared positions.
+ *
+ * UPDATED 2026-10-18 (owner rulings): Membrane walks every position at ITS OWN line with
+ * liquidity-capped sales; the cohort and every total are the COMPARED set (2,280 of 3,197: the
+ * rest have no Membrane line or would sell a token with no observed liquidity), and only DEBT
+ * REPAID is compared. At those lines Membrane closes 17.6% MORE debt, net.
  *
  * It renders components with renderToStaticMarkup (no browser), like the old
  * scripts/tests/evidence.test.mts it replaces for the UI.
@@ -88,9 +93,23 @@ const setRows = (k: string) =>
             `${protoOf[r.protocol]}${r.protocol === 'aave' ? `:${r.market}` : ''}:${r.chain}` === k,
         )
 
-// The served file is the census: same count, nothing excluded, every position walked.
-eq(rows.length, doc.meta.positions, 'cohort length == meta.positions')
-eq(doc.meta.walked, doc.meta.positions, 'every position walked')
+// The served cohort is the COMPARED set; the census holds every position, all walked.
+eq(rows.length, doc.meta.positions, 'cohort length == meta.positions (compared)')
+eq(doc.meta.walked, doc.meta.censusPositions, 'every census position walked')
+eq(
+  doc.meta.positions +
+    doc.meta.exclusions.noMembraneLine.positions +
+    doc.meta.exclusions.noCapacity.positions,
+  doc.meta.censusPositions,
+  'compared + excluded == the census',
+)
+eq(doc.meta.exclusions.noMembraneLine.positions, 866, '866 positions with no Membrane line')
+eq(doc.meta.exclusions.noCapacity.positions, 51, '51 with no observed liquidity')
+ok(!('realSeizedUsd' in D.all), 'no collateral-seized figure in the comparison')
+ok(
+  !/seized/i.test(JSON.stringify({ debt: D, landing: file.landing })),
+  'no seized figure served in the comparison',
+)
 eq(new Set(rows.map((r) => r.id)).size, rows.length, 'row ids are unique')
 eq(sum(rows.map((r) => r.events)), doc.meta.events, 'events: rows sum to meta.events')
 
@@ -148,15 +167,52 @@ near(
   0.05,
 )
 
-// The headline figures the owner verified (2026-10-16).
-eq(D.all.positions, 3197, '3,197 positions')
-eq(D.byProtocol['aave-v3'].positions, 2421, '2,421 Aave positions')
-eq(D.byProtocol['morpho-blue'].positions, 776, '776 Morpho positions')
-eq(usdM(D.all.realRepaidUsd), '$188.1M', 'protocols closed $188.1M')
-eq(usdM(D.all.memRepaidUsd), '$157.1M', 'Membrane $157.1M')
-eq(D.all.gapPct.toFixed(1), '16.5', '16.5% less')
-eq(D.byProtocol['aave-v3'].gapPct.toFixed(1), '5.8', 'Aave 5.8% less')
-eq(D.byProtocol['morpho-blue'].gapPct.toFixed(1), '56.1', 'Morpho 56.1% less')
+// The headline figures (2026-10-18: Membrane's own line, 1.1x capacity, the compared set).
+eq(D.all.positions, 2280, '2,280 compared positions')
+eq(D.byProtocol['aave-v3'].positions, 1727, '1,727 Aave positions')
+eq(D.byProtocol['morpho-blue'].positions, 553, '553 Morpho positions')
+eq(usdM(D.all.realRepaidUsd), '$164.1M', 'protocols closed $164.1M')
+eq(usdM(D.all.memRepaidUsd), '$193.0M', 'Membrane $193.0M')
+eq(D.all.gapPct.toFixed(2), '-17.62', '17.6% more')
+eq(D.byProtocol['aave-v3'].gapPct.toFixed(2), '-23.58', 'Aave 23.6% more')
+eq(D.byProtocol['morpho-blue'].gapPct.toFixed(2), '8.32', 'Morpho 8.3% less')
+// The published sensitivities, each on its own set, the headline among them.
+{
+  const S = doc.meta.sensitivities
+  const h = S.find((r) => r.headline)!
+  eq(h.key, 'capacity-1.1', 'the headline row is 1.1x capacity')
+  near(h.memRepaidUsd, D.all.memRepaidUsd, 'the headline row is the headline')
+  for (const r of S) {
+    near(r.gapUsd, r.realRepaidUsd - r.memRepaidUsd, `${r.key}: gap == real - Membrane`, 0.02)
+    eq(
+      r.byProtocol['aave-v3'].positions + r.byProtocol['morpho-blue'].positions,
+      r.positions,
+      `${r.key}: the split partitions its set`,
+    )
+    near(r.lessUsd - r.moreUsd, r.gapUsd, `${r.key}: gross less - gross more == net`, 0.05)
+  }
+  for (const k of ['capacity-0.5', 'capacity-1', 'capacity-2', 'capacity-unlimited'])
+    eq(S.find((r) => r.key === k)!.positions, h.positions, `${k}: the headline's own positions`)
+  const pl = S.find((r) => r.key === 'protocol-line-unlimited')!
+  ok(
+    pl.memRepaidUsd < 157_056_180.33,
+    'the protocol line, unlimited: the old census less no-capacity',
+  )
+  // the cap only ever takes sales away on the same positions, in total
+  const caps = [
+    'capacity-0.5',
+    'capacity-1',
+    'capacity-1.1',
+    'capacity-2',
+    'capacity-unlimited',
+  ].map((k) => S.find((r) => r.key === k)!.memRepaidUsd)
+  for (let i = 1; i < caps.length; i++)
+    ok(caps[i] >= caps[i - 1], `more capacity, more repaid (${i})`)
+  const w = doc.meta.liquidity.whale
+  eq(w.headline?.excluded, 'no-membrane-line', 'the whale is out of the headline')
+  near(w.protocolLineCapped!.memRepaidUsd!, 13_097_271.37, 'the whale at Aave’s line, 1.1x')
+  near(w.protocolLineUnlimited!.memRepaidUsd!, 29_863_534.37, 'the whale at Aave’s line, unlimited')
+}
 near(doc.meta.crossCheck.new.memRepaidUsd, 13133229.25, 'cross-check: $13.13M on the 747 rows')
 near(doc.meta.crossCheck.old.memRepaidUsd, 22204493.19, 'cross-check: the old $22.20M')
 
@@ -222,7 +278,9 @@ const R = (() => {
   const pricedRows = rows.filter((r) => r.priced)
   const mem = sum(rows.map((r) => r.memRepaidUsd))
   const oneRepay = sum(pricedRows.map((r) => r.oneRepayUsd ?? 0))
-  const credit = (r: CohortRow) => Math.max(0, (r.oneRepayUsd ?? 0) - r.memRepaidUsd)
+  // the delay credit is set against the UNLIMITED walk (one repay is not liquidity-capped)
+  const credit = (r: CohortRow) => Math.max(0, (r.oneRepayUsd ?? 0) - r.memUnlimitedUsd)
+  const memUnl = sum(pricedRows.map((r) => r.memUnlimitedUsd))
   const curedRows = pricedRows.filter((r) => r.minutesToFirstCure != null)
   const cureCredit = sum(curedRows.map(credit))
   const within = (m: number) =>
@@ -242,7 +300,7 @@ const R = (() => {
     noDelay: rows.filter((r) => r.delayClass === 'no-delay').length,
     mem,
     oneRepay,
-    delayCredit: oneRepay - mem,
+    delayCredit: oneRepay - memUnl,
     cureCredit,
     w2: within(2),
     w60: within(60),
@@ -294,8 +352,8 @@ eq(
   R.neverSold,
   'never sold == the not-sold buckets minus their positions with a sale on the other half',
 )
-// The figures the reviewer verified: 627 never sold; 3,197 - 32 no-delay = 3,165 with a window.
-eq([R.neverSold, R.window], [627, 3165], 'never sold 627; window 3,165')
+// 201 never sold; 2,280 - 18 no-delay = 2,262 with a window (Membrane's own line).
+eq([R.neverSold, R.window], [201, 2262], 'never sold 201; window 2,262')
 
 // byAsset: per primary leg, >= 20 positions, recounted.
 for (const a of doc.byAsset) {
@@ -328,7 +386,12 @@ if (fs.existsSync(censusPath)) {
   const census = JSON.parse(buf.toString('utf8'))
   near(D.all.realRepaidUsd, census.meta.totals.all.realWalked.repaidUsd, 'census.json real')
   near(D.all.memRepaidUsd, census.meta.totals.all.mem.repaidUsd, 'census.json Membrane')
-  eq(census.rows.length, rows.length, 'census.json rows')
+  eq(census.rows.length, doc.meta.censusPositions, 'census.json rows: the whole census')
+  eq(
+    census.rows.filter((r: { mem: unknown }) => r.mem).length,
+    rows.length,
+    'census.json compared rows == the cohort',
+  )
   censusChecked = true
 }
 // The fresh-print count cannot come from the rows; recount it from the oracle path itself
@@ -357,10 +420,16 @@ if (fs.existsSync(oraclePath)) {
 const debtHtml = render(
   React.createElement(DebtLens, { debt: D, byAsset: doc.byAsset, meta: doc.meta }),
 )
-has(debtHtml, '3,197', 'DebtLens: positions')
-has(debtHtml, '$188.1M', 'DebtLens: protocols closed')
-has(debtHtml, '$157.1M†', 'DebtLens: Membrane, marked modelled')
-has(debtHtml, '16.5% less debt closed†', 'DebtLens: the direction and size of the gap')
+has(debtHtml, '2,280', 'DebtLens: positions')
+has(debtHtml, 'of 3,197 liquidated', 'DebtLens: of the census')
+has(debtHtml, '$164.1M', 'DebtLens: protocols closed')
+has(debtHtml, '$193.0M†', 'DebtLens: Membrane, marked modelled')
+has(debtHtml, '17.6% more debt closed†', 'DebtLens: the direction and size of the gap')
+has(debtHtml, 'Liquidity-capped sales†', 'DebtLens: the liquidity card')
+has(debtHtml, 'unlimited (the old assumption)', 'DebtLens: the unlimited run')
+has(debtHtml, 'protocol&#x27;s own line', 'DebtLens: the protocol-line run')
+has(debtHtml, '$13.1M† with the cap', 'DebtLens: the whale, capped')
+has(debtHtml, '$29.9M† unlimited', 'DebtLens: the whale, unlimited')
 // The net gap is shown with what it is made of, and every Membrane-side figure carries †.
 const grossLess = sum(
   rows.filter((r) => compareRow(r) === 'less').map((r) => r.realRepaidUsd - r.memRepaidUsd),
@@ -372,20 +441,20 @@ near(D.all.lessUsd, grossLess, 'gross less == Σ rows', 0.05)
 near(D.all.moreUsd, grossMore, 'gross more == Σ rows', 0.05)
 near(D.all.lessUsd - D.all.moreUsd, D.all.gapUsd, 'gross less − gross more == the net gap', 0.05)
 has(debtHtml, 'Difference, net', 'DebtLens: the difference is labelled net')
-has(debtHtml, '$31.1M†', 'DebtLens: the net difference carries †')
+has(debtHtml, '$28.9M†', 'DebtLens: the net difference carries †')
 has(
   debtHtml,
   `less on ${D.all.less.toLocaleString('en-US')} positions (${usdM(grossLess)}†), more on ${D.all.more.toLocaleString('en-US')} (${usdM(grossMore)}†)`,
   'DebtLens: the gross beside the net (rows)',
 )
 has(debtHtml, 'Difference†', 'DebtLens: the difference column carries †')
-has(debtHtml, '$8.6M† · 5.8% less', 'DebtLens: the Aave difference carries †')
+has(debtHtml, '$31.5M† · 23.6% more', 'DebtLens: the Aave difference carries †')
 has(debtHtml, 'Aave V3', 'DebtLens: the Aave row of the split')
 has(debtHtml, 'Morpho Blue', 'DebtLens: the Morpho row of the split')
-has(debtHtml, '5.8% less', 'DebtLens: Aave gap')
-has(debtHtml, '56.1% less', 'DebtLens: Morpho gap')
-has(debtHtml, '$148.2M', 'DebtLens: Aave closed')
-has(debtHtml, '$17.5M†', 'DebtLens: Morpho Membrane')
+has(debtHtml, '23.6% more', 'DebtLens: Aave gap')
+has(debtHtml, '8.3% less', 'DebtLens: Morpho gap')
+has(debtHtml, '$133.4M', 'DebtLens: Aave closed')
+has(debtHtml, '$28.1M†', 'DebtLens: Morpho Membrane')
 for (const v of D.byVenueChain) has(debtHtml, v.label, `DebtLens: per-chain row ${v.label}`)
 has(debtHtml, `${D.all.more.toLocaleString('en-US')}`, 'DebtLens: Membrane closes more count')
 has(debtHtml, `${D.all.less.toLocaleString('en-US')}`, 'DebtLens: Membrane closes less count')
@@ -500,26 +569,27 @@ has(
 
 // SEO: the description is the census's, and carries the split.
 const desc = evidenceDescription(summaryOf(file))
-has(desc, '$188.1M', 'SEO: protocols closed')
-has(desc, '$157.1M on Membrane (modelled)', 'SEO: Membrane, marked modelled')
-has(desc, 'Aave 5.8% less, Morpho 56.1% less', 'SEO: the split')
+has(desc, '$164.1M', 'SEO: protocols closed')
+has(desc, '$193.0M on Membrane at its own lines (modelled)', 'SEO: Membrane, marked modelled')
+has(desc, 'Aave 23.6% more, Morpho 8.3% less', 'SEO: the split')
 ok(!/71%|17\.8%/.test(desc), 'SEO: the stale median figures are gone')
 checks++
 
 // The landing copy (facts.ts): derived from the census, the split on every blended line.
 const bridge = HERO_VARIANTS.c.bridge.line
-has(bridge, '3,197 positions on Aave and Morpho', 'landing bridge: the census')
-has(bridge, '$188.1M', 'landing bridge: protocols closed')
-has(bridge, '$157.1M†', 'landing bridge: Membrane, modelled')
-has(bridge, 'Aave 5.8% less, Morpho 56.1% less', 'landing bridge: the split')
-has(bridge, 'own oracle read on chain', 'landing bridge: names the oracle')
+has(bridge, '2,280 of the 3,197 positions liquidated on Aave and Morpho', 'landing bridge: the set')
+has(bridge, '$164.1M', 'landing bridge: protocols closed')
+has(bridge, '$193.0M†', 'landing bridge: Membrane, modelled')
+has(bridge, 'Aave 23.6% more, Morpho 8.3% less', 'landing bridge: the split')
+has(bridge, 'capped by the liquidity the day showed†', 'landing bridge: the cap, modelled')
+has(bridge, 'its protocol’s oracle read on chain', 'landing bridge: names the oracle')
 for (const v of Object.values(HERO_VARIANTS)) {
   ok(
     !/747|36%|Chainlink/.test(v.bridge.line),
     'no hero variant keeps the old 747 / 36% / Chainlink line',
   )
 }
-has(CLOSE.headline, '3,197', 'Close headline: the census count')
+has(CLOSE.headline, '2,280', 'Close headline: the compared count')
 const lines = CLOSE.contains.lines.join('\n')
 {
   const c = headline.concentration
@@ -542,10 +612,14 @@ has(
 )
 has(
   bridge,
-  `less on ${D.all.less.toLocaleString('en-US')} positions, more on ${D.all.more.toLocaleString('en-US')}`,
-  'landing bridge: net, with both counts',
+  `less on ${D.all.less.toLocaleString('en-US')} positions (${usdM(D.all.lessUsd)}†), more on ${D.all.more.toLocaleString('en-US')} (${usdM(D.all.moreUsd)}†)`,
+  'landing bridge: net, with both counts and the gross',
 )
-has(bridge, 'walked on its protocol’s own oracle', 'landing bridge: the oracle claim is the walk')
+has(
+  bridge,
+  'walked at Membrane’s own line on its protocol’s oracle',
+  'landing bridge: the line and the oracle',
+)
 
 // HeroChart and GuaranteeBlock (the landing hero): the census figure is NET, never
 // "protected", and it is a separate measure from the corpus line, never "alone".
@@ -557,7 +631,7 @@ const heroChartHtml = render(
     isDemo: true,
   }),
 )
-has(heroChartHtml, '$31M less, net†', 'HeroChart: net, modelled')
+has(heroChartHtml, '$29M more, net†', 'HeroChart: net, modelled')
 has(heroChartHtml, OCT10_SCALE_LINE.gross, 'HeroChart: the gross counts beside it')
 ok(!/protected/i.test(heroChartHtml), 'HeroChart: never "protected"')
 const guaranteeHtml = render(React.createElement(GuaranteeBlock, {}))
@@ -568,9 +642,9 @@ has(
   'GuaranteeBlock: the census line is labelled a separate measure',
 )
 has(guaranteeHtml, OCT10_SCALE_LINE.scope, 'GuaranteeBlock: with its scope named')
-has(guaranteeHtml, '$31M less debt force-closed, net†', 'GuaranteeBlock: net, modelled')
-has(lines, 'Aave V3: 2,421 positions', 'Close: the Aave split')
-has(lines, 'Morpho Blue: 776 positions', 'Close: the Morpho split')
+has(guaranteeHtml, '$29M more debt force-closed, net†', 'GuaranteeBlock: net, modelled')
+has(lines, 'Aave V3: 1,727 positions', 'Close: the Aave split')
+has(lines, 'Morpho Blue: 553 positions', 'Close: the Morpho split')
 has(lines, `${doc.meta.gridEnd.positions} positions were still inside`, 'Close: grid end')
 has(
   lines,

@@ -16,23 +16,43 @@ import census from '@/public/data/oct10-2025/evidence-census-headline.json'
 // the rows of evidence-census.json, to the cent. The old figures ($144M closed by Aave on
 // 2,347 accounts, $67M kept) came from the old evidence.json, which no page reads any more.
 
-const fmtM0 = (usd: number) => `$${Math.round(usd / 1_000_000)}M`
-const fmtM1 = (usd: number) => `$${(usd / 1_000_000).toFixed(1)}M`
+const fmtM0 = (usd: number) => `$${Math.round(Math.abs(usd) / 1_000_000)}M`
+const fmtM1 = (usd: number) => `$${(Math.abs(usd) / 1_000_000).toFixed(1)}M`
+/** 'less' when Membrane closes less debt than the protocols (gap >= 0), else 'more'. */
+const dirOf = (gapUsd: number) => (gapUsd >= 0 ? 'less' : 'more')
 
-/** Measured Oct 10-11 2025 totals, both protocols. Re-derived from the rows by the unit test. */
+/**
+ * THE SIZE OF THE DAY — the REAL side only, over EVERY position of the census (3,197), whether or
+ * not Membrane can be compared on it. It is the stakes line's figure and nothing else; the
+ * comparison below is over its own, smaller set and says so.
+ */
+export const OCT10_DAY = {
+  positions: census.day.positions,
+  events: census.day.events,
+  realClosedUsd: census.day.realRepaidUsd,
+} as const
+
+/**
+ * Measured Oct 10-11 2025 totals, both protocols, over the COMPARED positions (owner rulings
+ * 2026-10-18): Membrane walked at its OWN line with liquidity-capped sales (1.1x capacity†), and
+ * only positions with a Membrane line and liquidity for what it sells. Debt repaid only.
+ * Re-derived from the rows by the unit test.
+ */
 export const OCT10_TOTALS = {
-  /** Liquidated positions in the census (Aave accounts per pool + Morpho positions). */
+  /** Compared positions (both sides). The census holds `censusPositions`. */
   positions: census.positions,
-  /** Liquidation events in the window, both protocols. */
+  censusPositions: census.censusPositions,
+  /** Left out of both sides: no Membrane line; a token with no observed liquidity. */
+  excluded: census.excluded,
+  /** Liquidation events of the compared positions. */
   events: census.events,
-  /** Σ real repaid USD — what the protocols' liquidations actually closed. */
+  /** Σ real repaid USD over the compared positions. */
   realClosedUsd: census.all.realRepaidUsd,
-  /** Σ Membrane repaid USD — the 4%/8h window + repay-to-cap walked on the same positions,
-   *  same oracle prices, no deployment assumed. MODELLED (†). */
+  /** Σ Membrane repaid USD on the same positions, same oracle prices. MODELLED (†). */
   membraneClosedUsd: census.all.memRepaidUsd,
-  /** realClosedUsd − membraneClosedUsd. The window's "4% would have saved" figure (†). */
+  /** realClosedUsd − membraneClosedUsd: positive = Membrane closes less (†). */
   keptUsd: census.all.gapUsd,
-  /** The same three per protocol. A blended figure never stands without this split. */
+  /** The same per protocol. A blended figure never stands without this split. */
   byProtocol: {
     aave: {
       positions: census.aave.positions,
@@ -47,7 +67,7 @@ export const OCT10_TOTALS = {
       keptUsd: census.morpho.gapUsd,
     },
   },
-  /** Σ collateral USD at t0 over the priced positions — the collateral standing behind it. */
+  /** Σ collateral USD at t0 over the priced compared positions. */
   collateralAtRiskUsd: census.collateralAtRiskUsd,
   /** The chains the census spans, in first-seen order. */
   chains: census.chains,
@@ -56,40 +76,50 @@ export const OCT10_TOTALS = {
   source: 'public/data/oct10-2025/evidence-census.json (via evidence-census-headline.json)',
 } as const
 
-/** "Aave $8.6M · Morpho $22.4M": the split that rides with every blended figure. */
-export const OCT10_SPLIT_LINE = `Aave ${fmtM1(OCT10_TOTALS.byProtocol.aave.keptUsd)} · Morpho ${fmtM1(OCT10_TOTALS.byProtocol.morpho.keptUsd)}`
+/** "Aave $31.5M more · Morpho $2.6M less": the split that rides with every blended figure. */
+export const OCT10_SPLIT_LINE =
+  `Aave ${fmtM1(OCT10_TOTALS.byProtocol.aave.keptUsd)} ${dirOf(OCT10_TOTALS.byProtocol.aave.keptUsd)}` +
+  ` · Morpho ${fmtM1(OCT10_TOTALS.byProtocol.morpho.keptUsd)} ${dirOf(OCT10_TOTALS.byProtocol.morpho.keptUsd)}`
 
 /**
  * THE STAKES LINE, per owner 2026-09-12: the size, the date, the count, and no other words.
- * It sits directly above the verdict; the verdict stays the headline.
+ * It sits directly above the verdict; the verdict stays the headline. The day's real side only.
  */
 export const OCT10_STAKES_LINE =
-  `${fmtM0(OCT10_TOTALS.realClosedUsd)} of loans force-closed on Aave and Morpho` +
-  ` · ${OCT10_TOTALS.window} · ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions`
+  `${fmtM0(OCT10_DAY.realClosedUsd)} of loans force-closed on Aave and Morpho` +
+  ` · ${OCT10_TOTALS.window} · ${OCT10_DAY.positions.toLocaleString('en-US')} positions`
+
+const NET_DIR = dirOf(OCT10_TOTALS.keptUsd)
 
 /**
- * THE OCT 10-11 CENSUS LINE (owner 2026-09-22 shape: "4% sounds small, but it would've saved
- * $X"). It is a NET figure and a DIFFERENT MEASURE from the corpus line below, so it says
- * both (review 2026-10-16):
- *   - net: Membrane closes less debt than the protocols on `less` positions and MORE on
- *     `more`; keptUsd is the difference, never "protected" debt;
- *   - its own scope: debt closed on every Aave V3 and Morpho Blue liquidation of the window,
- *     four chains. The corpus is collateral seized on Aave V3 Ethereum over years; neither
- *     figure is a part of the other, and no sentence here says "alone" (oct10Totals.test.ts
- *     asserts it, with "protected").
+ * THE OCT 10-11 CENSUS LINE. It is a NET figure, DIRECTION-AWARE (since 2026-10-18 the headline
+ * runs at Membrane's own, lower lines and Membrane closes MORE debt, net), and a DIFFERENT MEASURE
+ * from the corpus line below, so it says all of that:
+ *   - net: Membrane closes less debt than the protocols on `less` positions and more on `more`;
+ *     keptUsd is the difference, never "protected" debt, and its word is computed from its sign;
+ *   - its own scope: debt repaid on the compared Aave V3 and Morpho Blue liquidations of the
+ *     window, four chains, at Membrane's lines with liquidity-capped sales. The corpus is
+ *     collateral seized on Aave V3 Ethereum over years; neither figure is a part of the other,
+ *     and no sentence here says "alone" (oct10Totals.test.ts asserts it, with "protected").
  * All MODELLED (†). Never a number from outside this file.
  */
 export const OCT10_SCALE_LINE = {
   figure: fmtM0(OCT10_TOTALS.keptUsd),
+  direction: NET_DIR,
   /** The census scope, named in full wherever the figure appears. */
-  scope: `debt closed on every Aave V3 and Morpho Blue liquidation of ${OCT10_TOTALS.window}, Ethereum, Arbitrum, Optimism and Base`,
-  result: `${fmtM0(OCT10_TOTALS.keptUsd)} less debt force-closed, net†`,
+  scope:
+    `debt repaid on ${OCT10_TOTALS.positions.toLocaleString('en-US')} of the ${OCT10_TOTALS.censusPositions.toLocaleString('en-US')} Aave V3 and Morpho Blue liquidations of ${OCT10_TOTALS.window}, Ethereum, Arbitrum, Optimism and Base, ` +
+    `at Membrane’s own lines with liquidity-capped sales†`,
+  result: `${fmtM0(OCT10_TOTALS.keptUsd)} ${NET_DIR} debt force-closed, net†`,
   split: OCT10_SPLIT_LINE,
   /** What the net is made of: positions and dollars each way. */
   gross:
     `less on ${census.less.toLocaleString('en-US')} positions (${fmtM1(census.lessUsd)}†), ` +
     `more on ${census.more.toLocaleString('en-US')} (${fmtM1(census.moreUsd)}†)`,
-  line: `4% sounds small. ${fmtM0(OCT10_TOTALS.keptUsd)} less debt force-closed, net†, across every Aave and Morpho liquidation of ${OCT10_TOTALS.window}.`,
+  line:
+    NET_DIR === 'less'
+      ? `4% sounds small. ${fmtM0(OCT10_TOTALS.keptUsd)} less debt force-closed, net†, across ${OCT10_TOTALS.positions.toLocaleString('en-US')} of the ${OCT10_TOTALS.censusPositions.toLocaleString('en-US')} Aave and Morpho liquidations of ${OCT10_TOTALS.window}.`
+      : `At its own, lower lines, Membrane would have force-closed ${fmtM0(OCT10_TOTALS.keptUsd)} more debt, net†, across ${OCT10_TOTALS.positions.toLocaleString('en-US')} of the ${OCT10_TOTALS.censusPositions.toLocaleString('en-US')} Aave and Morpho liquidations of ${OCT10_TOTALS.window}.`,
 } as const
 
 // ---------------------------------------------------------------------------

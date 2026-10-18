@@ -20,6 +20,13 @@ import { EvidenceDoc, Lens, ProtocolKey } from './types'
 
 const PROTOCOLS: ProtocolKey[] = ['aave-v3', 'morpho-blue']
 
+/** The published sensitivity at the protocols' own lines, on ITS OWN set, with the split. */
+const protocolLineSentence = (d: EvidenceDoc) => {
+  const r = d.meta.sensitivities.find((x) => x.key === 'protocol-line')
+  if (!r) return ''
+  return ` At the protocols\u2019 own lines instead (its own ${r.positions.toLocaleString('en-US')} positions, ${usd(r.realRepaidUsd)} repaid by the protocols), Membrane would have closed ${usd(r.memRepaidUsd)}\u2020, ${gapWord(r.gapPct)}, net (Aave ${gapWord(r.byProtocol['aave-v3'].gapPct)}, Morpho ${gapWord(r.byProtocol['morpho-blue'].gapPct)}).`
+}
+
 /** "Aave 5.8% less · Morpho 56.1% less": the split that sits beside every blended figure. */
 const splitLine = (d: EvidenceDoc) =>
   PROTOCOLS.map(
@@ -46,7 +53,7 @@ const LENSES: {
     label: 'Debt closed',
     heading: 'How much of the loan gets closed',
     blurb:
-      'Path-independent, so it holds whichever way the market goes next. This is the one to lead with.',
+      'Path-independent, so it holds whichever way the market goes next. Membrane walks each position at its own, lower line, and every sale is capped by the liquidity the day showed†.',
     // DIRECTION-AWARE: the gap can point either way per protocol and per chain, so the word
     // is computed from the sign, never typed.
     metric: (d) => `${usd(Math.abs(d.debt.all.gapUsd))}†`,
@@ -128,11 +135,12 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                 maxW="760px"
                 lineHeight="1.7"
               >
-                Every liquidation of {doc.meta.window.label}:{' '}
-                {doc.meta.positions.toLocaleString('en-US')} positions on Aave and Morpho, four
-                chains. The protocols force-closed {usd(doc.debt.all.realRepaidUsd)} of debt;
-                Membrane would have closed {usd(doc.debt.all.memRepaidUsd)}† —{' '}
-                {gapWord(doc.debt.all.gapPct)}.
+                {doc.meta.censusPositions.toLocaleString('en-US')} positions were liquidated on Aave
+                and Morpho on {doc.meta.window.label}, four chains. On the{' '}
+                {doc.meta.positions.toLocaleString('en-US')} Membrane can be walked on — at its own
+                line, every sale capped by the liquidity the day showed† — the protocols
+                force-closed {usd(doc.debt.all.realRepaidUsd)} of debt; Membrane would have closed{' '}
+                {usd(doc.debt.all.memRepaidUsd)}† — {gapWord(doc.debt.all.gapPct)}, net.
               </Text>
               <Text
                 data-testid="evidence-split"
@@ -147,7 +155,7 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                   return `${PROTOCOL_NAME[k]}: ${s.positions.toLocaleString('en-US')} positions, ${usd(s.realRepaidUsd)} \u2192 ${usd(s.memRepaidUsd)}\u2020 (${gapWord(s.gapPct)})`
                 }).join(' · ')}
               </Text>
-              {/* The 16.5% is NET: show what it is made of, beside it (review 2026-10-16). */}
+              {/* The gap is NET: show what it is made of, beside it (review 2026-10-16). */}
               <Text
                 data-testid="evidence-gross"
                 fontFamily={TYPOGRAPHY.fontMono}
@@ -156,7 +164,18 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                 maxW="760px"
                 lineHeight="1.7"
               >
-                {`Net of both directions: Membrane closes less on ${doc.debt.all.less.toLocaleString('en-US')} positions (${usd(doc.debt.all.lessUsd)}\u2020 less) and more on ${doc.debt.all.more.toLocaleString('en-US')} (${usd(doc.debt.all.moreUsd)}\u2020 more); ${doc.debt.all.equal.toLocaleString('en-US')} are equal to the cent.`}
+                {`Net of both directions: Membrane closes less on ${doc.debt.all.less.toLocaleString('en-US')} positions (${usd(doc.debt.all.lessUsd)}\u2020 less) and more on ${doc.debt.all.more.toLocaleString('en-US')} (${usd(doc.debt.all.moreUsd)}\u2020 more); ${doc.debt.all.equal.toLocaleString('en-US')} are equal to the cent. Debt repaid only: Membrane\u2019s liquidation fee is not assumed.`}
+              </Text>
+              {/* WHO IS NOT IN THE SET, on both sides (owner rulings 2026-10-18). */}
+              <Text
+                data-testid="evidence-excluded"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.xs}
+                color={SEMANTIC_COLORS.textTertiary}
+                maxW="760px"
+                lineHeight="1.7"
+              >
+                {`Left out of both sides: ${doc.meta.exclusions.noMembraneLine.positions.toLocaleString('en-US')} positions whose collateral has no Membrane line (${usd(doc.meta.exclusions.noMembraneLine.realRepaidUsd)} repaid by the protocols; Aave ${doc.meta.exclusions.noMembraneLine.byProtocol['aave-v3'].positions.toLocaleString('en-US')}, Morpho ${doc.meta.exclusions.noMembraneLine.byProtocol['morpho-blue'].positions.toLocaleString('en-US')}) and ${doc.meta.exclusions.noCapacity.positions.toLocaleString('en-US')} that would sell a token nobody liquidated on that chain (${usd(doc.meta.exclusions.noCapacity.realRepaidUsd)}). ${protocolLineSentence(doc)}`}
               </Text>
               <MockStamp
                 label={`on-chain · ${doc.meta.events.toLocaleString('en-US')} liquidation events · LTV walked on each protocol\u2019s own oracle · ${doc.meta.window.label}`}
@@ -397,7 +416,11 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
             </Box>
           </>
         ) : null}
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary}>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+          color={SEMANTIC_COLORS.textTertiary}
+        >
           Data compiled by Membrane.
         </Text>
       </VStack>

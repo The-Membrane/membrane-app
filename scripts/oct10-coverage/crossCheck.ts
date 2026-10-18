@@ -268,7 +268,12 @@ export function crossCheck(a: CrossCheckArgs) {
 
   const run = (t: Toggles) => {
     oldPath.clear()
+    // The old census's method on the protocol's line with no liquidity model: the decomposition
+    // is about how the OLD census differs, so it runs against the pre-2026-10-18 census
+    // (build-census.ts passes those rows in as `rows`).
     const c = buildCensus(a.inputs, {
+      lineMode: 'protocol',
+      noCapacityModel: true,
       onlyPids: pids,
       specOverride: (s) => variantSpec(s, t),
       ratioOverride: t.price ? oldRatio : undefined,

@@ -63,6 +63,44 @@
  * breach can arm a fresh window and a later band break sells again. cureWalk does the same.
  * `stopAfterT0BandSale: true` reproduces the old stop after one repay, which both censuses
  * publish as a sensitivity.
+ *
+ * ---------------------------------------------------------------------------
+ * PENDING ORDERS: LIQUIDITY-CAPPED SALES (owner ruling 2026-10-18)
+ * ---------------------------------------------------------------------------
+ * With `liquidity` set (lib/wavefront/liquidity.ts), a sale is an ORDER the market may fill only
+ * in part. Without it, every order fills at once and the kernel is exactly the uncapped one
+ * (same arithmetic, same records, bit for bit).
+ *
+ *   SIZING. The timer decides a sale exactly as before (band, expiry, no-delay, grid end, t0) and
+ *     `cureSale` sizes it as before: repay to the borrow cap with the floor, seized == repaid
+ *     (all collateral when underwater).
+ *   SPLIT ACROSS LEGS. The collateral to sell is split PRO RATA BY VALUE across the legs — the
+ *     same split cureSale's scalar walk makes — i.e. the same fraction q = seized / collateral of
+ *     every leg's tokens. Each leg's tokens are offered to that leg's own (chain, token) window;
+ *     each leg fills on its own (filled_k <= offered_k). The order's fill is the value filled:
+ *     repaid = sized repay x (value filled / value offered). When every leg fills completely the
+ *     kernel takes cureSale's own result (the uncapped arithmetic). When legs fill unevenly, the
+ *     basket weights move to what is actually held, and the walk prices each leg by its own path.
+ *   REMAINDER. The unfilled part of the repay stays PENDING (`pending`, in the position's unit).
+ *     A sale that fills nothing still happened (the timer is gone): it is recorded with repaid 0.
+ *   WHILE PENDING, at every later minute, before anything else:
+ *     - the TIMER IS IDLE. The sale already deleted it (LiquidationEngine.sol:1724-1727); the
+ *       position is being liquidated, so there is nothing to arm, save or break. No band test.
+ *     - the order is RE-SIZED at this minute's price: target = the repay to cap (same cureSale
+ *       sizing, floor included) on what is now held; the offer is min(pending, target). So the
+ *       remainder sells at the later minute's oracle price, and never past the cap: if the price
+ *       recovered and the position is back at or under its borrow cap, target is 0 and the
+ *       remainder is CANCELLED (counted, never sold). The pending amount never grows: a further
+ *       fall is not added to the order; once the order is done the timer classifies the position
+ *       afresh, exactly as after any sale (a breach in the band arms a full new window; past the
+ *       band it is sold at once).
+ *     - the LTV moves with price on the collateral still held (the unsold part).
+ *     - a carried fill is a `sell` record with `carry: true`; it is NOT a new sale (`sales` counts
+ *       the timer's decisions; maxSales caps those, and a pending order still finishes after the
+ *       cap is reached).
+ *   GRID END. A remainder still pending at the last minute is not sold (there is no liquidity to
+ *     sell it into): it is reported as `unfilledAtGridEnd`. The conservative grid-end sale of a
+ *     running timer is an order like any other and is offered at the last minute.
  */
 
 import {
@@ -73,6 +111,7 @@ import {
   type SaleReason,
 } from '../position-sim/curePath'
 import { membraneRepayValue } from '../position-sim/membrane'
+import type { KernelLiquidity } from './liquidity'
 import { memTs, type MemEvent, type MemRecord, type SaleWhy } from './stream'
 
 export interface KernelLeg {
@@ -81,6 +120,10 @@ export interface KernelLeg {
   symbol: string
   /** Value at t0, in the position's unit (USD for Aave; loan-token units for Morpho). */
   value0: number
+  /** Collateral legs, liquidity-capped runs only: tokens held at t0 (normalised). */
+  tokens0?: number
+  /** Collateral legs, liquidity-capped runs only: the book key (liquidity.ts liqKeyOf). */
+  liqKey?: string
 }
 
 export interface KernelSpec {
@@ -129,6 +172,11 @@ export interface KernelSpec {
    * semantics; the equivalence test only).
    */
   missingPrice?: 'throw' | 'carry-forward'
+  /**
+   * The market every sale is offered to (see PENDING ORDERS). Unset: every sale fills at once,
+   * the uncapped walk. Every collateral leg then needs `tokens0` and `liqKey`.
+   */
+  liquidity?: KernelLiquidity
 }
 
 /** cureWalk's result fields, so the two engines can be compared field for field. */
@@ -149,6 +197,16 @@ export interface KernelResult {
   armedAtGridEnd: boolean
   /** The position opened at or under its line (it walked without a t0 breach). */
   startUnbreached: boolean
+  /** Sales (timer decisions) whose order did not fill completely at their own minute. */
+  shortSales: number
+  /** Later fills of a pending remainder (`carry` records). */
+  carryFills: number
+  /** Remainders cancelled because the position was back at or under its borrow cap. */
+  pendingCancelled: number
+  /** Repay still pending when the grid ended (position unit; 0 uncapped). Never sold. */
+  unfilledAtGridEnd: number
+  /** The same in USD at the last minute (null when the unit is unpriced). */
+  unfilledAtGridEndUsd: number | null
 }
 
 const outcomeFor = (reason: SaleReason): CureOutcome =>
@@ -158,7 +216,8 @@ export class MembraneKernel {
   readonly spec: KernelSpec
   private readonly timer: DelayTimer
   private readonly params: CureSaleParams
-  private readonly wC: number[]
+  /** Collateral weights on the t0 basis. Fixed unless a capped sale fills the legs unevenly. */
+  private wC: number[]
   private readonly wD: number[]
   private readonly lastC: number[]
   private readonly lastD: number[]
@@ -184,6 +243,17 @@ export class MembraneKernel {
   private done = false
   private armedAtGridEnd = false
   private startUnbreached = false
+  /** Repay still to fill (position unit, the debt basket's t0 basis). */
+  private pending = 0
+  private pendingEvent: MemEvent = 'sell'
+  private pendingWhy: SaleWhy = 'band'
+  /** No further timer decision can happen (a pending order may still fill). */
+  private decisionsOver = false
+  private shortSales = 0
+  private carryFills = 0
+  private pendingCancelled = 0
+  private unfilledAtGridEnd = 0
+  private unfilledAtGridEndUsd: number | null = 0
 
   constructor(spec: KernelSpec) {
     this.spec = spec
@@ -198,6 +268,15 @@ export class MembraneKernel {
     this.debt = this.debt0
     this.collBase = this.coll0
     this.lastStepMinute = spec.t0Minute
+    if (spec.liquidity) {
+      for (const l of spec.collateral) {
+        if (!(l.tokens0 != null && l.tokens0 >= 0) || !l.liqKey) {
+          throw new Error(
+            `kernel ${spec.pid}: a capped run needs tokens0 and liqKey on ${l.symbol}`,
+          )
+        }
+      }
+    }
     this.timer = new DelayTimer({
       line: spec.line,
       band: spec.band,
@@ -216,6 +295,17 @@ export class MembraneKernel {
 
   get isDone(): boolean {
     return this.done
+  }
+
+  /** Repay still pending (position unit). */
+  get pendingRepay(): number {
+    return this.pending
+  }
+
+  /** Close the walk: no further decision; done once nothing is pending. */
+  private endDecisions(): void {
+    this.decisionsOver = true
+    if (!(this.pending > 0)) this.done = true
   }
 
   get armed(): boolean {
@@ -258,8 +348,58 @@ export class MembraneKernel {
   }
 
   /**
-   * One sale at composite ratio r (debt-basket ratio dv), cureWalk's `sell`. Returns the
-   * record (or null when the sized repay was not positive) and whether the walk goes on.
+   * Offer a sized order to the market (see PENDING ORDERS). `s` is cureSale's result for the
+   * whole order at composite ratio r. Returns the filled repay and seized value (position unit),
+   * and whether cureSale's own state update applies (every leg filled completely).
+   */
+  private fill(
+    minute: number,
+    r: number,
+    s: { repaid: number; seized: number },
+  ): { repaid: number; seized: number; full: boolean; phi: number[] | null } {
+    const liq = this.spec.liquidity
+    if (!liq || !(s.seized > 0))
+      return { repaid: s.repaid, seized: s.seized, full: true, phi: null }
+    const legs = this.spec.collateral
+    const collAt = this.collBase * r
+    const q = collAt > 0 ? Math.min(1, s.seized / collAt) : 1
+    const held = legs.map((l, k) =>
+      l.value0 > 0 ? ((l.tokens0 as number) * this.collBase * this.wC[k]) / l.value0 : 0,
+    )
+    const offer = held.map((h) => h * q)
+    const got = liq.take(
+      minute,
+      legs.map((l, k) => ({ liqKey: l.liqKey as string, tokens: offer[k] })),
+    )
+    if (got.every((g, k) => g === offer[k])) {
+      return { repaid: s.repaid, seized: s.seized, full: true, phi: null }
+    }
+    // Leg values at this minute (position unit) and the share of each leg's holding sold.
+    const d = this.lastDv
+    const phi = held.map((h, k) => (h > 0 ? got[k] / h : 0))
+    let offered = 0
+    let filled = 0
+    for (let k = 0; k < legs.length; k++) {
+      const v = (this.collBase * this.wC[k] * this.lastC[k]) / d
+      offered += v * q
+      filled += v * phi[k]
+    }
+    const frac = offered > 0 ? Math.min(1, filled / offered) : 0
+    return { repaid: s.repaid * frac, seized: s.seized * frac, full: false, phi }
+  }
+
+  /** Apply an uneven (capped) fill to the collateral basket: each leg keeps (1 - phi_k). */
+  private applyPartial(phi: number[]): void {
+    const base = this.wC.map((w, k) => this.collBase * w * (1 - phi[k]))
+    const total = base.reduce((a, b) => a + b, 0)
+    this.collBase = total > 0 ? total : 0
+    if (total > 0) this.wC = base.map((b) => b / total)
+  }
+
+  /**
+   * One sale at composite ratio r (debt-basket ratio dv), cureWalk's `sell`, offered to the
+   * market when the run is capped. Returns the record (or null when the sized repay was not
+   * positive) and whether the walk goes on.
    */
   private sell(
     minute: number,
@@ -276,27 +416,100 @@ export class MembraneKernel {
       this.params,
     )
     if (!s.sold) return { rec: null, live: s.live }
-    this.closed += s.repaid
+    this.lastDv = dv
+    const f = this.fill(minute, r, s)
     this.sales = s.sales
     if (this.firstIndex === null) {
       this.firstIndex = index
       this.firstOutcome = outcomeFor(reason)
     }
-    this.debt = s.debt
-    this.collBase = s.collBase
+    let live = s.live
+    if (f.full) {
+      this.closed += s.repaid
+      this.debt = s.debt
+      this.collBase = s.collBase
+    } else {
+      this.shortSales++
+      this.closed += f.repaid
+      this.debt -= f.repaid
+      this.applyPartial(f.phi as number[])
+      this.pending = s.repaid - f.repaid
+      if (!(this.pending > 1e-9 * Math.max(1, this.debt0))) this.pending = 0
+      this.pendingEvent = reason === 'instant' ? 'sell-instant' : 'sell'
+      this.pendingWhy = why
+      live = this.debt > 1e-6 && this.collBase > 1e-6
+      if (!live) this.pending = 0
+      else if (this.sales >= this.params.maxSales) live = false
+    }
     this.timer.clearAfterSale()
     const rec = this.record(
       minute,
       reason === 'instant' ? 'sell-instant' : 'sell',
       ltv,
-      s.repaid * dv,
-      s.seized * dv,
+      f.repaid * dv,
+      f.seized * dv,
       why,
     )
+    if (this.pending > 0) rec.unfilledUsd = this.usd(minute, this.pending * dv)
+    this.addUsd(rec)
+    return { rec, live }
+  }
+
+  private addUsd(rec: MemRecord): void {
     this.repaidUsd =
       this.repaidUsd == null || rec.repaidUsd == null ? null : this.repaidUsd + rec.repaidUsd
     this.soldUsd = this.soldUsd == null || rec.soldUsd == null ? null : this.soldUsd + rec.soldUsd
-    return { rec, live: s.live }
+  }
+
+  /**
+   * A minute with an order pending (see PENDING ORDERS): re-size it at this minute's price,
+   * capped at what is pending, and offer it. The timer is idle. Returns the carry record.
+   */
+  private carry(minute: number, r: number, dv: number, ltv: number): MemRecord[] {
+    const cap = Math.min(this.params.repayCap, this.pending)
+    const s = cureSale({ debt: this.debt, collBase: this.collBase, sales: this.sales }, r, {
+      ...this.params,
+      repayCap: cap,
+      maxSales: Infinity,
+    })
+    if (!s.sold) {
+      // Back at or under the borrow cap (or nothing left): the remainder is not needed.
+      this.pending = 0
+      this.pendingCancelled++
+      if (this.decisionsOver) this.done = true
+      return []
+    }
+    const f = this.fill(minute, r, s)
+    if (f.full) {
+      this.debt = s.debt
+      this.collBase = s.collBase
+    } else {
+      this.debt -= f.repaid
+      this.applyPartial(f.phi as number[])
+    }
+    this.closed += f.repaid
+    this.pending = s.repaid - f.repaid
+    if (!(this.pending > 1e-9 * Math.max(1, this.debt0))) this.pending = 0
+    if (!(this.debt > 1e-6 && this.collBase > 1e-6)) {
+      this.pending = 0
+      this.decisionsOver = true
+    }
+    if (this.pending === 0 && this.decisionsOver) this.done = true
+    if (!(f.repaid > 0)) return []
+    this.carryFills++
+    // Backward compatible: a carried fill is the decision's own event and `why`, flagged carry.
+    const rec = this.record(
+      minute,
+      this.pendingEvent,
+      ltv,
+      f.repaid * dv,
+      f.seized * dv,
+      this.pendingWhy,
+    )
+    rec.carry = true
+    if (this.pending > 0) rec.unfilledUsd = this.usd(minute, this.pending * dv)
+    this.addUsd(rec)
+    return [rec]
   }
 
   /** t0: cureWalk's classification, branch for branch. Call once, before any `step`. */
@@ -316,6 +529,7 @@ export class MembraneKernel {
       const ltv = this.coll0 > 0 ? this.debt0 / this.coll0 : this.debt0 > 0 ? Infinity : 0
       this.oneRepay(m, ltv, out)
       this.special = { outcome: 'sold-immediately-no-series', breaches: 0 }
+      this.decisionsOver = true
       this.done = true
       return out
     }
@@ -329,7 +543,7 @@ export class MembraneKernel {
       if (act.kind !== 'sell') throw new Error('unreachable: past the band must sell')
       const live = push(this.sell(m, 0, 1, 1, 'band', ltv0, 'band'))
       this.firstOutcome = 'sold-at-t0'
-      if (s.stopAfterT0BandSale || !live) this.done = true
+      if (s.stopAfterT0BandSale || !live) this.endDecisions()
       if (s.stopAfterT0BandSale) this.special = { outcome: 'sold-at-t0', breaches: 1 }
       return out
     }
@@ -341,6 +555,7 @@ export class MembraneKernel {
       this.oneRepay(m, ltv0, out)
       this.timer.clearAfterSale()
       this.special = { outcome: 'sold-immediately-no-series', breaches: 1 }
+      this.decisionsOver = true
       this.done = true
       return out
     }
@@ -351,7 +566,7 @@ export class MembraneKernel {
     if (act0.kind === 'arm') out.push(this.record(m, 'arm', ltv0, 0, 0))
     else if (act0.kind === 'sell') {
       const live = push(this.sell(m, 0, 1, 1, act0.reason, ltv0, act0.reason))
-      if (!live) this.done = true
+      if (!live) this.endDecisions()
     }
     return out
   }
@@ -363,21 +578,30 @@ export class MembraneKernel {
       membraneRepayValue(this.debt0, this.coll0, p.cap, p.debtMinimumUsd),
       p.repayCap,
     )
-    this.closed = r
+    const seized0 = Math.min(r, this.coll0)
+    // Offered to the market like any order; there is no later minute, so what does not fill
+    // is unfilled at the grid end.
+    const f = this.fill(minute, 1, { repaid: r, seized: seized0 })
+    this.closed = f.repaid
     this.sales = 1
     this.firstIndex = 0
-    const seized = Math.min(r, this.coll0)
+    if (!f.full) {
+      this.shortSales++
+      this.unfilledAtGridEnd = r - f.repaid
+      this.unfilledAtGridEndUsd = this.usd(minute, this.unfilledAtGridEnd)
+    }
     const rec = this.record(
       minute,
       this.spec.noDelay ? 'sell-instant' : 'sell',
       ltv,
-      r,
-      seized,
+      f.repaid,
+      f.seized,
       'no-series',
     )
+    if (!f.full) rec.unfilledUsd = this.unfilledAtGridEndUsd
     this.repaidUsd = rec.repaidUsd
     this.soldUsd = rec.soldUsd
-    this.debt = Math.max(0, this.debt0 - r)
+    this.debt = Math.max(0, this.debt0 - f.repaid)
     out.push(rec)
   }
 
@@ -428,12 +652,18 @@ export class MembraneKernel {
 
     const collAt = this.collBase * r
     const ltv = collAt > 0 ? this.debt / collAt : this.debt > 0 ? Infinity : 0
+    // An order still pending is worked first; the timer is idle (PENDING ORDERS).
+    if (this.pending > 0) return this.carry(minute, r, d, ltv)
+    if (this.decisionsOver) {
+      this.done = true
+      return []
+    }
     const act = this.timer.step(i, ltv)
     if (act.kind === 'arm') return [this.record(minute, 'arm', ltv, 0, 0)]
     if (act.kind === 'save') return [this.record(minute, 'save', ltv, 0, 0)]
     if (act.kind === 'sell') {
       const x = this.sell(minute, i, r, d, act.reason, ltv, act.reason)
-      if (!x.live) this.done = true
+      if (!x.live) this.endDecisions()
       return x.rec ? [x.rec] : []
     }
     return []
@@ -446,7 +676,21 @@ export class MembraneKernel {
   finish(): MemRecord[] {
     if (this.finished) return []
     this.finished = true
-    if (!this.timer.armed) return []
+    const out: MemRecord[] = []
+    if (this.timer.armed && !this.decisionsOver) out.push(...this.gridEndSale())
+    if (this.pending > 0) {
+      // Nothing left to sell it into: unfilled, reported, never credited.
+      this.unfilledAtGridEnd += this.pending
+      const u = this.usd(this.spec.lastMinute, this.pending * this.lastDv)
+      this.unfilledAtGridEndUsd =
+        this.unfilledAtGridEndUsd == null || u == null ? null : this.unfilledAtGridEndUsd + u
+      this.pending = 0
+    }
+    this.done = true
+    return out
+  }
+
+  private gridEndSale(): MemRecord[] {
     this.armedAtGridEnd = true
     const s = this.spec
     const before = this.sales
@@ -455,7 +699,6 @@ export class MembraneKernel {
     const ltv = collAt > 0 ? this.debt / collAt : this.debt > 0 ? Infinity : 0
     const x = this.sell(last, last - s.t0Minute, this.lastR, this.lastDv, 'expiry', ltv, 'grid-end')
     if (before === 0 && this.sales > 0) this.firstOutcome = 'sold-at-grid-end'
-    this.done = true
     return x.rec ? [x.rec] : []
   }
 
@@ -466,6 +709,11 @@ export class MembraneKernel {
       soldUsd: this.soldUsd,
       armedAtGridEnd: this.armedAtGridEnd,
       startUnbreached: this.startUnbreached,
+      shortSales: this.shortSales,
+      carryFills: this.carryFills,
+      pendingCancelled: this.pendingCancelled,
+      unfilledAtGridEnd: this.unfilledAtGridEnd,
+      unfilledAtGridEndUsd: this.unfilledAtGridEndUsd,
     }
     if (this.special) {
       return {

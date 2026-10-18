@@ -48,6 +48,10 @@
  *         repaidUsd, soldUsd                    USD at that minute's prices (0 for arm/save;
  *                                               null when the unit has no USD price)
  *         ltv                                   the LTV the decision was taken on
+ *         carry?, unfilledUsd?                  liquidity-capped runs (2026-10-18, additive
+ *                                               in schema 2): a later fill of a sale's
+ *                                               pending remainder, and what is still pending
+ *                                               (kernel.ts PENDING ORDERS)
  *   tick  ts, minute                            summary of every record before it
  *         coverage {walked, total}              positions opened so far: walked / all
  *         totals.real {positions, repaidUsd, soldUsd, badDebtUsd, unpricedEvents}
@@ -179,6 +183,15 @@ export interface MemRecord {
   soldUsd: number | null
   /** The LTV the decision was taken on; null when no collateral is left (infinite). */
   ltv: number | null
+  /**
+   * Liquidity-capped runs only (lib/wavefront/liquidity.ts; kernel.ts PENDING ORDERS), both
+   * optional and absent on an uncapped record, so a schema-2 reader without them still folds the
+   * stream correctly. `carry`: this sell is a later fill of a sale's pending remainder (not a new
+   * sale; its event and why are the sale's own). `unfilledUsd`: what is still pending after this
+   * record, USD at this minute (null when unpriced).
+   */
+  carry?: boolean
+  unfilledUsd?: number | null
 }
 
 export interface Totals {
@@ -281,6 +294,7 @@ export function roundRecord<T extends StreamRecord>(r: T): T {
         repaidUsd: roundUsd(r.repaidUsd),
         soldUsd: roundUsd(r.soldUsd),
         ltv: roundRatio(r.ltv),
+        ...(r.unfilledUsd !== undefined ? { unfilledUsd: roundUsd(r.unfilledUsd) } : {}),
       }
     case 'tick':
       return { ...r, totals: roundTotals(r.totals) }
@@ -599,7 +613,9 @@ export function tickFromState(
  *   real.pos (row in open), ts, block, tx, logIndex, repaidUsd, seizedUsd, badDebtUsd
  *     (badDebtUsd: null on Aave rows, where the record has none)
  *   mem.pos, sub (-1 none), minute, event (0 arm, 1 save, 2 sell, 3 sell-instant),
- *     why (index in WHY, -1 none), repaidUsd, soldUsd, ltv
+ *     why (index in WHY, -1 none), repaidUsd, soldUsd, ltv, carry (0/1) and unfilledUsd
+ *     (-1 absent, null unpriced) — the last two ADDITIVE in schema 2 (2026-10-18, the
+ *     liquidity cap): a reader that ignores them folds the same totals
  *   tick.minute, ts, walked, total, then the Totals fields flattened (see TICK_COLS)
  */
 export interface CompactReplay {
@@ -701,7 +717,18 @@ export function encodeCompact(
     'seizedUsd',
     'badDebtUsd',
   ] as const)
-  const mem = cols(['pos', 'sub', 'minute', 'event', 'why', 'repaidUsd', 'soldUsd', 'ltv'] as const)
+  const mem = cols([
+    'pos',
+    'sub',
+    'minute',
+    'event',
+    'why',
+    'repaidUsd',
+    'soldUsd',
+    'ltv',
+    'carry',
+    'unfilledUsd',
+  ] as const)
   const tick = cols(['minute', 'ts', 'walked', 'total', ...TICK_COLS.map((c) => c[0])] as const)
   let order = ''
   let seq = 0
@@ -782,6 +809,8 @@ export function encodeCompact(
         mem.repaidUsd.push(r.repaidUsd)
         mem.soldUsd.push(r.soldUsd)
         mem.ltv.push(r.ltv)
+        mem.carry.push(r.carry ? 1 : 0)
+        mem.unfilledUsd.push(r.unfilledUsd === undefined ? -1 : r.unfilledUsd)
         order += 'm'
         break
       }
@@ -923,6 +952,9 @@ export function decodeCompact(c: CompactReplay): StreamRecord[] {
       }
       if (M.sub[i] !== -1) r.sub = M.sub[i]
       if (M.why[i] !== -1) r.why = WHY[M.why[i]]
+      // Additive columns (absent in files written before the liquidity cap).
+      if (M.carry?.[i] === 1) r.carry = true
+      if (M.unfilledUsd && M.unfilledUsd[i] !== -1) r.unfilledUsd = M.unfilledUsd[i]
       out.push(r)
     } else if (ch === 't') {
       const i = at.t++

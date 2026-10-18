@@ -183,7 +183,7 @@ export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ 
           label="Worth, against one repay"
           value={`${usdM(one.delayCreditUsd)}†`}
           tone={one.delayCreditUsd >= 0 ? 'good' : 'bad'}
-          sub={`${usdM(one.memOneRepayUsd)} one repay → ${usdM(one.memOneRepayUsd - one.delayCreditUsd)} with the delay`}
+          sub={`${usdM(one.memOneRepayUsd)} one repay → ${usdM(one.memWalkUnlimitedUsd)} with the delay · both without the liquidity cap`}
         />
         <Stat
           label="Never sold"
@@ -229,7 +229,7 @@ export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ 
             color={SEMANTIC_COLORS.textPrimary}
             lineHeight="1.7"
           >
-            {`One repay to cap at the first liquidation, with no window, would close ${usdM(one.memOneRepayUsd)}† (${PROTOCOLS.map((k) => `${PROTOCOL_NAME[k]} ${usdM(one.byProtocol[k].memOneRepayUsd)}`).join(', ')}). ${usdM(one.cureCreditUsd)}† of it is on positions that came back under their line: ${one.cureCreditShareWithin2min.toFixed(0)}% of that within two minutes of the breach, ${one.cureCreditShareWithin1h.toFixed(0)}% within the hour, ${one.cureCreditShareWithin8h.toFixed(0)}% inside the eight. Against it, on ${one.counterCreditPositions.toLocaleString('en-US')} positions the walk ends up selling ${usdM(one.counterCreditUsd)}† more than one repay would have. Prices are each oracle’s price in force at each minute’s start; a cure needs a fresh price, and the ${time.freshPrints.chain === 'mainnet' ? 'Ethereum' : time.freshPrints.chain} ${time.freshPrints.symbol} AaveOracle price changed in ${time.freshPrints.minutes.toLocaleString('en-US')} of ${time.freshPrints.gridMinutes.toLocaleString('en-US')} minutes.`}
+            {`Without the liquidity cap on either side (one repay is not a walk the cap can be applied to): one repay to cap at the first liquidation, with no window, would close ${usdM(one.memOneRepayUsd)}† (${PROTOCOLS.map((k) => `${PROTOCOL_NAME[k]} ${usdM(one.byProtocol[k].memOneRepayUsd)}`).join(', ')}). ${usdM(one.cureCreditUsd)}† of it is on positions that came back under their line: ${one.cureCreditShareWithin2min.toFixed(0)}% of that within two minutes of the breach, ${one.cureCreditShareWithin1h.toFixed(0)}% within the hour, ${one.cureCreditShareWithin8h.toFixed(0)}% inside the eight. Against it, on ${one.counterCreditPositions.toLocaleString('en-US')} positions the walk ends up selling ${usdM(one.counterCreditUsd)}† more than one repay would have. Prices are each oracle’s price in force at each minute’s start; a cure needs a fresh price, and the ${time.freshPrints.chain === 'mainnet' ? 'Ethereum' : time.freshPrints.chain} ${time.freshPrints.symbol} AaveOracle price changed in ${time.freshPrints.minutes.toLocaleString('en-US')} of ${time.freshPrints.gridMinutes.toLocaleString('en-US')} minutes.`}
           </Text>
           <HStack spacing={SPACING_PATTERNS.sectionGap} flexWrap="wrap" align="flex-start">
             {time.bandSensitivity.map((b) => (
@@ -255,7 +255,7 @@ export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ 
                   lineHeight="1.7"
                   title={s.rule}
                 >
-                  {`${label}: ${usdM(s.memRepaidUsd)}†${split(s)} (headline ${usdM(headline?.memRepaidUsd ?? 0)})`}
+                  {`${label}: ${usdM(s.memRepaidUsd)}†${split(s)} (headline ${usdM(headline?.memRepaidUsd ?? 0)}; its own ${s.set ? s.set.positions.toLocaleString('en-US') : ''} positions, protocols ${s.set ? usdM(s.set.realRepaidUsd) : ''})`}
                 </Text>
               )
             })}

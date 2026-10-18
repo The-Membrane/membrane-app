@@ -35,10 +35,42 @@
  * Only COLLATERAL sales are limited. Buying back the debt token (a stablecoin, mostly) is not.
  */
 
+import { BTC_SYMBOLS, ETH_SYMBOLS } from './cluster'
+
 /** The rolling window capacity is measured over and every fill is booked against. */
 export const CAPACITY_WINDOW_MINUTES = 10
 /** The headline multiplier on measured capacity (modelled †). */
 export const CAPACITY_MULTIPLIER = 1.1
+
+/**
+ * THE RESEARCH PER-CLASS MULTIPLIERS (membrane-datasets q28/liquidity-recovery REPORT.md):
+ * the share of the measured 10-minute capacity the liquidity-recovery research supports, by
+ * collateral class. A SENSITIVITY ONLY; the headline stays at CAPACITY_MULTIPLIER (owner
+ * ruling). The class lists are lib/wavefront/cluster.ts's ETH and BTC groups, so the census
+ * clusters and this table cannot disagree. Every other symbol is 'other'.
+ */
+export const RESEARCH_LIQUIDITY_CLASSES: readonly {
+  cls: 'eth' | 'btc' | 'other'
+  label: string
+  multiplier: number
+  /** null: every symbol not in another class. */
+  symbols: readonly string[] | null
+}[] = [
+  { cls: 'eth', label: 'ETH and its LSTs / LRTs', multiplier: 0.7, symbols: ETH_SYMBOLS },
+  { cls: 'btc', label: 'BTC wrappers', multiplier: 0.55, symbols: BTC_SYMBOLS },
+  { cls: 'other', label: 'every other collateral', multiplier: 0.75, symbols: null },
+]
+/** The research "flow reading": the literal absorbed-flow share, the same for every class. */
+export const RESEARCH_FLOW_READING_MULTIPLIER = 0.2
+
+/** The research class multiplier of a collateral symbol. */
+export function researchClassMultiplier(symbol: string): number {
+  for (const c of RESEARCH_LIQUIDITY_CLASSES) if (c.symbols?.includes(symbol)) return c.multiplier
+  return RESEARCH_LIQUIDITY_CLASSES.find((c) => c.symbols === null)!.multiplier
+}
+
+/** A multiplier for every book key, or one number for all of them. */
+export type CapacityMultiplier = number | ((key: string) => number)
 
 /** The book key of a collateral token: `${chain}:${token address, lower case}`. */
 export const liqKeyOf = (chain: string, token: string) => `${chain}:${token.toLowerCase()}`
@@ -200,10 +232,18 @@ export class LiquidityBook implements KernelLiquidity {
 
   constructor(
     private readonly capacity: ReadonlyMap<string, number>,
-    readonly multiplier: number,
+    readonly multiplier: CapacityMultiplier,
     private readonly minutes: number,
   ) {
-    if (!(multiplier > 0)) throw new Error(`LiquidityBook: multiplier ${multiplier}`)
+    if (typeof multiplier === 'number' && !(multiplier > 0)) {
+      throw new Error(`LiquidityBook: multiplier ${multiplier}`)
+    }
+  }
+
+  private multOf(key: string): number {
+    const m = typeof this.multiplier === 'number' ? this.multiplier : this.multiplier(key)
+    if (!(m > 0)) throw new Error(`LiquidityBook: multiplier ${m} for ${key}`)
+    return m
   }
 
   hasCapacity(key: string): boolean {
@@ -214,7 +254,8 @@ export class LiquidityBook implements KernelLiquidity {
   limitOf(key: string): number {
     const c = this.capacity.get(key) ?? 0
     if (!(c > 0)) return 0
-    return this.multiplier === Infinity ? Infinity : c * this.multiplier
+    const m = this.multOf(key)
+    return m === Infinity ? Infinity : c * m
   }
 
   /** What is left for `key` in the window ending at `minute`. */

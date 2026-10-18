@@ -23,7 +23,9 @@ import {
   CAPACITY_MULTIPLIER,
   CAPACITY_WINDOW_MINUTES,
   LiquidityBook,
+  RESEARCH_FLOW_READING_MULTIPLIER,
   computeCapacity,
+  researchClassMultiplier,
   liqKeyOf,
   type CapacityEvent,
 } from '@/lib/wavefront/liquidity'
@@ -97,6 +99,26 @@ describe('the shared book', () => {
     const u = new LiquidityBook(new Map([[KEY, 100]]), Infinity, 60)
     expect(u.take(0, [{ liqKey: KEY, tokens: 1e12 }])).toEqual([1e12])
     expect(u.take(0, [{ liqKey: KEY, tokens: 1e12 }])).toEqual([1e12])
+  })
+
+  it('takes a multiplier per key: the research per-class table', () => {
+    expect(researchClassMultiplier('WETH')).toBe(0.7)
+    expect(researchClassMultiplier('wstETH')).toBe(0.7)
+    expect(researchClassMultiplier('cbBTC')).toBe(0.55)
+    expect(researchClassMultiplier('LBTC')).toBe(0.55)
+    expect(researchClassMultiplier('AAVE')).toBe(0.75)
+    expect(researchClassMultiplier('USDC')).toBe(0.75)
+    expect(RESEARCH_FLOW_READING_MULTIPLIER).toBe(0.2)
+    const b = new LiquidityBook(
+      new Map([
+        [KEY, 100],
+        [KEY2, 100],
+      ]),
+      (k) => (k === KEY ? 0.7 : 0.55),
+      60,
+    )
+    expect(b.take(0, [{ liqKey: KEY, tokens: 1000 }])[0]).toBeCloseTo(70, 12)
+    expect(b.take(0, [{ liqKey: KEY2, tokens: 1000 }])[0]).toBeCloseTo(55, 12)
   })
 
   it('has no capacity for a token nobody liquidated, and invents none', () => {

@@ -54,7 +54,12 @@ import {
 } from '../lib/position-sim/membrane'
 import { kernelLegs, type PositionSpec } from '../lib/wavefront/aave'
 import type { KernelLeg } from '../lib/wavefront/kernel'
-import { CAPACITY_MULTIPLIER, CAPACITY_WINDOW_MINUTES } from '../lib/wavefront/liquidity'
+import {
+  CAPACITY_MULTIPLIER,
+  CAPACITY_WINDOW_MINUTES,
+  RESEARCH_FLOW_READING_MULTIPLIER,
+  RESEARCH_LIQUIDITY_CLASSES,
+} from '../lib/wavefront/liquidity'
 import { AAVE_CORE_POOL } from '../lib/wavefront/pid'
 import { datasetsDir } from './lib/datasetsDir.mjs'
 import {
@@ -351,6 +356,15 @@ const capacityRuns = MULTIPLIERS.map((m) => {
   return { multiplier: m, set: s.set }
 })
 const unlimitedRows = sensRuns.get('capInfinity')!
+// The liquidity-recovery research (membrane-datasets q28/liquidity-recovery REPORT.md):
+// per-class multipliers, and the literal absorbed-flow reading at 0.2x everywhere.
+const researchPerClass = sensitivity('capResearch', { capacityMultiplier: 'research-per-class' })
+const researchFlow = sensitivity('capFlow', {
+  capacityMultiplier: RESEARCH_FLOW_READING_MULTIPLIER,
+})
+for (const r of [researchPerClass, researchFlow]) {
+  if (r.set.positions !== headlineSet.positions) fail('a research run is not on the headline set')
+}
 const protocolLine = sensitivity('protocolLine', { lineMode: 'protocol' })
 const protocolLineUnlimited = sensitivity('protocolLineUnlimited', {
   lineMode: 'protocol',
@@ -384,6 +398,18 @@ const sensitivityTable = [
       c.set,
       c.multiplier === CAPACITY_MULTIPLIER,
     ),
+  ),
+  sensRow(
+    'capacity-research-per-class',
+    'research per-class capacity',
+    `The liquidity-recovery research's class multipliers on the 10-minute capacity: ${RESEARCH_LIQUIDITY_CLASSES.map((c) => `${c.label} ${c.multiplier}x`).join(', ')} (lib/wavefront/liquidity.ts RESEARCH_LIQUIDITY_CLASSES). Same positions as the headline.`,
+    researchPerClass.set,
+  ),
+  sensRow(
+    'capacity-research-flow',
+    `research per-class + flow reading (${RESEARCH_FLOW_READING_MULTIPLIER}x everywhere)`,
+    `The literal reading of absorbed flow: ${RESEARCH_FLOW_READING_MULTIPLIER}x the 10-minute capacity for every token. Same positions as the headline.`,
+    researchFlow.set,
   ),
   sensRow(
     'protocol-line',

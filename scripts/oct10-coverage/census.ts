@@ -61,6 +61,7 @@ import { MembraneKernel, type KernelLeg, type KernelResult } from '../../lib/wav
 import {
   CAPACITY_MULTIPLIER,
   LiquidityBook,
+  researchClassMultiplier,
   computeCapacity,
   liqKeyOf,
   type CapacityEntry,
@@ -183,9 +184,10 @@ export interface CensusOptions {
    * The liquidity cap (lib/wavefront/liquidity.ts): every Membrane sale draws on the shared
    * book at `capacityMultiplier` x the measured capacity. Default CAPACITY_MULTIPLIER (1.1, the
    * headline); Infinity = unlimited, on the SAME positions (a no-capacity holding is still
-   * excluded).
+   * excluded). 'research-per-class': the research class multipliers
+   * (liquidity.ts RESEARCH_LIQUIDITY_CLASSES), a sensitivity.
    */
-  capacityMultiplier?: number
+  capacityMultiplier?: number | 'research-per-class'
   /**
    * REGRESSION AND CROSS-CHECK ONLY: no liquidity model at all — no book, no no-capacity
    * exclusion. With lineMode 'protocol' this is the pre-2026-10-18 census, row for row.
@@ -339,7 +341,7 @@ export interface CensusResult {
   capacity: CapacityEntry[]
   /** The run's liquidity settings and what the book saw (null: no liquidity model). */
   liquidity: null | {
-    multiplier: number
+    multiplier: number | 'research-per-class'
     /**
      * Per book key: tokens filled, offers that did not fill completely, the most filled in any
      * rolling window (never above the limit), and the limit (null: unlimited).
@@ -620,7 +622,12 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
   const capacity = opts.capacity ?? capacityTable(inp, aaveUsdAt, aaveDecimals, loanUsdFn, W)
   const capMap = new Map(capacity.map((c) => [c.key, c.capacityTokens]))
   const multiplier = opts.capacityMultiplier ?? CAPACITY_MULTIPLIER
-  const book = opts.noCapacityModel ? null : new LiquidityBook(capMap, multiplier, W.minutes)
+  const symbolOf = new Map(capacity.map((c) => [c.key, c.symbol]))
+  const bookMultiplier =
+    multiplier === 'research-per-class'
+      ? (key: string) => researchClassMultiplier(symbolOf.get(key) ?? '')
+      : multiplier
+  const book = opts.noCapacityModel ? null : new LiquidityBook(capMap, bookMultiplier, W.minutes)
   const lineMode = opts.lineMode ?? 'membrane'
 
   // ---- per position: open, real; the walk plan ----------------------------------------------

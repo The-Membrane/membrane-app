@@ -10,10 +10,21 @@ BTC_SYMS = {"WBTC", "CBBTC", "TBTC", "LBTC", "EBTC", "FBTC", "SOLVBTC", "BTCB", 
             "SOLVBTC.BBN", "PUMPBTC", "SBTC", "BBTC"}
 
 
+# lending receipt tokens carry their underlying's class (D5c): aEthWETH, aBascbBTC, aArbWBTC, spWETH ...
+RECEIPT_PREFIXES = ("AETHLIDO", "AETHETHERFI", "AETH", "ABAS", "AARB", "AOPT", "AOP", "SP", "A")
+
+
 def asset_class(chain: str, symbol: str) -> str:
     s = (symbol or "").upper().strip()
     if s in ETH_SYMS:
         return "E"
     if s in BTC_SYMS:
         return "B"
+    for p in RECEIPT_PREFIXES:
+        if s.startswith(p) and len(s) > len(p):
+            r = s[len(p):]
+            if r in ETH_SYMS:
+                return "E"
+            if r in BTC_SYMS:
+                return "B"
     return "O"

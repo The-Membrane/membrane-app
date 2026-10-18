@@ -407,7 +407,10 @@ def replay(meta: dict, work: str, days: dict[int, int]):
             rows.append((uid[u], V_["E"], V_["B"], V_["O"], q(S_, "E", 0.0), q(S_, "B", 0.0), q(S_, "O", 0.0),
                          q(LB_, "E", 1.0), q(LB_, "B", 1.0), q(LB_, "O", 1.05), 0.0, 0.0, 0.0,
                          D["E"], D["B"], D["O"], dmaxo, hf))
-        np.save(os.path.join(out_dir, f"{ts}.npy"), np.array(rows, dtype=dtype))
+        arr = np.array(rows, dtype=dtype)
+        # D6n (same line as aave.py replay): keep rows with ETH/BTC collateral and at least $1 of debt
+        arr = arr[(arr["VE"] + arr["VB"] > 0) & (arr["DE"] + arr["DB"] + arr["DO"] >= 1.0)] if len(arr) else arr
+        np.save(os.path.join(out_dir, f"{ts}.npy"), arr)
 
     def flush_until(block):
         nonlocal si

@@ -114,6 +114,10 @@ def _check_one(v, ts, row):
         w = words(c.eth_call(meta["pool"], selector("getUserAccountData(address)") + enc_addr(u), blk))
         coll, debt, hf = w[0] / 1e8, w[1] / 1e8, w[5] / 1e18
         mc, md_, mh = rec["VE"] + rec["VB"] + rec["VO"], rec["DE"] + rec["DB"] + rec["DO"], rec["hf"]
+        # Aave truncates the average liquidation threshold to whole bps before HF (GenericLogic); compare like for like
+        if mc > 0 and md_ > 0:
+            avg_lt = (rec["ltE"] * rec["VE"] + rec["ltB"] * rec["VB"] + rec["ltO"] * rec["VO"]) / mc
+            mh = mc * (np.floor(avg_lt * 1e4 + 1e-9) / 1e4) / md_
     elif v in MORPHO:
         idx = json.load(open(os.path.join(WORK, v, "index.json")))
         mk = json.load(open(os.path.join(WORK, v, "markets.json")))["markets"]

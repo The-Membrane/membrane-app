@@ -86,5 +86,44 @@ class TestSelect(unittest.TestCase):
         self.assertEqual(M.select(0.05, 0.02), "M1")
 
 
+class TestC1(unittest.TestCase):
+    def synth(self):
+        rng = np.random.default_rng(1)
+        n = 420
+        t = np.arange(n, dtype=np.int64) * DAY + 19000 * DAY
+        S = 1e9 * np.exp(np.cumsum(rng.normal(0, 0.02, n)))
+        C = S * (0.2 + 0.05 * rng.random(n))
+        dmin = C * (0.9 + 0.05 * rng.random(n))
+        P = {"origins": [str(x) for x in range(n)], "t": t, "S_snap": S, "C_end": C, "cash_t0": C.copy(),
+             "dmin": dmin, "Q_full": np.zeros(n), "Q_live": np.zeros(n), "R_full": np.zeros(n), "R_live": np.zeros(n),
+             "score": np.arange(300, 400), "q2": np.arange(400, n - 1)}
+        P["origins"] = [f"2025-{1 + (i % 12):02d}-01" for i in range(n)]
+        return P
+
+    def test_m1_equals_dev_m1(self):
+        P = self.synth()
+        idx = np.arange(300, 310)
+        _, m1, _, _ = M.run_m0_m1(P, idx)
+        f = M.forecast_m1(P, idx)
+        for k in idx:
+            np.testing.assert_array_equal(f[k]["q1"], m1[k]["q1"])
+
+    def test_score_runs(self):
+        P = self.synth()
+        fc = M.forecast_m1(P, np.concatenate([P["score"], P["q2"]]))
+        res, rows = M.c1_score(P, fc)
+        self.assertEqual(res["n_scoring"], 100)
+        self.assertIn("R_model", res["per_quantile"]["0.05"])
+        self.assertEqual(len(rows), 100)
+
+    def test_cash_path_exact(self):
+        tin = pd.DataFrame({"block": [5, 5, 7], "ts": [50, 50, 70], "tx_index": [2, 2, 0],
+                            "amount_raw": ["7", "3", "100"]})
+        tout = pd.DataFrame({"block": [5], "ts": [50], "tx_index": [2], "amount_raw": ["4"]})
+        tl = M.cash_path_exact(tin, tout)
+        self.assertEqual(tl["cash"].tolist(), [6, 106])
+        self.assertEqual(tl["ts"].tolist(), [50, 70])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -478,6 +478,287 @@ def cmd_dev(a):
     say("END dev", results["finished_utc"], "results sha256", R4.sha256_file(rp))
 
 
+# ---------------------------------------------------------------------------------------------
+# C1 blind test (D-R11.11b): frozen M1 on Aave V3 Arbitrum native USDC
+# ---------------------------------------------------------------------------------------------
+SCHEMA_C1 = "q26-r11/r1111-c1/1"
+C1_DIR = "aave-pool-cash-c1"
+C1_FILES = ("raw-transfers-arb_usdcn-in.csv.gz", "raw-transfers-arb_usdcn-out.csv.gz", "daily-state-arb_usdcn.csv")
+C1_FIRST_DAY = "2023-06-29"
+C1_LAST_DAY = "2026-10-16"
+C1_WARMUP_DAYS = 180
+C1_ALPHA = 0.025
+C1_DECIMALS = 6
+R_BAND = (0.8, 1.25)
+C1_DECISIONS = [
+    "C1-1 Frozen model R11.11-M1 (D-R11.11b): r104_cash.py (7b6ca7aa) step 1 with raw endpoints, make_flows(S, C, "
+    "dmin, 0, 0), run_variant(raw, None, ...), the R10.4-B B-14 rule (non-finite flow days to NaN), 24 h, q05/q25/q50, "
+    "deterministic 730-day joint blocks. No round trip anywhere. Nothing refitted beyond the per-origin HAR fit.",
+    "C1-2 Market: Aave V3 Arbitrum Pool, native USDC reserve (6 decimals: raw units are 1e-6-token units). Bridged "
+    "USDC.e excluded (not acquired, not scored). Data: aave-pool-cash-c1 (r1111_acquire_c1.py), free keyless RPC.",
+    "C1-3 Truth: raw cash = native USDC Transfers into minus out of the aToken from its deployment block, per "
+    "transaction (block, tx_index), exact integers; window minimum over (t0, t0 + 24 h] by r104_cash.window_min; data "
+    "end = the last block with ts < 2026-10-17T00:00Z.",
+    "C1-4 Endpoints: day i = state after every transaction with ts < t_i (anchor = last block with ts < t_i 00:00Z); "
+    "supply = aToken totalSupply() at the anchor (archive eth_call); cash = rebuilt Transfer path; gate G1: rebuilt "
+    "cash = USDC balanceOf(aToken) at the anchor exactly on every series day, else stop. D := S - cash.",
+    "C1-5 Series 2023-06-29..2026-10-16. Scoring origins 00:00Z from series start + 180 days to the last origin with "
+    "t0 + 24 h <= data end; origins whose window meets [2026-04-01, 2026-07-01) are reported only. Paired: an origin "
+    "scores only if the model, the empirical baseline, no-change and the truth exist; missing counted.",
+    "C1-6 Comparators: primary empirical baseline (r115_depositor_cash.emp_baseline, trailing 730 days of min-cash / "
+    "cash(t0), linear quantiles x cash(t0)); secondary no-change (every quantile = minimum over (t0 - 24 h, t0]).",
+    "C1-7 Loss: mean pinball over q05, q25, q50 in USD. PASS iff the one-sided DM (r115 dm_hln: Newey-West Bartlett "
+    "lag 7, HLN h = 8, Student t T - 1 df) on d = L_M1 - L_empirical in date order gives p < 0.025.",
+    "C1-8 Reported only: skill vs empirical and no-change, DM vs no-change, effective N, per-quantile pinball and hits, "
+    "coverage R_q = (n q + 1) / (hits + 1) with a flag for R_q in [0.8, 1.25] (model and empirical), by year, 2026Q2, "
+    "supply-scaled skill, variable-debt check counts.",
+    "C1-9 Power (D-R11.3e rule 1): about 1,160 origins for 80% at the dev effect (pooled 8.46%, relative long-run sd "
+    "1.03); C1 has about 930, power about 70%.",
+    "C1-10 Order: counts-only check; frozen-r1111.json (code sha, file sha256, model source hash, input sha256, "
+    "readings, constants, created_utc) written, hashed and committed before the run; one run from the clean frozen "
+    "sha (refuses on any difference or a second start); run log with UTC start and end; outputs "
+    "history-forecasts/r11/r1111-run-<sha>/. C1 is used once.",
+]
+
+
+def model_source_hash():
+    import hashlib
+    import inspect
+    fns = (R4.har_fit, R4.path_minima, R4.forecast_origin, R4.make_flows, R4.run_variant, R4.window_min,
+           R4.state_at, R4.pinball, RB.finite_flows, R5.emp_baseline, R5.dm_hln, R5.pinball3, forecast_m1)
+    return hashlib.sha256("\n".join(inspect.getsource(f) for f in fns).encode()).hexdigest()
+
+
+def forecast_m1(P, idx):
+    """frozen R11.11-M1: R10.4 step 1 on raw endpoints (no round trip), B-14 cleaned, 24 h."""
+    sets = {"24h": {"score": np.asarray(idx, dtype=int), "q2": np.array([], dtype=int)},
+            "7d": {"score": np.array([], dtype=int), "q2": np.array([], dtype=int)}}
+    n = len(P["t"])
+    raw = RB.finite_flows(R4.make_flows(P["S_snap"], P["C_end"], P["dmin"], np.zeros(n), np.zeros(n)))
+    return R4.run_variant(raw, None, P["dmin"], P["cash_t0"], sets, None, False)["24h"]
+
+
+def cash_path_exact(tin, tout):
+    """per-transaction (block, tx_index) exact integer cash path from 0 (6-decimal token: raw = micro units)."""
+    parts = []
+    for df, sign in ((tin, 1), (tout, -1)):
+        parts.append(pd.DataFrame({"block": df["block"].astype(np.int64).values, "ts": df["ts"].astype(np.int64).values,
+                                   "tx_index": df["tx_index"].astype(np.int64).values,
+                                   "d": [sign * int(x) for x in df["amount_raw"]]}))
+    lg = pd.concat(parts, ignore_index=True)
+    lg["key"] = lg["block"].to_numpy(np.int64) * 100_000 + lg["tx_index"].to_numpy(np.int64)
+    lg = lg.sort_values("key", kind="mergesort")
+    g = lg.groupby("key", sort=True)
+    blocks, tss = g["block"].first().values, g["ts"].first().values
+    dsum = [sum(int(v) for v in grp) for _, grp in g["d"]]
+    cum, c = [], 0
+    for x in dsum:
+        c += x
+        cum.append(c)
+    if any(abs(x) >= 2 ** 62 for x in cum):
+        raise SystemExit("STOP: cash outside int64")
+    if (np.diff(tss) < 0).any():
+        raise SystemExit("STOP: timestamps not monotone in block order")
+    return pd.DataFrame({"block": blocks, "ts": tss, "cash": np.array(cum, dtype=np.int64)})
+
+
+def load_c1(datasets, say):
+    d = os.path.join(datasets, C1_DIR)
+    ds = pd.read_csv(os.path.join(d, C1_FILES[2]), dtype=str)
+    ds = ds[(ds["day"] >= C1_FIRST_DAY) & (ds["day"] <= C1_LAST_DAY)].sort_values("day").reset_index(drop=True)
+    origins = ds["day"].tolist()
+    t = np.array([R4.day_ts(x) for x in origins], dtype=np.int64)
+    if not (np.diff(t) == DAY).all():
+        raise SystemExit("STOP: C1 days not consecutive")
+    if not ((ds["block_ts"].astype(np.int64).values < t).all() and (ds["next_block_ts"].astype(np.int64).values >= t).all()):
+        raise SystemExit("STOP: C1 anchor block proof fails")
+    anc = t - 1
+    S_snap = np.array([int(x) for x in ds["atoken_total_supply"]], dtype=float)
+    C_bal = [int(x) for x in ds["cash_balance"]]
+    V_debt = np.array([int(x) for x in ds["vdebt_total_supply"]], dtype=float)
+    tin = pd.read_csv(os.path.join(d, C1_FILES[0]), dtype={"amount_raw": str})
+    tout = pd.read_csv(os.path.join(d, C1_FILES[1]), dtype={"amount_raw": str})
+    tl = cash_path_exact(tin, tout)
+    cts = tl["ts"].to_numpy(np.int64)
+    cval = tl["cash"].to_numpy(np.int64)
+    end_ts = int(max(tin["ts"].max(), tout["ts"].max()))
+    k = np.searchsorted(cts, anc, side="right") - 1
+    cash_anchor = [int(cval[j]) if j >= 0 else 0 for j in k]
+    g1 = sum(1 for a_, b_ in zip(cash_anchor, C_bal) if a_ != b_)
+    say("C1 G1 mismatches", g1, "of", len(anc))
+    if g1:
+        raise SystemExit("STOP: G1 failed (C1)")
+    C_end = np.array(cash_anchor, dtype=float)
+    cash_t0 = np.array([R4.state_at(cts, cval, int(x)) for x in t], dtype=float)
+    q2a, q2b = R4.day_ts(R4.Q2[0]), R4.day_ts(R4.Q2[1])
+    res = t + DAY <= end_ts
+    inq2 = (t + DAY > q2a) & (t < q2b)
+    first = t >= t[0] + C1_WARMUP_DAYS * DAY
+    P = {"origins": origins, "t": t, "anc": anc, "S_snap": S_snap, "C_end": C_end, "cash_t0": cash_t0,
+         "score": np.where(first & res & ~inq2)[0], "q2": np.where(first & res & inq2)[0], "end_ts": end_ts,
+         "cts": cts, "cval": cval, "V_debt": V_debt}
+    with np.errstate(divide="ignore", invalid="ignore"):
+        dgap = np.abs((S_snap - C_end) - V_debt) / np.maximum(S_snap, 1.0)
+    counts = {"series_days": len(t), "first_day": origins[0], "last_day": origins[-1],
+              "scoring_origins_available": int(len(P["score"])), "q2_origins": int(len(P["q2"])),
+              "first_scoring_origin": origins[int(P["score"][0])] if len(P["score"]) else None,
+              "last_scoring_origin": origins[int(P["score"][-1])] if len(P["score"]) else None,
+              "logs_in": int(len(tin)), "logs_out": int(len(tout)), "cash_tx_states": int(len(tl)),
+              "g1_mismatches": int(g1), "days_zero_supply": int((S_snap <= 0).sum()),
+              "days_debt_check_gap_over_2pct": int((dgap > 0.02).sum()), "data_end_ts": end_ts}
+    return P, counts
+
+
+def c1_score(P, fc):
+    """everything computed from the one run (called only by cmd_c1 run)."""
+    rows, miss = paired_rows(P, {"M1": fc}, P["score"])
+    if not rows:
+        raise SystemExit(f"STOP: no scorable origins (missing {miss})")
+    Lm, y, Q = losses(rows, "M1")
+    Le, _, E = losses(rows, "E")
+    Ln, _, _ = losses(rows, "NC")
+    S = np.array([r["S"] for r in rows]) / MICRO
+    d = Lm - Le
+    st_e, p_e = R5.dm_hln(d)
+    st_n, p_n = R5.dm_hln(Lm - Ln)
+    lrv = RB.nw_lrv(d)
+    n = len(rows)
+    per_q = {}
+    for j, q in enumerate(QS):
+        hm, he = int(np.sum(y < Q[:, j])), int(np.sum(y < E[:, j]))
+        rm, re_ = (n * q + 1) / (hm + 1), (n * q + 1) / (he + 1)
+        per_q[str(q)] = {"pinball_model_usd": float(np.mean(R4.pinball(y, Q[:, j], q)) / MICRO),
+                         "pinball_empirical_usd": float(np.mean(R4.pinball(y, E[:, j], q)) / MICRO),
+                         "hit_model": hm / n, "hit_empirical": he / n,
+                         "R_model": rm, "R_model_in_band": bool(R_BAND[0] <= rm <= R_BAND[1]),
+                         "R_empirical": re_, "R_empirical_in_band": bool(R_BAND[0] <= re_ <= R_BAND[1])}
+    years = {}
+    for yy in ("2023", "2024", "2025", "2026"):
+        mk = np.array([r["origin"].startswith(yy) for r in rows])
+        if mk.sum():
+            years[yy] = {"n": int(mk.sum()), "skill_vs_empirical": float(1 - Lm[mk].mean() / Le[mk].mean()),
+                         "skill_vs_nochange": float(1 - Lm[mk].mean() / Ln[mk].mean())}
+    rq, _ = paired_rows(P, {"M1": fc}, P["q2"])
+    if rq:
+        Lmq, _, _ = losses(rq, "M1")
+        Leq, _, _ = losses(rq, "E")
+        Lnq, _, _ = losses(rq, "NC")
+        q2 = {"n": len(rq), "skill_vs_empirical": float(1 - Lmq.mean() / Leq.mean()),
+              "skill_vs_nochange": float(1 - Lmq.mean() / Lnq.mean())}
+    else:
+        q2 = {"n": 0}
+    res = {"n_scoring": n, "missing": miss, "first": rows[0]["origin"], "last": rows[-1]["origin"],
+           "mean_pinball_model_usd": float(Lm.mean()), "mean_pinball_empirical_usd": float(Le.mean()),
+           "mean_pinball_nochange_usd": float(Ln.mean()),
+           "skill_vs_empirical": float(1 - Lm.mean() / Le.mean()), "dm_vs_empirical": {"stat": st_e, "p": p_e},
+           "alpha": C1_ALPHA, "PASS": bool(np.isfinite(p_e) and p_e < C1_ALPHA),
+           "skill_vs_nochange": float(1 - Lm.mean() / Ln.mean()), "dm_vs_nochange": {"stat": st_n, "p": p_n},
+           "effective_n": float(n * d.var() / lrv) if lrv > 0 else None,
+           "skill_supply_scaled_vs_empirical": float(1 - (Lm / S).sum() / (Le / S).sum()),
+           "skill_supply_scaled_vs_nochange": float(1 - (Lm / S).sum() / (Ln / S).sum()),
+           "per_quantile": per_q, "by_year": years, "q2_reported": q2,
+           "n_paths_median": float(np.median([fc[r["n"]]["n_paths"] for r in rows]))}
+    out_rows = [{"origin": r["origin"], "y_min_cash_usd": r["y"] / MICRO, "cash_t0_usd": r["cash_t0"] / MICRO,
+                 "supply_t0_usd": r["S"] / MICRO, "model_q05": r["q"]["M1"][0] / MICRO,
+                 "model_q25": r["q"]["M1"][1] / MICRO, "model_q50": r["q"]["M1"][2] / MICRO,
+                 "emp_q05": r["e"][0] / MICRO, "emp_q25": r["e"][1] / MICRO, "emp_q50": r["e"][2] / MICRO,
+                 "nochange_usd": r["nc"] / MICRO, "loss_model_usd": float(a_), "loss_emp_usd": float(b_),
+                 "loss_nochange_usd": float(c_), "reported_only_2026q2": False}
+                for r, a_, b_, c_ in zip(rows, Lm, Le, Ln)]
+    return res, out_rows
+
+
+def c1_dmin(P):
+    """truth (outcome) minima: computed only inside the one run."""
+    T = len(P["t"])
+    dmin = np.full(T, np.nan)
+    for i, x in enumerate(P["t"]):
+        if x + DAY <= P["end_ts"]:
+            dmin[i] = R4.window_min(P["cts"], P["cval"], int(P["cash_t0"][i]), int(x), int(x) + DAY)
+    return dmin
+
+
+def cmd_c1(a):
+    os.makedirs(a.out, exist_ok=True)
+    phase = "inputs-only" if a.inputs_only else "freeze-only" if a.freeze_only else "run"
+    started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    log = open(os.path.join(a.out, "run.log" if phase == "run" else "prep.log"), "a")
+
+    def say(*m):
+        s = " ".join(str(x) for x in m)
+        print(s, flush=True)
+        log.write(s + "\n")
+        log.flush()
+
+    say("START", phase, started)
+    meta = git_meta()
+    if not (meta["r104_cash_equals_7b6ca7aa"] and meta["r104b_c2_equals_6b6ef6be"]):
+        raise SystemExit("STOP: frozen dependencies differ")
+    shas = {f"{C1_DIR}/{f}": R4.sha256_file(os.path.join(a.datasets, C1_DIR, f)) for f in C1_FILES}
+    prov = open(os.path.join(a.datasets, C1_DIR, "PROVENANCE.md")).read()
+    for rel, h in shas.items():
+        if h not in prov:
+            raise SystemExit(f"STOP: {rel} sha256 not in PROVENANCE")
+    msh = model_source_hash()
+    fp = os.path.join(a.out, "frozen-r1111.json")
+    marker = os.path.join(a.out, "run-started.json")
+    if phase == "run":
+        if os.path.exists(marker) or os.path.exists(os.path.join(a.out, "results-r1111.json")):
+            raise SystemExit("STOP: a run already started (one run only)")
+        if not os.path.exists(fp):
+            raise SystemExit("STOP: no frozen config")
+        fz = json.load(open(fp))
+        if meta["tree_dirty"] or not (meta["git_head"] or "").startswith(fz["code_sha"]):
+            raise SystemExit("STOP: code is not the clean frozen sha")
+        if (fz["code_sha256"] != meta["sha256"] or fz["inputs_sha256"] != shas or fz["decisions"] != C1_DECISIONS
+                or fz["model_source_sha256"] != msh):
+            raise SystemExit("STOP: code, inputs, model or readings differ from the frozen config")
+        json.dump({"started_utc": started, "frozen_sha256": R4.sha256_file(fp)}, open(marker, "w"))
+    P, counts = load_c1(a.datasets, say)
+    say("counts", json.dumps(counts))
+    if phase == "inputs-only":
+        say("inputs-only: stop (counts only; no minimum, forecast or score)")
+        return
+    if phase == "freeze-only":
+        frozen = {"schema": SCHEMA_C1, "prereg": {"repo": "triccs/membrane-board",
+                                                  "path": "design/Q26_ROUND11_PREREG.md", "item": "R11.11 C1",
+                                                  "readings": "D-R11.11b"},
+                  "code_sha": a.code_sha, "code_sha256": meta["sha256"], "code_meta": meta,
+                  "model_source_sha256": msh, "dev_run": "history-forecasts/r11/r1111-dev-84a912da (results "
+                  "d4e7650bf70c04cc377d1fc9d1fc00d95875e4107517d9178b69526ad9500df5)",
+                  "inputs_sha256": shas, "decisions": C1_DECISIONS,
+                  "constants": {"QS": QS, "FIRST_DAY": C1_FIRST_DAY, "LAST_DAY": C1_LAST_DAY,
+                                "WARMUP_DAYS": C1_WARMUP_DAYS, "Q2": R4.Q2, "ALPHA": C1_ALPHA, "NW_LAG": R5.NW_LAG,
+                                "HLN_H": R5.HLN_H, "TRAIL_DAYS": R4.TRAIL_DAYS, "DECIMALS": C1_DECIMALS,
+                                "R_BAND": R_BAND},
+                  "input_counts": counts}
+        frozen["created_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with open(fp, "w") as f:
+            json.dump(frozen, f, indent=1, default=str)
+        guard_file(fp)
+        say("FROZEN frozen-r1111.json sha256", R4.sha256_file(fp), "created_utc", frozen["created_utc"])
+        return
+    P["dmin"] = c1_dmin(P)
+    say("forecast M1")
+    fc = forecast_m1(P, np.concatenate([P["score"], P["q2"]]))
+    res, rows = c1_score(P, fc)
+    say("C1", json.dumps({k: res[k] for k in ("n_scoring", "mean_pinball_model_usd", "mean_pinball_empirical_usd",
+                                               "mean_pinball_nochange_usd", "skill_vs_empirical", "dm_vs_empirical",
+                                               "skill_vs_nochange", "PASS")}))
+    results = {"schema": SCHEMA_C1, "frozen_sha256": R4.sha256_file(fp), "code_sha": a.code_sha,
+               "started_utc": started, "counts": counts, "C1": res}
+    results["finished_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    rp = os.path.join(a.out, "results-r1111.json")
+    with open(rp, "w") as f:
+        json.dump(results, f, indent=1, default=str)
+    fcp = os.path.join(a.out, "forecasts-r1111.csv.gz")
+    pd.DataFrame(rows).to_csv(fcp, index=False, compression="gzip")
+    guard_file(rp)
+    guard_file(fcp)
+    say("END", results["finished_utc"], "results sha256", R4.sha256_file(rp))
+    guard_file(os.path.join(a.out, "run.log"))
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -485,9 +766,18 @@ def main():
     d.add_argument("--datasets", required=True)
     d.add_argument("--out", required=True)
     d.add_argument("--code-sha", required=True)
+    c = sub.add_parser("c1")
+    c.add_argument("--datasets", required=True)
+    c.add_argument("--out", required=True)
+    c.add_argument("--code-sha", required=True)
+    g = c.add_mutually_exclusive_group()
+    g.add_argument("--inputs-only", action="store_true")
+    g.add_argument("--freeze-only", action="store_true")
     a = ap.parse_args()
     if a.cmd == "dev":
         cmd_dev(a)
+    elif a.cmd == "c1":
+        cmd_c1(a)
 
 
 if __name__ == "__main__":

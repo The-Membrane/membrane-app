@@ -73,6 +73,7 @@ T = {
 ADAPTER_GETTERS = ["BASE_TO_USD_AGGREGATOR()", "ASSET_TO_USD_AGGREGATOR()", "ASSET_TO_PEG()", "PEG_TO_BASE()",
                    "BASE_TO_PEG()", "ASSET_TO_BASE_AGGREGATOR()", "STETH_TO_USD_AGGREGATOR()"]
 EMODE_IDS = range(1, 41)
+NO_HEADER_BATCH = {"polygon"}   # the Polygon Tenderly gateway answers batches with HTTP 429
 
 
 def utcnow():
@@ -544,7 +545,10 @@ def phase_hourly(mk, work):
         if os.path.exists(p):
             return
         blks = [int(b[int(np.searchsorted(t, h, side="left")) - 1]) for h in by_day[day]]
-        heads = hc.batch([("eth_getBlockByNumber", [hex(x), False]) for x in blks])
+        if m["chain"] in NO_HEADER_BATCH:
+            heads = [hc.request("eth_getBlockByNumber", [hex(x), False]) for x in blks]
+        else:
+            heads = hc.batch([("eth_getBlockByNumber", [hex(x), False]) for x in blks])
         rows = []
         for h, blk, bo in zip(by_day[day], blks, heads):
             dec = None

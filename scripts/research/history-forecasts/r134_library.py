@@ -373,6 +373,685 @@ def cmd_select_p3b(a):
     print(f"P3b-a {len(a_)}, P3b-b {len(b_)}, P3c {len(p3c)}; sha256 {sha256_file(a.out)}")
 
 
+
+# =============================================================================================
+# development: encode -> pooled model -> decode
+# =============================================================================================
+CLASSES = ("crypto", "equity", "etf", "fx", "index", "commodity")
+H_BARS = (1, 3, 5, 10, 20)
+CRYPTO_LEVELS = (-0.15, -0.20, -0.25, -0.30, -0.40)
+CRYPTO_H = (1, 3, 5)
+Z_GRID = (-1.0, -1.5, -2.0, -2.5, -3.0, -3.5, -4.0, -5.0, -6.0)
+LN2X4 = 4.0 * math.log(2.0)
+VFLOOR = 0.1                      # D and W floored at 0.1 x M (flat bars)
+OWN_MIN = 60                      # own-history comparators need >= 60 resolved rows
+YOUNG_BARS = 365
+MON0D = 4                         # 1970-01-05 (Monday) = day 4
+CA_GAP = 0.10                     # B3: a distribution-number change with an open gap above 10% is a corporate action
+
+
+def week_of(day):
+    return (np.asarray(day, np.int64) - MON0D) // 7
+
+
+def roll_mean(x, w, need):
+    """trailing mean over x[t-w+1..t] with >= need finite values, else nan."""
+    f = np.isfinite(x)
+    cs = np.concatenate([[0.0], np.cumsum(np.where(f, x, 0.0))])
+    cn = np.concatenate([[0], np.cumsum(f)])
+    i = np.arange(len(x))
+    lo = np.maximum(i - w + 1, 0)
+    s, n = cs[i + 1] - cs[lo], cn[i + 1] - cn[lo]
+    out = np.where(n >= need, s / np.maximum(n, 1), np.nan)
+    out[:w - 1] = np.nan
+    return out
+
+
+def fwd_window(x, h, fn):
+    """x[t+1..t+h] reduced by fn ('mean'|'min'), nan if any value is not finite."""
+    n = len(x)
+    out = np.full(n, np.nan)
+    if n <= h:
+        return out
+    from numpy.lib.stride_tricks import sliding_window_view
+    W = sliding_window_view(x[1:], h)          # W[t] = x[t+1..t+h]
+    r = W.mean(axis=1) if fn == "mean" else W.min(axis=1)
+    out[:len(r)] = r
+    return out
+
+
+def bars_crypto(close, low, high, base_ts):
+    n = len(close)
+    off = int(base_ts % DAY) // 3600
+    pad = (-(off) % 24) if off else 0
+    # align to 00:00Z: drop the partial first day
+    skip = (24 - off) % 24
+    c, l, h = close[skip:], low[skip:], high[skip:]
+    nd = len(c) // 24
+    c, l, h = (x[:nd * 24].reshape(nd, 24) for x in (c, l, h))
+    ok = np.isfinite(c) & np.isfinite(l) & np.isfinite(h)
+    day0 = (int(base_ts) + skip * 3600) // DAY
+    valid = (ok.sum(axis=1) >= 23) & ok[:, 23]
+    with np.errstate(all="ignore"):
+        L = np.nanmin(np.where(ok, l, np.nan), axis=1)
+        H = np.nanmax(np.where(ok, h, np.nan), axis=1)
+    C = c[:, 23]
+    O = np.r_[np.nan, C[:-1]]
+    d = day0 + np.arange(nd)
+    del pad
+    return {"d": d.astype(np.int32), "o": O, "h": H, "l": L, "c": C, "valid": valid,
+            "gapok": np.zeros(nd, bool), "ca": np.zeros(nd, bool)}
+
+
+def load_crypto_spec(spec):
+    import r12_tail as R12  # noqa: E402
+    kind = spec["kind"]
+    if kind == "chain":
+        ser, _, caps = R12.load_series(spec)
+        close, low, high, st = ser.close, ser.low, ser.high, ser.base_ts
+        cap = caps["primary"]
+    elif kind == "npz":
+        dd = np.load(spec["path"])
+        st = int(dd["startTs"])
+        close, low, high = (np.asarray(dd[k], float) for k in ("close", "low", "high"))
+        cap = int(spec["cap_primary"])
+    else:
+        st, cols = R12.load_json_grid(spec["path"])
+        close, low, high = cols["close"], cols["low"], cols["high"]
+        if "slice" in spec:
+            i0, i1 = spec["slice"]
+            st = st + 3600 * i0
+            close, low, high = close[i0:i1], low[i0:i1], high[i0:i1]
+        cap = int(spec.get("cap_primary", R12.END))
+    B = bars_crypto(np.asarray(close, float), np.asarray(low, float), np.asarray(high, float), st)
+    B["cap_day"] = min(int(cap), int(R12.END)) // DAY        # a window must end on or before this day boundary
+    return B
+
+
+def crypto_dev_specs(datasets, tmp):
+    import r12_tail as R12  # noqa: E402
+    import r13_recal as R13  # noqa: E402
+    out = []
+    for s in R12.dev_specs(datasets):
+        out.append(("pool", s))
+    for nm, fn in (("b9", lambda: R13.b9_specs(datasets, tmp)), ("b12", lambda: R13.b12_specs(datasets)),
+                   ("b13a", lambda: R13.b13a_specs(datasets))):
+        for s in fn():
+            out.append((nm, s))
+    return out
+
+
+def _crypto_task(a):
+    sub, spec = a
+    try:
+        B = load_crypto_spec(spec)
+    except Exception as e:  # noqa: BLE001
+        return {"key": spec["key"], "err": repr(e)}
+    B.update(key=spec["key"], cls="crypto", sub=sub, asset=spec.get("asset", spec["key"]))
+    return B
+
+
+def bars_b3(path, cal):
+    z = np.load(path)
+    d = z["d"]
+    idx = np.searchsorted(cal, d)
+    n = len(cal)
+    out = {k: np.full(n, np.nan) for k in ("o", "h", "l", "c")}
+    for k in ("o", "h", "l", "c"):
+        out[k][idx] = z[k]
+    ntr = np.zeros(n, np.int64)
+    ntr[idx] = z["n"]
+    have = np.zeros(n, bool)
+    have[idx] = True
+    valid = have & (ntr >= 10) & (out["l"] > 0) & (out["h"] >= out["l"]) & (out["c"] > 0) & (out["o"] > 0)
+    # corporate action: distribution number or ISIN changes at a row with a large open gap
+    dis = z["dis"]
+    c_prev = np.r_[np.nan, z["c"][:-1]]
+    with np.errstate(all="ignore"):
+        gap = np.abs(np.log(z["o"] / c_prev))
+    ca_row = ((np.r_[False, dis[1:] != dis[:-1]] & (gap > CA_GAP)) | z["isin_chg"])
+    ca = np.zeros(n, bool)
+    ca[idx[ca_row]] = True
+    first, last = idx[0], idx[-1]
+    sl = slice(first, last + 1)
+    gapok = np.r_[False, valid[:-1]]
+    B = {"d": cal[sl].astype(np.int32), "valid": valid[sl], "gapok": gapok[sl], "ca": ca[sl]}
+    for k in ("o", "h", "l", "c"):
+        B[k] = out[k][sl]
+    B["cap_day"] = date_days(END_DATE) + 1
+    return B
+
+
+def bars_hd(path):
+    z = np.load(path)
+    m = z["d_m"].astype(float)
+    med = np.median(m) if len(m) else 0
+    d = z["d_d"].astype(np.int32)
+    valid = (m >= 0.25 * med) & (z["d_l"] > 0) & (z["d_h"] >= z["d_l"])
+    gapok = np.r_[False, (np.diff(d) <= 4) & valid[:-1]]
+    B = {"d": d, "o": z["d_o"].astype(float), "h": z["d_h"].astype(float), "l": z["d_l"].astype(float),
+         "c": z["d_c"].astype(float), "valid": valid, "gapok": gapok, "ca": np.zeros(len(d), bool)}
+    B["cap_day"] = min(int(d[-1]) + 1, date_days(END_DATE) + 1) if len(d) else 0
+    return B
+
+
+def encode_inputs(B):
+    """ex-ante encoder inputs per bar t (all from bars <= t) and forward targets (bars t+1..t+h)."""
+    o, h, l, c, valid = B["o"], B["h"], B["l"], B["c"], B["valid"]
+    with np.errstate(all="ignore"):
+        lc = np.log(c)
+        gap = np.where(B["gapok"], np.log(o) - np.r_[np.nan, lc[:-1]], 0.0)
+        v = (np.log(h) - np.log(l)) ** 2 / LN2X4 + np.where(np.isfinite(gap), gap, 0.0) ** 2
+    v[~valid] = np.nan
+    M = roll_mean(v, 22, 20)
+    W = roll_mean(v, 5, 4)
+    with np.errstate(all="ignore"):
+        D = np.maximum(v, VFLOOR * M)
+        Wf = np.maximum(W, VFLOOR * M)
+        X = np.stack([np.ones(len(v)), np.log(D), np.log(Wf), np.log(M)], axis=1)
+        lv = np.log(np.maximum(v, VFLOOR * M))
+    okX = np.all(np.isfinite(X), axis=1) & valid
+    # regime features
+    f = np.isfinite(lv)
+    cs = np.concatenate([[0.0], np.cumsum(np.where(f, lv, 0))])
+    cs2 = np.concatenate([[0.0], np.cumsum(np.where(f, lv * lv, 0))])
+    cn = np.concatenate([[0], np.cumsum(f)])
+    i = np.arange(len(v))
+    lo = np.maximum(i - 21, 0)
+    n_ = cn[i + 1] - cn[lo]
+    mu = (cs[i + 1] - cs[lo]) / np.maximum(n_, 1)
+    vov = np.sqrt(np.maximum((cs2[i + 1] - cs2[lo]) / np.maximum(n_, 1) - mu * mu, 0))
+    vov[n_ < 20] = np.nan
+    with np.errstate(all="ignore"):
+        vr = 0.5 * np.log(Wf / M)
+    lcv = np.where(valid, lc, np.nan)
+    tr_raw = lcv - np.r_[np.full(21, np.nan), lcv[:-21]] if len(lcv) > 21 else np.full(len(lcv), np.nan)
+    from numpy.lib.stride_tricks import sliding_window_view
+    mx = np.full(len(lcv), np.nan)
+    if len(lcv) >= 66:
+        mx[65:] = np.nanmax(np.where(np.isfinite(sliding_window_view(lcv, 66)), sliding_window_view(lcv, 66), -np.inf),
+                            axis=1)
+    dd_raw = lcv - mx
+    # CA exclusion: any corporate-action bar in [t-21, t+h] removes origin t (lookback part here)
+    ca = B["ca"].astype(float)
+    cca = np.concatenate([[0.0], np.cumsum(ca)])
+    ca_back = (cca[i + 1] - cca[np.maximum(i - 21, 0)]) > 0
+    fwd = {}
+    vv = np.where(valid, v, np.nan)
+    ll = np.where(valid, l, np.nan)
+    for hh in H_BARS:
+        rv = fwd_window(vv, hh, "mean")
+        wm = fwd_window(ll, hh, "min")
+        ca_f = (cca[np.minimum(i + hh + 1, len(ca))] - cca[i + 1]) > 0
+        end_day = np.r_[B["d"][hh:], np.full(hh, 10 ** 9)][:len(v)] if len(v) > hh else np.full(len(v), 10 ** 9)
+        ok = np.isfinite(wm) & okX & np.isfinite(lcv) & ~ca_back & ~ca_f & (end_day + 1 <= B["cap_day"])
+        fwd[hh] = {"rv": rv, "wmin": wm, "ok": ok, "end_day": end_day}
+    return {"X": X, "okX": okX, "lc": lcv, "vov": vov, "vr": vr, "tr_raw": tr_raw, "dd_raw": dd_raw, "fwd": fwd,
+            "age": i - int(np.argmax(valid)) if valid.any() else i}
+
+
+def q2_overlap(day, end_day):
+    q0, q1 = date_days("2026-04-01"), date_days("2026-06-30")
+    return (end_day >= q0) & (day <= q1)
+
+
+def wecdf(m, w):
+    o = np.argsort(m, kind="mergesort")
+    ms, cw = m[o], np.cumsum(w[o])
+    return ms, cw / cw[-1]
+
+
+def wecdf_at(lib, z):
+    ms, cw = lib
+    k = np.searchsorted(ms, z, side="right")
+    return np.where(k > 0, cw[np.maximum(k - 1, 0)], 0.0)
+
+
+def brier(p, y):
+    return float(np.mean((p - y) ** 2))
+
+
+def own_ecdf_asof(day, end_day, m, zq):
+    """per series: at each origin, share of own resolved rows (end_day' < day) with m' <= zq (rows x levels);
+    nan if fewer than OWN_MIN resolved rows (chunked dense comparison)."""
+    n = len(m)
+    out = np.full(zq.shape, np.nan)
+    for a0 in range(0, n, 512):
+        a1 = min(n, a0 + 512)
+        res = end_day[None, :] < day[a0:a1, None]                 # (chunk, n)
+        cnt = res.sum(axis=1)
+        for kk in range(zq.shape[1]):
+            le = m[None, :] <= zq[a0:a1, kk][:, None]
+            s_ = (res & le).sum(axis=1)
+            with np.errstate(all="ignore"):
+                out[a0:a1, kk] = np.where(cnt >= OWN_MIN, s_ / np.maximum(cnt, 1), np.nan)
+    return out
+
+
+def own_freq_asof(day, end_day, Y):
+    order = np.argsort(end_day, kind="mergesort")
+    ed = end_day[order]
+    cy = np.vstack([np.zeros((1, Y.shape[1])), np.cumsum(Y[order], axis=0)])
+    k = np.searchsorted(ed, day, side="left")
+    with np.errstate(all="ignore"):
+        out = cy[k] / k[:, None]
+    out[k < OWN_MIN] = np.nan
+    return out
+
+
+def boot_se_weeks(g, d, nb=500, seed=0):
+    rng = np.random.default_rng(seed)
+    u, inv = np.unique(g, return_inverse=True)
+    sums = np.bincount(inv, weights=d, minlength=len(u))
+    cnts = np.bincount(inv, minlength=len(u))
+    G = len(u)
+    idx = rng.integers(0, G, (nb, G))
+    bs = sums[idx].sum(axis=1) / np.maximum(cnts[idx].sum(axis=1), 1)
+    return float(np.std(bs)), sums, cnts
+
+
+def cmd_dev(a):
+    import multiprocessing as mp
+    os.makedirs(a.out, exist_ok=True)
+    logf = open(os.path.join(a.out, "dev.log"), "a")
+
+    def log(s):
+        line = f"{now_iso()} {s}"
+        print(line, flush=True)
+        logf.write(line + "\n")
+        logf.flush()
+
+    log(f"R13.4 dev start; code {git_sha()}")
+    # ---------------- load dev series ----------------
+    series = []
+    specs = crypto_dev_specs(a.datasets, os.path.join(a.out, "acq_r12"))
+    if a.crypto_limit:
+        specs = specs[:a.crypto_limit]
+    with mp.get_context("fork").Pool(a.workers) as pool:
+        for r in pool.imap_unordered(_crypto_task, specs, chunksize=4):
+            if "err" in r:
+                log(f"  crypto load error {r['key']}: {r['err']}")
+                continue
+            series.append(r)
+    log(f"crypto series {len(series)}")
+    b3dir = os.path.join(a.data, "b3", "dev")
+    files = sorted(os.listdir(b3dir)) if os.path.isdir(b3dir) and not a.skip_new else []
+    cal = np.unique(np.concatenate([np.load(os.path.join(b3dir, f))["d"] for f in files])) if files else None
+    for f in files:
+        B = bars_b3(os.path.join(b3dir, f), cal)
+        cls, tick = f[:-4].split("-", 1)
+        B.update(key=f"b3:{tick}", cls=cls, sub="b3", asset=tick)
+        series.append(B)
+    hddir = os.path.join(a.data, "hd", "dev")
+    for f in (sorted(os.listdir(hddir)) if os.path.isdir(hddir) and not a.skip_new else []):
+        cls, p = f[:-4].split("-", 1)
+        B = bars_hd(os.path.join(hddir, f))
+        B.update(key=f"hd:{p}", cls=cls, sub="hd", asset=p)
+        series.append(B)
+    log("series per class: " + ", ".join(f"{c} {sum(1 for s in series if s['cls'] == c)}" for c in CLASSES))
+    # ---------------- encoder inputs ----------------
+    for s in series:
+        s["E"] = encode_inputs(s)
+    # ---------------- fit the frozen vol forecast (pooled, class-equal weights) ----------------
+    beta = {}
+    for hh in H_BARS:
+        Xs, ys, ws = [], [], []
+        for c in CLASSES:
+            Xc, yc = [], []
+            for s in series:
+                if s["cls"] != c:
+                    continue
+                F = s["E"]["fwd"][hh]
+                ok = F["ok"] & np.isfinite(F["rv"]) & (F["rv"] > 0) & ~q2_overlap(s["d"], F["end_day"])
+                Xc.append(s["E"]["X"][ok])
+                yc.append(np.log(F["rv"][ok]))
+            if not Xc or sum(len(x) for x in Xc) == 0:
+                continue
+            Xc, yc = np.vstack(Xc), np.concatenate(yc)
+            Xs.append(Xc)
+            ys.append(yc)
+            ws.append(np.full(len(yc), 1.0 / len(yc)))
+        X, y, w = np.vstack(Xs), np.concatenate(ys), np.concatenate(ws)
+        sw = np.sqrt(w)
+        b, *_ = np.linalg.lstsq(X * sw[:, None], y * sw, rcond=None)
+        smear = float(np.sum(w * np.exp(y - X @ b)) / np.sum(w))      # Duan smearing: forecast the mean variance
+        b = b.copy()
+        b[0] += math.log(smear)
+        beta[hh] = b
+        log(f"encoder h={hh}: beta {np.round(b, 4).tolist()} (rows {len(y)})")
+    # ---------------- encode: rows per h ----------------
+    rows = {hh: {k: [] for k in ("cls", "sid", "day", "end", "m", "s", "vr", "vov", "tr", "dd", "age", "q2")}
+            for hh in H_BARS}
+    rt_err = 0.0
+    meta = []
+    for sid, s in enumerate(series):
+        E = s["E"]
+        meta.append({"key": s["key"], "cls": s["cls"], "sub": s["sub"], "asset": s["asset"]})
+        with np.errstate(all="ignore"):
+            s1 = np.sqrt(np.exp(E["X"] @ beta[1]))
+        for hh in H_BARS:
+            F = E["fwd"][hh]
+            ok = F["ok"]
+            if not ok.any():
+                continue
+            sig = np.sqrt(np.exp(E["X"][ok] @ beta[hh]))
+            scale = sig * math.sqrt(hh)
+            lc = E["lc"][ok]
+            m = (np.log(F["wmin"][ok]) - lc) / scale
+            dec = np.exp(lc + m * scale)                        # decode: back to the asset's price units
+            rt_err = max(rt_err, float(np.nanmax(np.abs(dec / F["wmin"][ok] - 1.0))))
+            R = rows[hh]
+            R["cls"].append(np.full(ok.sum(), CLASSES.index(s["cls"]), np.int8))
+            R["sid"].append(np.full(ok.sum(), sid, np.int32))
+            R["day"].append(s["d"][ok])
+            R["end"].append(F["end_day"][ok])
+            R["m"].append(m)
+            R["s"].append(scale)
+            R["vr"].append(E["vr"][ok])
+            R["vov"].append(E["vov"][ok])
+            R["tr"].append(E["tr_raw"][ok] / (s1[ok] * math.sqrt(21)))
+            R["dd"].append(E["dd_raw"][ok] / (s1[ok] * math.sqrt(66)))
+            R["age"].append(np.asarray(E["age"])[ok])
+            R["q2"].append(q2_overlap(s["d"][ok], F["end_day"][ok]))
+        del s["E"]
+    for hh in H_BARS:
+        rows[hh] = {k: np.concatenate(v) for k, v in rows[hh].items()}
+    log(f"round-trip identity (decode(encode(min low)) vs min low): max relative error {rt_err:.3e}")
+    np.savez_compressed(os.path.join(a.out, "rows-r134-dev.npz"),
+                        **{f"h{hh}_{k}": v for hh in H_BARS for k, v in rows[hh].items()})
+    write_json(os.path.join(a.out, "meta-r134-dev.json"), {"series": meta, "beta": {str(k): v.tolist()
+                                                           for k, v in beta.items()}, "round_trip_max_rel": rt_err})
+    res = {"created_utc": now_iso(), "code_sha": git_sha(), "beta": {str(k): v.tolist() for k, v in beta.items()},
+           "round_trip_max_rel_err": rt_err, "series_per_class": {c: sum(1 for s in meta if s["cls"] == c)
+                                                                  for c in CLASSES}}
+    res["collapse"] = collapse_metrics(rows, meta, log)
+    res["events"] = event_counts(rows, meta, log)
+    res["library_vs_asset"] = library_scores(rows, meta, log, a)
+    write_json(os.path.join(a.out, "dev-r134.json"), res)
+    log("dev done")
+
+
+def git_sha():
+    try:
+        import subprocess
+        return subprocess.check_output(["git", "-C", os.path.dirname(os.path.abspath(__file__)), "rev-parse",
+                                        "--short=8", "HEAD"]).decode().strip()
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
+
+def class_ecdf_table(R, mask_extra=None):
+    """F_c(z) per class with week-block bootstrap SE of ln F_c."""
+    out = {}
+    keep = ~R["q2"] if mask_extra is None else (~R["q2"] & mask_extra)
+    for ci, c in enumerate(CLASSES):
+        mk = keep & (R["cls"] == ci)
+        if mk.sum() < 1000:
+            continue
+        m = R["m"][mk]
+        g = week_of(R["day"][mk])
+        ent = {"rows": int(mk.sum()), "assets": int(len(np.unique(R["sid"][mk]))), "weeks": int(len(np.unique(g))),
+               "F": {}, "se_lnF": {}, "pos": {}}
+        for z in Z_GRID:
+            y = (m <= z).astype(float)
+            F = y.mean()
+            if y.sum() < 5:
+                ent["F"][str(z)] = float(F)
+                ent["se_lnF"][str(z)] = None
+                ent["pos"][str(z)] = int(y.sum())
+                continue
+            se, _, _ = boot_se_weeks(g, y, nb=300, seed=int(-z * 10) + ci)
+            ent["F"][str(z)] = float(F)
+            ent["se_lnF"][str(z)] = float(se / F)
+            ent["pos"][str(z)] = int(y.sum())
+        out[c] = ent
+    return out
+
+
+def pooled_lib(R, mask, classes=None):
+    """class-equal weighted ECDF of m over mask rows (optionally only some classes)."""
+    ms, ws = [], []
+    for ci, c in enumerate(CLASSES):
+        if classes is not None and c not in classes:
+            continue
+        mk = mask & (R["cls"] == ci)
+        n = int(mk.sum())
+        if n < 1000:
+            continue
+        ms.append(R["m"][mk])
+        ws.append(np.full(n, 1.0 / n))
+    if not ms:
+        return None
+    return wecdf(np.concatenate(ms), np.concatenate(ws))
+
+
+def collapse_metrics(rows, meta, log):
+    from scipy.stats import chi2
+    out = {}
+    for hh in H_BARS:
+        R = rows[hh]
+        tab = class_ecdf_table(R)
+        present = list(tab)
+        ent = {"classes": tab, "loo_ratio": {}, "het": {}, "lambda": {}, "regime": {}}
+        keep = ~R["q2"]
+        # leave-one-class-out library vs realized class curve
+        for c in present:
+            lib = pooled_lib(R, keep, classes=[x for x in present if x != c])
+            if lib is None:
+                continue
+            ent["loo_ratio"][c] = {str(z): (float(wecdf_at(lib, z) / tab[c]["F"][str(z)])
+                                            if tab[c]["F"][str(z)] > 0 else None) for z in Z_GRID}
+        # heterogeneity Q per z (inverse-variance on ln F)
+        for z in Z_GRID:
+            lf, vv = [], []
+            for c in present:
+                F, se = tab[c]["F"][str(z)], tab[c]["se_lnF"][str(z)]
+                if F > 0 and se:
+                    lf.append(math.log(F))
+                    vv.append(se * se)
+            if len(lf) >= 2:
+                lf, vv = np.array(lf), np.array(vv)
+                mu = np.sum(lf / vv) / np.sum(1 / vv)
+                Q = float(np.sum((lf - mu) ** 2 / vv))
+                ent["het"][str(z)] = {"Q": Q, "df": len(lf) - 1, "p": float(chi2.sf(Q, len(lf) - 1)),
+                                      "max_abs_lnratio_to_pooled": float(np.max(np.abs(lf - mu)))}
+        # per-class tail scale lambda: F_c(z) ~ F_pool(z / lambda)
+        lib_all = pooled_lib(R, keep, classes=present)
+        zz = np.array([z for z in Z_GRID if -4.0 <= z <= -1.5])
+        for c in present:
+            Fc = np.array([tab[c]["F"][str(z)] for z in zz])
+            if np.any(Fc <= 0):
+                continue
+            best = None
+            for lam in np.arange(0.5, 2.01, 0.01):
+                e = np.sum((np.log(Fc) - np.log(np.maximum(wecdf_at(lib_all, zz / lam), 1e-12))) ** 2)
+                if best is None or e < best[1]:
+                    best = (float(lam), float(e))
+            ent["lambda"][c] = {"lambda": round(best[0], 3), "sse_ln": best[1]}
+        # regime: vol-ratio terciles (pooled cutpoints)
+        q = np.nanquantile(R["vr"][keep], [1 / 3, 2 / 3])
+        for ti, (lo, hi) in enumerate(((-np.inf, q[0]), (q[0], q[1]), (q[1], np.inf))):
+            mk = keep & (R["vr"] > lo) & (R["vr"] <= hi)
+            t2 = class_ecdf_table(R, mk & keep)
+            ent["regime"][f"vr_t{ti + 1}"] = {c: {str(z): t2[c]["F"][str(z)] for z in (-2.0, -3.0, -4.0)}
+                                             for c in t2}
+        ent["regime"]["vr_cut"] = q.tolist()
+        out[str(hh)] = ent
+        line = "; ".join(f"{c} F(-3)={tab[c]['F']['-3.0']:.2e} loo R(-3)={(ent['loo_ratio'].get(c, {}).get('-3.0') or float('nan')):.2f}"
+                         f" lam={ent['lambda'].get(c, {}).get('lambda')}" for c in present)
+        log(f"collapse h={hh}: {line}")
+    return out
+
+
+def episodes_count(day, sid, pos, gap):
+    n = 0
+    for s in np.unique(sid[pos]):
+        d = np.sort(day[pos & (sid == s)])
+        n += 1 + int(np.sum(np.diff(d) > gap))
+    return n
+
+
+def event_counts(rows, meta, log):
+    out = {}
+    for hh in H_BARS:
+        R = rows[hh]
+        keep = ~R["q2"]
+        ent = {}
+        for ci, c in enumerate(CLASSES):
+            mk = keep & (R["cls"] == ci)
+            if not mk.any():
+                continue
+            e = {"rows": int(mk.sum())}
+            for z in (-3.0, -4.0, -5.0):
+                pos = mk & (R["m"] <= z)
+                e[f"z{z}"] = {"origins": int(pos.sum()), "episodes": episodes_count(R["day"], R["sid"], pos, hh + 5),
+                              "pos_weeks": int(len(np.unique(week_of(R["day"][pos])))),
+                              "assets": int(len(np.unique(R["sid"][pos])))}
+            ent[c] = e
+        if hh in CRYPTO_H:
+            mk = keep & (R["cls"] == 0)
+            for k in CRYPTO_LEVELS:
+                pos = mk & (R["m"] <= math.log(1 + k) / R["s"])
+                ent.setdefault("crypto_raw", {})[str(k)] = {
+                    "origins": int(pos.sum()), "episodes": episodes_count(R["day"], R["sid"], pos, hh + 5),
+                    "pos_weeks": int(len(np.unique(week_of(R["day"][pos]))))}
+        out[str(hh)] = ent
+        log(f"events h={hh}: " + "; ".join(f"{c} z<=-3 ep {v['z-3.0']['episodes']} wk {v['z-3.0']['pos_weeks']}"
+                                           for c, v in ent.items() if c != "crypto_raw"))
+    return out
+
+
+def library_scores(rows, meta, log, a):
+    """crypto deep cells, scored on seen B12 and B9 (stand-ins for the reserved crypto sets), library built without
+    the scored set. Comparators: own as-of ECDF (own), own frequency (a), crypto-dev frequency (e)."""
+    import r12_tail as R12  # noqa: E402
+    subs = np.array([m["sub"] for m in meta])
+    FH = np.load(a.fh, allow_pickle=False) if getattr(a, "fh", "") else None
+    out = {}
+    for hh in CRYPTO_H:
+        R = rows[hh]
+        keep = ~R["q2"]
+        isc = R["cls"] == 0
+        zk = np.stack([np.log(1 + k) / R["s"] for k in CRYPTO_LEVELS], axis=1)
+        Y = (R["m"][:, None] <= zk).astype(np.int8)
+        keys_ = np.array([m["key"] for m in meta])
+        for scored in ("b12", "b9", "eth"):
+            ids = np.where(keys_ == "dev:ETH")[0] if scored == "eth" else np.where(subs == scored)[0]
+            insc = isc & np.isin(R["sid"], ids)
+            if not insc.any():
+                continue
+            libmask = keep & ~insc
+            libs = {"L_all": pooled_lib(R, libmask, classes=list(CLASSES)),
+                    "L_cry": pooled_lib(R, libmask, classes=["crypto"]),
+                    "L_new": pooled_lib(R, libmask, classes=[c for c in CLASSES if c != "crypto"])}
+            e_const = Y[libmask & isc].mean(axis=0)
+            sc = np.where(insc & keep)[0]
+            P = {nm: np.stack([wecdf_at(lib, zk[sc, j]) for j in range(len(CRYPTO_LEVELS))], axis=1)
+                 for nm, lib in libs.items() if lib is not None}
+            P["e"] = np.tile(e_const, (len(sc), 1))
+            own = np.full((len(sc), len(CRYPTO_LEVELS)), np.nan)
+            pa = np.full_like(own, np.nan)
+            sids = R["sid"][sc]
+            for s in np.unique(sids):
+                ii = np.where(sids == s)[0]
+                o = np.argsort(R["day"][sc[ii]], kind="mergesort")
+                ii = ii[o]
+                rr = sc[ii]
+                # own history: the series' resolved non-2026Q2 rows only (2026Q2 windows are neither scored nor used)
+                own[ii] = own_ecdf_asof(R["day"][rr], R["end"][rr], R["m"][rr], zk[rr])
+                pa[ii] = own_freq_asof(R["day"][rr], R["end"][rr], Y[rr].astype(float))
+            P["own"], P["a"] = own, pa
+            pfh = np.full((len(sc), len(CRYPTO_LEVELS)), np.nan)
+            if FH is not None and hh in (1, 3):
+                T = 24 * hh
+                kid = {k: i for i, k in enumerate(np.unique(FH[f"T{T}_key"]))}
+                code = np.array([kid[k] for k in FH[f"T{T}_key"]], np.int64) * 10 ** 6 + FH[f"T{T}_ts"] // DAY
+                lut = dict(zip(code.tolist(), range(len(code))))
+                mk_ = np.array([kid.get(meta[s_]["key"], -1) for s_ in sids], np.int64)
+                cc = mk_ * 10 ** 6 + (R["day"][sc].astype(np.int64) + 1)
+                hit = np.array([lut.get(c_, -1) if m_ >= 0 else -1 for c_, m_ in zip(cc.tolist(), mk_.tolist())])
+                okh = hit >= 0
+                pfh[okh] = FH[f"T{T}_pH"][hit[okh]]
+                # identity check of the target: the hourly label must equal the encoded touch label
+                yh = FH[f"T{T}_y"][hit[okh]]
+                e_lab = float(np.mean(yh != Y[sc][okh])) if okh.any() else None
+                log(f"  fH h={hh} {scored}: matched {int(okh.sum())} rows; label mismatch share {e_lab}")
+            y = Y[sc]
+            ts = (R["day"][sc].astype(np.int64) + 1) * DAY
+            young = R["age"][sc] < YOUNG_BARS
+            cell = {}
+            for j, k in enumerate(CRYPTO_LEVELS):
+                segs = [("all", np.ones(len(sc), bool), P), ("young", young, P), ("mature", ~young, P)]
+                if np.isfinite(pfh[:, j]).any():
+                    segs.append(("fH_rows", np.isfinite(pfh[:, j]), dict(P, fH=pfh)))
+                for seg, sm, PP in segs:
+                    base = sm & np.all(np.isfinite(np.stack([PP[n][:, j] for n in PP], 1)), axis=1)
+                    if base.sum() < 1000 or y[base, j].sum() < 5:
+                        continue
+                    yy = y[base, j].astype(float)
+                    bid, G, posb = R12.crash_blocks(ts[base], sids[base], yy.astype(np.int8), hh * 24)
+                    e = {"rows": int(base.sum()), "pos": int(yy.sum()), "pos_blocks": int(posb.sum()),
+                         "R": {}, "brier": {}, "bss_L_all_vs": {}, "Gstar_L_all_vs": {}}
+                    for n_ in PP:
+                        p = np.clip(PP[n_][base, j], 0, 1)
+                        e["R"][n_] = float(p.sum() / max(yy.sum(), 1))
+                        e["brier"][n_] = brier(p, yy)
+                    pL = np.clip(PP["L_all"][base, j], 0, 1)
+                    for n_ in PP:
+                        if n_ == "L_all":
+                            continue
+                        pc = np.clip(PP[n_][base, j], 0, 1)
+                        d = (pL - yy) ** 2 - (pc - yy) ** 2
+                        sums = np.bincount(bid, weights=d, minlength=G)
+                        sp = sums[posb] if posb.any() else sums
+                        mb, sb = float(sp.mean()), float(sp.std(ddof=1)) if len(sp) > 1 else float("nan")
+                        e["bss_L_all_vs"][n_] = float(1 - e["brier"]["L_all"] / e["brier"][n_]) if e["brier"][n_] > 0 else None
+                        e["Gstar_L_all_vs"][n_] = (float(((2.326 + 0.8416) * sb / mb) ** 2) if mb < 0 else None)
+                    cell[f"{k}/{seg}"] = e
+            out[f"h{hh}/{scored}"] = cell
+            for kk, e in cell.items():
+                if kk.endswith(("/all", "/young", "/fH_rows")):
+                    log(f"lib h={hh} {scored} {kk}: pos {e['pos']} blk {e['pos_blocks']} R " +
+                        " ".join(f"{n}={v:.2f}" for n, v in e["R"].items()) + " | BSS L_all vs " +
+                        " ".join(f"{n}={v:+.4f}" for n, v in e["bss_L_all_vs"].items() if v is not None))
+    return out
+
+
+
+def cmd_fh(a):
+    """(fH) hourly touch forecasts (A6/R12 recipe, unchanged) at 00:00Z origins for T = 24 h and 72 h on the seen
+    crypto stand-in sets (B12, B9) and ETH dev; cached for the comparison with the library at h = 1 and 3 bars."""
+    import r12_tail as R12  # noqa: E402
+    import r13_recal as R13  # noqa: E402
+    os.makedirs(a.out, exist_ok=True)
+    specs = [s for sub, s in crypto_dev_specs(a.datasets, os.path.join(a.out, "acq_r12"))
+             if sub in ("b12", "b9") or s["key"] == "dev:ETH"]
+    di = [R12.LEVELS.index(k) for k in CRYPTO_LEVELS]
+    import multiprocessing as mp
+    out = {}
+    for T in (24, 72):
+        ts_l, key_l, p_l, y_l = [], [], [], []
+        with mp.get_context("fork").Pool(a.workers, maxtasksperchild=8) as pool:
+            for j, r in enumerate(pool.imap(R13.row_task, [{"spec": s, "T": T, "grid": "6h"} for s in specs],
+                                            chunksize=1)):
+                rw = r["rows"]
+                if rw is None or not len(rw["ts"]):
+                    continue
+                sel = (rw["ts"] % DAY) == 0
+                ts_l.append(rw["ts"][sel])
+                key_l.append(np.full(int(sel.sum()), r["key"], dtype=object))
+                p_l.append(rw["pH"][sel][:, di])
+                y_l.append(rw["y"][sel][:, di])
+                if (j + 1) % 100 == 0:
+                    print(f"{now_iso()} fH T={T}: {j + 1}/{len(specs)}", flush=True)
+        out[f"T{T}_ts"] = np.concatenate(ts_l)
+        out[f"T{T}_key"] = np.concatenate(key_l).astype(str)
+        out[f"T{T}_pH"] = np.concatenate(p_l)
+        out[f"T{T}_y"] = np.concatenate(y_l)
+        print(f"{now_iso()} fH T={T}: rows {len(out[f'T{T}_ts'])}", flush=True)
+    np.savez_compressed(os.path.join(a.out, "fh-r134.npz"), **out)
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -387,8 +1066,23 @@ def main():
     p = sub.add_parser("select-p3b")
     p.add_argument("--datasets", required=True)
     p.add_argument("--out", required=True)
+    p = sub.add_parser("dev")
+    p.add_argument("--datasets", required=True)
+    p.add_argument("--data", required=True)
+    p.add_argument("--out", required=True)
+    p.add_argument("--workers", type=int, default=4)
+    p.add_argument("--crypto-limit", type=int, default=0)
+    p.add_argument("--skip-new", action="store_true")
+    p.add_argument("--fh", default="")
+    p = sub.add_parser("fh")
+    p.add_argument("--datasets", required=True)
+    p.add_argument("--out", required=True)
+    p.add_argument("--workers", type=int, default=3)
     a = ap.parse_args()
-    {"build-b3": cmd_build_b3, "build-hd": cmd_build_hd, "select-p3b": cmd_select_p3b}[a.cmd](a)
+    if a.cmd in ("dev", "fh"):
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    {"build-b3": cmd_build_b3, "build-hd": cmd_build_hd, "select-p3b": cmd_select_p3b, "dev": cmd_dev,
+     "fh": cmd_fh}[a.cmd](a)
 
 
 if __name__ == "__main__":

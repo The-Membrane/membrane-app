@@ -184,6 +184,28 @@ def daily_state(meta: dict, work: str, days: dict[int, int]):
     print(f"[comp-v2-eth] daily state done (rpc {c.n_requests})", flush=True)
 
 
+def fill_eth_price_gaps(meta: dict, work: str, days: dict[int, int]):
+    """The comptroller oracle (UniswapAnchoredView 0xad47...f165) reverts getUnderlyingPrice(cETH) at the
+    2022-08-31..2022-09-07 snapshot blocks (probed 2026-10-18; on chain, getAccountLiquidity of any account in
+    cETH reverts then too). For a listed ETH market with no oracle price, the record uses the Chainlink ETH/USD
+    answer at the same block (price mantissa = answer * 1e10 for 18 decimals) and the state is flagged
+    price_src = "chainlink-eth-usd". Other markets with no price in 2021-22 are all unlisted (cf = 0)."""
+    c = Client("ethereum")
+    for ts, blk in sorted(days.items()):
+        path = os.path.join(work, "state", f"{ts}.json")
+        st = json.load(open(path))
+        changed = False
+        for k, s in st["markets"].items():
+            m = meta["markets"][int(k)]
+            if s["listed"] and not s["price"] and m["usym"] == "ETH" and m["udec"] == 18:
+                ans = v2.w0(v2.multicall(c, [(v2.CHAINLINK_ETH_USD, v2.S_LATEST_ANSWER)], blk)[0])
+                s["price"], s["price_src"] = str(ans * 10**10), "chainlink-eth-usd"
+                changed = True
+        if changed:
+            json.dump(st, open(path, "w"))
+            print(f"[comp-v2-eth] {ts}: cETH price from Chainlink ETH/USD", flush=True)
+
+
 # ------------------------------------------------------------------------------------- replay
 from classes import asset_class  # noqa: E402
 
@@ -322,6 +344,7 @@ def main():
         fetch_logs(meta, WORK, to_block)
     if "state" in ph:
         daily_state(meta, WORK, days)
+        fill_eth_price_gaps(meta, WORK, days)
     if "replay" in ph:
         replay(meta, WORK, days)
 

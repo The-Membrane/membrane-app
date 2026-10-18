@@ -117,7 +117,10 @@ def check_comp():
         live = [i for i in range(len(meta["markets"])) if str(i) in st["markets"]]
         calls = [(cm, s_liq + enc_addr(u))] + [(meta["markets"][i]["cToken"], s_bb + enc_addr(u)) for i in live]
         res = v2.multicall(c, calls, blk)
-        err, liq, short = words(res[0])[:3]
+        if res[0] is None:     # oracle reverts (cETH, 2022-08-31..09-07): getAccountLiquidity reverts
+            err, liq, short = -1, 0, 0
+        else:
+            err, liq, short = words(res[0])[:3]
         debt = 0
         per = {}
         for i, r in zip(live, res[1:]):
@@ -129,14 +132,17 @@ def check_comp():
         wcoll = liq - short + debt
         S = rec["VE"] * rec["ltE"] + rec["VB"] * rec["ltB"] + rec["VO"] * rec["ltO"]
         D = rec["DE"] + rec["DB"] + rec["DO"]
-        chain_hf = wcoll / debt if debt else float("inf")
+        chain_hf = wcoll / debt if debt and err == 0 else float("nan")
         out.append({"day": ts, "block": blk, "user": u, "error_code": err,
                     "rec_wcoll_usd": S, "chain_wcoll_usd": wcoll / 1e18,
                     "rec_debt_usd": D, "chain_debt_usd": debt / 1e18, "chain_borrow_balances": per,
                     "rec_hf": float(rec["hf"]), "chain_hf": chain_hf,
-                    "err_wcoll": rel(S, wcoll / 1e18), "err_debt": rel(D, debt / 1e18),
-                    "err_hf": rel(float(rec["hf"]), chain_hf)})
-    return {"pairs": out, "summary": {k: summarize([p[k] for p in out]) for k in ("err_hf", "err_wcoll", "err_debt")},
+                    "err_wcoll": rel(S, wcoll / 1e18) if err == 0 else None, "err_debt": rel(D, debt / 1e18),
+                    "err_hf": rel(float(rec["hf"]), chain_hf) if err == 0 else None})
+    ok = [p for p in out if p["error_code"] == 0]
+    return {"pairs": out, "n_liquidity_unavailable": len(out) - len(ok),
+            "summary": {k: summarize([p[k] for p in (ok if k != "err_debt" else out)])
+                        for k in ("err_hf", "err_wcoll", "err_debt")},
             "rpc_requests": c.n_requests}
 
 

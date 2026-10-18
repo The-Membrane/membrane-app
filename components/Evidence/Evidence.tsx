@@ -7,6 +7,7 @@ import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
 import { ACTIVE_EFFECTS, FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
+import { OCT10_SIZING_LINE } from '@/lib/position-sim/oct10Totals'
 
 import { Caveats, Eyebrow } from './atoms'
 import { PROTOCOL_NAME, ppWord, share, usd } from './format'
@@ -59,8 +60,7 @@ const LENSES: {
     id: 'debt',
     label: 'Debt closed',
     heading: 'How much of the loan gets closed',
-    blurb:
-      'The share of each side’s own debt closed: path-independent, so it holds whichever way the market goes next. A Membrane borrower carries less debt (sized to Membrane’s own, lower line†), so shares compare and dollars do not. Every sale is capped by the liquidity the day showed†.',
+    blurb: `The share of each side’s own debt closed. ${OCT10_SIZING_LINE}, so shares compare and dollars do not. Every sale is capped by the liquidity the day showed†.`,
     // DIRECTION-AWARE: the gap can point either way per protocol and per chain, so the word
     // is computed from the sign, never typed.
     metric: (d) => `${share(d.debt.all.realShare)} → ${share(d.debt.all.memShare)}†`,
@@ -170,7 +170,7 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                 maxW="760px"
                 lineHeight="1.7"
               >
-                {`Net of both directions: Membrane closes a smaller share on ${doc.debt.all.less.toLocaleString('en-US')} positions (there the protocols closed ${share(doc.debt.all.lessSet.realShare)}, Membrane ${share(doc.debt.all.lessSet.memShare)}\u2020) and a larger one on ${doc.debt.all.more.toLocaleString('en-US')} (${share(doc.debt.all.moreSet.realShare)} against ${share(doc.debt.all.moreSet.memShare)}\u2020); ${doc.debt.all.equal.toLocaleString('en-US')} are equal. The protocols repaid ${usd(doc.debt.all.realRepaidUsd)} on these positions; a Membrane dollar figure is not set beside it, because Membrane\u2019s borrower carries less debt. Debt repaid only: Membrane\u2019s liquidation fee is not assumed.`}
+                {`Net of both directions: Membrane closes a smaller share on ${doc.debt.all.less.toLocaleString('en-US')} positions (there the protocols closed ${share(doc.debt.all.lessSet.realShare)}, Membrane ${share(doc.debt.all.lessSet.memShare)}\u2020) and a larger one on ${doc.debt.all.more.toLocaleString('en-US')} (${share(doc.debt.all.moreSet.realShare)} against ${share(doc.debt.all.moreSet.memShare)}\u2020); ${doc.debt.all.equal.toLocaleString('en-US')} are equal. The protocols repaid ${usd(doc.debt.all.realRepaidUsd)} on these positions; a Membrane dollar figure is not set beside it, because Membrane\u2019s debt is sized to its own line (lower for most positions, higher for some). Debt repaid only: Membrane\u2019s liquidation fee is not assumed.`}
               </Text>
               {/* WHO IS NOT IN THE SET, on both sides (owner rulings 2026-10-18). */}
               <Text

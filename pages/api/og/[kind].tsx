@@ -1,7 +1,12 @@
 import { ImageResponse } from 'next/og'
 import type { NextRequest } from 'next/server'
 
-import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
+import {
+  CORPUS_LINE_SHOWN,
+  CORPUS_SCALE_LINE,
+  OCT10_SCALE_LINE,
+  OCT10_TOTALS,
+} from '@/lib/position-sim/oct10Totals'
 import {
   clampUsd,
   fmtUsdShort,
@@ -118,7 +123,12 @@ async function venueCard(origin: string, raw: string | null): Promise<CardProps>
 }
 
 function findingCard(): CardProps {
-  if (!CORPUS_SCALE_LINE.partial && clampUsd(CORPUS_SCALE_LINE.keptUsd) != null && CORPUS_SCALE_LINE.years > 0) {
+  // the corpus (collateral kept) card is DORMANT: oct10Totals.ts SHOW_CORPUS_COLLATERAL_LINE
+  if (
+    CORPUS_LINE_SHOWN &&
+    clampUsd(CORPUS_SCALE_LINE.keptUsd) != null &&
+    CORPUS_SCALE_LINE.years > 0
+  ) {
     return {
       eyebrow: 'finding · aave v3 liquidations',
       title: `Collateral a 4% window would have kept ${CORPUS_SCALE_LINE.window}`,

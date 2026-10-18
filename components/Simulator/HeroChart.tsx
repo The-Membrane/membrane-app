@@ -18,8 +18,8 @@ import type { Comparison } from '@/lib/position-sim'
 import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
 import { OCT10_SCALE_LINE, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 
-// SHARES, not dollars (owner ruling 2026-10-18): Membrane's borrower carries less debt (sized to
-// Membrane's own line), so each bar is the share of that side's OWN debt at the first
+// SHARES, not dollars (owner ruling 2026-10-18): Membrane's debt is sized to its own line (lower
+// for most positions, higher where its line is above the protocol's), so each bar is the share of that side's OWN debt at the first
 // liquidation that was force-closed. Bars are drawn on a 0-100% scale.
 const shr = (x: number): string => `${(x * 100).toFixed(1)}%`
 const pp = (x: number): string => `${Math.abs(x).toFixed(1)} pp ${x >= 0 ? 'less' : 'more'}`

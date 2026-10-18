@@ -290,7 +290,23 @@ export interface EvidenceMeta {
     partialMembraneLine: ExclusionBlock
     noCapacity: ExclusionBlock
   }
-  line: { rule: string; source: string }
+  line: {
+    rule: string
+    source: string
+    /** How Membrane's debt is sized to its line, over the compared set (review 2026-10-18). */
+    sizing: {
+      rule: string
+      positions: number
+      scaledDown: number
+      scaledUp: number
+      scaledUpHoldingStables: number
+      unchanged: number
+      minScale: number
+      maxScale: number
+      splits: number
+      splitsWithAHalfUnderItsLine: number
+    }
+  }
   liquidity: {
     rule: string
     multiplier: number

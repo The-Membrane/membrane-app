@@ -1,6 +1,6 @@
 // THE CLOSE. The seniority argument ends on measured outcomes, not on a promise.
 //
-// DebtLens is the path-independent lens from the Evidence tool, mounted here on the
+// DebtLens is the share-of-debt lens from the Evidence tool, mounted here on the
 // same server-rendered summary the page already carries (pages/[chain]/index.tsx),
 // so a crawler and the first paint both see real figures. The full cohort table
 // stays at /[chain]/evidence, which the second CTA points at.

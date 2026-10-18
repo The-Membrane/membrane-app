@@ -109,8 +109,10 @@ mixed split's half line from `membraneHalfLine` in `lib/position-sim/membrane.ts
 `compare.ts` and `lib/wavefront/membraneLine.ts`). Each position's debt is **sized to that
 line** (debt0 × memLine / protocolLine per half, collateral unchanged:
 `membraneLine.ts membraneDebtScale`), every sale is liquidity-capped at a uniform 0.98× the
-day's measured 10-minute capacity per token and chain († modelled: the average measured depth
-recovery 8h after five crashes, membrane-datasets liquidity-recovery/REPORT.md), and a
+day's measured 10-minute capacity per token and chain († modelled: 0.98×, the unweighted mean
+of the three measured class medians of depth recovery 8h after five crashes (membrane-datasets
+q28/liquidity-recovery REPORT.md; the report itself rates those medians too generous and
+recommends lower values — see the sensitivity rows)), and a
 position holding any collateral without a Membrane line is left out. Because the two sides
 then carry different debt, the census compares the SHARE of each side's own debt closed.
 
@@ -119,6 +121,12 @@ Headline, on 1,545 of the 3,197 positions: the protocols closed 31.2% of their d
 share on 1,018 positions (32.2% vs 7.1%†), a larger one on 383 (25.8% vs 44.8%†), 137 equal.
 Left out: 866 positions with no Membrane line, 782 holding some collateral without one, and 4
 with no observed liquidity. The full method and the sensitivities are in `docs/WAVEFRONT.md` §0.
+
+The landing's multi-year corpus line ("It would have kept $1.3B of collateral") is DORMANT
+behind `SHOW_CORPUS_COLLATERAL_LINE` in `lib/position-sim/oct10Totals.ts` (owner ruling: no
+collateral-seized metrics; the corpus is being rebuilt). The census share line leads the
+GuaranteeBlock until it returns; the og finding card and the fine-print corpus lines check the
+same flag.
 
 The per-wallet simulator itself is NOT liquidity-capped and does NOT size the debt: it runs
 the wallet's real position, which cannot draw on the day's shared book. The demo borrower was

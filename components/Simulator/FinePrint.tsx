@@ -16,7 +16,11 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { GUARANTEE, type Provenance } from '@/lib/position-sim'
-import { CORPUS_COVERAGE_LINE, CORPUS_WORSE_CONTEXT_LINE } from '@/lib/position-sim/oct10Totals'
+import {
+  CORPUS_COVERAGE_LINE,
+  CORPUS_LINE_SHOWN,
+  CORPUS_WORSE_CONTEXT_LINE,
+} from '@/lib/position-sim/oct10Totals'
 
 import Stamp from './Stamp'
 
@@ -150,8 +154,9 @@ export const FinePrint: React.FC<FinePrintProps> = ({
         {STANDING.map((s) => (
           <Line key={s}>{s}</Line>
         ))}
-        {CORPUS_COVERAGE_LINE && <Line>{CORPUS_COVERAGE_LINE}</Line>}
-        {CORPUS_WORSE_CONTEXT_LINE && <Line>{CORPUS_WORSE_CONTEXT_LINE}</Line>}
+        {/* the corpus lines are DORMANT with the corpus line (SHOW_CORPUS_COLLATERAL_LINE) */}
+        {CORPUS_LINE_SHOWN && CORPUS_COVERAGE_LINE && <Line>{CORPUS_COVERAGE_LINE}</Line>}
+        {CORPUS_LINE_SHOWN && CORPUS_WORSE_CONTEXT_LINE && <Line>{CORPUS_WORSE_CONTEXT_LINE}</Line>}
         {assumptionNote && <Line>{assumptionNote}</Line>}
         <Line>{CARRY_TERMS}</Line>
         {borrowRateNote && <Line>{borrowRateNote}</Line>}

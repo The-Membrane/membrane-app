@@ -90,7 +90,10 @@ const Detail: React.FC<{ r: CohortRow }> = ({ r }) => {
           At its first liquidation ({minuteClock(r.t0Minute)}) it held {legs(r.coll)} against{' '}
           {legs(r.debt)}, at {pct(r.ltv0, 2)} LTV against the protocol&rsquo;s{' '}
           {pct(r.protocolLine, 2)} line. A Membrane borrower at Membrane&rsquo;s {pct(r.line, 2)}{' '}
-          line† carries the debt sized to it: {pct(memLtv0(r), 2)} LTV†, as far past.{' '}
+          line† carries the debt sized to it: {pct(memLtv0(r), 2)} LTV†
+          {r.delayClass === 'mixed'
+            ? ', split in two halves, each sized against its own legs’ protocol line (a half can open under its own line).'
+            : ', as far past its line, proportionally.'}{' '}
           {r.priced ? (
             <>
               The protocol liquidated it {times}, repaying {usd(r.realRepaidUsd)}
@@ -238,7 +241,7 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
           aria-label="Filter by outcome"
         >
           <option value="all">every outcome</option>
-          <option value="membraneLess">Membrane closes less</option>
+          <option value="membraneLess">Membrane closes a smaller share</option>
           <option value="membraneMore">Membrane worse</option>
           <option value="equal">equal to the cent</option>
           <option value="cured">cured in 8h</option>

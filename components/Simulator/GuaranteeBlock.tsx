@@ -11,22 +11,31 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { GUARANTEE, MODELLED_FOOTNOTE } from '@/lib/position-sim'
-import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
+import {
+  CORPUS_LINE_SHOWN,
+  CORPUS_SCALE_LINE,
+  OCT10_SCALE_LINE,
+} from '@/lib/position-sim/oct10Totals'
 
-const SCALE = CORPUS_SCALE_LINE.partial ? OCT10_SCALE_LINE : CORPUS_SCALE_LINE
+// The corpus (collateral kept) line is DORMANT behind SHOW_CORPUS_COLLATERAL_LINE (oct10Totals.ts):
+// the owner ruled out collateral-seized metrics and the corpus is being rebuilt. The census line
+// leads until it returns.
+const SCALE = CORPUS_LINE_SHOWN ? CORPUS_SCALE_LINE : OCT10_SCALE_LINE
 // (When the corpus is partial the census line leads and carries its own scope; when it is
 // complete the census line is a SEPARATE block below, never a slice of the corpus figure.)
 // The census figure's word is its own sign's (OCT10_SCALE_LINE.direction): never typed.
-const SCALE_LEAD = CORPUS_SCALE_LINE.partial
+const SCALE_LEAD = !CORPUS_LINE_SHOWN
   ? OCT10_SCALE_LINE.direction === 'less'
     ? '4% sounds small.'
     : 'At its own, lower lines:'
   : '4% sounds small. It would have kept'
-const SCALE_TAIL = CORPUS_SCALE_LINE.partial
+const SCALE_TAIL = !CORPUS_LINE_SHOWN
   ? `${OCT10_SCALE_LINE.direction} of the debt force-closed, net† (${OCT10_SCALE_LINE.scope}).`
   : `of collateral ${CORPUS_SCALE_LINE.window}.`
-const WINDOW_FIGURE = CORPUS_SCALE_LINE.partial ? '1' : String(CORPUS_SCALE_LINE.years)
-const WINDOW_UNIT = CORPUS_SCALE_LINE.partial ? 'day measured' : 'years measured'
+const WINDOW_FIGURE = !CORPUS_LINE_SHOWN ? '2' : String(CORPUS_SCALE_LINE.years)
+const WINDOW_UNIT = !CORPUS_LINE_SHOWN
+  ? 'days measured · Aave + Morpho'
+  : 'years measured · Aave V3'
 
 /**
  * `noWindow`: the run on screen holds collateral that gets no 8-hour window (stablecoins,
@@ -106,12 +115,12 @@ export const GuaranteeBlock: React.FC<{ noWindow?: boolean }> = ({ noWindow = fa
           textTransform="uppercase"
           color={SEMANTIC_COLORS.warning}
         >
-          {WINDOW_UNIT} · Aave V3
+          {WINDOW_UNIT}
         </Text>
       </Box>
     </Box>
 
-    {!CORPUS_SCALE_LINE.partial && (
+    {CORPUS_LINE_SHOWN ? (
       <Box
         borderTop="1px solid"
         borderColor={SEMANTIC_COLORS.borderSubtle}
@@ -133,6 +142,33 @@ export const GuaranteeBlock: React.FC<{ noWindow?: boolean }> = ({ noWindow = fa
         >
           A different measure · {OCT10_SCALE_LINE.scope}
         </Text>
+        <Text
+          data-testid="sim-scale-subline"
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12.5px"
+          lineHeight={1.6}
+          color={SEMANTIC_COLORS.textSecondary}
+        >
+          {OCT10_SCALE_LINE.result} ({OCT10_SCALE_LINE.split}): Membrane closes{' '}
+          {OCT10_SCALE_LINE.gross}.
+        </Text>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+          color={SEMANTIC_COLORS.textTertiary}
+        >
+          {MODELLED_FOOTNOTE}
+        </Text>
+      </Box>
+    ) : (
+      <Box
+        borderTop="1px solid"
+        borderColor={SEMANTIC_COLORS.borderSubtle}
+        px={{ base: SPACING.base, md: SPACING.xl }}
+        py={SPACING.base}
+        display="grid"
+        gap={SPACING.xs}
+      >
         <Text
           data-testid="sim-scale-subline"
           fontFamily={TYPOGRAPHY.fontMono}

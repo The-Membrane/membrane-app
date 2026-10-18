@@ -97,19 +97,24 @@ export function membraneLinePlan(collateral: readonly SpecLeg[]): MembraneLinePl
 }
 
 /**
- * SIZE THE POSITION TO MEMBRANE'S LINE (owner ruling 2026-10-18, second round). A Membrane
- * borrower would have borrowed less: at t0 each half's debt is scaled so it sits the same
- * PROPORTIONAL distance from Membrane's line as it sat from the protocol's line; the collateral
- * is unchanged.
+ * SIZE THE POSITION TO MEMBRANE'S LINE (owner ruling 2026-10-18, second round). At t0 each
+ * half's debt is scaled by memLine_h / protocolLine_h; the collateral is unchanged. That is LOWER
+ * for most positions and HIGHER where Membrane's line is above the protocol's (stablecoin
+ * collateral: Membrane 0.87 against Aave's 0.78).
  *
  *     memDebt0_h = debt0 x share_h x (memLine_h / protocolLine_h)
- *     => memLTV0_h / memLine_h = LTV0 / protocolLine_h
+ *     => memLTV0_h / memLine_h = LTV0_h / protocolLine_h
  *
  * protocolLine_h is the protocol's own line for the SAME legs: the whole position's (Aave's
  * weighted LT, Morpho's LLTV) when Membrane walks it unsplit, else the LT-weighted line of the
- * half's own legs (`weightedLine`, Aave's LTs at t0). So a position past the protocol's line by
- * x% is past Membrane's by the same x%, and its t0 decision (under / in the band / past it) is
- * the protocol's own.
+ * half's own legs (`weightedLine`, Aave's LTs at t0).
+ *
+ * UNSPLIT: a position past the protocol's line by x% is past Membrane's by the same x%, and its
+ * t0 decision (under / in the band / past it) is the protocol's own.
+ * SPLIT: that holds PER HALF only. Each half opens at the position's own LTV (debt pro rata to
+ * collateral value) and is compared with its own legs' protocol line, not the position's, so a
+ * half can open UNDER its own line although the position is over the protocol's (52 of the 180
+ * compared split positions in the Oct 10-11 census; evidence-census.json meta.line.sizing).
  */
 export function membraneDebtScale(
   half: HalfSpec,

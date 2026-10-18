@@ -98,7 +98,7 @@ export function researchMedianMultiplier(symbol: string): number {
 
 /** The headline multiplier's basis, as every surface states it (†). */
 export const MULTIPLIER_BASIS =
-  'modelled: the average measured depth recovery 8h after five crashes (membrane-datasets liquidity-recovery/REPORT.md)'
+  'modelled: 0.98×, the unweighted mean of the three measured class medians of depth recovery 8h after five crashes (membrane-datasets q28/liquidity-recovery REPORT.md; the report itself rates those medians too generous and recommends lower values — see the sensitivity rows)'
 
 /** A multiplier for every book key, or one number for all of them. */
 export type CapacityMultiplier = number | ((key: string) => number)

@@ -246,9 +246,32 @@ eq([D.all.less, D.all.more, D.all.equal], [1018, 383, 137], 'less / more / equal
 eq(doc.meta.liquidity.multiplier, 0.98, 'the headline multiplier is 0.98x')
 eq(
   doc.meta.liquidity.multiplierBasis,
-  'modelled: the average measured depth recovery 8h after five crashes (membrane-datasets liquidity-recovery/REPORT.md)',
+  'modelled: 0.98×, the unweighted mean of the three measured class medians of depth recovery 8h after five crashes (membrane-datasets q28/liquidity-recovery REPORT.md; the report itself rates those medians too generous and recommends lower values — see the sensitivity rows)',
   'the multiplier is labelled with its basis',
 )
+// The debt sizing (review 2026-10-18): lower for most, higher for some; splits only per half.
+{
+  const z = doc.meta.line.sizing
+  eq(
+    [
+      z.scaledDown,
+      z.scaledUp,
+      z.scaledUpHoldingStables,
+      z.maxScale,
+      z.splits,
+      z.splitsWithAHalfUnderItsLine,
+    ],
+    [1507, 38, 36, 1.28, 180, 52],
+    'sizing: 1,507 lower, 38 higher (36 holding stablecoins, up to 1.28x); 52 of 180 splits with a half under its line',
+  )
+  eq(z.scaledDown + z.scaledUp + z.unchanged, D.all.positions, 'sizing partitions the compared set')
+  ok(/a half opens under its own line/.test(doc.meta.method), 'method: the split caveat is stated')
+  ok(/52 of the 180 split positions/.test(doc.meta.method), 'method: the 52 are reported')
+  ok(
+    !/as far past Membrane’s line as the real position sat past/.test(doc.meta.method),
+    'method: no blanket as-far-past claim',
+  )
+}
 // The published sensitivities, each on its own set, the headline among them.
 {
   const S = doc.meta.sensitivities
@@ -270,6 +293,7 @@ eq(
     'protocol-line-unlimited',
     'no-debt-scaling',
     'partial-lines',
+    'queue-with-partial-lines',
     'band-0.02',
     'band-0.08',
   ])
@@ -277,6 +301,13 @@ eq(
       S.some((r) => r.key === k),
       `sensitivity row ${k} is published`,
     )
+  {
+    // queue order: the excluded partial-line positions also on the book take capacity first
+    const q = S.find((r) => r.key === 'queue-with-partial-lines')!
+    ok(q.memShare <= h.memShare, 'queue order: more sellers on the book, no larger Membrane share')
+    eq(q.memShare.toFixed(4), '0.1223', 'queue order: 12.23%')
+    eq(q.gapPp.toFixed(1), '18.9', 'queue order: 18.9 pp')
+  }
   ok(
     S.find((r) => r.key === 'capacity-1.1')!.label.includes('previous headline'),
     '1.1x is labelled the previous headline',
@@ -310,6 +341,7 @@ eq(
     'capacity-research-medians',
     'capacity-research-flow',
     'no-debt-scaling',
+    'queue-with-partial-lines',
   ])
     eq(S.find((r) => r.key === k)!.positions, h.positions, `${k}: the headline's own positions`)
   {
@@ -520,8 +552,17 @@ ok(bytes < 1_200_000, `the served file stays under 1.2 MB (${bytes.toLocaleStrin
 // totals must be the ones recorded; without the clone, the recorded totals above stand.
 const dsDir = path.resolve(process.env.MEMBRANE_DATASETS_DIR ?? '../membrane-datasets')
 const censusPath = path.join(dsDir, 'oct10-2025', 'coverage', 'census.json')
+// A missing datasets clone SKIPS assertions, and says so loudly (review 2026-10-18): a WARNING
+// with the count, and a failure when CI_REQUIRE_DATASETS=1.
+const CENSUS_JSON_ASSERTIONS = 7
+const ORACLE_PATH_ASSERTIONS = 1
+let skipped = 0
+const skippedWhat: string[] = []
 let censusChecked = false
-if (fs.existsSync(censusPath)) {
+if (!fs.existsSync(censusPath)) {
+  skipped += CENSUS_JSON_ASSERTIONS
+  skippedWhat.push(`census.json (${censusPath})`)
+} else {
   const buf = fs.readFileSync(censusPath)
   eq(createHash('sha256').update(buf).digest('hex'), doc.meta.source.sha256, 'census.json sha256')
   const census = JSON.parse(buf.toString('utf8'))
@@ -529,6 +570,33 @@ if (fs.existsSync(censusPath)) {
   eq(D.all.memShare, census.meta.totals.all.shares.memShare, 'census.json Membrane share')
   near(D.all.realRepaidUsd, census.meta.totals.all.realWalked.repaidUsd, 'census.json real')
   eq(census.rows.length, doc.meta.censusPositions, 'census.json rows: the whole census')
+  // the debt sizing, recounted on census.json's compared rows (review 2026-10-18)
+  {
+    type R = {
+      mem: unknown
+      memLine?: { debtScale?: number; halves?: unknown[] }
+      t0Decisions?: string[]
+    }
+    const cr = (census.rows as R[]).filter((r) => r.mem)
+    const sc = (r: R) => r.memLine?.debtScale ?? 1
+    const splits = cr.filter((r) => (r.memLine?.halves?.length ?? 0) > 1)
+    eq(
+      {
+        scaledDown: cr.filter((r) => sc(r) < 1 - 1e-9).length,
+        scaledUp: cr.filter((r) => sc(r) > 1 + 1e-9).length,
+        splits: splits.length,
+        splitsWithAHalfUnderItsLine: splits.filter((r) => (r.t0Decisions ?? []).includes('under'))
+          .length,
+      },
+      {
+        scaledDown: doc.meta.line.sizing.scaledDown,
+        scaledUp: doc.meta.line.sizing.scaledUp,
+        splits: doc.meta.line.sizing.splits,
+        splitsWithAHalfUnderItsLine: doc.meta.line.sizing.splitsWithAHalfUnderItsLine,
+      },
+      'census.json: the debt sizing recounts (down / up / splits / a half under its line)',
+    )
+  }
   eq(
     census.rows.filter((r: { mem: unknown }) => r.mem).length,
     rows.length,
@@ -548,7 +616,10 @@ const oraclePath = path.join(
   'onchain',
   'aave-oracle-1m.mainnet.json.gz',
 )
-if (fs.existsSync(oraclePath)) {
+if (!fs.existsSync(oraclePath)) {
+  skipped += ORACLE_PATH_ASSERTIONS
+  skippedWhat.push(`the AaveOracle path (${oraclePath})`)
+} else {
   const o = JSON.parse(gunzipSync(fs.readFileSync(oraclePath)).toString('utf8'))
   const weth = o.assets.find((a: { symbol: string }) => a.symbol === 'WETH').address
   const col: (string | null)[] = o.prices[weth]
@@ -556,6 +627,17 @@ if (fs.existsSync(oraclePath)) {
   for (let m = 1; m < col.length; m++) if (col[m] !== col[m - 1]) fresh++
   eq(T.freshPrints.minutes, fresh, 'fresh WETH prints == recounted on the AaveOracle path')
   freshChecked = true
+}
+
+if (skipped > 0) {
+  console.warn(
+    `WARNING: ${skipped} assertions SKIPPED — the datasets inputs are absent: ${skippedWhat.join('; ')}. ` +
+      'Set MEMBRANE_DATASETS_DIR to a membrane-datasets clone on q28/oct10-onchain to run them.',
+  )
+  if (process.env.CI_REQUIRE_DATASETS === '1') {
+    console.error('FAIL: CI_REQUIRE_DATASETS=1 and the datasets inputs are absent.')
+    process.exit(1)
+  }
 }
 
 // ============================================================ 2. the lens text
@@ -580,7 +662,7 @@ has(debtHtml, 'without debt scaling', 'DebtLens: the unscaled run')
 has(debtHtml, 'partial-line set', 'DebtLens: the old partial-line set')
 has(
   debtHtml,
-  'modelled: the average measured depth recovery 8h after five crashes (membrane-datasets liquidity-recovery/REPORT.md)',
+  'modelled: 0.98×, the unweighted mean of the three measured class medians of depth recovery 8h after five crashes (membrane-datasets q28/liquidity-recovery REPORT.md; the report itself rates those medians too generous and recommends lower values — see the sensitivity rows)',
   'DebtLens: the multiplier is labelled with its basis',
 )
 // The net gap is shown with what it is made of, and every Membrane-side figure carries †.
@@ -753,12 +835,21 @@ has(
 )
 has(
   lines,
+  'lower for 1,507 positions, higher (up to 1.28×) for the 38 whose Membrane line is above the protocol’s',
+  'Close: the sizing is stated both ways, never "carries less debt"',
+)
+ok(
+  !/carries less debt|smaller debt a Membrane borrower/.test(lines + bridge),
+  'no "less debt" claim',
+)
+has(
+  lines,
   'no Membrane dollar is set beside it',
   'Close: the real dollars are the size of the day, never compared',
 )
 has(
   lines,
-  'modelled: the average measured depth recovery 8h after five crashes (membrane-datasets liquidity-recovery/REPORT.md)',
+  'modelled: 0.98×, the unweighted mean of the three measured class medians of depth recovery 8h after five crashes (membrane-datasets q28/liquidity-recovery REPORT.md; the report itself rates those medians too generous and recommends lower values — see the sensitivity rows)',
   'Close: the multiplier is labelled with its basis',
 )
 has(
@@ -793,11 +884,13 @@ has(heroChartHtml, 'the dollars differ and are not compared', 'HeroChart: no dol
 ok(!/protected/i.test(heroChartHtml), 'HeroChart: never "protected"')
 const guaranteeHtml = render(React.createElement(GuaranteeBlock, {}))
 ok(!/protected|\balone\b/i.test(guaranteeHtml), 'GuaranteeBlock: never "protected", never "alone"')
-has(
-  guaranteeHtml,
-  'A different measure',
-  'GuaranteeBlock: the census line is labelled a separate measure',
+// The corpus (collateral kept) line is DORMANT (owner ruling: no collateral-seized metrics;
+// oct10Totals.ts SHOW_CORPUS_COLLATERAL_LINE): the census line leads the block.
+ok(
+  !/of collateral|would have kept/i.test(guaranteeHtml),
+  'GuaranteeBlock: no collateral-kept line on the landing',
 )
+has(guaranteeHtml, 'days measured · Aave + Morpho', 'GuaranteeBlock: the census window')
 has(guaranteeHtml, OCT10_SCALE_LINE.scope, 'GuaranteeBlock: with its scope named')
 has(
   guaranteeHtml,
@@ -927,7 +1020,9 @@ ok(
   'unpriced positions sort last',
 )
 
-console.log(`EVIDENCE CENSUS OK — ${checks} assertions passed`)
+console.log(
+  `EVIDENCE CENSUS OK — ${checks} assertions passed${skipped ? ` (WARNING: ${skipped} SKIPPED, datasets absent)` : ''}`,
+)
 console.log(
   `  ${rows.length} positions · real ${pc(D.all.realShare)} of their debt · Membrane ${pc(D.all.memShare)}† of its own · ${ppw(D.all.gapPp)} · size of the day ${usdM(D.all.realRepaidUsd)}`,
 )

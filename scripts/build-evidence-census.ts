@@ -52,6 +52,7 @@ import {
   LIQ_DEBT_MINIMUM_USD,
   MAX_THRESHOLD_TO_DELAY,
 } from '../lib/position-sim/membrane'
+import { isStable } from '../lib/position-sim/collateralClass'
 import { kernelLegs, type PositionSpec } from '../lib/wavefront/aave'
 import type { KernelLeg } from '../lib/wavefront/kernel'
 import {
@@ -422,6 +423,44 @@ const protocolLineUnlimited = sensitivity('protocolLineUnlimited', {
 // left out of the weighted line), and Membrane's line without sizing the debt to it.
 const partialLines = sensitivity('partialLines', { allowPartialLines: true })
 const noDebtScaling = sensitivity('noDebtScaling', { noDebtScaling: true })
+// QUEUE ORDER (review 2026-10-18): the headline's OWN positions, with the excluded partial-line
+// positions also walked and drawing on the shared book first whenever their minute (then pid)
+// comes first. The partial-line run is exactly that; its headline-set rows are the row.
+const headlinePids = new Set(rows.map((r) => r.pid))
+const queueRows = sensRuns.get('partialLines')!.filter((r) => headlinePids.has(r.pid))
+if (queueRows.length !== rows.length || queueRows.some((r) => !r.mem)) {
+  fail('queue-order: the partial-line run does not hold the headline set')
+}
+const queueOrder = setFigures(queueRows)
+queueOrder.excluded = { ...setFigures(allRows).excluded }
+
+/**
+ * HOW THE DEBT IS SIZED (review 2026-10-18), over the compared positions: memLine / protocolLine
+ * per half. It is LOWER for most positions; it is HIGHER where Membrane's line is above the
+ * protocol's (mostly stablecoin collateral: Membrane 0.87 against Aave's 0.78). The proportional
+ * distance is kept for an unsplit position; a split position keeps it only PER HALF, each half
+ * against the LT-weighted line of its own legs, so a half can open under its own line.
+ */
+const sizing = (() => {
+  const scaleOf = (r: CensusRow) => r.memLine?.debtScale ?? 1
+  const up = rows.filter((r) => scaleOf(r) > 1 + 1e-9)
+  const down = rows.filter((r) => scaleOf(r) < 1 - 1e-9)
+  const splits = rows.filter((r) => (r.memLine?.halves?.length ?? 0) > 1)
+  const halfUnder = splits.filter((r) => (r.t0Decisions ?? []).includes('under'))
+  const scales = rows.map(scaleOf)
+  return {
+    rule: 'memDebt0_h = debt0 x share_h x (memLine_h / protocolLine_h) (lib/wavefront/membraneLine.ts membraneDebtScale). Unsplit: the position sits as far past Membrane’s line, proportionally, as it sat past the protocol’s, so its t0 decision is the protocol’s own. Split: that holds per half only, each half against the LT-weighted protocol line of its own legs, so a half can open under its own line.',
+    positions: rows.length,
+    scaledDown: down.length,
+    scaledUp: up.length,
+    scaledUpHoldingStables: up.filter((r) => r.collateral.some((c) => isStable(c.symbol))).length,
+    unchanged: rows.length - up.length - down.length,
+    minScale: Math.round(Math.min(...scales) * 1e4) / 1e4,
+    maxScale: Math.round(Math.max(...scales) * 1e4) / 1e4,
+    splits: splits.length,
+    splitsWithAHalfUnderItsLine: halfUnder.length,
+  }
+})()
 for (const c of capacityRuns) {
   if (c.set.positions !== headlineSet.positions) {
     fail(`capacity x${c.multiplier} is not on the headline's positions`)
@@ -497,6 +536,12 @@ const sensitivityTable = [
     `partial-line set (first-round rule), ${CAPACITY_MULTIPLIER}x capacity`,
     "Positions where SOME collateral has no Membrane line are back in, those legs left out of the weighted line (the per-wallet simulator's rule). Its own compared set.",
     partialLines.set,
+  ),
+  sensRow(
+    'queue-with-partial-lines',
+    `headline set, partial-line positions also on the book, ${CAPACITY_MULTIPLIER}x capacity`,
+    "The headline's own positions; the excluded partial-line positions are walked too and draw on the shared liquidity book in queue order (minute, then pid), so they can take capacity first. Same positions as the headline.",
+    queueOrder,
   ),
   ...bandSensitivity
     .filter((b) => b.band !== MAX_THRESHOLD_TO_DELAY)
@@ -1092,6 +1137,7 @@ const meta = {
     rule: M.method.line,
     source:
       'lib/position-sim/membrane.ts MEMBRANE_ASSET_LTV (modelled) and DEPLOY_LAUNCH_LTV (script/DeployFullSystem.s.sol:243-251), through lib/wavefront/membraneLine.ts — the per-wallet simulator’s own rule.',
+    sizing,
   },
   liquidity: {
     rule: M.liquidity.rule,
@@ -1144,7 +1190,9 @@ const meta = {
     'Every position liquidated on an Aave V3 pool or a Morpho Blue market of Ethereum, Arbitrum, Optimism or Base between 00:00 UTC 10 Oct and 23:59 UTC 11 Oct 2025: ' +
     `${allRows.length.toLocaleString('en-US')} positions, of which ${rows.length.toLocaleString('en-US')} are compared. What is compared is the SHARE OF DEBT CLOSED: each side's repaid debt over its own debt at the first liquidation, debt-weighted. Only debt repaid counts: Membrane’s liquidation fee cannot be assumed, so collateral taken does not. ` +
     'The real side is every liquidation of the position in that window, measured on chain: the debt the liquidators repaid (Aave: at the liquidating block’s AaveOracle prices; Morpho: in the loan token, priced as below), over the position’s debt at the first liquidation the protocol’s own health check confirms (t0). ' +
-    'Membrane’s side is the same collateral at t0 with the debt a Membrane borrower would have carried: SIZED TO MEMBRANE’S OWN LINE, debt × (Membrane line / protocol line), so it sits as far past Membrane’s line as the real position sat past the protocol’s†. Membrane’s line is the value-weighted modelled max LTV of the collateral (WETH 80%, wstETH 78%, WBTC 75%, …)†. It is walked minute by minute on each leg’s own protocol-oracle path. ' +
+    'Membrane’s side is the same collateral at t0 with the debt a Membrane borrower would have carried: SIZED TO MEMBRANE’S OWN LINE, debt × (Membrane line / protocol line)†: ' +
+    `lower for ${sizing.scaledDown.toLocaleString('en-US')} positions; higher (up to ${sizing.maxScale}×) for the ${sizing.scaledUp} whose Membrane line is above the protocol’s (${sizing.scaledUpHoldingStables} of them hold stablecoin collateral, which Membrane lines at 0.87 against Aave’s 0.78). An unsplit position sits as far past Membrane’s line, proportionally, as it sat past the protocol’s; a split position does so per half only, each half against its own legs’ protocol line, so on ${sizing.splitsWithAHalfUnderItsLine} of the ${sizing.splits} split positions a half opens under its own line.` +
+    ' Membrane’s line is the value-weighted modelled max LTV of the collateral (WETH 80%, wstETH 78%, WBTC 75%, …)†. It is walked minute by minute on each leg’s own protocol-oracle path. ' +
     'A breach inside line × 1.04 waits eight hours; a return under the line clears the timer; past the band, or still over the line at expiry, the position is repaid to its borrow cap (line − 3pp) with the $2,000 floor, and it walks on. Stablecoin collateral, or a line above 90%, gets no window and is repaid the minute it is over its line†. A position holding both is split the way Membrane would hold it, each half sized to its own line. ' +
     `Every sale is LIQUIDITY-CAPPED: all of Membrane’s sales of a token on a chain share ${CAPACITY_MULTIPLIER}×† (${MULTIPLIER_BASIS}) the most tokens liquidators actually absorbed in any ${CAPACITY_WINDOW_MINUTES} minutes of the two days (Aave and Morpho together); what does not fill waits and sells in later minutes at those minutes’ prices, never past the borrow cap. ` +
     `Left out of both sides: ${M.exclusions.noMembraneLine.positions.toLocaleString('en-US')} positions whose collateral has no Membrane line (${money(M.exclusions.noMembraneLine.realRepaidUsd)} repaid by the protocols), ${M.exclusions.partialMembraneLine.positions.toLocaleString('en-US')} that hold SOME collateral without one (${money(M.exclusions.partialMembraneLine.realRepaidUsd)}), and ${M.exclusions.noCapacity.positions.toLocaleString('en-US')} that would have to sell a token nobody liquidated on that chain (${money(M.exclusions.noCapacity.realRepaidUsd)}). ` +
@@ -1179,7 +1227,7 @@ const meta = {
     `${unpriced.positions} Morpho positions borrow a token with no USD price on that day (${unpriced.loanSymbols.join(', ')}). They are walked and counted in every position total, and left out of every dollar total and median on both sides.`,
     'Only debt repaid is compared. Membrane’s liquidation fee is not assumed, so collateral taken from the borrower is not a comparison on either side.',
     'The real side can repay more than the debt at t0: a borrower can borrow again between liquidations, and interest accrues. Membrane’s walk starts from the t0 position and adds neither.',
-    `Membrane’s line is modelled†: no Membrane market is deployed, and the per-asset max LTVs (WETH 80%, wstETH 78%, WBTC 75%, …) are our assumption. A Membrane borrower would have borrowed less, so each position’s debt is sized to Membrane’s line (debt × Membrane line / protocol line), keeping it as far past the line as it really was; that sizing is modelled† too. Because the two sides then carry different debt, the page compares the SHARE of each side’s own debt closed, never the dollars. ${(M.exclusions.noMembraneLine.positions + M.exclusions.partialMembraneLine.positions).toLocaleString('en-US')} positions holding any collateral without a Membrane line (${money(M.exclusions.noMembraneLine.realRepaidUsd + M.exclusions.partialMembraneLine.realRepaidUsd)} repaid by the protocols) are left out of both sides; the protocol’s-line run is published beside the headline.`,
+    `Membrane’s line is modelled†: no Membrane market is deployed, and the per-asset max LTVs (WETH 80%, wstETH 78%, WBTC 75%, …) are our assumption. Each position’s debt is sized to Membrane’s line (debt × Membrane line / protocol line, per half for a split position); that sizing is modelled† too: ${sizing.scaledDown.toLocaleString('en-US')} positions carry less debt, ${sizing.scaledUp} carry more (up to ${sizing.maxScale}×), and on ${sizing.splitsWithAHalfUnderItsLine} of the ${sizing.splits} split positions a half opens under its own line. Because the two sides then carry different debt, the page compares the SHARE of each side’s own debt closed, never the dollars. ${(M.exclusions.noMembraneLine.positions + M.exclusions.partialMembraneLine.positions).toLocaleString('en-US')} positions holding any collateral without a Membrane line (${money(M.exclusions.noMembraneLine.realRepaidUsd + M.exclusions.partialMembraneLine.realRepaidUsd)} repaid by the protocols) are left out of both sides; the protocol’s-line run is published beside the headline.`,
     `Sales are capped by the liquidity the day actually showed: ${CAPACITY_MULTIPLIER}× the most tokens liquidators absorbed in any ${CAPACITY_WINDOW_MINUTES} minutes, per token and chain, shared by every Membrane sale (${CAPACITY_MULTIPLIER}×† — † ${MULTIPLIER_BASIS}). 0.5×, 1×, 1.1× (the previous headline), 2×, unlimited and the research's per-class multipliers are published. Each fill is priced at the oracle, not at a market impact price.`,
     'The timer is cleared the minute a position is back under its line. Both clearing paths are permissionless calls somebody has to make; the sensitivity where nobody does is published below.',
     'The cure column is a price-only diagnostic: it ignores the band and re-arming, and no dollar is computed from it.',
@@ -1334,6 +1382,14 @@ const headlineDoc = {
   /** The COMPARED positions (both sides); censusPositions is every position the census holds. */
   positions: meta.positions,
   censusPositions: meta.censusPositions,
+  sizing: {
+    scaledDown: sizing.scaledDown,
+    scaledUp: sizing.scaledUp,
+    scaledUpHoldingStables: sizing.scaledUpHoldingStables,
+    maxScale: sizing.maxScale,
+    splits: sizing.splits,
+    splitsWithAHalfUnderItsLine: sizing.splitsWithAHalfUnderItsLine,
+  },
   excluded: {
     noMembraneLine: {
       positions: M.exclusions.noMembraneLine.positions,

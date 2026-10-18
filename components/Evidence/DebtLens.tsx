@@ -137,7 +137,10 @@ const LiquidityCard: React.FC<{ meta: EvidenceMeta }> = ({ meta }) => {
   // scaling, and the first-round partial-line set
   const lineRows = meta.sensitivities.filter(
     (r) =>
-      r.key.startsWith('protocol-line') || r.key === 'no-debt-scaling' || r.key === 'partial-lines',
+      r.key.startsWith('protocol-line') ||
+      r.key === 'no-debt-scaling' ||
+      r.key === 'partial-lines' ||
+      r.key === 'queue-with-partial-lines',
   )
   const tok = (x: number) =>
     x >= 1e6 ? `${(x / 1e6).toFixed(2)}M` : x >= 1e3 ? `${(x / 1e3).toFixed(1)}k` : x.toPrecision(3)
@@ -229,8 +232,8 @@ const LiquidityCard: React.FC<{ meta: EvidenceMeta }> = ({ meta }) => {
 }
 
 /**
- * How much of each position's debt gets closed — the path-independent lens, and the one to
- * lead with. Whether a liquidation "saved" equity depends on where the market went next; how
+ * How much of each position's debt gets closed — the share of each side's own debt, and the
+ * one to lead with. Whether a liquidation "saved" equity depends on where the market went next; how
  * much of the loan was closed out does not.
  *
  * THE SPLIT IS ALWAYS ON SCREEN. The whole-census figure leads, and the Aave / Morpho split

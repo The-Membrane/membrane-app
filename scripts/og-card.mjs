@@ -17,8 +17,8 @@ const census = JSON.parse(
     'utf8',
   ),
 )
-// Direction-aware, in SHARES of each side's own debt (Membrane's borrower carries less debt, sized
-// to Membrane's own line, so dollars do not compare).
+// Direction-aware, in SHARES of each side's own debt (Membrane's debt is sized to its own line —
+// lower for most positions, higher for some — so dollars do not compare).
 const dir = (g) => (g >= 0 ? 'less' : 'more')
 const sh = (x) => `${(x * 100).toFixed(1)}%`
 const pp = (g) => `${Math.abs(g).toFixed(1)} pp ${dir(g)}`

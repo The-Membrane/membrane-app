@@ -86,6 +86,16 @@ export const OCT10_SPLIT_LINE =
   ` · Morpho ${pp(OCT10_TOTALS.byProtocol.morpho.gapPp)} ${dirOf(OCT10_TOTALS.byProtocol.morpho.gapPp)}`
 
 /**
+ * HOW MEMBRANE'S DEBT IS SIZED, in words that are true for every position (review 2026-10-18):
+ * lower for most, HIGHER where Membrane's line is above the protocol's (mostly stablecoin
+ * collateral). Read from the headline file (meta.line.sizing), never typed.
+ */
+export const OCT10_SIZING_LINE =
+  `Membrane’s debt is sized to its own line†: lower for ${census.sizing.scaledDown.toLocaleString('en-US')} positions, ` +
+  `higher (up to ${census.sizing.maxScale}×) for the ${census.sizing.scaledUp} whose Membrane line is above the protocol’s ` +
+  `(${census.sizing.scaledUpHoldingStables} of them hold stablecoin collateral)`
+
+/**
  * THE STAKES LINE, per owner 2026-09-12: the size, the date, the count, and no other words.
  * It sits directly above the verdict; the verdict stays the headline. The day's real side only.
  */
@@ -174,6 +184,17 @@ function usdFigure(usd: number): string {
 const corpusFigure = usdFigure(corpus.keptUsd)
 const corpusYearCount = corpusYears()
 const corpusWindow = `over ${corpusYearCount} years of Aave V3`
+
+/**
+ * DORMANT (owner ruling 2026-10-18 + review): the corpus line is COLLATERAL KEPT ("It would have
+ * kept $1.3B of collateral"), and the owner ruled out collateral-seized metrics; the corpus is
+ * also being rebuilt. Every surface that printed it (the landing's GuaranteeBlock, the og
+ * finding card, the simulator's fine print) checks this flag first. The code path stays intact:
+ * when the rebuilt corpus is re-ruled on, set it to true (or restate the line in debt closed).
+ */
+export const SHOW_CORPUS_COLLATERAL_LINE = false
+/** True only when the corpus line may be printed: the flag, and a finished (not partial) scan. */
+export const CORPUS_LINE_SHOWN = SHOW_CORPUS_COLLATERAL_LINE && corpus.partial !== true
 
 export const CORPUS_SCALE_LINE = {
   /** actualSeizedUsd − membraneSeizedUsd over PRICED episodes, formatted. */

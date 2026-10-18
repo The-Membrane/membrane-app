@@ -14,7 +14,8 @@ Shares are debt-weighted over the priced compared positions (`census.ts:1381 cen
 real share = Σ real repaid / Σ real t0 debt; Membrane share = Σ Membrane closed on the t0 basis /
 Σ Membrane's own, line-sized t0 debt. The gap is (real − Membrane) in percentage points; its
 word ("less"/"more") is computed from its sign. Real dollars appear only as the size of the
-day; no Membrane dollar is set beside them, because a Membrane borrower carries less debt.
+day; no Membrane dollar is set beside them, because Membrane's debt is sized to its own line
+(lower for 1,507 positions, higher for 38).
 
 | set (compared) | positions (priced) | real share | Membrane share† | net | per position less / more / equal | medians real / Membrane† | real repaid (size of the day) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -52,8 +53,14 @@ at t0. A mixed position splits like `compare.ts splitByDelayClass`, each half at
     ⇒ memLTV0_h / memLine_h = LTV0 / protocolLine_h
 
 protocolLine_h is the whole position's line (Aave weighted LT, Morpho LLTV) when unsplit, else
-the LT-weighted line of the half's own legs. So a position past the protocol's line by x% is
-past Membrane's by the same x%, and its t0 decision is the protocol's own. Applied:
+the LT-weighted line of the half's own legs. For an UNSPLIT position, being past the protocol's
+line by x% means being past Membrane's by the same x%, and its t0 decision is the protocol's own.
+For a SPLIT position that holds per half only: each half opens at the position's own LTV and is
+set against its own legs' protocol line, so **on 52 of the 180 compared split positions a half
+opens under its own line** (e.g. `aave-v3:arbitrum:…70422dd0`; `meta.line.sizing`). The scale is
+lower for 1,507 positions and higher for 38 (up to 1.28×): 36 of those hold stablecoin collateral,
+which Membrane lines at 0.87 against Aave's 0.78; the other two are an rETH position (0.75 vs
+0.74) and an unpriced Morpho WETH/DEGEN market at LLTV 0.625. Applied:
 `census.ts:681 planOf` (scaled halves unless `noDebtScaling`), `aave.ts:446 kernelLegs` (debt
 legs × `debtScale`), `census.ts:1123` (t0 decision on `ltv0 × debtScale`), `census.ts:1087` and
 `:1310 debtScaleOf` (row `mem.debt0`, `mem.debt0Usd` = Σ share_h × debtScale_h × debt), and
@@ -69,10 +76,13 @@ positions are sold at t0 (the first round, unscaled at a lower line: 1,590).
   integers, exact. The liquidators-only figure (no fee) is beside it: AAVE on mainnet is
   97,556.85 with the fee and 96,876.22 without.
 - *Rate, shared:* every Membrane sale of that token on that chain draws on one trailing window
-  of **0.98×** capacity (`liquidity.ts:50 CAPACITY_MULTIPLIER`) — † modelled: the average
-  measured depth recovery 8h after five crashes (membrane-datasets
-  liquidity-recovery/REPORT.md); 0.98 is the mean of the three class medians at +8h, ETH/LSTs
-  0.77, BTC wrappers 0.99, long tail 1.17 (`liquidity.ts:62 RESEARCH_LIQUIDITY_CLASSES`). The
+  of **0.98×** capacity (`liquidity.ts:50 CAPACITY_MULTIPLIER`) — † modelled: 0.98×, the
+  unweighted mean of the three measured class medians of depth recovery 8h after five crashes
+  (ETH/LSTs 0.77, BTC wrappers 0.99, long tail 1.17; `liquidity.ts:62
+  RESEARCH_LIQUIDITY_CLASSES`), from membrane-datasets **q28/liquidity-recovery** REPORT.md (that
+  report is on its own branch, not on q28/oct10-onchain). The report itself rates those medians
+  too generous and recommends lower values: its recommended per-class row and the 0.2× flow
+  reading are below. The
   previous headline, 1.1× (`:52`), is a row below. Order: minute, then pid, then sub.
 - *Split:* a sale offers the same fraction of every collateral leg's tokens (pro rata by value).
   Each leg fills against its own window. If every leg fills fully, the kernel takes `cureSale`'s
@@ -104,6 +114,7 @@ and after, `meta.sensitivities`):
 | the protocol's own line, real debt, unlimited | 3,127 | 32.6% | 27.3% | 5.4 pp less | 1.6 pp less | 38.4 pp less |
 | Membrane's line, no debt scaling, 0.98× | 1,545 | 31.2% | 34.1% | 2.9 pp more | 3.9 pp more | 5.7 pp less |
 | partial-line set (first-round rule), 0.98× | 2,262 | 32.4% | 19.3% | 13.1 pp less | 9.3 pp less | 50.3 pp less |
+| queue order: headline set, the excluded partial-line positions also drawing on the shared book, 0.98× | 1,545 | 31.2% | 12.2% | 18.9 pp less | 15.0 pp less | 50.3 pp less |
 | band 2% | 1,545 | 31.2% | 20.4% | 10.7 pp less | 6.1 pp less | 47.9 pp less |
 | band 8% | 1,545 | 31.2% | 6.2% | 25.0 pp less | 20.9 pp less | 58.4 pp less |
 | nobody clears early | 1,545 | 31.2% | 14.4% | 16.8 pp less | 12.7 pp less | 49.6 pp less |
@@ -115,6 +126,9 @@ and after, `meta.sensitivities`):
 The class map (`liquidity.ts:62`, by collateral symbol): ETH/LSTs = WETH, ETH, stETH, wstETH,
 weETH, rETH, cbETH, ETHx, osETH, tETH, rsETH, wrsETH, ezETH, superOETHb, wsuperOETHb, bsdETH,
 ETH+, ETH0; BTC wrappers = WBTC, BTC, cbBTC, tBTC, LBTC, eBTC, FBTC; long tail = everything else.
+The queue-order row is the partial-line run read on the headline's own 1,545 positions: the 782
+partial-line positions are walked too and take capacity from the shared book when their minute
+(then pid) comes first, so Membrane's share drops from 13.28% to 12.23%.
 The partial-line row has 2,262 positions, not round 1's 2,280: with the line-sized debt, 69
 positions (round 1: 51) would sell a token with no observed liquidity; without the sizing the
 set is round 1's exactly.

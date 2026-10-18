@@ -12,12 +12,15 @@ import { OCT10_SCALE_LINE, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 // headline here and the demo is a real wallet Aave V3 liquidated on 10 Oct 2025. The
 // carry-first build lives at /[chain]/carry-simulator; config/simulatorMode.ts decides
 // which of the two `/` and the nav point at.
+const shr = (x: number) => `${(x * 100).toFixed(1)}%`
+
 const SimulatorPage = () => (
   <>
     <PageSeo
       seoClass="indexable"
       title="Membrane — 4%. Cross the line and nothing is sold."
-      description={`Paste any Aave, Spark, Morpho or Compound position and replay it through the measured 10 Oct 2025 crash. On ${OCT10_TOTALS.window}, Membrane's 4% window would have force-closed ${OCT10_SCALE_LINE.figure} less debt, net (modelled; ${OCT10_SCALE_LINE.split}).`}
+      // The share framing (owner ruling 2026-10-18): each side's own debt, the word by the sign, †.
+      description={`Paste any Aave, Spark, Morpho or Compound position and replay it through the measured 10 Oct 2025 crash. On ${OCT10_TOTALS.window}, across ${OCT10_TOTALS.positions.toLocaleString('en-US')} Aave and Morpho liquidations, the protocols force-closed ${shr(OCT10_TOTALS.realShare)} of the debt; at Membrane's own lines a borrower would have lost ${shr(OCT10_TOTALS.membraneShare)}† of theirs, ${OCT10_SCALE_LINE.figure} ${OCT10_SCALE_LINE.direction}, net† (${OCT10_SCALE_LINE.split}). † modelled.`}
     />
     <Simulator mode="borrower" />
   </>

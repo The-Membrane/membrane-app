@@ -102,7 +102,7 @@ describe('the shared book', () => {
     // 0.98 is the mean of the three class medians at +8h, to two places
     expect(Math.round(((0.77 + 0.99 + 1.17) / 3) * 100) / 100).toBe(CAPACITY_MULTIPLIER)
     expect(MULTIPLIER_BASIS).toBe(
-      'modelled: the average measured depth recovery 8h after five crashes (membrane-datasets liquidity-recovery/REPORT.md)',
+      'modelled: 0.98×, the unweighted mean of the three measured class medians of depth recovery 8h after five crashes (membrane-datasets q28/liquidity-recovery REPORT.md; the report itself rates those medians too generous and recommends lower values — see the sensitivity rows)',
     )
     const b = new LiquidityBook(new Map([[KEY, 100]]), CAPACITY_MULTIPLIER, 60)
     expect(b.limitOf(KEY)).toBeCloseTo(98, 12)

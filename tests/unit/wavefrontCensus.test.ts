@@ -1,6 +1,6 @@
 /**
  * The full-coverage census (scripts/oct10-coverage/census.ts) on a committed fixture subset of
- * the on-chain pull (tests/unit/fixtures/wavefront-census-fixture.json, 22 positions chosen to
+ * the on-chain pull (tests/unit/fixtures/wavefront-census-fixture.json, 25 positions chosen to
  * hit every branch). The whole-pull run of the same invariants is
  * scripts/tests/wavefront-census.test.ts (it needs the datasets repo).
  *
@@ -114,8 +114,18 @@ describe('census on the fixture subset', () => {
       }
       expect(r.memLine, r.pid).toBeDefined()
       const open = census.records.find((x) => x.kind === 'open' && x.pid === r.pid) as any
+      if (r.excluded === 'partial-membrane-line') {
+        // some collateral has no Membrane line: out of both sides, the stream keeps the
+        // protocol's line on its open record and no Membrane debt
+        expect(r.mem, r.pid).toBeNull()
+        expect(open.line).toBe(Math.round(r.line! * 1e6) / 1e6)
+        expect(open.memDebtUsd).toBeUndefined()
+        continue
+      }
       expect(open.line).toBe(Math.round(r.memLine!.line * 1e6) / 1e6)
     }
+    // the partial-line exclusion is exercised: a mixed position with a leg lacking a line
+    expect(rows.some((r) => r.excluded === 'partial-membrane-line')).toBe(true)
     for (const r of legacy.rows) expect(r.memLine, r.pid).toBeUndefined()
     // the whale holds AAVE only: Membrane has no line for it
     expect(rows.some((r) => r.excluded === 'no-membrane-line')).toBe(true)
@@ -186,6 +196,29 @@ describe('census invariants (fixture)', () => {
         } else expect(loc.length, r.pid).toBe(0)
       }
     }
+  })
+
+  it('sizes Membrane’s debt to its line: debt0 x memLine / protocolLine, per half', () => {
+    // lib/wavefront/membraneLine.ts membraneDebtScale; census.ts debtScaleOf
+    const compared = rows.filter((r) => !r.excluded && r.mem)
+    expect(compared.length).toBeGreaterThan(5)
+    for (const r of compared) {
+      const ml = r.memLine!
+      expect(ml.halves, r.pid).toBeDefined()
+      for (const h of ml.halves!)
+        expect(h.debtScale, r.pid).toBeCloseTo(h.line / h.protocolLine, 12)
+      if (ml.halves!.length === 1) expect(ml.halves![0].protocolLine, r.pid).toBe(r.line)
+      // the protocol-line run walks the unscaled debt: Membrane's is that times the scale
+      const unscaled = legacyByPid.get(r.pid)!.mem!.debt0
+      expect(r.mem!.debt0 / unscaled, r.pid).toBeCloseTo(ml.debtScale!, 9)
+      if (r.debtUsd != null)
+        expect(r.mem!.debt0Usd!, r.pid).toBeCloseTo(r.debtUsd * ml.debtScale!, 6)
+      // collateral is unchanged
+      expect(r.collUsd, r.pid).toBe(legacyByPid.get(r.pid)!.collUsd)
+    }
+    // the split positions are scaled per half, so the whole is the share-weighted sum
+    const split = compared.filter((r) => r.memLine!.halves!.length > 1)
+    expect(split.length).toBeGreaterThanOrEqual(2)
   })
 
   it('a mixed split sums its debt and collateral to the whole', () => {

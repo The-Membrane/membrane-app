@@ -62,13 +62,19 @@ import {
   CAPACITY_MULTIPLIER,
   LiquidityBook,
   researchClassMultiplier,
+  researchMedianMultiplier,
   computeCapacity,
   liqKeyOf,
   type CapacityEntry,
   type CapacityEvent,
   type KernelLiquidity,
 } from '../../lib/wavefront/liquidity'
-import { membraneLinePlan, type MembraneLinePlan } from '../../lib/wavefront/membraneLine'
+import {
+  membraneDebtScale,
+  membraneLinePlan,
+  scaledHalves,
+  type MembraneLinePlan,
+} from '../../lib/wavefront/membraneLine'
 import {
   morphoPositionSpec,
   morphoRealUsd,
@@ -176,18 +182,27 @@ export interface CensusOptions {
    */
   lineMode?: 'membrane' | 'protocol'
   /**
-   * SENSITIVITY ONLY: exclude every position with ANY collateral leg that has no Membrane line
-   * (the headline leaves such legs out of the weighted line, the simulator's rule).
+   * SENSITIVITY ONLY: keep positions where SOME collateral legs have no Membrane line, those
+   * legs left out of the weighted line (the simulator's rule; the 2026-10-18 first-round
+   * headline). The headline excludes every such position ('partial-membrane-line', owner
+   * ruling 2026-10-18, second round).
    */
-  strictLines?: boolean
+  allowPartialLines?: boolean
+  /**
+   * SENSITIVITY ONLY: walk at Membrane's line WITHOUT sizing the debt to it (the first-round
+   * method). The headline scales each half's t0 debt by memLine / protocolLine
+   * (lib/wavefront/membraneLine.ts membraneDebtScale).
+   */
+  noDebtScaling?: boolean
   /**
    * The liquidity cap (lib/wavefront/liquidity.ts): every Membrane sale draws on the shared
-   * book at `capacityMultiplier` x the measured capacity. Default CAPACITY_MULTIPLIER (1.1, the
+   * book at `capacityMultiplier` x the measured capacity. Default CAPACITY_MULTIPLIER (0.98, the
    * headline); Infinity = unlimited, on the SAME positions (a no-capacity holding is still
-   * excluded). 'research-per-class': the research class multipliers
-   * (liquidity.ts RESEARCH_LIQUIDITY_CLASSES), a sensitivity.
+   * excluded). 'research-per-class' / 'research-medians': the research class
+   * table's recommended / measured-median multipliers (liquidity.ts RESEARCH_LIQUIDITY_CLASSES),
+   * sensitivities. Default CAPACITY_MULTIPLIER (0.98x).
    */
-  capacityMultiplier?: number | 'research-per-class'
+  capacityMultiplier?: number | 'research-per-class' | 'research-medians'
   /**
    * REGRESSION AND CROSS-CHECK ONLY: no liquidity model at all — no book, no no-capacity
    * exclusion. With lineMode 'protocol' this is the pre-2026-10-18 census, row for row.
@@ -211,6 +226,8 @@ export interface CensusProbe {
   halves: readonly HalfSpec[]
   /** The whole position's line walked, and its class on that line. */
   line: number
+  /** Membrane's t0 debt over the real t0 debt (1 unscaled). */
+  debtScale: number
   delayClass: DelayClass
   results: readonly KernelResult[]
   ratioAt: (leg: KernelLeg, minute: number) => number
@@ -284,6 +301,12 @@ export interface CensusRow {
     unknownShare: number
     /** Subs of a split running at the whole position's line (no leg of theirs has one). */
     lineFromWhole?: number[]
+    /**
+     * Membrane's t0 debt / the real t0 debt (Σ share_h x debtScale_h), and per half its line,
+     * the protocol's line for the same legs, and memLine / protocolLine. Absent when unscaled.
+     */
+    debtScale?: number
+    halves?: { sub?: number; line: number; protocolLine: number; debtScale: number }[]
   }
   ltv0: number | null
   /** The class Membrane walks it in (on the line walked). */
@@ -304,6 +327,9 @@ export interface CensusRow {
     unpricedEvents: number
   }
   mem: null | {
+    /** The debt Membrane walks at t0, in the position's unit (sized to its line), and in USD. */
+    debt0: number
+    debt0Usd: number | null
     outcome: CureOutcome
     sales: number
     firstSaleMinute: number | null
@@ -341,7 +367,7 @@ export interface CensusResult {
   capacity: CapacityEntry[]
   /** The run's liquidity settings and what the book saw (null: no liquidity model). */
   liquidity: null | {
-    multiplier: number | 'research-per-class'
+    multiplier: number | 'research-per-class' | 'research-medians'
     /**
      * Per book key: tokens filled, offers that did not fill completely, the most filled in any
      * rolling window (never above the limit), and the limit (null: unlimited).
@@ -626,7 +652,9 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
   const bookMultiplier =
     multiplier === 'research-per-class'
       ? (key: string) => researchClassMultiplier(symbolOf.get(key) ?? '')
-      : multiplier
+      : multiplier === 'research-medians'
+        ? (key: string) => researchMedianMultiplier(symbolOf.get(key) ?? '')
+        : multiplier
   const book = opts.noCapacityModel ? null : new LiquidityBook(capMap, bookMultiplier, W.minutes)
   const lineMode = opts.lineMode ?? 'membrane'
 
@@ -649,7 +677,8 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
   const planOf = (sp: PositionSpec): { halves: HalfSpec[]; plan: MembraneLinePlan | null } => {
     if (lineMode === 'protocol') return { halves: sp.halves, plan: null }
     const plan = membraneLinePlan(sp.collateral)
-    return { halves: plan ? plan.halves : [], plan }
+    if (!plan) return { halves: [], plan }
+    return { halves: opts.noDebtScaling ? plan.halves : scaledHalves(plan, sp), plan }
   }
 
   interface Walk {
@@ -746,10 +775,10 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
           reason: 'no-membrane-line',
           detail: `no Membrane line for ${[...new Set(s.collateral.map((l) => l.symbol))].join(', ')}: none of its collateral has a modelled or deploy-listed Membrane max LTV (lib/position-sim/membrane.ts MEMBRANE_ASSET_LTV)`,
         }
-      } else if (opts.strictLines && plan.unknown.length) {
+      } else if (!opts.allowPartialLines && plan.unknown.length) {
         excluded = {
           reason: 'partial-membrane-line',
-          detail: `strict-line sensitivity: ${plan.unknown.join(', ')} has no Membrane line`,
+          detail: `no Membrane line for ${plan.unknown.join(', ')}: a position holding ANY collateral without a Membrane line is left out (owner ruling 2026-10-18)`,
         }
       }
     }
@@ -784,6 +813,10 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
     if (walked && s.t0) {
       open.t0 = { block: s.t0.block, ts: s.t0.ts, minute: s.t0.minute }
       open.priceBasis = s.t0.priceBasis
+    }
+    if (walked && !excluded && halves.some((h) => h.debtScale !== undefined)) {
+      // additive (schema 2): the t0 debt Membrane walks, sized to its line
+      open.memDebtUsd = s.debtUsd == null ? null : s.debtUsd * debtScaleOf(halves)
     }
     if (walked && !excluded && halves.length > 1) {
       open.subs = halves.map((h) => ({
@@ -1000,6 +1033,7 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
           spec: s,
           halves,
           line: (plan ? plan.line : s.line) as number,
+          debtScale: debtScaleOf(halves),
           delayClass: open.delayClass,
           results,
           ratioAt: w.ratioAt,
@@ -1046,7 +1080,11 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
         (a, r) => (a == null || r.unfilledAtGridEndUsd == null ? null : a + r.unfilledAtGridEndUsd),
         0,
       )
+      // The debt Membrane walks at t0 (the halves' scaled debt; == the real debt unscaled).
+      const memDebt0 = s.debt.reduce((a, l) => a + l.value0, 0) * debtScaleOf(halves)
       memRow = {
+        debt0: memDebt0,
+        debt0Usd: s.debtUsd == null ? null : s.debtUsd * debtScaleOf(halves),
         outcome,
         sales: results.reduce((a, r) => a + r.sales, 0),
         firstSaleMinute: sells.length ? Math.min(...sells.map((r) => r.minute)) : null,
@@ -1080,7 +1118,10 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
     let t0Decisions: T0Decision[] | undefined
     let t0AltBasis: CensusRow['t0AltBasis']
     if (walked && s.t0 && s.ltv0 != null && !excluded) {
-      t0Decisions = halves.map((h) => t0Decision(s.ltv0!, h, MAX_THRESHOLD_TO_DELAY))
+      // on the debt Membrane walks: LTV0 x the half's debt scale (1 unscaled)
+      t0Decisions = halves.map((h) =>
+        t0Decision(s.ltv0! * (h.debtScale ?? 1), h, MAX_THRESHOLD_TO_DELAY),
+      )
       const alt: PriceBasis = s.t0.priceBasis === 'N' ? 'N-1' : 'N'
       const altSpec =
         s.protocol === 'aave-v3'
@@ -1100,7 +1141,9 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
         located: altSpec.located,
         ltv0: altSpec.ltv0,
         decisions: altHalves.length
-          ? altHalves.map((h) => t0Decision(altSpec.ltv0!, h, MAX_THRESHOLD_TO_DELAY))
+          ? altHalves.map((h) =>
+              t0Decision(altSpec.ltv0! * (h.debtScale ?? 1), h, MAX_THRESHOLD_TO_DELAY),
+            )
           : null,
       }
     }
@@ -1149,6 +1192,17 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
               unknown: plan.unknown,
               unknownShare: plan.unknownShare,
               ...(plan.lineFromWhole.length ? { lineFromWhole: plan.lineFromWhole } : {}),
+              ...(walked && !excluded && !opts.noDebtScaling
+                ? {
+                    debtScale: debtScaleOf(halves),
+                    halves: halves.map((h) => ({
+                      ...(h.sub !== undefined ? { sub: h.sub } : {}),
+                      line: h.line,
+                      protocolLine: membraneDebtScale(h, s, halves.length > 1).protocolLine,
+                      debtScale: h.debtScale ?? 1,
+                    })),
+                  }
+                : {}),
             },
           }
         : {}),
@@ -1252,6 +1306,11 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
  * event's grid minute; its USD is the real side's own seized figure (aaveRealUsd /
  * morphoRealUsd), so the table and the real side price the same events the same way.
  */
+/** The position's debt factor: each half's share of the debt x its debt scale, summed. */
+function debtScaleOf(halves: readonly HalfSpec[]): number {
+  return halves.reduce((a, h) => a + h.share * (h.debtScale ?? 1), 0)
+}
+
 function capacityTable(
   inp: CensusInputs,
   aaveUsdAt: (scope: string, asset: string, minute: number) => number | null,
@@ -1308,4 +1367,41 @@ function capacityTable(
     })
   }
   return computeCapacity(out, W.minutes)
+}
+
+/**
+ * THE SHARE OF DEBT CLOSED over a set of rows (owner ruling 2026-10-18, second round), the one
+ * definition both builders use: over the PRICED compared rows,
+ *   realShare = Σ real repaid / Σ real t0 debt (USD)
+ *   memShare  = Σ (closedT0 / mem.debt0) x mem.debt0Usd / Σ mem.debt0Usd   (Membrane's own t0
+ *               debt, sized to its line; closed on the t0 basis)
+ *   gapPp     = (realShare − memShare) x 100; positive = Membrane closes a smaller share.
+ * Shares are rounded to 1e-5 and the gap to 1e-4 pp.
+ */
+export function censusShares(rows: readonly CensusRow[]) {
+  const p = rows.filter(
+    (r) =>
+      r.debtUsd != null &&
+      r.collUsd != null &&
+      r.real.unpricedEvents === 0 &&
+      !!r.mem &&
+      r.mem.unpricedSales === 0 &&
+      r.mem.debt0Usd != null &&
+      r.mem.debt0 > 0 &&
+      r.debtUsd > 0,
+  )
+  const rd = p.reduce((a, r) => a + r.debtUsd!, 0)
+  const md = p.reduce((a, r) => a + r.mem!.debt0Usd!, 0)
+  const realShare = rd > 0 ? p.reduce((a, r) => a + r.real.repaidUsd, 0) / rd : 0
+  const memShare =
+    md > 0 ? p.reduce((a, r) => a + (r.mem!.closedT0 / r.mem!.debt0) * r.mem!.debt0Usd!, 0) / md : 0
+  const r5 = (x: number) => Math.round(x * 1e5) / 1e5
+  return {
+    pricedPositions: p.length,
+    realDebtUsd: Math.round(rd * 100) / 100,
+    memDebtUsd: Math.round(md * 100) / 100,
+    realShare: r5(realShare),
+    memShare: r5(memShare),
+    gapPp: Math.round((r5(realShare) - r5(memShare)) * 100 * 1e4) / 1e4,
+  }
 }

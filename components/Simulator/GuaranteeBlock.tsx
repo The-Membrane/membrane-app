@@ -23,7 +23,7 @@ const SCALE_LEAD = CORPUS_SCALE_LINE.partial
     : 'At its own, lower lines:'
   : '4% sounds small. It would have kept'
 const SCALE_TAIL = CORPUS_SCALE_LINE.partial
-  ? `${OCT10_SCALE_LINE.direction} debt force-closed, net† (${OCT10_SCALE_LINE.scope}).`
+  ? `${OCT10_SCALE_LINE.direction} of the debt force-closed, net† (${OCT10_SCALE_LINE.scope}).`
   : `of collateral ${CORPUS_SCALE_LINE.window}.`
 const WINDOW_FIGURE = CORPUS_SCALE_LINE.partial ? '1' : String(CORPUS_SCALE_LINE.years)
 const WINDOW_UNIT = CORPUS_SCALE_LINE.partial ? 'day measured' : 'years measured'

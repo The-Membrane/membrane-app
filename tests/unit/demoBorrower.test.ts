@@ -223,8 +223,9 @@ describe('the borrower demo wallet', () => {
     expect(cmp.equityDeltaUsd).toBeGreaterThan(0)
     expect(cmp.equityDeltaUsd).toBeCloseTo(DEMO_BORROWER_NO_DEPLOYMENT.equityDeltaUsd, -1)
     expect(cmp.membrane.events.length).toBeGreaterThan(0)
-    // And the census row it is drawn from must agree that Membrane closes less.
-    expect(DEMO_BORROWER_ROW.membraneClosedUsd).toBeLessThan(DEMO_BORROWER_ROW.aaveClosedUsd)
+    // And the census row it is drawn from must agree that Membrane closes a smaller SHARE of
+    // its own (line-sized) debt than Aave closed of the real one (2026-10-18: shares, not $).
+    expect(DEMO_BORROWER_ROW.membraneClosedFrac).toBeLessThan(DEMO_BORROWER_ROW.aaveClosedFrac)
   })
 
   it('is the census row, not a re-run of it: the default venue is null', () => {

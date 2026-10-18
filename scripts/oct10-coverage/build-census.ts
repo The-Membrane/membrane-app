@@ -38,11 +38,15 @@ import {
   NAMED_CLUSTERS,
   OWN_CLUSTER_MIN_POSITIONS,
 } from '../../lib/wavefront/cluster'
-import { CAPACITY_MULTIPLIER, CAPACITY_WINDOW_MINUTES } from '../../lib/wavefront/liquidity'
+import {
+  CAPACITY_MULTIPLIER,
+  CAPACITY_WINDOW_MINUTES,
+  MULTIPLIER_BASIS,
+} from '../../lib/wavefront/liquidity'
 import { aaveMarketLabel } from '../../lib/wavefront/pid'
 import { STREAM_SCHEMA, encodeCompact, encodeJsonl } from '../../lib/wavefront/stream'
 import { datasetsDir } from '../lib/datasetsDir.mjs'
-import { buildCensus, MAX_SALES, type CensusRow } from './census'
+import { buildCensus, censusShares, MAX_SALES, type CensusRow } from './census'
 import { censusInputFiles, loadCensusInputs } from './censusInputs'
 import { crossCheck } from './crossCheck'
 
@@ -71,7 +75,7 @@ const scan = JSON.parse(fs.readFileSync(path.join(ONCHAIN, 'events-scan.json'), 
 
 // ---- the census ---------------------------------------------------------------------------
 const t0 = Date.now()
-// The headline: Membrane's own line, liquidity-capped at 1.1x (census.ts defaults).
+// The headline: Membrane's own line, debt sized to it, liquidity-capped at 0.98x (census.ts defaults).
 const census = buildCensus(inputs)
 const noWalkOn = buildCensus(inputs, { stopAfterT0BandSale: true })
 const nm1First = buildCensus(inputs, { basisOrder: ['N-1', 'N'] })
@@ -109,10 +113,13 @@ function agg(rs: CensusRow[]) {
     compared: compared.length,
     excluded: {
       noMembraneLine: excl('no-membrane-line').length,
+      partialMembraneLine: excl('partial-membrane-line').length,
       noCapacity: excl('no-capacity').length,
     },
     realAll: realOf(rs),
     realWalked: realOf(compared),
+    /** THE COMPARISON: each side's share of its own t0 debt closed (census.ts censusShares). */
+    shares: censusShares(compared),
     mem: {
       positions: compared.length,
       repaidUsd: r2(mems.reduce((a, m) => a + m.repaidUsd, 0)),
@@ -317,43 +324,58 @@ const byProto = <T>(f: (rs: CensusRow[]) => T) => ({
   'aave-v3': f(rows.filter((r) => r.protocol === 'aave-v3')),
   'morpho-blue': f(rows.filter((r) => r.protocol === 'morpho-blue')),
 })
+/**
+ * The 15 largest groups by positions, then ONE remainder row ('other (N)') so the list
+ * partitions the exclusion: positions and real dollars sum to its totals.
+ */
+function topWithRest(groups: Record<string, { positions: number; realRepaidUsd: number }>) {
+  const all = Object.entries(groups).sort(
+    (a, b) => b[1].positions - a[1].positions || (a[0] < b[0] ? -1 : 1),
+  )
+  const head = all.slice(0, 15)
+  const rest = all.slice(15)
+  const out = head.map(([k, e]) => ({
+    key: k,
+    positions: e.positions,
+    realRepaidUsd: r2(e.realRepaidUsd),
+  }))
+  if (rest.length)
+    out.push({
+      key: `other (${rest.length})`,
+      positions: rest.reduce((a, [, e]) => a + e.positions, 0),
+      realRepaidUsd: r2(rest.reduce((a, [, e]) => a + e.realRepaidUsd, 0)),
+    })
+  return out
+}
 const exclusionOf = (reason: string) => {
   const of = (rs: CensusRow[]) => {
     const xs = rs.filter((r) => r.excluded === reason)
     return { positions: xs.length, realRepaidUsd: r2(xs.reduce((a, r) => a + r.real.repaidUsd, 0)) }
   }
   const xs = rows.filter((r) => r.excluded === reason)
-  const symbols: Record<string, number> = {}
+  // By main collateral (the largest leg at t0); no-capacity by chain:token it would sell.
+  const symbols: Record<string, { positions: number; realRepaidUsd: number }> = {}
   for (const r of xs) {
     const k =
       reason === 'no-capacity'
         ? `${r.chain}:${r.excludedDetail?.match(/sell (.*) on /)?.[1] ?? '?'}`
         : r.primarySymbol
-    symbols[k] = (symbols[k] ?? 0) + 1
+    const e = (symbols[k] ??= { positions: 0, realRepaidUsd: 0 })
+    e.positions++
+    e.realRepaidUsd += r.real.repaidUsd
   }
   return {
     ...of(rows),
     byProtocol: byProto(of),
     debtUsdAtT0: r2(xs.reduce((a, r) => a + (r.debtUsd ?? 0), 0)),
-    top: Object.entries(symbols)
-      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
-      .slice(0, 12)
-      .map(([k, n]) => ({ key: k, positions: n })),
+    top: topWithRest(symbols),
   }
 }
-const partial = rows.filter((r) => r.mem && r.memLine && r.memLine.unknown.length)
 const exclusions = {
-  rule: 'A position is compared only when Membrane can walk it: (1) at least one collateral leg has a Membrane line (otherwise "no-membrane-line": nothing is invented for AAVE, tETH, LBTC, …), and (2) every collateral token it would have to sell had observed liquidity on its chain (otherwise "no-capacity"). Excluded positions are left out of BOTH sides of every total; their real side stays in the rows.',
+  rule: 'A position is compared only when Membrane can walk ALL of it (owner rulings 2026-10-18): (1) EVERY collateral leg has a Membrane line — none: "no-membrane-line"; some: "partial-membrane-line"; nothing is invented for AAVE, tETH, LBTC, … — and (2) every collateral token it would have to sell had observed liquidity on its chain (otherwise "no-capacity"). Excluded positions are left out of BOTH sides of every total; their real side stays in the rows.',
   noMembraneLine: exclusionOf('no-membrane-line'),
+  partialMembraneLine: exclusionOf('partial-membrane-line'),
   noCapacity: exclusionOf('no-capacity'),
-  partialLine: {
-    rule: "Compared, but some collateral legs have no Membrane line: those legs are left out of the value-weighted line (the per-wallet simulator's rule, weightedMembraneLine) and still count as collateral. The strict alternative — exclude these too — is the sensitivity strictLines (scripts/build-evidence-census.ts).",
-    positions: partial.length,
-    realRepaidUsd: r2(partial.reduce((a, r) => a + r.real.repaidUsd, 0)),
-    unknownCollateralUsdAtT0: r2(
-      partial.reduce((a, r) => a + (r.collUsd ?? 0) * r.memLine!.unknownShare, 0),
-    ),
-  },
 }
 const capTop = (n: number) =>
   Object.fromEntries(
@@ -376,8 +398,8 @@ const capTop = (n: number) =>
 const liquidity = {
   rule: `Every Membrane collateral sale draws on one shared book per (chain, token): at most ${CAPACITY_MULTIPLIER} x capacity tokens in any rolling ${CAPACITY_WINDOW_MINUTES} minutes, where CAPACITY is the most tokens that left liquidated borrowers in any rolling ${CAPACITY_WINDOW_MINUTES} minutes of 10-11 Oct on that chain, over every Aave V3 and Morpho Blue liquidation of the census (Aave: liquidatedCollateralAmount + the protocol fee; Morpho: seized assets). Capacity is a rate, available at any minute. Sales draw in order minute, then pid. A sale's unfilled part stays pending and sells at later minutes at those minutes' prices, never past the borrow cap (lib/wavefront/kernel.ts PENDING ORDERS). Debt repayment is not limited; only collateral sales are.`,
   multiplier: CAPACITY_MULTIPLIER,
-  multiplierBasis:
-    'MODELLED (†): the 8-hour delay lets some of the market liquidity recover. 0.5x, 1.0x, 2.0x and unlimited are published beside it.',
+  /** Rendered after a † on every surface (liquidity.ts MULTIPLIER_BASIS). */
+  multiplierBasis: MULTIPLIER_BASIS,
   windowMinutes: CAPACITY_WINDOW_MINUTES,
   capacity: census.capacity,
   book: census.liquidity?.byKey ?? {},
@@ -413,15 +435,15 @@ const method = {
   morpho:
     "Composition at the t0 event's N-1: collateral amount; borrowed = shares -> assets rounded UP, interest accrued to ts(N). Line = LLTV. LTV(m) = borrowed / (collateral x oracle price(m) / 1e36), anchored at the t0 price. LOCATING t0: the first event Morpho's own check finds liquidatable (borrowed > collateral x price / 1e36 x LLTV) with the price at N, else with the price at N-1 (debt accrued to N either way); priceBasis says which. Interest after t0 is not added.",
   path: "Each leg moves with its own protocol-oracle minute path (each market's AaveOracle; the market's Morpho oracle), value(m) = value_t0 x p(m) / p_t0 for every minute m after t0's minute, where p(m) is the price in force at the minute START (block <= minute start) — no look-ahead. A held leg with no price at a minute walked is a hard error (never carried forward); this pull has none. Grid ends at minute 2,879 (2025-10-11T23:59Z).",
-  line: "MEMBRANE'S OWN LINE (owner ruling 2026-10-18; lib/wavefront/membraneLine.ts): the per-wallet simulator's rule — weightedMembraneLine of the t0 collateral (MEMBRANE_ASSET_LTV, modelled: WETH 0.80, wstETH 0.78, WBTC 0.75, …; DEPLOY_LAUNCH_LTV, the deploy script's own: sUSDS 0.88, syrupUSDC 0.86, scrvUSD 0.86), value-weighted at t0, each asset clamped to its class cap. Legs with no Membrane line are left out of the weighted line; a position with no leg that has one is excluded ('no-membrane-line'). The protocol's line (Aave weighted LT, Morpho LLTV) stays in each row as `line`: it locates t0 and is the published sensitivity 'Membrane at the protocol's line'. The position still enters at the protocol's liquidation (t0); on a lower line it is further past its line there.",
+  line: "MEMBRANE'S OWN LINE, AND DEBT SIZED TO IT (owner rulings 2026-10-18; lib/wavefront/membraneLine.ts): the per-wallet simulator's rule — weightedMembraneLine of the t0 collateral (MEMBRANE_ASSET_LTV, modelled: WETH 0.80, wstETH 0.78, WBTC 0.75, …; DEPLOY_LAUNCH_LTV, the deploy script's own: sUSDS 0.88, syrupUSDC 0.86, scrvUSD 0.86), value-weighted at t0, each asset clamped to its class cap. A position holding ANY collateral without a Membrane line is excluded ('no-membrane-line' / 'partial-membrane-line'). A Membrane borrower would have borrowed less: each half's t0 debt is scaled by memLine / protocolLine (membraneDebtScale; protocolLine = the protocol's own line for the same legs), so the position sits the same proportional distance past Membrane's line as it sat past the protocol's; collateral unchanged. The protocol's line (Aave weighted LT, Morpho LLTV) stays in each row as `line`: it locates t0 and is the sensitivity 'Membrane at the protocol's line'.",
   delayClass:
     "collateralClass.ts delayClassOf(<every collateral symbol>, Membrane line) on the FULL composition. MIXED -> walked as the two positions Membrane would hold, exactly as compare.ts splitByDelayClass splits one: no-delay legs (sub 0) and delayed legs (sub 1), debt pro rata to collateral value at t0 (both halves open at the position's own LTV), each half at its own Membrane line (membraneHalfLine: its legs' weighted line, or the whole position's when none of its legs has one) and its own class delayClassOf(its symbols, its line). A half that opens under its own line just walks. The position's Membrane figures are the sum of its halves.",
   membrane:
     'lib/wavefront/kernel.ts per half: DelayTimer from curePath.ts and cureSale (the same sale step cureWalk runs) — repay-to-cap with membraneRepayValue and the liqDebtMinimum floor, no fee, walk on after a sale (max 20 sales), the conservative sale at the grid end for a delay still running. Repaid USD at the fill minute (Morpho: x the loan token USD). A delayed position past the band at t0 is sold at once and walked on like after any sale (as cureWalk); stopping it after that one repay is meta.sensitivity.noWalkOnAfterT0BandSale.',
   liquidity:
-    'LIQUIDITY-CAPPED SALES (owner ruling 2026-10-18; lib/wavefront/liquidity.ts, meta.liquidity): every sale is an order offered to a shared per-(chain, token) book that allows 1.1x (modelled †) the most tokens liquidators absorbed in any rolling 10 minutes of the window, at any minute, in order minute then pid. The order splits across collateral legs pro rata by value; each leg fills against its own book. The unfilled part stays pending: while it is, the timer is idle, the order is re-sized each minute at that minute’s price (never more than pending, never past the borrow cap: back at or under the cap cancels it) and the LTV moves on the collateral still held. A remainder still pending at the grid end is never credited. A position that would have to sell a token with no observed liquidity on its chain is excluded (no-capacity).',
+    'LIQUIDITY-CAPPED SALES (owner ruling 2026-10-18; lib/wavefront/liquidity.ts, meta.liquidity): every sale is an order offered to a shared per-(chain, token) book that allows 0.98x (modelled †: the average measured depth recovery 8h after five crashes, membrane-datasets liquidity-recovery/REPORT.md) the most tokens liquidators absorbed in any rolling 10 minutes of the window, at any minute, in order minute then pid. The order splits across collateral legs pro rata by value; each leg fills against its own book. The unfilled part stays pending: while it is, the timer is idle, the order is re-sized each minute at that minute’s price (never more than pending, never past the borrow cap: back at or under the cap cancels it) and the LTV moves on the collateral still held. A remainder still pending at the grid end is never credited. A position that would have to sell a token with no observed liquidity on its chain is excluded (no-capacity).',
   comparison:
-    'DEBT REPAID ONLY (owner ruling 2026-10-18): Membrane’s liquidation fee cannot be assumed, so no collateral-seized figure is compared. Real seized (with the Aave protocol fee) stays in each row as provenance.',
+    'THE SHARE OF DEBT CLOSED (owner rulings 2026-10-18): the two sides carry different debt, so dollars do not compare; each side is its repaid debt over its own t0 debt, debt-weighted over the priced compared positions (census.ts censusShares; meta.totals.*.shares). Debt repaid only: Membrane’s liquidation fee cannot be assumed, so no collateral-seized figure is compared; real seized stays in each row as provenance. Real repaid dollars are the size of the day, never set beside Membrane dollars.',
   real: "Aave: debt_to_cover_normalized x the debt reserve AaveOracle price at block N; seized = everything taken from the borrower's collateral — the event's liquidatedCollateralAmount PLUS the liquidation protocol fee sent to the treasury (aave-protocol-fee.jsonl.gz collateralSeizedTotalRaw; the fee is the treasury aToken transfer in the event's own receipt) — x the collateral reserve price at N. Morpho: repaid_assets_normalized x loan USD; seized collateral at the event oracle price(N) in loan units x loan USD; realised bad debt reported separately (not repaid). Loan USD: $1.00 for a dollar stable held at one (collateralClass.ts heldAtOne), else the chain's core AaveOracle price of the same token from the minute path at the event minute (the price in force at the minute START, not at block N), else unpriced (USD null on both sides, counted). For an unpriced loan the LTV path is unaffected but the liqDebtMinimum floor (a USD figure) cannot be applied, so those repays are sized without it.",
   cluster: `Largest collateral leg by USD at t0: ETH (${ETH_SYMBOLS.join(', ')}), BTC (${BTC_SYMBOLS.join(', ')}), ${NAMED_CLUSTERS.join(', ')}, Stables (collateralClass.ts isStable); any other symbol that is the primary leg of >= ${OWN_CLUSTER_MIN_POSITIONS} positions is its own cluster (${census.stats.ownClusters.join(', ')}); else Other.`,
   sameSet:
@@ -505,7 +527,7 @@ const summaryDoc = {
     rule: exclusions.rule,
     noMembraneLine: { ...exclusions.noMembraneLine, top: undefined },
     noCapacity: { ...exclusions.noCapacity, top: undefined },
-    partialLine: exclusions.partialLine,
+    partialMembraneLine: { ...exclusions.partialMembraneLine, top: undefined },
   },
   liquidity: {
     rule: liquidity.rule,
@@ -640,14 +662,15 @@ ${pcKeys.map((k) => `| ${k} | ${totalsByPC[k].positions} | ${totalsByPC[k].walke
 
 ## Compared set (the headline)
 
-Membrane walks every position at ITS OWN line, with liquidity-capped sales (${CAPACITY_MULTIPLIER}x capacity †, modelled). ${all.compared.toLocaleString('en-US')} of the ${all.walked.toLocaleString('en-US')} walked positions are compared, on both sides:
+Membrane walks every position at ITS OWN line, its debt sized to that line, with liquidity-capped sales (${CAPACITY_MULTIPLIER}x capacity †, modelled: the average measured depth recovery 8h after five crashes). ${all.compared.toLocaleString('en-US')} of the ${all.walked.toLocaleString('en-US')} walked positions are compared, on both sides:
 
 | excluded | positions | real repaid (USD) | Aave | Morpho |
 | --- | ---: | ---: | ---: | ---: |
 | no Membrane line | ${exclusions.noMembraneLine.positions} | ${exclusions.noMembraneLine.realRepaidUsd.toLocaleString('en-US')} | ${exclusions.noMembraneLine.byProtocol['aave-v3'].positions} | ${exclusions.noMembraneLine.byProtocol['morpho-blue'].positions} |
+| some collateral without a Membrane line | ${exclusions.partialMembraneLine.positions} | ${exclusions.partialMembraneLine.realRepaidUsd.toLocaleString('en-US')} | ${exclusions.partialMembraneLine.byProtocol['aave-v3'].positions} | ${exclusions.partialMembraneLine.byProtocol['morpho-blue'].positions} |
 | no observed liquidity for a token it must sell | ${exclusions.noCapacity.positions} | ${exclusions.noCapacity.realRepaidUsd.toLocaleString('en-US')} | ${exclusions.noCapacity.byProtocol['aave-v3'].positions} | ${exclusions.noCapacity.byProtocol['morpho-blue'].positions} |
 
-Debt repaid on the compared set: real ${all.realWalked.repaidUsd.toLocaleString('en-US')} USD, Membrane ${all.mem.repaidUsd.toLocaleString('en-US')} USD† (Aave ${totalsByProtocol['aave-v3'].realWalked.repaidUsd.toLocaleString('en-US')} vs ${totalsByProtocol['aave-v3'].mem.repaidUsd.toLocaleString('en-US')}†; Morpho ${totalsByProtocol['morpho-blue'].realWalked.repaidUsd.toLocaleString('en-US')} vs ${totalsByProtocol['morpho-blue'].mem.repaidUsd.toLocaleString('en-US')}†). No collateral-seized figure is compared.
+Share of debt closed on the compared set (each side over its OWN t0 debt; Membrane's debt sized to its line): real ${(all.shares.realShare * 100).toFixed(1)}% of ${all.shares.realDebtUsd.toLocaleString('en-US')} USD, Membrane ${(all.shares.memShare * 100).toFixed(1)}%† of ${all.shares.memDebtUsd.toLocaleString('en-US')} USD (Aave ${(totalsByProtocol['aave-v3'].shares.realShare * 100).toFixed(1)}% vs ${(totalsByProtocol['aave-v3'].shares.memShare * 100).toFixed(1)}%†; Morpho ${(totalsByProtocol['morpho-blue'].shares.realShare * 100).toFixed(1)}% vs ${(totalsByProtocol['morpho-blue'].shares.memShare * 100).toFixed(1)}%†). Real repaid on the set (the size of the day there): ${all.realWalked.repaidUsd.toLocaleString('en-US')} USD. No collateral-seized figure is compared.
 
 ## Liquidity capacity (top per chain, by peak USD)
 

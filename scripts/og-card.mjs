@@ -17,15 +17,16 @@ const census = JSON.parse(
     'utf8',
   ),
 )
-const m0 = (x) => `$${Math.round(x / 1e6)}M`
-const m1 = (x) => `$${(x / 1e6).toFixed(1)}M`
-// Direction-aware: the word is the sign's (at Membrane's own lines the net runs MORE).
+// Direction-aware, in SHARES of each side's own debt (Membrane's borrower carries less debt, sized
+// to Membrane's own line, so dollars do not compare).
 const dir = (g) => (g >= 0 ? 'less' : 'more')
+const sh = (x) => `${(x * 100).toFixed(1)}%`
+const pp = (g) => `${Math.abs(g).toFixed(1)} pp ${dir(g)}`
 const proof =
   `Replayed on ${census.positions.toLocaleString('en-US')} of the ${census.censusPositions.toLocaleString('en-US')} Aave and Morpho liquidations of ${census.window}, ` +
-  `at Membrane's own lines with liquidity-capped sales: ${m0(Math.abs(census.all.gapUsd))} ${dir(census.all.gapUsd)} debt force-closed, net ` +
-  `(less on ${census.less.toLocaleString('en-US')}, more on ${census.more.toLocaleString('en-US')}; ` +
-  `Aave ${m1(Math.abs(census.aave.gapUsd))} ${dir(census.aave.gapUsd)}, Morpho ${m1(Math.abs(census.morpho.gapUsd))} ${dir(census.morpho.gapUsd)}), modelled.`
+  `at Membrane's own lines with the debt sized to them and liquidity-capped sales: the protocols closed ${sh(census.all.realShare)} of the debt, Membrane ${sh(census.all.memShare)}, ${pp(census.all.gapPp)}, net ` +
+  `(a smaller share on ${census.all.less.toLocaleString('en-US')}, a larger one on ${census.all.more.toLocaleString('en-US')}; ` +
+  `Aave ${pp(census.aave.gapPp)}, Morpho ${pp(census.morpho.gapPp)}), modelled.`
 // Playwright's own browser, or the preinstalled one when the pinned build is absent.
 const executablePath = process.env.OG_CHROMIUM || undefined
 

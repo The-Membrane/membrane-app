@@ -7,7 +7,16 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { Card } from '@/components/ui/Card'
 
 import { CompareBar, Eyebrow, InfoTip, Stat } from './atoms'
-import { CHAIN_NAME, CURE_LEGEND, GRID_END_MARK, PROTOCOL_NAME, gapWord, pct, usd } from './format'
+import {
+  CHAIN_NAME,
+  CURE_LEGEND,
+  GRID_END_MARK,
+  PROTOCOL_NAME,
+  pct,
+  ppWord,
+  share,
+  usd,
+} from './format'
 import {
   AssetSummary,
   DebtSet,
@@ -37,12 +46,12 @@ const Cell: React.FC<{ children: React.ReactNode; color?: string; size?: string 
  */
 const SplitRow: React.FC<{
   label: string
-  s: Pick<DebtSet, 'positions' | 'realRepaidUsd' | 'memRepaidUsd' | 'gapUsd' | 'gapPct'>
+  s: Pick<DebtSet, 'positions' | 'realShare' | 'memShare' | 'gapPp'>
   minor?: boolean
 }> = ({ label, s, minor }) => {
   const size = minor ? TYPOGRAPHY.xs : TYPOGRAPHY.small
   const dim = minor ? SEMANTIC_COLORS.textSecondary : SEMANTIC_COLORS.textPrimary
-  const gapColor = s.gapUsd >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger
+  const gapColor = s.gapPp >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger
   return (
     <Box
       py={minor ? SPACING.xs : SPACING.md}
@@ -63,13 +72,13 @@ const SplitRow: React.FC<{
           {s.positions.toLocaleString('en-US')}
         </Cell>
         <Cell color={dim} size={size}>
-          {usd(s.realRepaidUsd)}
+          {share(s.realShare)}
         </Cell>
         <Cell color={dim} size={size}>
-          {usd(s.memRepaidUsd)}†
+          {share(s.memShare)}†
         </Cell>
         <Cell color={gapColor} size={size}>
-          {usd(Math.abs(s.gapUsd))}† · {gapWord(s.gapPct)}
+          {ppWord(s.gapPp)}†
         </Cell>
       </Grid>
       <VStack display={{ base: 'flex', md: 'none' }} align="stretch" spacing={SPACING.none}>
@@ -82,9 +91,9 @@ const SplitRow: React.FC<{
           </Cell>
         </HStack>
         <Cell color={SEMANTIC_COLORS.textSecondary} size={TYPOGRAPHY.xs}>
-          {usd(s.realRepaidUsd)} → {usd(s.memRepaidUsd)}†{' '}
+          {share(s.realShare)} → {share(s.memShare)}†{' '}
           <Text as="span" color={gapColor}>
-            {usd(Math.abs(s.gapUsd))}† · {gapWord(s.gapPct)}
+            {ppWord(s.gapPp)}†
           </Text>
         </Cell>
       </VStack>
@@ -106,10 +115,11 @@ const SensRow: React.FC<{ r: SensitivityRow }> = ({ r }) => (
     >
       {PROTOCOLS.map(
         (k) =>
-          `${PROTOCOL_NAME[k].split(' ')[0]} ${r.byProtocol[k].positions.toLocaleString('en-US')}: ${usd(r.byProtocol[k].realRepaidUsd)} → ${usd(r.byProtocol[k].memRepaidUsd)}† (${gapWord(r.byProtocol[k].gapPct)})`,
+          `${PROTOCOL_NAME[k].split(' ')[0]} ${r.byProtocol[k].positions.toLocaleString('en-US')}: ${share(r.byProtocol[k].realShare)} → ${share(r.byProtocol[k].memShare)}† (${ppWord(r.byProtocol[k].gapPp)})`,
       ).join(' · ')}{' '}
-      · less on {r.less.toLocaleString('en-US')} ({usd(r.lessUsd)}†), more on{' '}
-      {r.more.toLocaleString('en-US')} ({usd(r.moreUsd)}†)
+      · smaller share on {r.less.toLocaleString('en-US')} ({share(r.lessSet.realShare)} vs{' '}
+      {share(r.lessSet.memShare)}†), larger on {r.more.toLocaleString('en-US')} (
+      {share(r.moreSet.realShare)} vs {share(r.moreSet.memShare)}†)
     </Text>
   </Box>
 )
@@ -123,8 +133,11 @@ const LiquidityCard: React.FC<{ meta: EvidenceMeta }> = ({ meta }) => {
   const L = meta.liquidity
   const w = L.whale
   const capRows = meta.sensitivities.filter((r) => r.key.startsWith('capacity-'))
+  // the line and the debt sizing: the protocol's own line (no scaling), Membrane's line without
+  // scaling, and the first-round partial-line set
   const lineRows = meta.sensitivities.filter(
-    (r) => r.key.startsWith('protocol-line') || r.key === 'strict-lines',
+    (r) =>
+      r.key.startsWith('protocol-line') || r.key === 'no-debt-scaling' || r.key === 'partial-lines',
   )
   const tok = (x: number) =>
     x >= 1e6 ? `${(x / 1e6).toFixed(2)}M` : x >= 1e3 ? `${(x / 1e3).toFixed(1)}k` : x.toPrecision(3)
@@ -138,7 +151,7 @@ const LiquidityCard: React.FC<{ meta: EvidenceMeta }> = ({ meta }) => {
           color={SEMANTIC_COLORS.textSecondary}
           lineHeight="1.7"
         >
-          {`A sale can only clear what the market can take. Per token and chain, capacity is the most tokens liquidators actually absorbed in any ${L.windowMinutes} minutes of the two days, Aave and Morpho together. Every Membrane sale of that token draws on one shared ${L.windowMinutes}-minute window of ${L.multiplier}× capacity (modelled†: the delay lets some liquidity recover), in time order; what does not fill waits and sells in later minutes at those minutes’ prices, never past the borrow cap. Only collateral sales are capped; repaying debt is not.`}
+          {`A sale can only clear what the market can take. Per token and chain, capacity is the most tokens liquidators actually absorbed in any ${L.windowMinutes} minutes of the two days, Aave and Morpho together. Every Membrane sale of that token draws on one shared ${L.windowMinutes}-minute window of ${L.multiplier}×† capacity, in time order; what does not fill waits and sells in later minutes at those minutes’ prices, never past the borrow cap. Only collateral sales are capped; repaying debt is not. † ${L.multiplierBasis}.`}
         </Text>
         <Box>
           <Grid
@@ -149,7 +162,7 @@ const LiquidityCard: React.FC<{ meta: EvidenceMeta }> = ({ meta }) => {
             borderBottom="1px solid"
             borderColor={SEMANTIC_COLORS.borderMedium}
           >
-            {['Run', 'Positions', 'Protocol closed', 'Membrane†', 'Difference†'].map((h) => (
+            {['Run', 'Positions', 'Protocols closed', 'Membrane†', 'Difference†'].map((h) => (
               <Eyebrow key={h}>{h}</Eyebrow>
             ))}
           </Grid>
@@ -164,7 +177,7 @@ const LiquidityCard: React.FC<{ meta: EvidenceMeta }> = ({ meta }) => {
           lineHeight="1.7"
           data-testid="evidence-whale"
         >
-          {`The case the cap was ruled for: one Ethereum Aave account held ${tok(w.collateral[0]?.amount ?? 0)} ${w.collateral[0]?.symbol ?? ''} against ${usd(w.debtUsd ?? 0)} of debt. Aave’s liquidators took ${w.realEvents} bites, ${usd(w.realRepaidUsd)}, then stopped; every liquidator on Ethereum together moved ${tok(w.aaveMainnetLiquidatorTokens ?? 0)} AAVE in the busiest ${L.windowMinutes} minutes. At Aave’s own line Membrane’s repay to cap would sell ${pct((w.protocolLineUnlimited?.memRepaidUsd ?? 0) / (w.collateral[0]?.usd || 1), 0)} of the collateral’s t0 value at once: ${usd(w.protocolLineUnlimited?.memRepaidUsd ?? 0)}† unlimited, ${usd(w.protocolLineCapped?.memRepaidUsd ?? 0)}† with the cap, which fills one window’s worth and then finds the position back under its cap as AAVE recovers. AAVE has no Membrane line, so the account is not in the headline.`}
+          {`The case the cap was ruled for: one Ethereum Aave account held ${tok(w.collateral[0]?.amount ?? 0)} ${w.collateral[0]?.symbol ?? ''} against ${usd(w.debtUsd ?? 0)} of debt. Aave’s liquidators took ${w.realEvents} bites, ${pct(w.realRepaidUsd / (w.debtUsd || 1))} of the debt, then stopped; every liquidator on Ethereum together moved ${tok(w.aaveMainnetLiquidatorTokens ?? 0)} AAVE in the busiest ${L.windowMinutes} minutes. At Aave’s own line, on the same debt, Membrane’s repay to cap would close ${pct(w.protocolLineUnlimited?.memFrac ?? 0)}† of it at once with unlimited liquidity, selling ${pct((w.protocolLineUnlimited?.memRepaidUsd ?? 0) / (w.collateral[0]?.usd || 1), 0)} of the collateral; with the cap it closes ${pct(w.protocolLineCapped?.memFrac ?? 0)}†: the window it can fill, then AAVE recovers and the rest is no longer needed. AAVE has no Membrane line, so the account is not in the headline.`}
         </Text>
         <Box overflowX="auto">
           <Box minW="560px">
@@ -231,7 +244,7 @@ export const DebtLens: React.FC<{
   meta: EvidenceMeta
 }> = ({ debt, byAsset, meta }) => {
   const all = debt.all
-  const moreDebt = all.gapUsd < 0
+  const moreDebt = all.gapPp < 0
   const floor = all.medians.floorUsd
   const big = all.medians.atLeastFloor
 
@@ -245,21 +258,21 @@ export const DebtLens: React.FC<{
         />
         <Stat
           label="Protocols closed"
-          value={usd(all.realRepaidUsd)}
+          value={share(all.realShare)}
           tone="bad"
-          sub="debt repaid, every liquidation, both days"
+          sub={`of their debt · ${usd(all.realRepaidUsd)} repaid, every liquidation, both days`}
         />
         <Stat
           label="Membrane would close"
-          value={`${usd(all.memRepaidUsd)}†`}
+          value={`${share(all.memShare)}†`}
           tone={moreDebt ? 'bad' : 'good'}
-          sub={`its own line · sales capped at ${meta.liquidity.multiplier}× the day’s liquidity†`}
+          sub={`of its own debt, sized to its line† · sales capped at ${meta.liquidity.multiplier}× the day’s liquidity†`}
         />
         <Stat
           label="Difference, net"
-          value={`${usd(Math.abs(all.gapUsd))}†`}
+          value={`${ppWord(all.gapPp)}†`}
           tone={moreDebt ? 'bad' : 'good'}
-          sub={`${gapWord(all.gapPct)} debt closed†: less on ${all.less.toLocaleString('en-US')} positions (${usd(all.lessUsd)}†), more on ${all.more.toLocaleString('en-US')} (${usd(all.moreUsd)}†)`}
+          sub={`of the debt closed†: a smaller share on ${all.less.toLocaleString('en-US')} positions (${share(all.lessSet.realShare)} vs ${share(all.lessSet.memShare)}†), a larger one on ${all.more.toLocaleString('en-US')} (${share(all.moreSet.realShare)} vs ${share(all.moreSet.memShare)}†)`}
         />
       </SimpleGrid>
 
@@ -276,7 +289,7 @@ export const DebtLens: React.FC<{
                 borderBottom="1px solid"
                 borderColor={SEMANTIC_COLORS.borderMedium}
               >
-                {['Venue', 'Positions', 'Protocol closed', 'Membrane†', 'Difference†'].map((h) => (
+                {['Venue', 'Positions', 'Protocols closed', 'Membrane†', 'Difference†'].map((h) => (
                   <Eyebrow key={h}>{h}</Eyebrow>
                 ))}
               </Grid>
@@ -299,15 +312,16 @@ export const DebtLens: React.FC<{
             color={SEMANTIC_COLORS.textTertiary}
             lineHeight="1.7"
           >
-            Membrane&rsquo;s totals include {usd(meta.gridEnd.memRepaidUsd)}† booked for the{' '}
+            Shares of each side&rsquo;s own debt at the first liquidation; Membrane&rsquo;s debt is
+            sized to its own line†. Membrane&rsquo;s share includes{' '}
+            {share(meta.gridEnd.memShare, 2)}† booked for the{' '}
             {meta.gridEnd.positions.toLocaleString('en-US')} positions whose 8-hour window was still
             open when the data ends (23:59 UTC 11 Oct): a window still open is not a completed sale,
             so the census books it at the last price and the table marks it {GRID_END_MARK}.{' '}
             {meta.unpriced.positions.toLocaleString('en-US')} Morpho positions borrow a token with
             no USD price that day ({meta.unpriced.loanSymbols.join(', ')}): they are in every count
-            and in no dollar figure. Morpho&rsquo;s{' '}
-            {usd(debt.byProtocol['morpho-blue'].realBadDebtUsd)} of realised bad debt is not counted
-            as repaid.
+            and in no share. Morpho&rsquo;s {usd(debt.byProtocol['morpho-blue'].realBadDebtUsd)} of
+            realised bad debt is not counted as repaid.
           </Text>
         </VStack>
       </Card>
@@ -362,7 +376,7 @@ export const DebtLens: React.FC<{
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={SPACING_PATTERNS.sectionGap}>
         <Card variant="subtle">
           <VStack align="flex-start" spacing={SPACING.sm}>
-            <Eyebrow color={SEMANTIC_COLORS.success}>Membrane closes less†</Eyebrow>
+            <Eyebrow color={SEMANTIC_COLORS.success}>Membrane closes a smaller share†</Eyebrow>
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.h1}
@@ -385,7 +399,7 @@ export const DebtLens: React.FC<{
 
         <Card variant="subtle">
           <VStack align="flex-start" spacing={SPACING.sm}>
-            <Eyebrow color={SEMANTIC_COLORS.danger}>Membrane closes more†</Eyebrow>
+            <Eyebrow color={SEMANTIC_COLORS.danger}>Membrane closes a larger share†</Eyebrow>
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.h1}
@@ -402,7 +416,7 @@ export const DebtLens: React.FC<{
               {debt.byProtocol['aave-v3'].more.toLocaleString('en-US')} · Morpho{' '}
               {debt.byProtocol['morpho-blue'].more.toLocaleString('en-US')}. The protocols declined
               to close these as far; Membrane&rsquo;s formula would have.{' '}
-              {all.equal.toLocaleString('en-US')} come out equal to the cent. Filter the table by
+              {all.equal.toLocaleString('en-US')} come out equal. Filter the table by
               &ldquo;Membrane worse&rdquo; to read them.
             </Text>
           </VStack>

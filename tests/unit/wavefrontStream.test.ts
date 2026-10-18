@@ -158,6 +158,7 @@ describe('wavefront stream: reducer invariants over the whole Oct 10-11 replay',
     expect(
       summary.coverage.compared +
         summary.coverage.excluded.noMembraneLine +
+        summary.coverage.excluded.partialMembraneLine +
         summary.coverage.excluded.noCapacity,
     ).toBe(summary.coverage.walked)
     expect(summary.coverage.uncovered.length).toBe(summary.coverage.total - summary.coverage.walked)

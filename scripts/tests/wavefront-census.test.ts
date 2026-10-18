@@ -9,7 +9,9 @@
  * (Membrane's own line, liquidity-capped, owner rulings 2026-10-18) partitions the walked
  * positions with the exclusions; the protocol-line run with no liquidity model is the
  * pre-ruling census ($157.06M); the real side is the same in every run; no liquidity window
- * fills past its limit; the whale's figures; 3,197 positions
+ * fills past its limit; the whale's figures; Membrane's debt is sized to its line
+ * (debt0 x memLine / protocolLine) and an unsplit single-leg position at Membrane's line, on that
+ * debt, uncapped, is cureWalk; 3,197 positions
  * (2,421 Aave + 776 Morpho, the full scope) partitioned into walked + not walked with a reason
  * for each; both sides on the same
  * positions; every walked position located by the protocol at its t0 event; mixed splits sum
@@ -66,6 +68,9 @@ const rows = census.rows
 /** The pre-2026-10-18 census: the protocol's line, no liquidity model. */
 const legacy = buildCensus(inputs, { lineMode: 'protocol', noCapacityModel: true })
 const legacyByPid = new Map(legacy.rows.map((r) => [r.pid, r]))
+/** Membrane's own line and line-sized debt, capacity unlimited: positions are independent. */
+const memUnlimited = buildCensus(inputs, { capacityMultiplier: Infinity })
+const memUnlimitedByPid = new Map(memUnlimited.rows.map((r) => [r.pid, r]))
 const written = JSON.parse(
   fs.readFileSync(path.join(D, 'oct10-2025', 'coverage', 'census.json'), 'utf8'),
 )
@@ -114,8 +119,22 @@ test('both sides are on the same positions: the compared ones', () => {
     T.excluded.noMembraneLine,
     rows.filter((r) => r.excluded === 'no-membrane-line').length,
   )
+  assert.strictEqual(
+    T.excluded.partialMembraneLine,
+    rows.filter((r) => r.excluded === 'partial-membrane-line').length,
+  )
   assert.strictEqual(T.excluded.noCapacity, rows.filter((r) => r.excluded === 'no-capacity').length)
-  assert.strictEqual(T.compared + T.excluded.noMembraneLine + T.excluded.noCapacity, T.walked)
+  assert.strictEqual(
+    T.compared + T.excluded.noMembraneLine + T.excluded.partialMembraneLine + T.excluded.noCapacity,
+    T.walked,
+  )
+  // the strict set (owner ruling 2026-10-18, round 2): 1,545 compared; 866 + 782 + 4 out
+  assert.deepStrictEqual(
+    [T.compared, T.excluded.noMembraneLine, T.excluded.partialMembraneLine, T.excluded.noCapacity],
+    [1545, 866, 782, 4],
+  )
+  // a compared position has a Membrane line for EVERY collateral leg
+  for (const r of rows) if (r.mem) assert.strictEqual(r.memLine!.unknown.length, 0, r.pid)
   assert.strictEqual(
     rows.reduce((a, r) => a + r.real.events, 0),
     inputs.aaveCsv.length + inputs.morphoCsv.length,
@@ -176,8 +195,18 @@ test('mixed splits sum their debts and collateral to the whole', () => {
       r.collateral.map((c) => c.symbol).sort(),
     )
     assert.ok(Math.abs(r.mem.closedT0 - subs.reduce((a, s) => a + s.closedT0, 0)) < 1e-6, r.pid)
+    // Membrane's debt is sized PER HALF: Σ share_h x debtScale_h x debt (open.memDebtUsd)
+    const scaled = r.memLine!.halves!.reduce(
+      (a, h, i) => a + subs[i].share * h.debtScale * (r.debtUsd ?? 0),
+      0,
+    )
+    assert.ok(
+      Math.abs(scaled - (o.memDebtUsd ?? 0)) <= 0.02,
+      `${r.pid}: ${scaled} vs ${o.memDebtUsd}`,
+    )
   }
-  assert.ok(n > 400, `${n} splits`)
+  // 180 on the strict set (some collateral without a Membrane line is excluded)
+  assert.ok(n >= 150, `${n} splits`)
 })
 
 test('the canonical replay and the served compact replay are the same records', () => {
@@ -256,7 +285,7 @@ test('the capacity table and the book: no window ever fills past its limit', () 
     Math.abs(aave.liquidatorCapacityTokens - 96_876.22) < 0.01,
     `${aave.liquidatorCapacityTokens}`,
   )
-  assert.strictEqual(census.liquidity!.multiplier, 1.1)
+  assert.strictEqual(census.liquidity!.multiplier, 0.98)
   let bound = 0
   for (const [k, b] of Object.entries(census.liquidity!.byKey)) {
     assert.ok(b.limitTokens != null && b.limitTokens > 0, k)
@@ -273,7 +302,7 @@ test('the capacity table and the book: no window ever fills past its limit', () 
   )
 })
 
-test('the whale: excluded (no Membrane line); at Aave’s line 1.1x vs unlimited', () => {
+test('the whale: excluded (no Membrane line); at Aave’s line 0.98x vs unlimited', () => {
   const W =
     'aave-v3:mainnet:0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2:0x372cae7fa19b81a9786a9081704ea1e2dad576b7'
   assert.strictEqual(rows.find((r) => r.pid === W)!.excluded, 'no-membrane-line')
@@ -281,7 +310,7 @@ test('the whale: excluded (no Membrane line); at Aave’s line 1.1x vs unlimited
   const unl = buildCensus(inputs, { lineMode: 'protocol', capacityMultiplier: Infinity }).rows.find(
     (r) => r.pid === W,
   )!
-  assert.ok(Math.abs(capped.mem!.repaidUsd - 13_097_271.37) < 0.01, `${capped.mem!.repaidUsd}`)
+  assert.ok(Math.abs(capped.mem!.repaidUsd - 11_523_540.89) < 0.01, `${capped.mem!.repaidUsd}`)
   assert.ok(Math.abs(unl.mem!.repaidUsd - 29_863_534.37) < 0.01, `${unl.mem!.repaidUsd}`)
   assert.ok(Math.abs(capped.real.repaidUsd - 3_688_252.3) < 0.01)
 })
@@ -301,6 +330,7 @@ test('every unsplit single-leg walked position equals cureWalk on its composite 
     const k = morphoPid(e.chain, e.market_id, e.borrower)
     mEv.set(k, [...(mEv.get(k) ?? []), e])
   }
+  let nm = 0
   // cureWalk is handed the protocol's line, so it is compared with the protocol-line run
   for (const r of legacy.rows) {
     if (!r.walked || r.mem!.subs || r.collateral.length !== 1 || r.debt.length !== 1) continue
@@ -354,9 +384,59 @@ test('every unsplit single-leg walked position equals cureWalk on its composite 
     assert.strictEqual(w.outcome, r.mem!.outcome, r.pid)
     assert.strictEqual(w.sales, r.mem!.sales, r.pid)
     n++
+    // the same position at MEMBRANE's line on its line-sized debt (uncapped run)
+    const mr = memUnlimitedByPid.get(r.pid)!
+    if (mr.mem && !mr.mem.subs && mr.memLine?.halves?.length === 1) {
+      const h = mr.memLine.halves[0]
+      const wm = cureWalk({
+        debtUsd: d.value0 * h.debtScale,
+        collateralUsd: c.value0,
+        line: h.line,
+        band: MAX_THRESHOLD_TO_DELAY,
+        delaySeconds: CURE_WINDOW_SECONDS,
+        stepSeconds: 60,
+        gap: BORROW_LTV_GAP,
+        ratios,
+        debtMinimumUsd: spec.debtMinimum,
+        maxSales: 20,
+        noDelay: mr.delayClass === 'no-delay',
+      })
+      assert.ok(
+        Math.abs(wm.closedUsd - mr.mem.closedT0) <= 1e-6 * Math.max(1, wm.closedUsd),
+        `${r.pid} at Membrane's line: ${wm.closedUsd} vs ${mr.mem.closedT0}`,
+      )
+      assert.strictEqual(wm.outcome, mr.mem.outcome, `${r.pid} at Membrane's line`)
+      nm++
+    }
   }
+  console.log(`        [${nm} of them also at Membrane's line, on its line-sized debt]`)
+  assert.ok(nm > 1000, `${nm}`)
   console.log(`        [${n} single-leg positions]`)
   assert.ok(n > 1500, `${n}`)
+})
+
+test('Membrane’s debt is sized to its line, per half: debt0 x memLine / protocolLine', () => {
+  // lib/wavefront/membraneLine.ts membraneDebtScale: memDebt0 = debt0 x memLine / protocolLine
+  // per half (a split position's protocol line per half is the value-weighted line of its legs).
+  const unl = memUnlimited
+  const unscaled = buildCensus(inputs, { capacityMultiplier: Infinity, noDebtScaling: true })
+  const unscaledByPid = new Map(unscaled.rows.map((r) => [r.pid, r]))
+  let n = 0
+  for (const r of unl.rows) {
+    if (!r.mem) continue
+    const ml = r.memLine!
+    for (const h of ml.halves!)
+      assert.ok(Math.abs(h.debtScale - h.line / h.protocolLine) < 1e-12, r.pid)
+    const u = unscaledByPid.get(r.pid)!.mem!
+    assert.ok(Math.abs(r.mem.debt0 / u.debt0 - ml.debtScale!) < 1e-9, r.pid)
+    if (r.mem.subs || r.collateral.length !== 1 || r.debt.length !== 1) continue
+    // unsplit single leg (cureWalk at this line and debt: the test above)
+    assert.strictEqual(ml.halves!.length, 1)
+    assert.strictEqual(ml.halves![0].protocolLine, r.line, r.pid)
+    n++
+  }
+  console.log(`        [${n} unsplit single-leg compared positions scaled]`)
+  assert.ok(n > 1000, `${n}`)
 })
 
 console.log(`\n${passed} passed, ${failed} failed`)

@@ -30,7 +30,7 @@
 
 import { delayClassOf, isNoDelayCollateral } from '../position-sim/collateralClass'
 import { membraneHalfLine, weightedMembraneLine } from '../position-sim/membrane'
-import { sumValue, type HalfSpec, type SpecLeg } from './aave'
+import { sumValue, weightedLine, type HalfSpec, type PositionSpec, type SpecLeg } from './aave'
 import type { DelayClass } from './stream'
 
 export interface MembraneLinePlan {
@@ -94,4 +94,36 @@ export function membraneLinePlan(collateral: readonly SpecLeg[]): MembraneLinePl
     }
   })
   return plan
+}
+
+/**
+ * SIZE THE POSITION TO MEMBRANE'S LINE (owner ruling 2026-10-18, second round). A Membrane
+ * borrower would have borrowed less: at t0 each half's debt is scaled so it sits the same
+ * PROPORTIONAL distance from Membrane's line as it sat from the protocol's line; the collateral
+ * is unchanged.
+ *
+ *     memDebt0_h = debt0 x share_h x (memLine_h / protocolLine_h)
+ *     => memLTV0_h / memLine_h = LTV0 / protocolLine_h
+ *
+ * protocolLine_h is the protocol's own line for the SAME legs: the whole position's (Aave's
+ * weighted LT, Morpho's LLTV) when Membrane walks it unsplit, else the LT-weighted line of the
+ * half's own legs (`weightedLine`, Aave's LTs at t0). So a position past the protocol's line by
+ * x% is past Membrane's by the same x%, and its t0 decision (under / in the band / past it) is
+ * the protocol's own.
+ */
+export function membraneDebtScale(
+  half: HalfSpec,
+  spec: PositionSpec,
+  split: boolean,
+): { debtScale: number; protocolLine: number } {
+  const own = split ? weightedLine(half.collateral) : null
+  const protocolLine = own != null && own > 0 ? own : (spec.line as number)
+  if (!(protocolLine > 0)) throw new Error(`membraneDebtScale: ${spec.pid} has no protocol line`)
+  return { debtScale: half.line / protocolLine, protocolLine }
+}
+
+/** The halves of a plan with each half's debt sized to Membrane's line (membraneDebtScale). */
+export function scaledHalves(plan: MembraneLinePlan, spec: PositionSpec): HalfSpec[] {
+  const split = plan.halves.length > 1
+  return plan.halves.map((h) => ({ ...h, debtScale: membraneDebtScale(h, spec, split).debtScale }))
 }

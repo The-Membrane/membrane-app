@@ -12,12 +12,14 @@
  *   2. the lens text — DebtLens, TimeLens, CohortLens, ForecastGate and the landing copy in
  *      facts.ts render with the census figures, the split beside every blended figure, and a
  *      † on the Membrane side;
- *   3. the filters and sorts the cohort table drives, over the 2,280 compared positions.
+ *   3. the filters and sorts the cohort table drives, over the 1,545 compared positions.
  *
- * UPDATED 2026-10-18 (owner rulings): Membrane walks every position at ITS OWN line with
- * liquidity-capped sales; the cohort and every total are the COMPARED set (2,280 of 3,197: the
- * rest have no Membrane line or would sell a token with no observed liquidity), and only DEBT
- * REPAID is compared. At those lines Membrane closes 17.6% MORE debt, net.
+ * UPDATED 2026-10-18 (owner rulings, rounds 2 and 3): Membrane walks every position at ITS OWN
+ * line with its debt SIZED to that line (debt0 x memLine / protocolLine, collateral unchanged)
+ * and sales capped at a uniform 0.98x capacity†; a position holding ANY collateral without a
+ * Membrane line is excluded; the cohort and every total are the COMPARED set (1,545 of 3,197).
+ * The comparison is the SHARE of each side's own t0 debt closed, debt-weighted: the protocols
+ * 31.2%, Membrane 13.3%†, 17.9 pp less, net. No Membrane dollar is set beside a real one.
  *
  * It renders components with renderToStaticMarkup (no browser), like the old
  * scripts/tests/evidence.test.mts it replaces for the UI.
@@ -39,7 +41,7 @@ const { DebtLens } = await import('@/components/Evidence/DebtLens')
 const { TimeLens } = await import('@/components/Evidence/TimeLens')
 const { CohortLens } = await import('@/components/Evidence/CohortLens')
 const { ForecastGate } = await import('@/components/Evidence/ForecastGate')
-const { decodeEvidence, sparedUsd, compareRow, summaryOf } =
+const { decodeEvidence, sparedPp, compareRow, summaryOf } =
   await import('@/components/Evidence/types')
 const { useCohort, matchesOutcome } = await import('@/components/Evidence/useEvidence')
 const { evidenceDescription } = await import('@/components/Evidence/seo')
@@ -80,6 +82,19 @@ const has = (html: string, needle: string, what: string) => {
 }
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
 const usdM = (x: number) => `$${(x / 1e6).toFixed(1)}M`
+const pc = (x: number) => `${(x * 100).toFixed(1)}%`
+const ppw = (x: number) => `${Math.abs(x).toFixed(1)} pp ${x >= 0 ? 'less' : 'more'}`
+/** Debt-weighted shares recomputed from the rows (memFrac is served at 1e-5). */
+const sharesOf = (rs: readonly CohortRow[]) => {
+  const p = rs.filter((r) => r.priced)
+  const rd = sum(p.map((r) => r.debtUsd ?? 0))
+  const md = sum(p.map((r) => r.memDebtUsd ?? 0))
+  return {
+    priced: p.length,
+    real: rd > 0 ? sum(p.map((r) => r.realRepaidUsd)) / rd : 0,
+    mem: md > 0 ? sum(p.map((r) => r.memFrac! * (r.memDebtUsd ?? 0))) / md : 0,
+  }
+}
 
 // ============================================================ 1. integrity
 const protoOf = { aave: 'aave-v3', morpho: 'morpho-blue' } as const
@@ -96,24 +111,53 @@ const setRows = (k: string) =>
 // The served cohort is the COMPARED set; the census holds every position, all walked.
 eq(rows.length, doc.meta.positions, 'cohort length == meta.positions (compared)')
 eq(doc.meta.walked, doc.meta.censusPositions, 'every census position walked')
+const X = doc.meta.exclusions
 eq(
   doc.meta.positions +
-    doc.meta.exclusions.noMembraneLine.positions +
-    doc.meta.exclusions.noCapacity.positions,
+    X.noMembraneLine.positions +
+    X.partialMembraneLine.positions +
+    X.noCapacity.positions,
   doc.meta.censusPositions,
   'compared + excluded == the census',
 )
-eq(doc.meta.exclusions.noMembraneLine.positions, 866, '866 positions with no Membrane line')
-eq(doc.meta.exclusions.noCapacity.positions, 51, '51 with no observed liquidity')
+eq(X.noMembraneLine.positions, 866, '866 positions with no Membrane line')
+eq(X.partialMembraneLine.positions, 782, '782 holding some collateral without a Membrane line')
+eq(X.noCapacity.positions, 4, '4 with no observed liquidity')
+for (const [k, b] of Object.entries({
+  noMembraneLine: X.noMembraneLine,
+  partialMembraneLine: X.partialMembraneLine,
+  noCapacity: X.noCapacity,
+})) {
+  eq(sum(b.top.map((t) => t.positions)), b.positions, `${k}: by main collateral partitions it`)
+  near(
+    sum(b.top.map((t) => t.realRepaidUsd)),
+    b.realRepaidUsd,
+    `${k}: by main collateral, real $`,
+    0.05,
+  )
+  eq(
+    b.byProtocol['aave-v3'].positions + b.byProtocol['morpho-blue'].positions,
+    b.positions,
+    `${k}: the split partitions it`,
+  )
+}
 ok(!('realSeizedUsd' in D.all), 'no collateral-seized figure in the comparison')
 ok(
   !/seized/i.test(JSON.stringify({ debt: D, landing: file.landing })),
   'no seized figure served in the comparison',
 )
+// No Membrane dollar is served in any comparison block (rows keep their own, unset beside real).
+// (memDebtUsd is Membrane's own line-sized t0 debt: the share's denominator, not a result.)
+ok(
+  !/"mem(?!DebtUsd)[A-Za-z]*Usd"/.test(
+    JSON.stringify({ debt: D, byAsset: doc.byAsset, landing: file.landing }),
+  ),
+  'no Membrane dollar result in the debt summary, byAsset or the landing block',
+)
 eq(new Set(rows.map((r) => r.id)).size, rows.length, 'row ids are unique')
 eq(sum(rows.map((r) => r.events)), doc.meta.events, 'events: rows sum to meta.events')
 
-// Every debt set is the sum of its rows, and equals census.meta.totals.
+// Every debt set is the share of its rows, and equals census.meta.totals.
 const sets = [
   ['all', D.all],
   ['aave-v3', D.byProtocol['aave-v3']],
@@ -128,13 +172,33 @@ for (const [k, s] of sets) {
   eq(s.positions, census.positions, `${k}: positions == census.meta.totals`)
   eq(s.events, census.events, `${k}: events == census.meta.totals`)
   near(s.realRepaidUsd, sum(rs.map((r) => r.realRepaidUsd)), `${k}: real repaid == rows`, 0.05)
-  near(s.memRepaidUsd, sum(rs.map((r) => r.memRepaidUsd)), `${k}: Membrane repaid == rows`, 0.05)
   near(s.realRepaidUsd, census.realRepaidUsd, `${k}: real repaid == census.meta.totals`)
-  near(s.memRepaidUsd, census.memRepaidUsd, `${k}: Membrane repaid == census.meta.totals`)
-  near(s.gapUsd, s.realRepaidUsd - s.memRepaidUsd, `${k}: gap == real - Membrane`)
+  const sh = sharesOf(rs)
+  eq(sh.priced, s.pricedPositions, `${k}: priced positions == rows`)
+  near(sh.real, s.realShare, `${k}: real share == rows`, 2e-5)
+  near(sh.mem, s.memShare, `${k}: Membrane share == rows`, 2e-5)
+  eq(s.realShare, census.realShare, `${k}: real share == census.meta.totals`)
+  eq(s.memShare, census.memShare, `${k}: Membrane share == census.meta.totals`)
+  near(s.gapPp, (s.realShare - s.memShare) * 100, `${k}: gap == (real - Membrane) in pp`, 1e-3)
+  near(
+    s.realDebtUsd,
+    sum(rs.filter((r) => r.priced).map((r) => r.debtUsd ?? 0)),
+    `${k}: real debt`,
+    0.05 * rs.length,
+  )
+  near(
+    s.memDebtUsd,
+    sum(rs.filter((r) => r.priced).map((r) => r.memDebtUsd ?? 0)),
+    `${k}: Membrane debt`,
+    0.05 * rs.length,
+  )
+  ok(
+    s.memDebtUsd <= s.realDebtUsd + 0.01,
+    `${k}: Membrane's line-sized debt is no larger than the real`,
+  )
   eq(s.memNeverSold, census.positionsKept, `${k}: never sold == census positionsKept`)
   eq(s.gridEnd.positions, census.positionsSoldAtGridEnd, `${k}: grid end == census`)
-  // The per-position comparison partitions the set.
+  // The per-position comparison of the two shares partitions the set.
   const cmp = rs.map(compareRow)
   eq(
     [s.less, s.more, s.equal, s.unpricedPositions],
@@ -147,6 +211,12 @@ for (const [k, s] of sets) {
     `${k}: less / more / equal / unpriced recount from the rows`,
   )
   eq(s.less + s.more + s.equal + s.unpricedPositions, s.positions, `${k}: they partition`)
+  const ls = sharesOf(rs.filter((r) => compareRow(r) === 'less'))
+  const ms = sharesOf(rs.filter((r) => compareRow(r) === 'more'))
+  near(ls.real, s.lessSet.realShare, `${k}: less set, real share`, 1e-4)
+  near(ls.mem, s.lessSet.memShare, `${k}: less set, Membrane share`, 1e-4)
+  near(ms.real, s.moreSet.realShare, `${k}: more set, real share`, 1e-4)
+  near(ms.mem, s.moreSet.memShare, `${k}: more set, Membrane share`, 1e-4)
 }
 // The two protocols partition the census, and so do the venue x chain rows.
 eq(
@@ -160,58 +230,126 @@ near(
   'venue x chain rows sum to all (real)',
   0.05,
 )
-near(
-  sum(D.byVenueChain.map((v) => v.memRepaidUsd)),
-  D.all.memRepaidUsd,
-  'venue x chain rows sum to all (Membrane)',
-  0.05,
-)
+eq(sum(D.byVenueChain.map((v) => v.positions)), D.all.positions, 'venue x chain rows partition all')
 
-// The headline figures (2026-10-18: Membrane's own line, 1.1x capacity, the compared set).
-eq(D.all.positions, 2280, '2,280 compared positions')
-eq(D.byProtocol['aave-v3'].positions, 1727, '1,727 Aave positions')
+// The headline figures (2026-10-18, round 3: Membrane's own line and debt, 0.98x capacity,
+// the strict compared set).
+eq(D.all.positions, 1545, '1,545 compared positions')
+eq(D.byProtocol['aave-v3'].positions, 992, '992 Aave positions')
 eq(D.byProtocol['morpho-blue'].positions, 553, '553 Morpho positions')
-eq(usdM(D.all.realRepaidUsd), '$164.1M', 'protocols closed $164.1M')
-eq(usdM(D.all.memRepaidUsd), '$193.0M', 'Membrane $193.0M')
-eq(D.all.gapPct.toFixed(2), '-17.62', '17.6% more')
-eq(D.byProtocol['aave-v3'].gapPct.toFixed(2), '-23.58', 'Aave 23.6% more')
-eq(D.byProtocol['morpho-blue'].gapPct.toFixed(2), '8.32', 'Morpho 8.3% less')
+eq(usdM(D.all.realRepaidUsd), '$135.2M', 'protocols repaid $135.2M: the size of the day here')
+eq([pc(D.all.realShare), pc(D.all.memShare)], ['31.2%', '13.3%'], '31.2% vs 13.3%')
+eq(D.all.gapPp.toFixed(1), '17.9', '17.9 pp less')
+eq(D.byProtocol['aave-v3'].gapPp.toFixed(1), '13.9', 'Aave 13.9 pp less')
+eq(D.byProtocol['morpho-blue'].gapPp.toFixed(1), '50.3', 'Morpho 50.3 pp less')
+eq([D.all.less, D.all.more, D.all.equal], [1018, 383, 137], 'less / more / equal')
+eq(doc.meta.liquidity.multiplier, 0.98, 'the headline multiplier is 0.98x')
+eq(
+  doc.meta.liquidity.multiplierBasis,
+  'modelled: the average measured depth recovery 8h after five crashes (membrane-datasets liquidity-recovery/REPORT.md)',
+  'the multiplier is labelled with its basis',
+)
 // The published sensitivities, each on its own set, the headline among them.
 {
   const S = doc.meta.sensitivities
   const h = S.find((r) => r.headline)!
-  eq(h.key, 'capacity-1.1', 'the headline row is 1.1x capacity')
-  near(h.memRepaidUsd, D.all.memRepaidUsd, 'the headline row is the headline')
+  eq(h.key, 'capacity-0.98', 'the headline row is 0.98x capacity')
+  eq(h.memShare, D.all.memShare, 'the headline row is the headline')
+  eq(h.gapPp, D.all.gapPp, 'the headline row gap is the headline')
+  for (const k of [
+    'capacity-0.5',
+    'capacity-0.98',
+    'capacity-1',
+    'capacity-1.1',
+    'capacity-2',
+    'capacity-unlimited',
+    'capacity-research-per-class',
+    'capacity-research-medians',
+    'capacity-research-flow',
+    'protocol-line',
+    'protocol-line-unlimited',
+    'no-debt-scaling',
+    'partial-lines',
+    'band-0.02',
+    'band-0.08',
+  ])
+    ok(
+      S.some((r) => r.key === k),
+      `sensitivity row ${k} is published`,
+    )
+  ok(
+    S.find((r) => r.key === 'capacity-1.1')!.label.includes('previous headline'),
+    '1.1x is labelled the previous headline',
+  )
   for (const r of S) {
-    near(r.gapUsd, r.realRepaidUsd - r.memRepaidUsd, `${r.key}: gap == real - Membrane`, 0.02)
+    near(
+      r.gapPp,
+      (r.realShare - r.memShare) * 100,
+      `${r.key}: gap == (real - Membrane) in pp`,
+      1e-3,
+    )
     eq(
       r.byProtocol['aave-v3'].positions + r.byProtocol['morpho-blue'].positions,
       r.positions,
       `${r.key}: the split partitions its set`,
     )
-    near(r.lessUsd - r.moreUsd, r.gapUsd, `${r.key}: gross less - gross more == net`, 0.05)
+    eq(
+      r.less + r.more + r.equal + (r.positions - r.pricedPositions),
+      r.positions,
+      `${r.key}: less/more/equal partition`,
+    )
+    ok(!('memRepaidUsd' in r), `${r.key}: no Membrane dollar in the row`)
   }
-  for (const k of ['capacity-0.5', 'capacity-1', 'capacity-2', 'capacity-unlimited'])
-    eq(S.find((r) => r.key === k)!.positions, h.positions, `${k}: the headline's own positions`)
-  const pl = S.find((r) => r.key === 'protocol-line-unlimited')!
-  ok(
-    pl.memRepaidUsd < 157_056_180.33,
-    'the protocol line, unlimited: the old census less no-capacity',
-  )
-  // the cap only ever takes sales away on the same positions, in total
-  const caps = [
+  for (const k of [
     'capacity-0.5',
     'capacity-1',
     'capacity-1.1',
     'capacity-2',
     'capacity-unlimited',
-  ].map((k) => S.find((r) => r.key === k)!.memRepaidUsd)
+    'capacity-research-per-class',
+    'capacity-research-medians',
+    'capacity-research-flow',
+    'no-debt-scaling',
+  ])
+    eq(S.find((r) => r.key === k)!.positions, h.positions, `${k}: the headline's own positions`)
+  {
+    const pl = S.find((r) => r.key === 'partial-lines')!
+    eq(pl.positions, 2262, 'partial lines: the first-round set, 2,262 positions')
+    eq(pl.excluded.partialMembraneLine, 0, 'partial lines: nobody excluded for a partial line')
+    eq(
+      pl.positions + pl.excluded.noMembraneLine + pl.excluded.noCapacity,
+      doc.meta.censusPositions,
+      'partial lines: its set and its exclusions partition the census',
+    )
+  }
+  // the cap only ever takes sales away on the same positions: more capacity, a larger share
+  const caps = [
+    'capacity-research-flow',
+    'capacity-0.5',
+    'capacity-0.98',
+    'capacity-1',
+    'capacity-1.1',
+    'capacity-2',
+    'capacity-unlimited',
+  ].map((k) => S.find((r) => r.key === k)!.memShare)
   for (let i = 1; i < caps.length; i++)
-    ok(caps[i] >= caps[i - 1], `more capacity, more repaid (${i})`)
+    ok(caps[i] >= caps[i - 1], `more capacity, a larger Membrane share (${i})`)
   const w = doc.meta.liquidity.whale
   eq(w.headline?.excluded, 'no-membrane-line', 'the whale is out of the headline')
-  near(w.protocolLineCapped!.memRepaidUsd!, 13_097_271.37, 'the whale at Aave’s line, 1.1x')
+  near(w.protocolLineCapped!.memRepaidUsd!, 11_523_540.89, 'the whale at Aave’s line, 0.98x')
   near(w.protocolLineUnlimited!.memRepaidUsd!, 29_863_534.37, 'the whale at Aave’s line, unlimited')
+  near(
+    w.protocolLineCapped!.memFrac!,
+    0.33058,
+    'the whale at Aave’s line, 0.98x: 33.1% of its debt',
+    1e-5,
+  )
+  near(
+    w.realRepaidUsd / w.debtUsd!,
+    0.1058,
+    'the whale: the protocol closed 10.6% of its debt',
+    1e-3,
+  )
 }
 near(doc.meta.crossCheck.new.memRepaidUsd, 13133229.25, 'cross-check: $13.13M on the 747 rows')
 near(doc.meta.crossCheck.old.memRepaidUsd, 22204493.19, 'cross-check: the old $22.20M')
@@ -224,10 +362,10 @@ for (const [o, n] of Object.entries(T.outcomes)) {
 }
 eq(T.neverSold.positions, rows.filter((r) => r.sales === 0).length, 'never sold == sales 0')
 
-// Grid end: marked rows, their USD, and the outcome bucket of positions first sold there.
+// Grid end: marked rows, and the outcome bucket of positions first sold there.
 const ge = rows.filter((r) => r.gridEndUsd != null)
 eq(ge.length, doc.meta.gridEnd.positions, 'grid-end rows == meta.gridEnd.positions')
-near(sum(ge.map((r) => r.gridEndUsd!)), doc.meta.gridEnd.memRepaidUsd, 'grid-end USD == rows', 0.05)
+ok(doc.meta.gridEnd.memShare < 0.001, 'grid-end sales are under 0.1% of Membrane’s debt')
 ok(
   rows.filter((r) => r.outcome === 'sold-at-grid-end').every((r) => r.gridEndUsd != null),
   'every position first sold at the grid end is marked',
@@ -328,17 +466,11 @@ eq(
   { delayed: rows.length - R.mixed - R.noDelay, mixed: R.mixed, 'no-delay': R.noDelay },
   'classes == rows',
 )
-near(T.oneRepay.memOneRepayUsd, R.oneRepay, 'one repay == Σ rows', 20)
-near(T.oneRepay.delayCreditUsd, R.delayCredit, 'delay credit == Σ rows', 20)
-near(T.oneRepay.cureCreditUsd, R.cureCredit, 'cure credit == Σ rows', 20)
-near(T.oneRepay.cureCreditShareWithin2min, R.w2, 'cure credit share 2 min == rows', 0.05)
-near(T.oneRepay.cureCreditShareWithin1h, R.w60, 'cure credit share 1h == rows', 0.05)
-near(T.oneRepay.cureCreditShareWithin8h, R.w480, 'cure credit share 8h == rows', 0.05)
-near(
-  T.bandSensitivity.find((b) => b.band === doc.meta.params.band)!.memRepaidUsd,
-  R.mem,
-  'the headline band == Σ rows',
-  0.05,
+// The bands, on the share basis: the headline band is the headline.
+eq(
+  T.bandSensitivity.find((b) => b.band === doc.meta.params.band)!.memShare,
+  D.all.memShare,
+  'the headline band == the headline share',
 )
 for (const o of Object.keys(T.outcomes)) {
   eq(T.outcomeWithSale[o], R.withSale(o), `outcome ${o}: positions with a sale == rows`)
@@ -352,24 +484,33 @@ eq(
   R.neverSold,
   'never sold == the not-sold buckets minus their positions with a sale on the other half',
 )
-// 201 never sold; 2,280 - 18 no-delay = 2,262 with a window (Membrane's own line).
-eq([R.neverSold, R.window], [201, 2262], 'never sold 201; window 2,262')
+// 457 never sold; 1,545 - 18 no-delay = 1,527 with a window (Membrane's own line).
+eq([R.neverSold, R.window], [457, 1527], 'never sold 457; window 1,527')
 
-// byAsset: per primary leg, >= 20 positions, recounted.
+// byAsset: per primary leg, >= 20 positions, recounted, both shares from the rows.
 for (const a of doc.byAsset) {
   const rs = rows.filter((r) => r.primary === a.symbol)
   eq(a.positions, rs.length, `byAsset ${a.symbol} positions`)
   eq(a.aave + a.morpho, a.positions, `byAsset ${a.symbol} split`)
   ok(a.positions >= 20, `byAsset ${a.symbol} >= 20`)
+  const sh = sharesOf(rs)
+  near(sh.real, a.realShare, `byAsset ${a.symbol} real share`, 2e-5)
+  near(sh.mem, a.memShare, `byAsset ${a.symbol} Membrane share`, 2e-5)
 }
 
 // The headline file the landing imports is the same census.
 eq(headline.censusSha256, doc.meta.source.sha256, 'headline file: same census sha256')
 eq(headline.positions, D.all.positions, 'headline file: positions')
 eq(headline.all.realRepaidUsd, D.all.realRepaidUsd, 'headline file: real')
-eq(headline.all.memRepaidUsd, D.all.memRepaidUsd, 'headline file: Membrane')
-eq(headline.aave.gapPct, D.byProtocol['aave-v3'].gapPct, 'headline file: Aave gap')
-eq(headline.morpho.gapPct, D.byProtocol['morpho-blue'].gapPct, 'headline file: Morpho gap')
+eq(headline.all.realShare, D.all.realShare, 'headline file: real share')
+eq(headline.all.memShare, D.all.memShare, 'headline file: Membrane share')
+eq(headline.aave.gapPp, D.byProtocol['aave-v3'].gapPp, 'headline file: Aave gap')
+eq(headline.morpho.gapPp, D.byProtocol['morpho-blue'].gapPp, 'headline file: Morpho gap')
+eq(
+  headline.excluded.partialMembraneLine.positions,
+  782,
+  'headline file: the partial-line exclusion',
+)
 
 // Served size: a client fetch, not a download.
 const bytes = fs.statSync(FILE).size
@@ -384,8 +525,9 @@ if (fs.existsSync(censusPath)) {
   const buf = fs.readFileSync(censusPath)
   eq(createHash('sha256').update(buf).digest('hex'), doc.meta.source.sha256, 'census.json sha256')
   const census = JSON.parse(buf.toString('utf8'))
+  eq(D.all.realShare, census.meta.totals.all.shares.realShare, 'census.json real share')
+  eq(D.all.memShare, census.meta.totals.all.shares.memShare, 'census.json Membrane share')
   near(D.all.realRepaidUsd, census.meta.totals.all.realWalked.repaidUsd, 'census.json real')
-  near(D.all.memRepaidUsd, census.meta.totals.all.mem.repaidUsd, 'census.json Membrane')
   eq(census.rows.length, doc.meta.censusPositions, 'census.json rows: the whole census')
   eq(
     census.rows.filter((r: { mem: unknown }) => r.mem).length,
@@ -420,49 +562,50 @@ if (fs.existsSync(oraclePath)) {
 const debtHtml = render(
   React.createElement(DebtLens, { debt: D, byAsset: doc.byAsset, meta: doc.meta }),
 )
-has(debtHtml, '2,280', 'DebtLens: positions')
+has(debtHtml, '1,545', 'DebtLens: positions')
 has(debtHtml, 'of 3,197 liquidated', 'DebtLens: of the census')
-has(debtHtml, '$164.1M', 'DebtLens: protocols closed')
-has(debtHtml, '$193.0M†', 'DebtLens: Membrane, marked modelled')
-has(debtHtml, '17.6% more debt closed†', 'DebtLens: the direction and size of the gap')
+has(debtHtml, '31.2%', 'DebtLens: protocols closed, as a share')
+has(debtHtml, '$135.2M repaid', 'DebtLens: the real dollars, as the size of the day')
+has(debtHtml, '13.3%†', 'DebtLens: Membrane, marked modelled')
+has(debtHtml, 'of its own debt, sized to its line†', 'DebtLens: Membrane’s debt is line-sized')
+has(debtHtml, '17.9 pp less†', 'DebtLens: the direction and size of the gap')
 has(debtHtml, 'Liquidity-capped sales†', 'DebtLens: the liquidity card')
+has(debtHtml, '0.98x capacity (headline)', 'DebtLens: the headline run')
+has(debtHtml, '1.1x capacity (the previous headline)', 'DebtLens: the previous headline run')
+has(debtHtml, 'research per-class medians', 'DebtLens: the research medians run')
+has(debtHtml, 'research per-class, recommended', 'DebtLens: the recommended research run')
 has(debtHtml, 'unlimited (the old assumption)', 'DebtLens: the unlimited run')
 has(debtHtml, 'protocol&#x27;s own line', 'DebtLens: the protocol-line run')
-has(debtHtml, '$13.1M† with the cap', 'DebtLens: the whale, capped')
-has(debtHtml, '$29.9M† unlimited', 'DebtLens: the whale, unlimited')
-// The net gap is shown with what it is made of, and every Membrane-side figure carries †.
-const grossLess = sum(
-  rows.filter((r) => compareRow(r) === 'less').map((r) => r.realRepaidUsd - r.memRepaidUsd),
-)
-const grossMore = sum(
-  rows.filter((r) => compareRow(r) === 'more').map((r) => r.memRepaidUsd - r.realRepaidUsd),
-)
-near(D.all.lessUsd, grossLess, 'gross less == Σ rows', 0.05)
-near(D.all.moreUsd, grossMore, 'gross more == Σ rows', 0.05)
-near(D.all.lessUsd - D.all.moreUsd, D.all.gapUsd, 'gross less − gross more == the net gap', 0.05)
-has(debtHtml, 'Difference, net', 'DebtLens: the difference is labelled net')
-has(debtHtml, '$28.9M†', 'DebtLens: the net difference carries †')
+has(debtHtml, 'without debt scaling', 'DebtLens: the unscaled run')
+has(debtHtml, 'partial-line set', 'DebtLens: the old partial-line set')
 has(
   debtHtml,
-  `less on ${D.all.less.toLocaleString('en-US')} positions (${usdM(grossLess)}†), more on ${D.all.more.toLocaleString('en-US')} (${usdM(grossMore)}†)`,
-  'DebtLens: the gross beside the net (rows)',
+  'modelled: the average measured depth recovery 8h after five crashes (membrane-datasets liquidity-recovery/REPORT.md)',
+  'DebtLens: the multiplier is labelled with its basis',
+)
+// The net gap is shown with what it is made of, and every Membrane-side figure carries †.
+has(debtHtml, 'Difference, net', 'DebtLens: the difference is labelled net')
+has(
+  debtHtml,
+  `a smaller share on ${D.all.less.toLocaleString('en-US')} positions (${pc(D.all.lessSet.realShare)} vs ${pc(D.all.lessSet.memShare)}†), a larger one on ${D.all.more.toLocaleString('en-US')} (${pc(D.all.moreSet.realShare)} vs ${pc(D.all.moreSet.memShare)}†)`,
+  'DebtLens: the gross beside the net',
 )
 has(debtHtml, 'Difference†', 'DebtLens: the difference column carries †')
-has(debtHtml, '$31.5M† · 23.6% more', 'DebtLens: the Aave difference carries †')
+has(debtHtml, '27.1% → 13.2%† ', 'DebtLens: the Aave row, shares')
+has(debtHtml, '63.9% → 13.6%† ', 'DebtLens: the Morpho row, shares')
 has(debtHtml, 'Aave V3', 'DebtLens: the Aave row of the split')
 has(debtHtml, 'Morpho Blue', 'DebtLens: the Morpho row of the split')
-has(debtHtml, '23.6% more', 'DebtLens: Aave gap')
-has(debtHtml, '8.3% less', 'DebtLens: Morpho gap')
-has(debtHtml, '$133.4M', 'DebtLens: Aave closed')
-has(debtHtml, '$28.1M†', 'DebtLens: Morpho Membrane')
+has(debtHtml, '13.9 pp less†', 'DebtLens: Aave gap')
+has(debtHtml, '50.3 pp less†', 'DebtLens: Morpho gap')
 for (const v of D.byVenueChain) has(debtHtml, v.label, `DebtLens: per-chain row ${v.label}`)
-has(debtHtml, `${D.all.more.toLocaleString('en-US')}`, 'DebtLens: Membrane closes more count')
-has(debtHtml, `${D.all.less.toLocaleString('en-US')}`, 'DebtLens: Membrane closes less count')
 has(debtHtml, 'window was still', 'DebtLens: the grid-end sales are stated')
 has(debtHtml, `${doc.meta.gridEnd.positions} positions`, 'DebtLens: grid-end count')
 has(debtHtml, 'no USD price', 'DebtLens: the unpriced positions are stated')
 has(debtHtml, 'WETH', 'DebtLens: per-asset table')
-ok(!/2,347|\b747\b|36\.0%|\$34\.7M|\$22\.2M/.test(debtHtml), 'DebtLens: no old-census figure')
+ok(
+  !/2,347|\b747\b|36\.0%|\$34\.7M|\$22\.2M|2,280|\$193\.0M|\$164\.1M/.test(debtHtml),
+  'DebtLens: no old-census or first-round figure',
+)
 checks++
 
 const timeHtml = render(React.createElement(TimeLens, { time: T, meta: doc.meta }))
@@ -518,9 +661,8 @@ has(
 ok(!/; never sold</.test(timeHtml), 'TimeLens: no outcome label claims "never sold" for a bucket')
 has(timeHtml, 'Window still open when the data ends', 'TimeLens: grid end apart')
 has(timeHtml, `band 2%`, 'TimeLens: band sensitivity')
-for (const b of T.bandSensitivity)
-  has(timeHtml, `${usdM(b.memRepaidUsd)}†`, `TimeLens: band ${b.band}`)
-has(timeHtml, `${usdM(R.mem)}†`, 'TimeLens: the 4% band is Σ rows')
+for (const b of T.bandSensitivity) has(timeHtml, `${pc(b.memShare)}†`, `TimeLens: band ${b.band}`)
+has(timeHtml, 'of Membrane’s debt closed', 'TimeLens: the bands are shares of Membrane’s own debt')
 has(timeHtml, 'nobody clears the timer early', 'TimeLens: the early-clear corner')
 has(
   timeHtml,
@@ -569,51 +711,60 @@ has(
 
 // SEO: the description is the census's, and carries the split.
 const desc = evidenceDescription(summaryOf(file))
-has(desc, '$164.1M', 'SEO: protocols closed')
-has(desc, '$193.0M on Membrane at its own lines (modelled)', 'SEO: Membrane, marked modelled')
-has(desc, 'Aave 23.6% more, Morpho 8.3% less', 'SEO: the split')
-ok(!/71%|17\.8%/.test(desc), 'SEO: the stale median figures are gone')
+has(desc, 'the protocols closed 31.2% of the debt', 'SEO: protocols closed, a share')
+has(desc, 'Membrane at its own lines 13.3% (modelled)', 'SEO: Membrane, marked modelled')
+has(desc, '17.9 pp less net', 'SEO: the net gap')
+has(desc, 'Aave 13.9 pp less, Morpho 50.3 pp less', 'SEO: the split')
+ok(!/71%|17\.8%|\$193|\$164/.test(desc), 'SEO: the stale figures are gone')
 checks++
 
 // The landing copy (facts.ts): derived from the census, the split on every blended line.
 const bridge = HERO_VARIANTS.c.bridge.line
-has(bridge, '2,280 of the 3,197 positions liquidated on Aave and Morpho', 'landing bridge: the set')
-has(bridge, '$164.1M', 'landing bridge: protocols closed')
-has(bridge, '$193.0M†', 'landing bridge: Membrane, modelled')
-has(bridge, 'Aave 23.6% more, Morpho 8.3% less', 'landing bridge: the split')
+has(bridge, '1,545 of the 3,197 positions liquidated on Aave and Morpho', 'landing bridge: the set')
+has(bridge, '1,648 hold collateral Membrane has no line for', 'landing bridge: the exclusion')
+has(bridge, 'the protocols force-closed 31.2% of the debt', 'landing bridge: protocols closed')
+has(bridge, '13.3%†', 'landing bridge: Membrane, modelled')
+has(bridge, '17.9 pp less, net', 'landing bridge: net, in pp')
+has(bridge, 'Aave 13.9 pp less, Morpho 50.3 pp less', 'landing bridge: the split')
 has(bridge, 'capped by the liquidity the day showed†', 'landing bridge: the cap, modelled')
 has(bridge, 'its protocol’s oracle read on chain', 'landing bridge: names the oracle')
 for (const v of Object.values(HERO_VARIANTS)) {
-  ok(
-    !/747|36%|Chainlink/.test(v.bridge.line),
-    'no hero variant keeps the old 747 / 36% / Chainlink line',
-  )
+  ok(!/747|36%|Chainlink|\$193|2,280/.test(v.bridge.line), 'no hero variant keeps an old line')
 }
-has(CLOSE.headline, '2,280', 'Close headline: the compared count')
+has(CLOSE.headline, '1,545', 'Close headline: the compared count')
 const lines = CLOSE.contains.lines.join('\n')
 {
   const c = headline.concentration
-  const g = (x: number) => `${Math.abs(x).toFixed(1)}% ${x >= 0 ? 'less' : 'more'}†`
   has(
     lines,
-    `Without it Membrane closes ${g(c.gapWithoutTop1Pct)}`,
+    `Without it the net is ${ppw(c.gapWithoutTop1Pp)}†`,
     'Close: the without-top-1 figure carries †',
   )
   has(
     lines,
-    `without them it is ${g(c.gapWithoutTop5Pct)}`,
+    `without them it is ${ppw(c.gapWithoutTop5Pp)}†`,
     'Close: the without-top-5 figure carries †',
   )
 }
 has(
   lines,
-  `net: Membrane closes less on ${D.all.less.toLocaleString('en-US')} positions`,
+  `a smaller share on ${D.all.less.toLocaleString('en-US')} positions and a larger one on ${D.all.more.toLocaleString('en-US')}`,
   'Close: the net figure with its gross counts',
 )
 has(
+  lines,
+  'no Membrane dollar is set beside it',
+  'Close: the real dollars are the size of the day, never compared',
+)
+has(
+  lines,
+  'modelled: the average measured depth recovery 8h after five crashes (membrane-datasets liquidity-recovery/REPORT.md)',
+  'Close: the multiplier is labelled with its basis',
+)
+has(
   bridge,
-  `less on ${D.all.less.toLocaleString('en-US')} positions (${usdM(D.all.lessUsd)}†), more on ${D.all.more.toLocaleString('en-US')} (${usdM(D.all.moreUsd)}†)`,
-  'landing bridge: net, with both counts and the gross',
+  `a smaller share on ${D.all.less.toLocaleString('en-US')} positions (${pc(D.all.lessSet.realShare)} vs ${pc(D.all.lessSet.memShare)}†), a larger one on ${D.all.more.toLocaleString('en-US')} (${pc(D.all.moreSet.realShare)} vs ${pc(D.all.moreSet.memShare)}†)`,
+  'landing bridge: net, with both counts and the gross shares',
 )
 has(
   bridge,
@@ -631,8 +782,14 @@ const heroChartHtml = render(
     isDemo: true,
   }),
 )
-has(heroChartHtml, '$29M more, net†', 'HeroChart: net, modelled')
+has(heroChartHtml, '17.9 pp less, net†', 'HeroChart: net, in pp, modelled')
 has(heroChartHtml, OCT10_SCALE_LINE.gross, 'HeroChart: the gross counts beside it')
+has(
+  heroChartHtml,
+  'Aave 27.1% → 13.2%† (13.9 pp less) · Morpho 63.9% → 13.6%† (50.3 pp less)',
+  'HeroChart: the split',
+)
+has(heroChartHtml, 'the dollars differ and are not compared', 'HeroChart: no dollar comparison')
 ok(!/protected/i.test(heroChartHtml), 'HeroChart: never "protected"')
 const guaranteeHtml = render(React.createElement(GuaranteeBlock, {}))
 ok(!/protected|\balone\b/i.test(guaranteeHtml), 'GuaranteeBlock: never "protected", never "alone"')
@@ -642,17 +799,21 @@ has(
   'GuaranteeBlock: the census line is labelled a separate measure',
 )
 has(guaranteeHtml, OCT10_SCALE_LINE.scope, 'GuaranteeBlock: with its scope named')
-has(guaranteeHtml, '$29M more debt force-closed, net†', 'GuaranteeBlock: net, modelled')
-has(lines, 'Aave V3: 1,727 positions', 'Close: the Aave split')
+has(
+  guaranteeHtml,
+  '17.9 pp less of the debt force-closed, net† (31.2% → 13.3%†)',
+  'GuaranteeBlock: net, modelled',
+)
+has(lines, 'Aave V3: 992 positions', 'Close: the Aave split')
 has(lines, 'Morpho Blue: 553 positions', 'Close: the Morpho split')
 has(lines, `${doc.meta.gridEnd.positions} positions were still inside`, 'Close: grid end')
 has(
   lines,
-  `${D.all.more.toLocaleString('en-US')} positions lose more on Membrane†`,
+  `${D.all.more.toLocaleString('en-US')} positions lose a larger share on Membrane†`,
   'Close: losses',
 )
 ok(
-  !/2,347|\b747\b|\b290\b|\b110\b|\b184\b|\$34\.7M|\$22\.2M/.test(lines),
+  !/2,347|\b747\b|\b290\b|\b110\b|\b184\b|\$34\.7M|\$22\.2M|2,280|\$193\.0M/.test(lines),
   'Close: no old-census figure',
 )
 checks++
@@ -738,9 +899,9 @@ ok(
 const bySpared = probe({ ...base, sort: 'spared' }).visible
 ok(
   bySpared.every(
-    (r, i) => i === 0 || (sparedUsd(bySpared[i - 1]) ?? -Infinity) >= (sparedUsd(r) ?? -Infinity),
+    (r, i) => i === 0 || (sparedPp(bySpared[i - 1]) ?? -Infinity) >= (sparedPp(r) ?? -Infinity),
   ),
-  'sort: spared desc',
+  'sort: spared (pp of debt) desc',
 )
 const byEvents = probe({ ...base, sort: 'events' }).visible
 eq(byEvents[0].events, Math.max(...rows.map((r) => r.events)), 'sort: most repeat hits')
@@ -768,7 +929,7 @@ ok(
 
 console.log(`EVIDENCE CENSUS OK — ${checks} assertions passed`)
 console.log(
-  `  ${rows.length} positions · real ${usdM(D.all.realRepaidUsd)} · Membrane ${usdM(D.all.memRepaidUsd)} · ${D.all.gapPct}% less`,
+  `  ${rows.length} positions · real ${pc(D.all.realShare)} of their debt · Membrane ${pc(D.all.memShare)}† of its own · ${ppw(D.all.gapPp)} · size of the day ${usdM(D.all.realRepaidUsd)}`,
 )
 console.log(
   `  less/more/equal/unpriced ${D.all.less}/${D.all.more}/${D.all.equal}/${D.all.unpricedPositions} · cured ${T.cure.curedInWindow}/${T.cure.accountsAnalysed} · grid end ${doc.meta.gridEnd.positions}`,

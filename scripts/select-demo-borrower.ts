@@ -27,14 +27,17 @@
  *
  * ELIGIBILITY (all must hold; each is a claim the page would otherwise make falsely):
  *   1. the census row is INCLUDED — not excluded, so its breach was actually located;
- *   2. the census says Membrane closes LESS than Aave on it
- *      (membraneClosedUsd < aaveClosedUsd). A hero wallet where the census itself says
- *      Membrane closed more is a page arguing against its own dataset;
+ *   2. the census says Membrane closes a SMALLER SHARE than Aave on it
+ *      (membraneClosedFrac < aaveClosedFrac: each side's closed debt over its own t0 debt;
+ *      since 2026-10-18 Membrane's debt is sized to its line, so dollars do not compare). A
+ *      hero wallet where the census itself says Membrane closed more is a page arguing
+ *      against its own dataset;
  *   3. the census outcome and the live engine AGREE on outcome class (sold vs held) when
- *      the live engine is run the way the census runs — fee 0, NO deployment. The two
+ *      the live engine is run the way the census runs — fee 0, NO deployment, Membrane's
+ *      line, the debt x memLine / protocolLine (2026-10-18). The two
  *      engines share a state machine; if they disagree on this row, the row is a seam,
  *      not a story;
- *   3b. the live engine run the census's way AT THE CENSUS LINE lands on the census row: Aave's
+ *   3b. the live engine run the census's way (its line, its line-sized debt) lands on the census row: Aave's
  *      first liquidation within 2 minutes of the census t0, the first Membrane sale within 2
  *      minutes of the census's, the same number of sales and the closed USD within 1% (or no
  *      sale on either side). scripts/tests/position-sim.test.ts pins exactly this on the
@@ -126,8 +129,9 @@ interface CensusRow {
   collUsd: number | null
   debtUsd: number | null
   line: number | null
-  /** Membrane's own line, the one the census headline walks at (owner ruling 2026-10-18). */
-  memLine?: { line: number }
+  /** Membrane's own line, the one the census headline walks at (owner ruling 2026-10-18), and
+   *  memLine / protocolLine: the census sizes Membrane's debt by it (second round). */
+  memLine?: { line: number; debtScale?: number }
   ltv0: number | null
   real: { repaidUsd: number; unpricedEvents: number }
   mem: null | {
@@ -136,6 +140,8 @@ interface CensusRow {
     firstSaleMinute: number | null
     repaidUsd: number
     closedT0: number
+    /** Membrane's t0 debt, line-sized (census.ts), in the position's unit. */
+    debt0: number
     breaches: number
   }
 }
@@ -166,6 +172,7 @@ function toEvidenceRow(r: CensusRow): EvidenceRow | null {
     healthFactor: r.line / r.ltv0,
     liqLine: r.line,
     memLine: r.memLine ? r.memLine.line : r.line,
+    memDebtScale: r.memLine?.debtScale ?? 1,
     ltv0: r.ltv0,
     collSymbol: c.symbol,
     debtSymbol: d.symbol,
@@ -179,7 +186,8 @@ function toEvidenceRow(r: CensusRow): EvidenceRow | null {
     aaveClosedUsd: r.real.repaidUsd,
     membraneClosedUsd: r.mem.repaidUsd,
     aaveClosedFrac: r.real.repaidUsd / r.debtUsd,
-    membraneClosedFrac: r.mem.closedT0 / r.debtUsd,
+    // the census's share: Membrane's closed debt over ITS OWN line-sized t0 debt
+    membraneClosedFrac: r.mem.debt0 > 0 ? r.mem.closedT0 / r.mem.debt0 : 0,
     breaches: r.mem.breaches,
     sales: r.mem.sales,
   }
@@ -202,6 +210,8 @@ interface EvidenceRow {
   liqLine: number
   /** The line the census walked Membrane at (its own line since 2026-10-18). */
   memLine: number
+  /** memLine / protocolLine: the census walks Membrane on the debt times this (2026-10-18). */
+  memDebtScale: number
   ltv0: number
   collSymbol: string
   debtSymbol: string
@@ -391,6 +401,25 @@ function buildPosition(row: EvidenceRow): ProtocolPosition | null {
 }
 
 /**
+ * The same position with its debt times `k` (amounts, values, LTV, health factor): the census
+ * walks Membrane on the debt a borrower at Membrane's line would carry, debt0 x memLine /
+ * protocolLine (lib/wavefront/membraneLine.ts membraneDebtScale). Collateral is unchanged.
+ */
+function scaleDebt(position: ProtocolPosition, k: number): ProtocolPosition {
+  if (k === 1) return position
+  const debt = position.debt.map((d) => ({ ...d, amount: d.amount * k, valueUsd: d.valueUsd * k }))
+  const totalDebtUsd = position.totalDebtUsd * k
+  const ltv = position.ltv * k
+  return {
+    ...position,
+    debt,
+    totalDebtUsd,
+    ltv,
+    healthFactor: ltv > 0 ? position.liquidationLtv / ltv : Number.POSITIVE_INFINITY,
+  }
+}
+
+/**
  * The ASSUMED deployment for a row, as a recall input. Modelled and stamped as such;
  * the dollars are a share of the row's MEASURED debt, not an invented balance.
  */
@@ -490,9 +519,9 @@ const candidates: Candidate[] = []
 const poolRows = cohort.filter(
   (r) => r.collateralUsd >= MIN_COLLATERAL_USD && r.collateralUsd <= MAX_COLLATERAL_USD,
 )
+// Per position, the two SHARES (each side's own t0 debt), in percentage points (2026-10-18).
 const poolGaps = poolRows
-  .filter((r) => r.aaveClosedUsd > 0)
-  .map((r) => (r.aaveClosedUsd - r.membraneClosedUsd) / r.aaveClosedUsd)
+  .map((r) => (r.aaveClosedFrac - r.membraneClosedFrac) * 100)
   .sort((a, b) => a - b)
 const poolMedian = poolGaps.length
   ? poolGaps.length % 2
@@ -504,10 +533,12 @@ const selectionPool = {
     'mainnet Aave V3 Core, one collateral and one debt leg, ' +
     `$${(MIN_COLLATERAL_USD / 1000).toFixed(0)}k–$${(MAX_COLLATERAL_USD / 1e6).toFixed(0)}M of collateral at t0`,
   positions: poolRows.length,
+  /** Positions where Membrane closes a LARGER share of its own debt (compared at 1e-5). */
   membraneMore: poolRows.filter(
-    (r) => Math.round(r.membraneClosedUsd * 100) > Math.round(r.aaveClosedUsd * 100),
+    (r) => Math.round(r.membraneClosedFrac * 1e5) > Math.round(r.aaveClosedFrac * 1e5),
   ).length,
-  medianGapPct: Math.round(poolMedian * 1000) / 10,
+  /** Median of (Aave share − Membrane share), percentage points: positive = Membrane less. */
+  medianGapPp: Math.round(poolMedian * 10) / 10,
 }
 
 for (const r of census.rows) {
@@ -562,9 +593,10 @@ for (const row of cohort) {
     continue
   }
 
-  // GATE 2: the census must already say Membrane closes less on this row.
-  if (!(row.membraneClosedUsd < row.aaveClosedUsd)) {
-    reject('census-says-membrane-closes-more')
+  // GATE 2: the census must already say Membrane closes a SMALLER SHARE on this row (owner
+  // ruling 2026-10-18, second round: the two sides carry different debt, so shares, not $).
+  if (!(row.membraneClosedFrac < row.aaveClosedFrac)) {
+    reject('census-says-membrane-closes-a-larger-share')
     continue
   }
 
@@ -589,8 +621,13 @@ for (const row of cohort) {
    */
   const bare = oct10Run(position, null)
   const censusSold = row.outcome.startsWith('sold')
+  // the census's way since 2026-10-18: Membrane's line on the line-sized debt. BOTH the hero's
+  // own run (the wallet's real debt) and the census's way must agree with the census on sold vs
+  // held, or the hero would print a sale its own census row does not have (or the reverse).
+  const censusWay = oct10Run(scaleDebt(position, row.memDebtScale), null, row.memLine)
   const liveSold = engineOutcome(bare.membrane).liquidated
-  if (censusSold !== liveSold) {
+  const censusWaySold = engineOutcome(censusWay.membrane).liquidated
+  if (censusSold !== liveSold || censusSold !== censusWaySold) {
     reject('census-and-live-engine-disagree')
     continue
   }
@@ -603,11 +640,12 @@ for (const row of cohort) {
    * scripts/tests/position-sim.test.ts.
    */
   {
-    // the census walks Membrane at ITS OWN line since 2026-10-18 (row.memLine), entering at t0
-    const atLine = oct10Run(position, null, row.memLine)
+    // the census walks Membrane at ITS OWN line since 2026-10-18 (row.memLine), on the debt
+    // sized to that line (x row.memDebtScale), entering at t0; Aave's side is the real debt
+    const atLine = censusWay
     const sales = atLine.membrane.events.filter((e) => e.repaidUsd > 0)
     const closed = sales.reduce((a, e) => a + e.repaidUsd, 0)
-    const srcFirst = atLine.source.events.find((e) => e.kind === 'liquidation')
+    const srcFirst = bare.source.events.find((e) => e.kind === 'liquidation')
     const t0Ok = !!srcFirst && Math.abs(srcFirst.minute - row.t0Index) <= 2
     const agree =
       row.closedAtIndex === null
@@ -674,7 +712,9 @@ for (const row of cohort) {
 candidates.sort(
   (a, b) =>
     b.bareDeltaUsd - a.bareDeltaUsd ||
-    b.row.aaveClosedUsd - b.row.membraneClosedUsd - (a.row.aaveClosedUsd - a.row.membraneClosedUsd),
+    b.row.aaveClosedFrac -
+      b.row.membraneClosedFrac -
+      (a.row.aaveClosedFrac - a.row.membraneClosedFrac),
 )
 
 // ------------------------------------------------------------------ reports
@@ -830,7 +870,7 @@ console.log(
 )
 console.log(
   `  gates: census ${winner.row.outcome} vs live ${winner.liveSold ? 'sold' : 'held'} (agree) · ` +
-    `census aave ${usd(winner.row.aaveClosedUsd)} > membrane ${usd(winner.row.membraneClosedUsd)} · ` +
+    `census aave ${(winner.row.aaveClosedFrac * 100).toFixed(1)}% > membrane ${(winner.row.membraneClosedFrac * 100).toFixed(1)}% of own debt · ` +
     `RANKED delta (no deployment) ${usd(winner.bareDeltaUsd)} · with-deployment ${usd(winner.deltaUsd)} (not used)`,
 )
 
@@ -848,18 +888,18 @@ const fixture = {
     'Generated by scripts/select-demo-borrower.ts, which runs the page engine ' +
     '(lib/position-sim runComparison) over every row of the full on-chain census of ' +
     '10-11 Oct 2025 (membrane-datasets oct10-2025/coverage/census.json) with NO deployment and ' +
-    'ranks by equityDeltaUsd, ties broken by the census gap (Aave closed minus Membrane ' +
-    'closed). Eligible: a mainnet Aave V3 Core position (protocols.json is a read of that ' +
+    'ranks by equityDeltaUsd, ties broken by the census gap (the share of its debt Aave closed ' +
+    'minus the share of its own, line-sized debt Membrane closed). Eligible: a mainnet Aave V3 Core position (protocols.json is a read of that ' +
     'pool, so its risk parameters and the token addresses only apply there) whose whole t0 ' +
     'composition is ONE collateral leg priced by the measured path AND present in ' +
     'protocols.json aaveV3.reserves, and ONE debt leg priced or a $1 stable held ' +
     'flat; collateralUsd ' +
     `$${(MIN_COLLATERAL_USD / 1000).toFixed(0)}k-$${(MAX_COLLATERAL_USD / 1e6).toFixed(0)}M ` +
     `(no whales); the first Aave liquidation at least ${MIN_FIRST_LIQ_MINUTE} minutes into ` +
-    'the path, so the hero is not a minute-0 artifact; the census says Membrane closes ' +
-    'LESS than Aave on it; the census outcome and the live engine agree on outcome class ' +
-    "when the live engine is run the census's way (fee 0, no deployment); run at the " +
-    "census's own line the live engine lands on the census row (Aave's first liquidation " +
+    'the path, so the hero is not a minute-0 artifact; the census says Membrane closes a ' +
+    'SMALLER SHARE of its debt than Aave on it; the census outcome and the live engine agree ' +
+    "on outcome class when the live engine is run the census's way (fee 0, no deployment, " +
+    "Membrane's line, the debt sized to it); run that way the live engine lands on the census row (Aave's first liquidation " +
     'and the first sale within 2 minutes, the same sales, closed USD within 1%); and ' +
     'equityDeltaUsd > 0 with NO deployment. ' +
     `${candidates.length} rows cleared every gate and this one won on the ranked figure at ` +
@@ -913,7 +953,11 @@ const fixture = {
   censusT0Index: winner.row.t0Index,
   censusOutcome: winner.row.outcome,
   censusAaveClosedUsd: winner.row.aaveClosedUsd,
+  /** Membrane's dollars on ITS OWN, line-sized debt (x censusMembraneDebtScale): not Aave's. */
   censusMembraneClosedUsd: winner.row.membraneClosedUsd,
+  censusMembraneDebtScale: winner.row.memDebtScale,
+  censusAaveClosedFrac: winner.row.aaveClosedFrac,
+  censusMembraneClosedFrac: winner.row.membraneClosedFrac,
   censusClosedAtIndex: winner.row.closedAtIndex,
   /** How many positions cleared every gate, and the pool the winner is the best case of. */
   eligibleCount: candidates.length,

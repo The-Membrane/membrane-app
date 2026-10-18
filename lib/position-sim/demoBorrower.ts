@@ -95,6 +95,8 @@ export const DEMO_BORROWER_NO_DEPLOYMENT = fixture.noDeployment
 export const DEMO_BORROWER_MEASURED: MeasuredCensus = {
   aaveClosedUsd: fixture.censusAaveClosedUsd,
   membraneClosedUsd: fixture.censusMembraneClosedUsd,
+  aaveClosedFrac: fixture.censusAaveClosedFrac,
+  membraneClosedFrac: fixture.censusMembraneClosedFrac,
   t0Index: fixture.censusT0Index,
   line: fixture.row.liqLine,
   eligibleCount: fixture.eligibleCount,
@@ -102,15 +104,20 @@ export const DEMO_BORROWER_MEASURED: MeasuredCensus = {
 }
 export interface MeasuredCensus {
   aaveClosedUsd: number
-  /** The census row's Membrane figure, at the position's OWN line on Aave's oracle (†). */
+  /** The census row's Membrane figure, at Membrane's line on Aave's oracle, on the debt sized
+   *  to that line (†): Membrane's own dollars, never set beside Aave's. */
   membraneClosedUsd: number
+  /** Share of the real t0 debt Aave closed. */
+  aaveClosedFrac?: number
+  /** Share of ITS OWN, line-sized t0 debt Membrane closes (†). The census compares these. */
+  membraneClosedFrac?: number
   t0Index: number
   /** The census row's own liquidation line. */
   line?: number
   /** How many census positions cleared every selection gate (the winner is the best). */
   eligibleCount?: number
   /** The pool of positions of the hero's kind, before any outcome-dependent gate. */
-  pool?: { definition: string; positions: number; membraneMore: number; medianGapPct: number }
+  pool?: { definition: string; positions: number; membraneMore: number; medianGapPp: number }
 }
 
 /**

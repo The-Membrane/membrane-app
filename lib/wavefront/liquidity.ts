@@ -18,7 +18,8 @@
  * A RATE, NOT A RESERVOIR. Capacity is tokens per rolling 10 minutes, available at ANY minute of
  * the window, not only in the crash minutes it was measured in.
  *
- * MULTIPLIER. The headline allows CAPACITY_MULTIPLIER = 1.1 x capacity: the 8-hour delay lets some
+ * MULTIPLIER. The headline allows CAPACITY_MULTIPLIER = 0.98 x capacity (MULTIPLIER_BASIS); before
+ * the third ruling it was 1.1 x: the 8-hour delay lets some
  * of the market's liquidity recover. It is a MODELLED assumption (†), named in the method, and
  * the census publishes 0.5x, 1.0x, 2.0x and unlimited beside it.
  *
@@ -39,35 +40,65 @@ import { BTC_SYMBOLS, ETH_SYMBOLS } from './cluster'
 
 /** The rolling window capacity is measured over and every fill is booked against. */
 export const CAPACITY_WINDOW_MINUTES = 10
-/** The headline multiplier on measured capacity (modelled †). */
-export const CAPACITY_MULTIPLIER = 1.1
+/**
+ * The headline multiplier on measured capacity (modelled †, owner ruling 2026-10-18, third
+ * round): UNIFORM 0.98x, the mean of the three measured class medians of depth recovery 8h
+ * after five crashes (membrane-datasets q28/liquidity-recovery REPORT.md: ETH/LSTs 0.77, BTC
+ * wrappers 0.99, the long tail 1.17; (0.77 + 0.99 + 1.17) / 3 = 0.9767, rounded to 0.98).
+ * The previous headline, 1.1x, is a published sensitivity.
+ */
+export const CAPACITY_MULTIPLIER = 0.98
+/** The first-round headline, kept as a sensitivity row. */
+export const PREVIOUS_CAPACITY_MULTIPLIER = 1.1
 
 /**
- * THE RESEARCH PER-CLASS MULTIPLIERS (membrane-datasets q28/liquidity-recovery REPORT.md):
- * the share of the measured 10-minute capacity the liquidity-recovery research supports, by
- * collateral class. A SENSITIVITY ONLY; the headline stays at CAPACITY_MULTIPLIER (owner
- * ruling). The class lists are lib/wavefront/cluster.ts's ETH and BTC groups, so the census
- * clusters and this table cannot disagree. Every other symbol is 'other'.
+ * THE RESEARCH CLASS TABLE (membrane-datasets q28/liquidity-recovery REPORT.md), one map for
+ * every per-class run: `recommended` is the research's recommended share of the measured
+ * 10-minute capacity (0.70 / 0.55 / 0.75; the owner rejected it as too low for the headline),
+ * `median` the measured median depth recovery at +8h (0.77 / 0.99 / 1.17). Both are
+ * SENSITIVITIES. The class lists are lib/wavefront/cluster.ts's ETH and BTC groups, so the
+ * census clusters and this table cannot disagree. Every other symbol is 'other'.
  */
 export const RESEARCH_LIQUIDITY_CLASSES: readonly {
   cls: 'eth' | 'btc' | 'other'
   label: string
-  multiplier: number
+  recommended: number
+  median: number
   /** null: every symbol not in another class. */
   symbols: readonly string[] | null
 }[] = [
-  { cls: 'eth', label: 'ETH and its LSTs / LRTs', multiplier: 0.7, symbols: ETH_SYMBOLS },
-  { cls: 'btc', label: 'BTC wrappers', multiplier: 0.55, symbols: BTC_SYMBOLS },
-  { cls: 'other', label: 'every other collateral', multiplier: 0.75, symbols: null },
+  {
+    cls: 'eth',
+    label: 'ETH and its LSTs / LRTs',
+    recommended: 0.7,
+    median: 0.77,
+    symbols: ETH_SYMBOLS,
+  },
+  { cls: 'btc', label: 'BTC wrappers', recommended: 0.55, median: 0.99, symbols: BTC_SYMBOLS },
+  { cls: 'other', label: 'every other collateral', recommended: 0.75, median: 1.17, symbols: null },
 ]
 /** The research "flow reading": the literal absorbed-flow share, the same for every class. */
 export const RESEARCH_FLOW_READING_MULTIPLIER = 0.2
 
-/** The research class multiplier of a collateral symbol. */
-export function researchClassMultiplier(symbol: string): number {
-  for (const c of RESEARCH_LIQUIDITY_CLASSES) if (c.symbols?.includes(symbol)) return c.multiplier
-  return RESEARCH_LIQUIDITY_CLASSES.find((c) => c.symbols === null)!.multiplier
+/** The research class of a collateral symbol. */
+export function researchClassOf(symbol: string) {
+  for (const c of RESEARCH_LIQUIDITY_CLASSES) if (c.symbols?.includes(symbol)) return c
+  return RESEARCH_LIQUIDITY_CLASSES.find((c) => c.symbols === null)!
 }
+
+/** The research's RECOMMENDED class multiplier of a collateral symbol. */
+export function researchClassMultiplier(symbol: string): number {
+  return researchClassOf(symbol).recommended
+}
+
+/** The research's measured MEDIAN (+8h) class multiplier of a collateral symbol. */
+export function researchMedianMultiplier(symbol: string): number {
+  return researchClassOf(symbol).median
+}
+
+/** The headline multiplier's basis, as every surface states it (†). */
+export const MULTIPLIER_BASIS =
+  'modelled: the average measured depth recovery 8h after five crashes (membrane-datasets liquidity-recovery/REPORT.md)'
 
 /** A multiplier for every book key, or one number for all of them. */
 export type CapacityMultiplier = number | ((key: string) => number)

@@ -9,7 +9,7 @@ import {
   SortKey,
   compareRow,
   decodeEvidence,
-  sparedUsd,
+  sparedPp,
 } from './types'
 
 export const EVIDENCE_SRC = '/data/oct10-2025/evidence-census.json'
@@ -118,7 +118,7 @@ export function useCohort(
     const sorted = [...matched].sort((a, b) => {
       switch (opts.sort) {
         case 'spared':
-          return dollars(sparedUsd(b)) - dollars(sparedUsd(a))
+          return dollars(sparedPp(b)) - dollars(sparedPp(a))
         case 'events':
           return b.events - a.events
         case 'ltv0':

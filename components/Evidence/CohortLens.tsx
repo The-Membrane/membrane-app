@@ -17,7 +17,7 @@ import {
   usd,
 } from './format'
 import { useCohort, useFacets } from './useEvidence'
-import { CohortRow, OutcomeFilter, ProtocolFilter, SortKey, sparedUsd } from './types'
+import { CohortRow, OutcomeFilter, ProtocolFilter, SortKey, sparedPp } from './types'
 
 const COLS = '1.3fr 0.8fr 0.8fr 0.7fr 0.8fr 0.9fr 0.6fr'
 const PAGE = 100
@@ -92,8 +92,10 @@ const Detail: React.FC<{ r: CohortRow }> = ({ r }) => {
                 <>Membrane&rsquo;s walk never sold it†: nothing repaid.</>
               ) : (
                 <>
-                  Membrane&rsquo;s walk would have repaid {usd(r.memRepaidUsd)}†
-                  {r.memFrac != null ? ` — ${pct(r.memFrac)}` : ''} in{' '}
+                  Membrane&rsquo;s walk, on the{' '}
+                  {r.memDebtUsd != null ? usd(r.memDebtUsd) : 'smaller'} of debt a Membrane borrower
+                  would have carried at its line†, would have closed
+                  {r.memFrac != null ? ` ${pct(r.memFrac)} of it†` : '†'} in{' '}
                   {r.sales === 1 ? 'one sale' : `${r.sales} sales`}
                   {r.firstSaleMinute != null
                     ? `, the first at ${minuteClock(r.firstSaleMinute)}`
@@ -241,7 +243,7 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
           aria-label="Sort rows"
         >
           <option value="debtUsd">largest debt</option>
-          <option value="spared">most debt spared</option>
+          <option value="spared">largest share spared</option>
           <option value="events">most repeat hits</option>
           <option value="ltv0">highest LTV</option>
         </Select>
@@ -267,7 +269,7 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
           </Grid>
 
           {visible.map((r) => {
-            const spared = sparedUsd(r)
+            const spared = sparedPp(r)
             const isOpen = open === r.id
             const cs = cureState(r)
             return (
@@ -358,7 +360,11 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
                           : SEMANTIC_COLORS.danger
                     }
                   >
-                    {spared == null ? '—' : spared >= 0 ? usd(spared) : `−${usd(-spared)}`}
+                    {spared == null
+                      ? '—'
+                      : spared >= 0
+                        ? `${spared.toFixed(1)} pp`
+                        : `−${(-spared).toFixed(1)} pp`}
                   </Text>
                   <Text
                     fontFamily={TYPOGRAPHY.fontMono}
@@ -386,12 +392,13 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
         {matched !== total ? ` (${total.toLocaleString('en-US')} total)` : ''}. Rows are capped at{' '}
         {PAGE} — narrow the filters to reach the rest. &ldquo;Protocol&rdquo; and
         &ldquo;Membrane&rdquo; are the share of the debt at the first liquidation each closes;
-        &ldquo;Spared&rdquo; is what the protocol repaid minus what Membrane would have, negative
-        where Membrane closes more. &ldquo;Line&rdquo; is Membrane&rsquo;s own line† (the
-        protocol&rsquo;s is in the row). Only positions Membrane can be compared on are listed.{' '}
-        {GRID_END_MARK} = the 8-hour window was still open when the data ends, booked as sold at the
-        last price†. &ldquo;Cured&rdquo;: yes = back under the line and still under it at 8h, 8h =
-        back under then over again, no = never back under, — = no window. Click any row.
+        &ldquo;Spared&rdquo; is the protocol&rsquo;s share minus Membrane&rsquo;s share of its own
+        (line-sized) debt, in percentage points, negative where Membrane closes more.
+        &ldquo;Line&rdquo; is Membrane&rsquo;s own line† (the protocol&rsquo;s is in the row). Only
+        positions Membrane can be compared on are listed. {GRID_END_MARK} = the 8-hour window was
+        still open when the data ends, booked as sold at the last price†. &ldquo;Cured&rdquo;: yes =
+        back under the line and still under it at 8h, 8h = back under then over again, no = never
+        back under, — = no window. Click any row.
       </Text>
     </VStack>
   )

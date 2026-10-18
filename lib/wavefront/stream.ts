@@ -154,6 +154,12 @@ export interface OpenRecord {
   t0?: { block: number; ts: number; minute: number }
   /** Which block's oracle prices value the t0 legs (walked only). */
   priceBasis?: 'N' | 'N-1'
+  /**
+   * Additive in schema 2 (2026-10-18): the t0 debt Membrane walks, sized to ITS line
+   * (memLine / protocolLine per half; lib/wavefront/membraneLine.ts). `debtUsd` stays the
+   * real debt. Absent when Membrane walks the real debt.
+   */
+  memDebtUsd?: number | null
   subs?: SubSpec[]
 }
 
@@ -266,6 +272,7 @@ export function roundRecord<T extends StreamRecord>(r: T): T {
         legs: r.legs.map((l) => ({ symbol: l.symbol, usd: roundUsd(l.usd) })),
         debtLegs: r.debtLegs.map((l) => ({ symbol: l.symbol, usd: roundUsd(l.usd) })),
         debtUsd: roundUsd(r.debtUsd),
+        ...(r.memDebtUsd !== undefined ? { memDebtUsd: roundUsd(r.memDebtUsd) } : {}),
         collUsd: roundUsd(r.collUsd),
         line: roundRatio(r.line),
         ltv0: roundRatio(r.ltv0),
@@ -694,6 +701,7 @@ export function encodeCompact(
     't0Ts',
     't0Minute',
     'priceBasis',
+    'memDebtUsd',
     'legN',
     'legSym',
     'legUsd',
@@ -759,6 +767,7 @@ export function encodeCompact(
         open.t0Ts.push(r.t0 ? r.t0.ts : null)
         open.t0Minute.push(r.t0 ? r.t0.minute : null)
         open.priceBasis.push(r.priceBasis === undefined ? -1 : r.priceBasis === 'N' ? 0 : 1)
+        open.memDebtUsd.push(r.memDebtUsd === undefined ? -1 : r.memDebtUsd)
         open.legN.push(r.legs.length)
         for (const l of r.legs) {
           open.legSym.push(symbol.of(l.symbol))
@@ -915,6 +924,8 @@ export function decodeCompact(c: CompactReplay): StreamRecord[] {
       if (O.t0Minute[i] !== null)
         r.t0 = { block: O.t0Block[i], ts: O.t0Ts[i], minute: O.t0Minute[i] }
       if (O.priceBasis[i] !== -1) r.priceBasis = O.priceBasis[i] === 0 ? 'N' : 'N-1'
+      // additive column (absent in files written before 2026-10-18)
+      if (O.memDebtUsd && O.memDebtUsd[i] !== -1) r.memDebtUsd = O.memDebtUsd[i]
       if (subs.length) r.subs = subs
       opens.push(r)
       out.push(r)

@@ -103,21 +103,29 @@ daily dumps. No paid API keys.
 
 ### `public/data/oct10-2025/evidence-census.json` — what the pages read
 
-**2026-10-18 (owner rulings).** The census now walks each position at **Membrane's own line**,
-computed by this simulator's rule: `weightedMembraneLine`, with the mixed split's half line
-from `membraneHalfLine` in `lib/position-sim/membrane.ts`. That helper is now shared by
-`compare.ts` and `lib/wavefront/membraneLine.ts`. Every sale is liquidity-capped (1.1× the day's
-measured 10-minute capacity per token and chain, modelled †), and only debt repaid is compared.
+**2026-10-18 (owner rulings, three rounds).** The census now walks each position at
+**Membrane's own line**, computed by this simulator's rule: `weightedMembraneLine`, with the
+mixed split's half line from `membraneHalfLine` in `lib/position-sim/membrane.ts` (shared by
+`compare.ts` and `lib/wavefront/membraneLine.ts`). Each position's debt is **sized to that
+line** (debt0 × memLine / protocolLine per half, collateral unchanged:
+`membraneLine.ts membraneDebtScale`), every sale is liquidity-capped at a uniform 0.98× the
+day's measured 10-minute capacity per token and chain († modelled: the average measured depth
+recovery 8h after five crashes, membrane-datasets liquidity-recovery/REPORT.md), and a
+position holding any collateral without a Membrane line is left out. Because the two sides
+then carry different debt, the census compares the SHARE of each side's own debt closed.
 
-Headline, on 2,280 of the 3,197 positions: protocols $164.12M, Membrane $193.03M†, **17.6%
-more**, net (Aave 23.6% more, Morpho 8.3% less). Membrane closes less on 991 positions
-($33.93M†) and more on 795 ($62.84M†). Left out: 866 positions with no Membrane line and 51
-with no observed liquidity. The full method is in `docs/WAVEFRONT.md` §0.
+Headline, on 1,545 of the 3,197 positions: the protocols closed 31.2% of their debt, Membrane
+13.3%† of its own, **17.9 pp less, net** (Aave 13.9 pp less, Morpho 50.3 pp less). A smaller
+share on 1,018 positions (32.2% vs 7.1%†), a larger one on 383 (25.8% vs 44.8%†), 137 equal.
+Left out: 866 positions with no Membrane line, 782 holding some collateral without one, and 4
+with no observed liquidity. The full method and the sensitivities are in `docs/WAVEFRONT.md` §0.
 
-The per-wallet simulator itself is NOT liquidity-capped. It runs one position, which cannot
-draw on the day's shared book. The demo borrower was re-selected on this census
-(`0xfd4c87…`, WETH/USDC; gate 3b now runs at Membrane's line), because the old one is a
-position where the census at Membrane's line closes more.
+The per-wallet simulator itself is NOT liquidity-capped and does NOT size the debt: it runs
+the wallet's real position, which cannot draw on the day's shared book. The demo borrower was
+re-selected on this census (`0x3aa9ad…`, WETH/USDC, sold at the band; census 50.0% closed by
+Aave against 40.3%† of Membrane's line-sized debt). Gate 2 now compares those shares; gate 3
+requires both the hero's own run and the census's way (Membrane's line, the line-sized debt)
+to agree with the census on sold vs held; gate 3b runs the census's way.
 
 Since 2026-10-16 (owner decision) the Evidence page (`/[chain]/evidence`) and the landing
 (`/[chain]`, its hero stakes line, HeroChart, GuaranteeBlock subline, og card and the Close

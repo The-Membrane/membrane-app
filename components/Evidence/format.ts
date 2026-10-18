@@ -53,3 +53,11 @@ export const minuteClock = (minute: number): string => {
 
 /** Grid-end marker used in the table and its legend. */
 export const GRID_END_MARK = '◐'
+
+/** "17.9 pp less" / "4.2 pp more": a share gap in percentage points (positive = Membrane closes a
+ *  smaller share of its own debt). */
+export const ppWord = (gapPp: number, dp = 1): string =>
+  `${Math.abs(gapPp).toFixed(dp)} pp ${gapPp >= 0 ? 'less' : 'more'}`
+
+/** "31.2%" from a share. */
+export const share = (x: number, dp = 1): string => `${(x * 100).toFixed(dp)}%`

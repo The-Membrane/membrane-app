@@ -2141,6 +2141,8 @@ const demoRow: any = CENSUS_ROW && {
       ? null
       : (CENSUS_ROW.firstSaleMinute as number) - (CENSUS_ROW.t0Minute as number),
   liqLine: CENSUS_ROW.line as number,
+  /** Membrane's line-sized t0 debt over the real one (memLine / protocolLine). */
+  debtScale: (CENSUS_ROW.memDebtUsd as number) / (CENSUS_ROW.debtUsd as number),
   sales: CENSUS_ROW.sales as number,
   collateralUsd: DEMO.row.collateralUsd as number,
   debtUsd: DEMO.row.debtUsd as number,
@@ -2166,8 +2168,24 @@ test('the demo fixture row carries the census dollars, to the cent', () => {
  * Membrane held at the account's measured line. Those are the only three knobs that make
  * the two engines the same engine, so anything left over is the fixture, not the model.
  */
-function runDemoFixture(membraneMaxLtv: number) {
-  const position = DEMO.position as ProtocolPosition
+function runDemoFixture(membraneMaxLtv: number, debtScale = 1) {
+  // debtScale: the census walks Membrane on the debt sized to its line (debt0 x memLine /
+  // protocolLine, owner ruling 2026-10-18). Only Membrane's side reads the scaled run.
+  const base = DEMO.position as ProtocolPosition
+  const position: ProtocolPosition =
+    debtScale === 1
+      ? base
+      : {
+          ...base,
+          debt: base.debt.map((d) => ({
+            ...d,
+            amount: d.amount * debtScale,
+            valueUsd: d.valueUsd * debtScale,
+          })),
+          totalDebtUsd: base.totalDebtUsd * debtScale,
+          ltv: base.ltv * debtScale,
+          healthFactor: base.liquidationLtv / (base.ltv * debtScale),
+        }
   const symbols = [
     ...position.collateral.map((c) => c.symbol),
     ...position.debt.map((d) => d.symbol),
@@ -2236,13 +2254,27 @@ test('the demo fixture republishes its census row verbatim', () => {
     'censusMembraneClosedUsd',
   )
   assert.strictEqual(DEMO.censusClosedAtIndex, demoRow.closedAtIndex, 'censusClosedAtIndex')
+  // the fixture's debt scale is the census row's (memDebtUsd is published to the cent)
+  assert.ok(
+    Math.abs(DEMO.censusMembraneDebtScale - demoRow.debtScale) < 1e-6,
+    `debt scale ${DEMO.censusMembraneDebtScale} vs ${demoRow.debtScale}`,
+  )
+  close(
+    DEMO.censusMembraneDebtScale,
+    DEMO.row.memLine / (CENSUS_ROW!.protocolLine as number),
+    'memLine / protocolLine',
+    1e-12,
+  )
+  // and the census says Membrane closes a smaller SHARE of its own debt than Aave of the real
+  assert.ok(DEMO.censusMembraneClosedFrac < DEMO.censusAaveClosedFrac, 'a smaller share')
+  close(DEMO.censusMembraneClosedFrac, CENSUS_ROW!.memFrac as number, 'Membrane share', 1e-5)
 })
 
 test('the live engine walking the fixture from minute 0 lands on its census sale', () => {
   // The census counts minutes from t0; the live engine counts them from midnight. The
   // census sale is therefore at path minute t0Index + closedAtIndex.
   const expected = demoRow.t0Index + demoRow.closedAtIndex
-  const live = runDemoFixture(demoRow.liqLine)
+  const live = runDemoFixture(demoRow.liqLine, demoRow.debtScale)
   assert.ok(live.firstSaleMinute !== null, 'the live engine sold it too')
   assert.ok(
     Math.abs((live.firstSaleMinute as number) - expected) <= 2,

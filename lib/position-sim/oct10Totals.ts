@@ -17,9 +17,8 @@ import census from '@/public/data/oct10-2025/evidence-census-headline.json'
 // 2,347 accounts, $67M kept) came from the old evidence.json, which no page reads any more.
 
 const fmtM0 = (usd: number) => `$${Math.round(Math.abs(usd) / 1_000_000)}M`
-const fmtM1 = (usd: number) => `$${(Math.abs(usd) / 1_000_000).toFixed(1)}M`
-/** 'less' when Membrane closes less debt than the protocols (gap >= 0), else 'more'. */
-const dirOf = (gapUsd: number) => (gapUsd >= 0 ? 'less' : 'more')
+/** 'less' when Membrane closes a smaller share than the protocols (gap >= 0), else 'more'. */
+const dirOf = (gap: number) => (gap >= 0 ? 'less' : 'more')
 
 /**
  * THE SIZE OF THE DAY — the REAL side only, over EVERY position of the census (3,197), whether or
@@ -33,42 +32,44 @@ export const OCT10_DAY = {
 } as const
 
 /**
- * Measured Oct 10-11 2025 totals, both protocols, over the COMPARED positions (owner rulings
- * 2026-10-18): Membrane walked at its OWN line with liquidity-capped sales (1.1x capacity†), and
- * only positions with a Membrane line and liquidity for what it sells. Debt repaid only.
- * Re-derived from the rows by the unit test.
+ * Measured Oct 10-11 2025 figures over the COMPARED positions (owner rulings 2026-10-18):
+ * Membrane walked at its OWN line with the debt sized to that line (debt x memLine /
+ * protocolLine†), liquidity-capped sales (0.98x capacity†), and only positions where every
+ * collateral leg has a Membrane line and liquidity. The two sides carry different debt, so
+ * the comparison is the SHARE of each side's own t0 debt closed, never dollars. Re-derived
+ * from the rows by the unit test.
  */
 export const OCT10_TOTALS = {
   /** Compared positions (both sides). The census holds `censusPositions`. */
   positions: census.positions,
   censusPositions: census.censusPositions,
-  /** Left out of both sides: no Membrane line; a token with no observed liquidity. */
+  /** Left out of both sides: no Membrane line, some collateral without one, no liquidity. */
   excluded: census.excluded,
   /** Liquidation events of the compared positions. */
   events: census.events,
-  /** Σ real repaid USD over the compared positions. */
+  /** Real repaid USD on the compared positions: the size of the day there, not a comparison. */
   realClosedUsd: census.all.realRepaidUsd,
-  /** Σ Membrane repaid USD on the same positions, same oracle prices. MODELLED (†). */
-  membraneClosedUsd: census.all.memRepaidUsd,
-  /** realClosedUsd − membraneClosedUsd: positive = Membrane closes less (†). */
-  keptUsd: census.all.gapUsd,
+  /** Share of the real t0 debt the protocols closed (debt-weighted). */
+  realShare: census.all.realShare,
+  /** Share of ITS OWN (line-sized) t0 debt Membrane would close. MODELLED (†). */
+  membraneShare: census.all.memShare,
+  /** realShare − membraneShare, percentage points: positive = Membrane closes a smaller share. */
+  gapPp: census.all.gapPp,
   /** The same per protocol. A blended figure never stands without this split. */
   byProtocol: {
     aave: {
       positions: census.aave.positions,
-      realClosedUsd: census.aave.realRepaidUsd,
-      membraneClosedUsd: census.aave.memRepaidUsd,
-      keptUsd: census.aave.gapUsd,
+      realShare: census.aave.realShare,
+      membraneShare: census.aave.memShare,
+      gapPp: census.aave.gapPp,
     },
     morpho: {
       positions: census.morpho.positions,
-      realClosedUsd: census.morpho.realRepaidUsd,
-      membraneClosedUsd: census.morpho.memRepaidUsd,
-      keptUsd: census.morpho.gapUsd,
+      realShare: census.morpho.realShare,
+      membraneShare: census.morpho.memShare,
+      gapPp: census.morpho.gapPp,
     },
   },
-  /** Σ collateral USD at t0 over the priced compared positions. */
-  collateralAtRiskUsd: census.collateralAtRiskUsd,
   /** The chains the census spans, in first-seen order. */
   chains: census.chains,
   /** '10–11 Oct 2025'. */
@@ -76,10 +77,13 @@ export const OCT10_TOTALS = {
   source: 'public/data/oct10-2025/evidence-census.json (via evidence-census-headline.json)',
 } as const
 
-/** "Aave $31.5M more · Morpho $2.6M less": the split that rides with every blended figure. */
+const pp = (x: number) => `${Math.abs(x).toFixed(1)} pp`
+const shr = (x: number) => `${(x * 100).toFixed(1)}%`
+
+/** "Aave 13.9 pp less · Morpho 50.3 pp less": the split that rides with every blended figure. */
 export const OCT10_SPLIT_LINE =
-  `Aave ${fmtM1(OCT10_TOTALS.byProtocol.aave.keptUsd)} ${dirOf(OCT10_TOTALS.byProtocol.aave.keptUsd)}` +
-  ` · Morpho ${fmtM1(OCT10_TOTALS.byProtocol.morpho.keptUsd)} ${dirOf(OCT10_TOTALS.byProtocol.morpho.keptUsd)}`
+  `Aave ${pp(OCT10_TOTALS.byProtocol.aave.gapPp)} ${dirOf(OCT10_TOTALS.byProtocol.aave.gapPp)}` +
+  ` · Morpho ${pp(OCT10_TOTALS.byProtocol.morpho.gapPp)} ${dirOf(OCT10_TOTALS.byProtocol.morpho.gapPp)}`
 
 /**
  * THE STAKES LINE, per owner 2026-09-12: the size, the date, the count, and no other words.
@@ -89,37 +93,36 @@ export const OCT10_STAKES_LINE =
   `${fmtM0(OCT10_DAY.realClosedUsd)} of loans force-closed on Aave and Morpho` +
   ` · ${OCT10_TOTALS.window} · ${OCT10_DAY.positions.toLocaleString('en-US')} positions`
 
-const NET_DIR = dirOf(OCT10_TOTALS.keptUsd)
+const NET_DIR = dirOf(OCT10_TOTALS.gapPp)
 
 /**
- * THE OCT 10-11 CENSUS LINE. It is a NET figure, DIRECTION-AWARE (since 2026-10-18 the headline
- * runs at Membrane's own, lower lines and Membrane closes MORE debt, net), and a DIFFERENT MEASURE
- * from the corpus line below, so it says all of that:
- *   - net: Membrane closes less debt than the protocols on `less` positions and more on `more`;
- *     keptUsd is the difference, never "protected" debt, and its word is computed from its sign;
- *   - its own scope: debt repaid on the compared Aave V3 and Morpho Blue liquidations of the
- *     window, four chains, at Membrane's lines with liquidity-capped sales. The corpus is
- *     collateral seized on Aave V3 Ethereum over years; neither figure is a part of the other,
- *     and no sentence here says "alone" (oct10Totals.test.ts asserts it, with "protected").
+ * THE OCT 10-11 CENSUS LINE. A NET figure in SHARE OF DEBT (percentage points), DIRECTION-AWARE,
+ * and a DIFFERENT MEASURE from the corpus line below, so it says all of that:
+ *   - net: Membrane closes a smaller share on `less` positions and a larger one on `more`;
+ *     gapPp is the difference, never "protected" debt, and its word is computed from its sign;
+ *   - its own scope: the compared Aave V3 and Morpho Blue liquidations of the window, four
+ *     chains, Membrane at its own line with the debt sized to it and liquidity-capped sales.
+ *     The corpus is collateral seized on Aave V3 Ethereum over years; neither figure is a part
+ *     of the other, and no sentence here says "alone" (oct10Totals.test.ts asserts it).
  * All MODELLED (†). Never a number from outside this file.
  */
 export const OCT10_SCALE_LINE = {
-  figure: fmtM0(OCT10_TOTALS.keptUsd),
+  figure: pp(OCT10_TOTALS.gapPp),
   direction: NET_DIR,
   /** The census scope, named in full wherever the figure appears. */
   scope:
-    `debt repaid on ${OCT10_TOTALS.positions.toLocaleString('en-US')} of the ${OCT10_TOTALS.censusPositions.toLocaleString('en-US')} Aave V3 and Morpho Blue liquidations of ${OCT10_TOTALS.window}, Ethereum, Arbitrum, Optimism and Base, ` +
-    `at Membrane’s own lines with liquidity-capped sales†`,
-  result: `${fmtM0(OCT10_TOTALS.keptUsd)} ${NET_DIR} debt force-closed, net†`,
+    `share of debt closed on ${OCT10_TOTALS.positions.toLocaleString('en-US')} of the ${OCT10_TOTALS.censusPositions.toLocaleString('en-US')} Aave V3 and Morpho Blue liquidations of ${OCT10_TOTALS.window}, Ethereum, Arbitrum, Optimism and Base, ` +
+    `at Membrane’s own lines with the debt sized to them and liquidity-capped sales†`,
+  result: `${pp(OCT10_TOTALS.gapPp)} ${NET_DIR} of the debt force-closed, net† (${shr(OCT10_TOTALS.realShare)} → ${shr(OCT10_TOTALS.membraneShare)}†)`,
   split: OCT10_SPLIT_LINE,
-  /** What the net is made of: positions and dollars each way. */
+  /** What the net is made of: positions and both shares each way. */
   gross:
-    `less on ${census.less.toLocaleString('en-US')} positions (${fmtM1(census.lessUsd)}†), ` +
-    `more on ${census.more.toLocaleString('en-US')} (${fmtM1(census.moreUsd)}†)`,
+    `a smaller share on ${census.all.less.toLocaleString('en-US')} positions (${shr(census.all.lessSet.realShare)} vs ${shr(census.all.lessSet.memShare)}†), ` +
+    `a larger one on ${census.all.more.toLocaleString('en-US')} (${shr(census.all.moreSet.realShare)} vs ${shr(census.all.moreSet.memShare)}†)`,
   line:
     NET_DIR === 'less'
-      ? `4% sounds small. ${fmtM0(OCT10_TOTALS.keptUsd)} less debt force-closed, net†, across ${OCT10_TOTALS.positions.toLocaleString('en-US')} of the ${OCT10_TOTALS.censusPositions.toLocaleString('en-US')} Aave and Morpho liquidations of ${OCT10_TOTALS.window}.`
-      : `At its own, lower lines, Membrane would have force-closed ${fmtM0(OCT10_TOTALS.keptUsd)} more debt, net†, across ${OCT10_TOTALS.positions.toLocaleString('en-US')} of the ${OCT10_TOTALS.censusPositions.toLocaleString('en-US')} Aave and Morpho liquidations of ${OCT10_TOTALS.window}.`,
+      ? `4% sounds small. The protocols force-closed ${shr(OCT10_TOTALS.realShare)} of the debt; at Membrane’s own lines a borrower would have lost ${shr(OCT10_TOTALS.membraneShare)}† of theirs — ${pp(OCT10_TOTALS.gapPp)} less, net†, across ${OCT10_TOTALS.positions.toLocaleString('en-US')} of the ${OCT10_TOTALS.censusPositions.toLocaleString('en-US')} Aave and Morpho liquidations of ${OCT10_TOTALS.window}.`
+      : `The protocols force-closed ${shr(OCT10_TOTALS.realShare)} of the debt; at Membrane’s own lines a borrower would have lost ${shr(OCT10_TOTALS.membraneShare)}† of theirs — ${pp(OCT10_TOTALS.gapPp)} more, net†, across ${OCT10_TOTALS.positions.toLocaleString('en-US')} of the ${OCT10_TOTALS.censusPositions.toLocaleString('en-US')} Aave and Morpho liquidations of ${OCT10_TOTALS.window}.`,
 } as const
 
 // ---------------------------------------------------------------------------

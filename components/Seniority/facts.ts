@@ -14,6 +14,7 @@
  */
 
 import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
+import { MULTIPLIER_BASIS } from '@/lib/wavefront/liquidity'
 import census from '@/public/data/oct10-2025/evidence-census-headline.json'
 
 // ---------------------------------------------------------------------------
@@ -27,10 +28,9 @@ import census from '@/public/data/oct10-2025/evidence-census-headline.json'
 // ---------------------------------------------------------------------------
 const n = (x: number) => x.toLocaleString('en-US')
 const usdM = (x: number) => `$${(x / 1e6).toFixed(1)}M`
-const usdAny = (x: number) =>
-  Math.abs(x) >= 1e6 ? usdM(x) : `$${Math.round(x).toLocaleString('en-US')}`
 const pct1 = (frac: number) => `${(frac * 100).toFixed(1)}%`
-const gap = (gapPct: number) => `${Math.abs(gapPct).toFixed(1)}% ${gapPct >= 0 ? 'less' : 'more'}`
+/** A share gap in percentage points; the word is the sign's (positive = Membrane closes less). */
+const gapPp = (x: number) => `${Math.abs(x).toFixed(1)} pp ${x >= 0 ? 'less' : 'more'}`
 const CHAIN: Record<string, string> = {
   mainnet: 'Ethereum',
   arbitrum: 'Arbitrum',
@@ -51,14 +51,14 @@ const OUTCOME_PHRASE: Record<string, string> = {
 /** The census in one sentence, both protocols on it. Shared by every hero variant. */
 const CENSUS_LINE =
   `Replayed on ${n(census.positions)} of the ${n(census.censusPositions)} positions liquidated on Aave and Morpho across four chains on ${census.window} ` +
-  `(${n(census.excluded.noMembraneLine.positions)} hold collateral Membrane has no line for and ${n(census.excluded.noCapacity.positions)} would sell a token nobody liquidated on that chain), ` +
+  `(${n(census.excluded.noMembraneLine.positions + census.excluded.partialMembraneLine.positions)} hold collateral Membrane has no line for and ${n(census.excluded.noCapacity.positions)} would sell a token nobody liquidated on that chain), ` +
   `each walked at Membrane’s own line on its protocol’s oracle read on chain, every sale capped by the liquidity the day showed† — ` +
-  `the protocols force-closed ${usdM(census.all.realRepaidUsd)} of debt and Membrane’s rules would have closed ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)}, net ` +
-  `(Aave ${gap(census.aave.gapPct)}, Morpho ${gap(census.morpho.gapPct)}): less on ${n(census.less)} positions (${usdM(census.lessUsd)}†), more on ${n(census.more)} (${usdM(census.moreUsd)}†).`
+  `the protocols force-closed ${pct1(census.all.realShare)} of the debt, and Membrane’s rules would have closed ${pct1(census.all.memShare)}† of the smaller debt a Membrane borrower carries at its line†, ${gapPp(census.all.gapPp)}, net ` +
+  `(Aave ${gapPp(census.aave.gapPp)}, Morpho ${gapPp(census.morpho.gapPp)}): a smaller share on ${n(census.all.less)} positions (${pct1(census.all.lessSet.realShare)} vs ${pct1(census.all.lessSet.memShare)}†), a larger one on ${n(census.all.more)} (${pct1(census.all.moreSet.realShare)} vs ${pct1(census.all.moreSet.memShare)}†).`
 
 const CENSUS_CITE =
   `public/data/oct10-2025/evidence-census.json debt.all and debt.byProtocol (${n(census.positions)} positions: ` +
-  `protocols $${(census.all.realRepaidUsd / 1e6).toFixed(2)}M, Membrane $${(census.all.memRepaidUsd / 1e6).toFixed(2)}M; ` +
+  `protocols ${pct1(census.all.realShare)} of their debt, Membrane ${pct1(census.all.memShare)} of its own; ` +
   `Aave ${n(census.aave.positions)}, Morpho ${n(census.morpho.positions)}) · scripts/build-evidence-census.ts · ` +
   'lib/wavefront/kernel.ts (the walk)'
 
@@ -470,8 +470,8 @@ export const CDT_LINE = {
 /** The five largest differences, and the one that leads them, as the copy reads them. */
 const top = census.concentration
 const topLine =
-  `The largest single difference ${top.top1GapUsd < 0 ? 'runs the other way' : 'is one position'}: one ${CHAIN[top.top1Chain] ?? top.top1Chain} ${PROTOCOL[top.top1Protocol] ?? top.top1Protocol} position, ${OUTCOME_PHRASE[top.top1Outcome] ?? top.top1Outcome}, where Membrane closes ${usdM(Math.abs(top.top1GapUsd))} ${top.top1GapUsd < 0 ? 'more' : 'less'}†. ` +
-  `Without it Membrane closes ${gap(top.gapWithoutTop1Pct)}†. The five largest differences are ${(top.top5Share * 100).toFixed(0)}% of every dollar of difference in either direction; without them it is ${gap(top.gapWithoutTop5Pct)}†.`
+  `The largest single difference ${top.top1GapPp < 0 ? 'runs the other way' : 'is one position'}: one ${CHAIN[top.top1Chain] ?? top.top1Chain} ${PROTOCOL[top.top1Protocol] ?? top.top1Protocol} position, ${OUTCOME_PHRASE[top.top1Outcome] ?? top.top1Outcome}, which moves the net by ${gapPp(top.top1GapPp)}†. ` +
+  `Without it the net is ${gapPp(top.gapWithoutTop1Pp)}†. The five largest differences are ${(top.top5Share * 100).toFixed(0)}% of every point of difference in either direction; without them it is ${gapPp(top.gapWithoutTop5Pp)}†.`
 
 const B = census.brackets
 const more = census.membraneMore
@@ -485,7 +485,7 @@ const S = census.sensitivity
 /** Every published sensitivity but the headline, each against ITS OWN set's real side. */
 const STRESS = S.table.filter((x) => !x.headline)
 const stressLine = (x: (typeof STRESS)[number]) =>
-  `${x.label}: ${usdM(x.memRepaidUsd)}† against ${usdM(x.realRepaidUsd)} on its ${n(x.positions)} positions, ${gap(x.gapPct)} (Aave ${gap(x.aaveGapPct)}, Morpho ${gap(x.morphoGapPct)})`
+  `${x.label}: ${pct1(x.memShare)}† against ${pct1(x.realShare)} on its ${n(x.positions)} positions, ${gapPp(x.gapPp)} (Aave ${gapPp(x.aave.gapPp)}, Morpho ${gapPp(x.morpho.gapPp)})`
 
 export const CLOSE = {
   eyebrow: `Counterfactual · ${census.window}`,
@@ -502,15 +502,15 @@ export const CLOSE = {
   contains: {
     title: 'What the number contains',
     lines: [
-      `Every compared liquidation, both protocols, never folded. Aave V3: ${n(census.aave.positions)} positions, the protocol closed ${usdM(census.aave.realRepaidUsd)} and Membrane would close ${usdM(census.aave.memRepaidUsd)}†, ${gap(census.aave.gapPct)}. Morpho Blue: ${n(census.morpho.positions)} positions, ${usdM(census.morpho.realRepaidUsd)} against ${usdM(census.morpho.memRepaidUsd)}†, ${gap(census.morpho.gapPct)}. Together ${usdM(census.all.realRepaidUsd)} against ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)}, net: Membrane closes less on ${n(census.less)} positions (${usdM(census.lessUsd)}†) and more on ${n(census.more)} (${usdM(census.moreUsd)}†). The lens above shows each chain.`,
-      `What Membrane’s figure is: each position walked at Membrane’s own line — the value-weighted modelled max LTV of its collateral (WETH 80%, wstETH 78%, WBTC 75%, …)†, below most protocol lines, so a position is further past it at its first liquidation — and every sale capped by the liquidity the day showed: all of Membrane’s sales of a token on a chain share ${census.capacityMultiplier}× the most tokens liquidators absorbed in any 10 minutes†, and what does not fill sells in later minutes at those minutes’ prices. ` +
+      `Every compared liquidation, both protocols, never folded, as the share of each side’s own debt closed. Aave V3: ${n(census.aave.positions)} positions, the protocol closed ${pct1(census.aave.realShare)} and Membrane would close ${pct1(census.aave.memShare)}†, ${gapPp(census.aave.gapPp)}. Morpho Blue: ${n(census.morpho.positions)} positions, ${pct1(census.morpho.realShare)} against ${pct1(census.morpho.memShare)}†, ${gapPp(census.morpho.gapPp)}. Together ${pct1(census.all.realShare)} against ${pct1(census.all.memShare)}†, ${gapPp(census.all.gapPp)}, net: a smaller share on ${n(census.all.less)} positions and a larger one on ${n(census.all.more)}. The protocols repaid ${usdM(census.all.realRepaidUsd)} on these positions; no Membrane dollar is set beside it, because a Membrane borrower carries less debt. The lens above shows each chain.`,
+      `What Membrane’s figure is: each position walked at Membrane’s own line — the value-weighted modelled max LTV of its collateral (WETH 80%, wstETH 78%, WBTC 75%, …)† — with the debt a Membrane borrower would have carried: debt × Membrane line / protocol line†, as far past Membrane’s line as the real position was past the protocol’s; and every sale capped by the liquidity the day showed: all of Membrane’s sales of a token on a chain share ${census.capacityMultiplier}×† the most tokens liquidators absorbed in any 10 minutes († ${MULTIPLIER_BASIS}), and what does not fill sells in later minutes at those minutes’ prices. ` +
         'A breach inside the 4% band waits eight hours; a return under the line clears the timer and a later breach starts a fresh one; a move past line × 1.04, or still over the line at expiry, repays to the borrow cap at that minute’s price; the position then walks on. Stablecoin collateral has no window† and is repaid to cap the minute it crosses. Each position is its whole composition at its first liquidation, every leg on its protocol’s own oracle read on chain. The protocols’ figure is every liquidation the position took across 10 and 11 Oct, measured. Only debt repaid is compared: Membrane’s liquidation fee is not assumed.',
       topLine,
-      `${n(census.neverSold.positions)} positions were never sold at all†, ${usdM(census.neverSold.debtUsd)} of debt: back under their line inside the window, or never over it. The protocols closed ${usdM(census.neverSold.realRepaidUsd)} of it.`,
+      `${n(census.neverSold.positions)} positions were never sold at all†: back under their line inside the window, or never over it. On their ${usdM(census.neverSold.debtUsd)} of real debt the protocols closed ${usdM(census.neverSold.realRepaidUsd)}.`,
       `Under $2,000 of debt both sides close the loan whole: ${n(B.underFloor.positions)} positions, the protocols a median ${pct1(B.underFloor.realMedianFrac)}, Membrane ${pct1(B.underFloor.memMedianFrac)}†. Membrane’s $2,000 minimum exists because below it a liquidation costs more in gas than it recovers, so the contract indexes the floor to the gas price rather than to a choice of ours. Between $2,000 and $4,000 the minimum still closes ${n(B.floorToTwice.memClosesWhole)} of ${n(B.floorToTwice.positions)} loans whole† where the protocols took a median ${pct1(B.floorToTwice.realMedianFrac)}. From $4,000 up the median position loses ${pct1(B.twiceFloorUp.realMedianFrac)} of the loan to the protocols and ${pct1(B.twiceFloorUp.memMedianFrac)} to Membrane†, across ${n(B.twiceFloorUp.positions)} positions.`,
-      `${n(more.positions)} positions lose more on Membrane† and ${n(census.equal)} come out equal to the cent. ${n(more.underFloor.positions)} of the ${n(more.positions)} are under the $2,000 minimum and total ${usdAny(more.underFloor.extraUsd)}. The other ${n(more.atOrAboveFloor.positions)} (${n(moreBand)} sold at the band, ${n(moreT0)} already past it at the first liquidation, ${n(moreRest)} otherwise) are where repay to cap restores the line in one pass while the protocols’ liquidators took a median ${pct1(more.atOrAboveFloor.realMedianFrac)} bite: ${usdM(more.atOrAboveFloor.extraUsd)}†.`,
-      `${n(census.gridEnd.positions)} positions were still inside their 8-hour window when the data ends (23:59 UTC 11 Oct). A window still open is not a completed sale; the census books each at the last price, ${usdAny(census.gridEnd.memRepaidUsd)}† of Membrane’s total, the conservative choice.`,
-      `${n(census.unpricedPositions)} Morpho positions borrow a token with no USD price that day: they are in every count above and in no dollar figure, on either side.`,
+      `${n(more.positions)} positions lose a larger share on Membrane† and ${n(census.all.equal)} come out equal. ${n(more.underFloor.positions)} of the ${n(more.positions)} are under the $2,000 minimum. The other ${n(more.atOrAboveFloor.positions)} (${n(moreBand)} sold at the band, ${n(moreT0)} already past it at the first liquidation, ${n(moreRest)} otherwise) are where repay to cap restores the line in one pass while the protocols’ liquidators took a median ${pct1(more.atOrAboveFloor.realMedianFrac)} bite; Membrane’s median there is ${pct1(more.atOrAboveFloor.memMedianFrac)}†.`,
+      `${n(census.gridEnd.positions)} positions were still inside their 8-hour window when the data ends (23:59 UTC 11 Oct). A window still open is not a completed sale; the census books each at the last price, ${(census.gridEnd.memShare * 100).toFixed(2)}%† of Membrane’s debt, the conservative choice.`,
+      `${n(census.unpricedPositions)} Morpho positions borrow a token with no USD price that day: they are in every count above and in no share, on either side.`,
       `Stress it, same census, one rule changed, each on its own set of positions: ${STRESS.map(stressLine).join('; ')}.`,
     ],
     /** The one footer line for every † above (DESIGN_RULES.md §3). Rendered. */

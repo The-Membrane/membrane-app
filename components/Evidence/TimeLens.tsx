@@ -135,6 +135,7 @@ const OUTCOME_ROWS: {
 ]
 
 const usdM = (v: number) => `$${(v / 1e6).toFixed(1)}M`
+const shareTxt = (x: number) => `${(x * 100).toFixed(1)}%`
 const PROTOCOLS: ProtocolKey[] = ['aave-v3', 'morpho-blue']
 
 const SENS_ROWS: { key: keyof TimeSummary['sensitivity']; label: string }[] = [
@@ -161,7 +162,7 @@ export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ 
   const headline = time.bandSensitivity.find((b) => b.band === meta.params.band)
   const split = (s: Sensitivity) =>
     s.byProtocol
-      ? ` · ${PROTOCOLS.map((k) => `${PROTOCOL_NAME[k].split(' ')[0]} ${usdM(s.byProtocol![k])}`).join(' · ')}`
+      ? ` · ${PROTOCOLS.map((k) => `${PROTOCOL_NAME[k].split(' ')[0]} ${shareTxt(s.byProtocol![k])}`).join(' · ')}`
       : ''
 
   return (
@@ -236,9 +237,9 @@ export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ 
               <Stat
                 key={b.band}
                 label={`band ${(b.band * 100).toFixed(0)}%`}
-                value={`${usdM(b.memRepaidUsd)}†`}
+                value={`${shareTxt(b.memShare)}†`}
                 tone={b.band === meta.params.band ? 'good' : 'muted'}
-                sub={`${b.band === meta.params.band ? 'launch parameter, owner-set (Collateral.sol:223,232)' : 'sensitivity'} · ${PROTOCOLS.map((k) => `${PROTOCOL_NAME[k].split(' ')[0]} ${usdM(b.byProtocol[k])}`).join(' · ')}`}
+                sub={`of Membrane’s debt closed (protocols ${shareTxt(b.set.realShare)} on its ${b.set.positions.toLocaleString('en-US')} positions) · ${b.band === meta.params.band ? 'launch parameter, owner-set (Collateral.sol:223,232)' : 'sensitivity'} · ${PROTOCOLS.map((k) => `${PROTOCOL_NAME[k].split(' ')[0]} ${shareTxt(b.byProtocol[k])}`).join(' · ')}`}
               />
             ))}
           </HStack>
@@ -255,7 +256,7 @@ export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ 
                   lineHeight="1.7"
                   title={s.rule}
                 >
-                  {`${label}: ${usdM(s.memRepaidUsd)}†${split(s)} (headline ${usdM(headline?.memRepaidUsd ?? 0)}; its own ${s.set ? s.set.positions.toLocaleString('en-US') : ''} positions, protocols ${s.set ? usdM(s.set.realRepaidUsd) : ''})`}
+                  {`${label}: Membrane closes ${shareTxt(s.memShare)}† of its debt${split(s)} (headline ${shareTxt(headline?.memShare ?? 0)}; its own ${s.set ? s.set.positions.toLocaleString('en-US') : ''} positions, where the protocols closed ${s.set ? shareTxt(s.set.realShare) : ''})`}
                 </Text>
               )
             })}

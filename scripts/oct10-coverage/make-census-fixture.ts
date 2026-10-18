@@ -1,7 +1,7 @@
 /**
  * Writes tests/unit/fixtures/wavefront-census-fixture.json: a small, committed subset of the
- * on-chain pull — 22 positions picked to cover every branch the census takes (mixed splits, a
- * half that opens under its line, no-delay by symbol and by line, sold at t0, cured, sold at
+ * on-chain pull — 25 positions picked to cover every branch the census takes (mixed splits with
+ * and without a collateral leg lacking a Membrane line, a half that opens under its line, no-delay by symbol and by line, sold at t0, cured, sold at
  * the grid end, a t0 located only at block N-1 prices, Aave Lido and Morpho Arbitrum, Morpho
  * with an unpriced loan, a loan priced through the Aave path, realised bad debt) — so
  * tests/unit/wavefrontCensus.test.ts can run the census without the datasets repo.
@@ -14,8 +14,9 @@
  * `expected` holds the FULL census's figures for each position in the two runs where positions
  * are independent of each other, so the subset must reproduce them exactly:
  *   - `protocol`: the protocol's own line, no liquidity model (the pre-2026-10-18 census);
- *   - `membrane`: Membrane's own line, capacity unlimited (same positions as the headline: a
- *     no-capacity holding is still excluded, and that depends on the position alone).
+ *   - `membrane`: Membrane's own line with the debt sized to it, capacity unlimited (same
+ *     positions as the headline: a no-capacity holding and a partial-line holding are still
+ *     excluded, and both depend on the position alone).
  * The capped headline SHARES the book across positions, so a subset cannot reproduce it; the
  * capacity model has its own unit tests (tests/unit/wavefrontLiquidity.test.ts) and the full
  * pull checks the headline (scripts/tests/wavefront-census.test.ts).
@@ -55,6 +56,8 @@ export const FIXTURE_PIDS = [
   'morpho-blue:mainnet:0xdc5333039bcf15f1237133f74d5806675d83d9cf19cfd4cfdd9be674842651bf:0x1fa909909d5501d66f7e20b3f9d0cc5c598f020a', // no-delay by LLTV, USDT loan
   'morpho-blue:arbitrum:0xb7b5729ad332f57a02f4d9f87aa50910ee955d859e2b2ad9b0b8e15ca44d8b7f:0x75a1253432356f90611546a487b5350cef08780d', // Morpho on Arbitrum
   'aave-v3:mainnet:0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2:0x372cae7fa19b81a9786a9081704ea1e2dad576b7', // the 284k AAVE whale: no Membrane line; the liquidity cap's case
+  'aave-v3:mainnet:0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2:0x7ca2b9d7caaa28cb1522e39055781e60d72742b4', // mixed, every leg has a Membrane line, cured (both halves debt-scaled)
+  'aave-v3:mainnet:0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2:0xf4351edbe69df03b166ff097ad69d7054610fc71', // mixed, every leg has a Membrane line, sold at the band
 ]
 
 /** Run-length encode a column: [[value, count], …]. */

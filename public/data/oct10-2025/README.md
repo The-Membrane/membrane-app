@@ -28,10 +28,13 @@ Window: `2025-10-10T00:00:00Z` → `2025-10-11T23:59:00Z`, 1-minute grid, 2,880 
   `docs/WAVEFRONT.md`.
 - **`coverage-summary.json`** — that census's scope, coverage table, both-side totals,
   classes, clusters, sensitivities and the cross-check against `evidence.json`.
-- **2026-10-18:** all census files below run at Membrane's OWN line with liquidity-capped sales
-  (docs/WAVEFRONT.md §0). The cohort and every total are the COMPARED set: 2,280 of 3,197.
-  Only debt repaid is compared. The stream adds optional `carry` / `unfilledUsd` columns and
-  stays schema 2.
+- **2026-10-18:** all census files below run at Membrane's OWN line, with each position's debt
+  sized to that line (debt0 × memLine / protocolLine) and sales liquidity-capped at 0.98×†
+  (docs/WAVEFRONT.md §0). A position holding any collateral without a Membrane line is left
+  out. The cohort and every total are the COMPARED set: 1,545 of 3,197. The comparison is the
+  share of each side's own t0 debt closed (debt-weighted); no Membrane dollar is set beside a
+  real one. The stream adds optional `carry` / `unfilledUsd` (mem) and `memDebtUsd` (open)
+  columns and stays schema 2.
 - **`evidence-census.json`** — what the Evidence page and the landing read (owner decision
   2026-10-16): the full census above, shaped for the UI by `scripts/build-evidence-census.ts`
   from membrane-datasets `oct10-2025/coverage/census.json` (its sha256 and the code commit

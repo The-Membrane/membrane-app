@@ -527,7 +527,11 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                   figure.
                 </Text>
               ) : null}
-              {isDemo && measured?.pool && measured.line != null ? (
+              {isDemo &&
+              measured?.pool &&
+              measured.line != null &&
+              measured.membraneClosedFrac != null &&
+              measured.aaveClosedFrac != null ? (
                 <Text
                   data-testid="sim-demo-census"
                   fontFamily={TYPOGRAPHY.fontMono}
@@ -538,12 +542,14 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                 >
                   Demo wallet: the selection’s best case from the census, not a typical one — the
                   largest modelled gain among the {measured.eligibleCount ?? '?'} census positions
-                  that pass every gate. Its census row, at its own{' '}
-                  {(measured.line * 100).toFixed(1)}% line on Aave’s oracle, closes{' '}
-                  {usd(measured.membraneClosedUsd)}†. Of {measured.pool.positions} comparable census
-                  positions ({measured.pool.definition}) the census has Membrane closing more on{' '}
-                  {measured.pool.membraneMore}; the median gap is {measured.pool.medianGapPct}%
-                  less†.
+                  that pass every gate. Its census row, at Membrane’s{' '}
+                  {(measured.line * 100).toFixed(1)}% line on Aave’s oracle with the debt sized to
+                  that line†, closes {(measured.membraneClosedFrac * 100).toFixed(1)}%† of its debt
+                  where Aave closed {(measured.aaveClosedFrac * 100).toFixed(1)}%. Of{' '}
+                  {measured.pool.positions} comparable census positions ({measured.pool.definition})
+                  the census has Membrane closing a larger share on {measured.pool.membraneMore};
+                  the median gap is {Math.abs(measured.pool.medianGapPp).toFixed(1)} pp{' '}
+                  {measured.pool.medianGapPp >= 0 ? 'less' : 'more'}†.
                 </Text>
               ) : null}
             </Box>

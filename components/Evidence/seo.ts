@@ -11,11 +11,11 @@ export function evidenceDescription(summary: EvidenceDoc | null): string {
     return 'Every Aave and Morpho liquidation of 10–11 Oct 2025 on four chains, replayed through Membrane’s liquidation engine on each protocol’s own oracle prices.'
   }
   const d = summary.debt
-  const m = (x: number) => `$${(x / 1e6).toFixed(1)}M`
-  const g = (x: number) => `${Math.abs(x).toFixed(1)}% ${x >= 0 ? 'less' : 'more'}`
+  const sh = (x: number) => `${(x * 100).toFixed(1)}%`
+  const g = (x: number) => `${Math.abs(x).toFixed(1)} pp ${x >= 0 ? 'less' : 'more'}`
   return (
-    `Aave and Morpho liquidations of ${summary.meta.window.label}, ${summary.meta.positions.toLocaleString('en-US')} compared: ${m(d.all.realRepaidUsd)} of debt force-closed vs ` +
-    `${m(d.all.memRepaidUsd)} on Membrane at its own lines (modelled), ${g(d.all.gapPct)} net ` +
-    `(Aave ${g(d.byProtocol['aave-v3'].gapPct)}, Morpho ${g(d.byProtocol['morpho-blue'].gapPct)}).`
+    `Aave and Morpho liquidations of ${summary.meta.window.label}, ${summary.meta.positions.toLocaleString('en-US')} compared: the protocols closed ${sh(d.all.realShare)} of the debt, ` +
+    `Membrane at its own lines ${sh(d.all.memShare)} (modelled), ${g(d.all.gapPp)} net ` +
+    `(Aave ${g(d.byProtocol['aave-v3'].gapPp)}, Morpho ${g(d.byProtocol['morpho-blue'].gapPp)}).`
   )
 }

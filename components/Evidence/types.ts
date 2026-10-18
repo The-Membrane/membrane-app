@@ -29,53 +29,68 @@ export interface ConcentrationEntry {
   protocol: ProtocolKey
   chain: string
   owner: string
-  /** Real repaid minus Membrane repaid. Negative: Membrane closes more. */
-  gapUsd: number
-  realRepaidUsd: number
-  memRepaidUsd: number
+  /** Its contribution to the net share gap, percentage points. Negative: Membrane closes more. */
+  gapPp: number
+  realFrac: number
+  memFrac: number
   outcome: string
 }
 
-/** One set of positions with both sides summed over the same positions. */
-export interface DebtSet {
-  key: string
-  label: string
+/** Both shares over one side of the per-position split. */
+export interface ShareSplit {
   positions: number
-  /** Positions whose loan has a USD price: every dollar figure and median is over these. */
+  realShare: number
+  memShare: number
+}
+
+/**
+ * The share of debt closed over a set (owner ruling 2026-10-18, second round): each side's
+ * repaid debt over ITS OWN t0 debt (Membrane's is sized to its line), debt-weighted over the
+ * priced positions. The two sides carry different debt, so no Membrane dollar is set beside
+ * a real one; `realRepaidUsd` is the size of the day on the set.
+ */
+export interface ShareFigures {
+  positions: number
+  /** Positions whose loan has a USD price: every share and median is over these. */
   pricedPositions: number
-  unpricedPositions: number
-  events: number
   realRepaidUsd: number
-  /** Morpho only: realised bad debt, reported apart (not repaid). */
-  realBadDebtUsd: number
-  memRepaidUsd: number
-  /** realRepaidUsd - memRepaidUsd. Positive: Membrane closes less. */
-  gapUsd: number
-  gapPct: number
-  /** Per position, compared on the published cents. */
+  realDebtUsd: number
+  /** Membrane's own t0 debt, sized to its line (†). */
+  memDebtUsd: number
+  realShare: number
+  memShare: number
+  /** (real − Membrane) in percentage points. Positive: Membrane closes a smaller share. */
+  gapPp: number
+  /** Per position, the two shares compared at 1e-5. */
   less: number
   more: number
   equal: number
-  /** Gross: Σ (real − Membrane) over the `less` positions, Σ (Membrane − real) over `more`. */
-  lessUsd: number
-  moreUsd: number
+  /** Both shares over each side of that split: what the net is made of. */
+  lessSet: ShareSplit
+  moreSet: ShareSplit
+}
+
+/** One set of positions with both sides over the same positions. */
+export interface DebtSet extends ShareFigures {
+  key: string
+  label: string
+  unpricedPositions: number
+  events: number
+  /** Morpho only: realised bad debt, reported apart (not repaid). */
+  realBadDebtUsd: number
   /** Positions with no Membrane sale on any half. */
   memNeverSold: number
   /** A window still open when the data ends, booked as sold at the last price. */
-  gridEnd: { positions: number; memRepaidUsd: number }
+  gridEnd: { positions: number; memShare: number }
   medians: { all: DebtMedianBlock; atLeastFloor: DebtMedianBlock; floorUsd: number }
   concentration: {
     shareDenominator: string
-    gapAbsoluteUsd: number
-    gapPositiveUsd: number
-    gapNegativeUsd: number
+    gapAbsolutePp: number
     top1Share: number
     top5Share: number
     top5: ConcentrationEntry[]
-    gapWithoutTop1Usd: number
-    gapWithoutTop1Pct: number
-    gapWithoutTop5Usd: number
-    gapWithoutTop5Pct: number
+    gapWithoutTop1Pp: number
+    gapWithoutTop5Pp: number
   }
 }
 
@@ -102,8 +117,9 @@ export interface CureSummary {
 
 export interface Sensitivity {
   rule: string
-  memRepaidUsd: number
-  deltaUsd: number
+  /** Membrane's share of its own t0 debt closed, over the run's own set. */
+  memShare: number
+  gapPp: number
   positionsChanged?: number
   positionsDecisionDiffers?: number
   byProtocol?: Record<ProtocolKey, number>
@@ -111,18 +127,8 @@ export interface Sensitivity {
   set?: SetFigures
 }
 
-/** Both sides and the gross over one run's own compared set. */
-export interface SetFigures {
-  positions: number
-  realRepaidUsd: number
-  memRepaidUsd: number
-  gapUsd: number
-  gapPct: number
-  less: number
-  more: number
-  lessUsd: number
-  moreUsd: number
-}
+/** Both sides over one run's own compared set, with the split. */
+export type SetFigures = ShareFigures
 
 /** One row of the published sensitivity table (meta.sensitivities). */
 export interface SensitivityRow extends SetFigures {
@@ -130,7 +136,7 @@ export interface SensitivityRow extends SetFigures {
   label: string
   rule: string
   headline: boolean
-  byProtocol: Record<ProtocolKey, SetFigures>
+  byProtocol: Record<ProtocolKey, ShareFigures>
   excluded: { noMembraneLine: number; partialMembraneLine: number; noCapacity: number }
 }
 
@@ -139,7 +145,8 @@ export interface ExclusionBlock {
   realRepaidUsd: number
   byProtocol: Record<ProtocolKey, { positions: number; realRepaidUsd: number }>
   debtUsdAtT0: number
-  top: { key: string; positions: number }[]
+  /** By main collateral (no-capacity: by chain:token it would sell). */
+  top: { key: string; positions: number; realRepaidUsd: number }[]
 }
 
 export interface CapacityBrief {
@@ -156,11 +163,18 @@ export interface WhaleCase {
   ltv0: number | null
   realEvents: number
   realRepaidUsd: number
-  headline: { memRepaidUsd: number | null; excluded: string | null } | null
-  protocolLineCapped: { memRepaidUsd: number | null; excluded: string | null } | null
-  protocolLineUnlimited: { memRepaidUsd: number | null; excluded: string | null } | null
+  headline: WhaleRun | null
+  /** At the protocol's own line, on the REAL debt (no sizing): dollars compare there. */
+  protocolLineCapped: WhaleRun | null
+  protocolLineUnlimited: WhaleRun | null
   aaveMainnetCapacityTokens: number | null
   aaveMainnetLiquidatorTokens: number | null
+}
+
+export interface WhaleRun {
+  memRepaidUsd: number | null
+  memFrac: number | null
+  excluded: string | null
 }
 
 export interface TimeSummary {
@@ -202,7 +216,12 @@ export interface TimeSummary {
     minutes: number
     gridMinutes: number
   }
-  bandSensitivity: { band: number; memRepaidUsd: number; byProtocol: Record<ProtocolKey, number> }[]
+  bandSensitivity: {
+    band: number
+    memShare: number
+    byProtocol: Record<ProtocolKey, number>
+    set: ShareFigures
+  }[]
   sensitivity: {
     noEarlyClear: Sensitivity
     noDebtFloor: Sensitivity
@@ -218,7 +237,8 @@ export interface AssetSummary {
   aave: number
   morpho: number
   realRepaidUsd: number
-  memRepaidUsd: number
+  realShare: number
+  memShare: number
   realMedianFrac: number
   memMedianFrac: number
   /** Share cured in the 8h window (no window counts as not cured); null when no cure record. */
@@ -241,7 +261,8 @@ export interface EvidenceMeta {
         positions: number
         events: number
         realRepaidUsd: number
-        memRepaidUsd: number
+        realShare: number
+        memShare: number
         positionsKept: number
         positionsSoldAtGridEnd: number
       }
@@ -265,13 +286,9 @@ export interface EvidenceMeta {
   exclusions: {
     rule: string
     noMembraneLine: ExclusionBlock
+    /** Some collateral has no Membrane line: excluded (owner ruling 2026-10-18). */
+    partialMembraneLine: ExclusionBlock
     noCapacity: ExclusionBlock
-    partialLine: {
-      rule: string
-      positions: number
-      realRepaidUsd: number
-      unknownCollateralUsdAtT0: number
-    }
   }
   line: { rule: string; source: string }
   liquidity: {
@@ -311,8 +328,9 @@ export interface EvidenceMeta {
   gridEnd: {
     positions: number
     positionsFirstSoldThere: number
-    memRepaidUsd: number
-    byProtocol: Record<ProtocolKey, { positions: number; memRepaidUsd: number }>
+    /** Membrane's closed debt booked at the grid end, as a share of its t0 debt (†). */
+    memShare: number
+    byProtocol: Record<ProtocolKey, { positions: number; memShare: number }>
     rule: string
   }
   /** The old 747-row priced subset, kept ONLY to explain why its 36% moved. Superseded. */
@@ -376,13 +394,15 @@ export interface CohortRow {
   priced: boolean
   realRepaidUsd: number
   realBadDebtUsd: number
-  /** MODELLED (†). */
+  /** Membrane's t0 debt, sized to its line (†). */
+  memDebtUsd: number | null
+  /** MODELLED (†): Membrane's own dollars, on its own debt. Never set beside realRepaidUsd. */
   memRepaidUsd: number
   /** The same walk without the liquidity cap (†): the delay credit's basis. */
   memUnlimitedUsd: number
   /** Real repaid over the t0 debt. Can exceed 1: new borrowing and interest. */
   realFrac: number | null
-  /** Debt Membrane closes, on the t0 basis, over the t0 debt (†). */
+  /** Debt Membrane closes, on the t0 basis, over ITS OWN (line-sized) t0 debt (†). */
   memFrac: number | null
   outcome: string
   sales: number
@@ -433,16 +453,19 @@ export type OutcomeFilter =
 /** Protocol filter for the cohort table. */
 export type ProtocolFilter = 'all' | 'aave' | 'morpho'
 
-/** USD spared: what the protocol repaid minus what Membrane would have. Null when unpriced. */
-export function sparedUsd(r: CohortRow): number | null {
-  return r.priced ? r.realRepaidUsd - r.memRepaidUsd : null
+/**
+ * Share spared, in percentage points: the share of its debt the protocol closed minus the
+ * share of ITS OWN (line-sized) debt Membrane would have. Null when unpriced.
+ */
+export function sparedPp(r: CohortRow): number | null {
+  return r.priced && r.realFrac != null && r.memFrac != null ? (r.realFrac - r.memFrac) * 100 : null
 }
 
-/** The per-position comparison, on the published cents (the builder's own rule). */
+/** The per-position comparison of the two SHARES at the published 1e-5 (the builder's rule). */
 export function compareRow(r: CohortRow): 'less' | 'more' | 'equal' | 'unpriced' {
-  if (!r.priced) return 'unpriced'
-  const m = Math.round(r.memRepaidUsd * 100)
-  const a = Math.round(r.realRepaidUsd * 100)
+  if (!r.priced || r.realFrac == null || r.memFrac == null) return 'unpriced'
+  const m = Math.round(r.memFrac * 1e5)
+  const a = Math.round(r.realFrac * 1e5)
   return m < a ? 'less' : m > a ? 'more' : 'equal'
 }
 
@@ -476,6 +499,7 @@ export function decodeEvidence(file: EvidenceFile): EvidenceDoc {
       'priced',
       'realRepaidUsd',
       'realBadDebtUsd',
+      'memDebtUsd',
       'memRepaidUsd',
       'memUnlimitedUsd',
       'realFrac',
@@ -529,6 +553,7 @@ export function decodeEvidence(file: EvidenceFile): EvidenceDoc {
       priced: v[c.priced] === 1,
       realRepaidUsd: v[c.realRepaidUsd] as number,
       realBadDebtUsd: v[c.realBadDebtUsd] as number,
+      memDebtUsd: v[c.memDebtUsd] as number | null,
       memRepaidUsd: v[c.memRepaidUsd] as number,
       memUnlimitedUsd: v[c.memUnlimitedUsd] as number,
       realFrac: v[c.realFrac] as number | null,

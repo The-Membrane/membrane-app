@@ -9,7 +9,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
 
 import { Caveats, Eyebrow } from './atoms'
-import { PROTOCOL_NAME, gapWord, usd } from './format'
+import { PROTOCOL_NAME, ppWord, share, usd } from './format'
 import { CohortLens } from './CohortLens'
 import { DebtLens } from './DebtLens'
 import { TimeLens } from './TimeLens'
@@ -20,17 +20,24 @@ import { EvidenceDoc, Lens, ProtocolKey } from './types'
 
 const PROTOCOLS: ProtocolKey[] = ['aave-v3', 'morpho-blue']
 
+/** "OP 246 ($0.5M), ARB 216 ($0.5M), AAVE 81 ($7.0M)": the three largest groups, real side. */
+const topThree = (top: { key: string; positions: number; realRepaidUsd: number }[]) =>
+  top
+    .slice(0, 3)
+    .map((t) => `${t.key} ${t.positions.toLocaleString('en-US')} (${usd(t.realRepaidUsd)})`)
+    .join(', ')
+
 /** The published sensitivity at the protocols' own lines, on ITS OWN set, with the split. */
 const protocolLineSentence = (d: EvidenceDoc) => {
   const r = d.meta.sensitivities.find((x) => x.key === 'protocol-line')
   if (!r) return ''
-  return ` At the protocols\u2019 own lines instead (its own ${r.positions.toLocaleString('en-US')} positions, ${usd(r.realRepaidUsd)} repaid by the protocols), Membrane would have closed ${usd(r.memRepaidUsd)}\u2020, ${gapWord(r.gapPct)}, net (Aave ${gapWord(r.byProtocol['aave-v3'].gapPct)}, Morpho ${gapWord(r.byProtocol['morpho-blue'].gapPct)}).`
+  return ` At the protocols\u2019 own lines on the real debt instead (its own ${r.positions.toLocaleString('en-US')} positions), the protocols closed ${share(r.realShare)} of the debt and Membrane would have closed ${share(r.memShare)}\u2020, ${ppWord(r.gapPp)}, net (Aave ${ppWord(r.byProtocol['aave-v3'].gapPp)}, Morpho ${ppWord(r.byProtocol['morpho-blue'].gapPp)}).`
 }
 
-/** "Aave 5.8% less · Morpho 56.1% less": the split that sits beside every blended figure. */
+/** "Aave 13.9 pp less · Morpho 50.3 pp less": the split beside every blended figure. */
 const splitLine = (d: EvidenceDoc) =>
   PROTOCOLS.map(
-    (k) => `${PROTOCOL_NAME[k].split(' ')[0]} ${gapWord(d.debt.byProtocol[k].gapPct)}`,
+    (k) => `${PROTOCOL_NAME[k].split(' ')[0]} ${ppWord(d.debt.byProtocol[k].gapPp)}`,
   ).join(' · ')
 
 /**
@@ -53,13 +60,11 @@ const LENSES: {
     label: 'Debt closed',
     heading: 'How much of the loan gets closed',
     blurb:
-      'Path-independent, so it holds whichever way the market goes next. Membrane walks each position at its own, lower line, and every sale is capped by the liquidity the day showed†.',
+      'The share of each side’s own debt closed: path-independent, so it holds whichever way the market goes next. A Membrane borrower carries less debt (sized to Membrane’s own, lower line†), so shares compare and dollars do not. Every sale is capped by the liquidity the day showed†.',
     // DIRECTION-AWARE: the gap can point either way per protocol and per chain, so the word
     // is computed from the sign, never typed.
-    metric: (d) => `${usd(Math.abs(d.debt.all.gapUsd))}†`,
-    caption: (d) =>
-      `${d.debt.all.gapUsd < 0 ? 'more' : 'less'} debt closed, net · ` +
-      `${Math.abs(d.debt.all.gapPct).toFixed(1)}% · ${splitLine(d)}`,
+    metric: (d) => `${share(d.debt.all.realShare)} → ${share(d.debt.all.memShare)}†`,
+    caption: (d) => `of the debt closed · ${ppWord(d.debt.all.gapPp)}, net · ${splitLine(d)}`,
   },
   {
     id: 'time',
@@ -138,9 +143,10 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                 {doc.meta.censusPositions.toLocaleString('en-US')} positions were liquidated on Aave
                 and Morpho on {doc.meta.window.label}, four chains. On the{' '}
                 {doc.meta.positions.toLocaleString('en-US')} Membrane can be walked on — at its own
-                line, every sale capped by the liquidity the day showed† — the protocols
-                force-closed {usd(doc.debt.all.realRepaidUsd)} of debt; Membrane would have closed{' '}
-                {usd(doc.debt.all.memRepaidUsd)}† — {gapWord(doc.debt.all.gapPct)}, net.
+                line, the debt sized to that line, every sale capped by the liquidity the day
+                showed† — the protocols closed {share(doc.debt.all.realShare)} of the debt; Membrane
+                would have closed {share(doc.debt.all.memShare)}† of its own —{' '}
+                {ppWord(doc.debt.all.gapPp)}, net.
               </Text>
               <Text
                 data-testid="evidence-split"
@@ -152,7 +158,7 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
               >
                 {PROTOCOLS.map((k) => {
                   const s = doc.debt.byProtocol[k]
-                  return `${PROTOCOL_NAME[k]}: ${s.positions.toLocaleString('en-US')} positions, ${usd(s.realRepaidUsd)} \u2192 ${usd(s.memRepaidUsd)}\u2020 (${gapWord(s.gapPct)})`
+                  return `${PROTOCOL_NAME[k]}: ${s.positions.toLocaleString('en-US')} positions, ${share(s.realShare)} \u2192 ${share(s.memShare)}\u2020 (${ppWord(s.gapPp)})`
                 }).join(' · ')}
               </Text>
               {/* The gap is NET: show what it is made of, beside it (review 2026-10-16). */}
@@ -164,7 +170,7 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                 maxW="760px"
                 lineHeight="1.7"
               >
-                {`Net of both directions: Membrane closes less on ${doc.debt.all.less.toLocaleString('en-US')} positions (${usd(doc.debt.all.lessUsd)}\u2020 less) and more on ${doc.debt.all.more.toLocaleString('en-US')} (${usd(doc.debt.all.moreUsd)}\u2020 more); ${doc.debt.all.equal.toLocaleString('en-US')} are equal to the cent. Debt repaid only: Membrane\u2019s liquidation fee is not assumed.`}
+                {`Net of both directions: Membrane closes a smaller share on ${doc.debt.all.less.toLocaleString('en-US')} positions (there the protocols closed ${share(doc.debt.all.lessSet.realShare)}, Membrane ${share(doc.debt.all.lessSet.memShare)}\u2020) and a larger one on ${doc.debt.all.more.toLocaleString('en-US')} (${share(doc.debt.all.moreSet.realShare)} against ${share(doc.debt.all.moreSet.memShare)}\u2020); ${doc.debt.all.equal.toLocaleString('en-US')} are equal. The protocols repaid ${usd(doc.debt.all.realRepaidUsd)} on these positions; a Membrane dollar figure is not set beside it, because Membrane\u2019s borrower carries less debt. Debt repaid only: Membrane\u2019s liquidation fee is not assumed.`}
               </Text>
               {/* WHO IS NOT IN THE SET, on both sides (owner rulings 2026-10-18). */}
               <Text
@@ -175,7 +181,7 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                 maxW="760px"
                 lineHeight="1.7"
               >
-                {`Left out of both sides: ${doc.meta.exclusions.noMembraneLine.positions.toLocaleString('en-US')} positions whose collateral has no Membrane line (${usd(doc.meta.exclusions.noMembraneLine.realRepaidUsd)} repaid by the protocols; Aave ${doc.meta.exclusions.noMembraneLine.byProtocol['aave-v3'].positions.toLocaleString('en-US')}, Morpho ${doc.meta.exclusions.noMembraneLine.byProtocol['morpho-blue'].positions.toLocaleString('en-US')}) and ${doc.meta.exclusions.noCapacity.positions.toLocaleString('en-US')} that would sell a token nobody liquidated on that chain (${usd(doc.meta.exclusions.noCapacity.realRepaidUsd)}). ${protocolLineSentence(doc)}`}
+                {`Left out of both sides: ${doc.meta.exclusions.noMembraneLine.positions.toLocaleString('en-US')} positions whose collateral has no Membrane line (${usd(doc.meta.exclusions.noMembraneLine.realRepaidUsd)} repaid by the protocols; Aave ${doc.meta.exclusions.noMembraneLine.byProtocol['aave-v3'].positions.toLocaleString('en-US')}, Morpho ${doc.meta.exclusions.noMembraneLine.byProtocol['morpho-blue'].positions.toLocaleString('en-US')}), ${doc.meta.exclusions.partialMembraneLine.positions.toLocaleString('en-US')} holding some collateral without one (${usd(doc.meta.exclusions.partialMembraneLine.realRepaidUsd)}) and ${doc.meta.exclusions.noCapacity.positions.toLocaleString('en-US')} that would sell a token nobody liquidated on that chain (${usd(doc.meta.exclusions.noCapacity.realRepaidUsd)}). By main collateral, no line: ${topThree(doc.meta.exclusions.noMembraneLine.top)}; some collateral without one: ${topThree(doc.meta.exclusions.partialMembraneLine.top)}. ${protocolLineSentence(doc)}`}
               </Text>
               <MockStamp
                 label={`on-chain · ${doc.meta.events.toLocaleString('en-US')} liquidation events · LTV walked on each protocol\u2019s own oracle · ${doc.meta.window.label}`}

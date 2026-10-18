@@ -129,7 +129,7 @@ function findingCard(): CardProps {
   // no footnote line, so the modelled side says "modelled" in words instead of a †.
   return {
     eyebrow: 'finding · 10–11 oct 2025 · aave + morpho',
-    title: `${OCT10_SCALE_LINE.direction === 'less' ? 'Less' : 'More'} debt force-closed, net, on ${OCT10_TOTALS.positions.toLocaleString('en-US')} Aave and Morpho liquidations of ${OCT10_TOTALS.window} at Membrane’s own lines, liquidity-capped, modelled (${OCT10_SCALE_LINE.split})`,
+    title: `${OCT10_SCALE_LINE.direction === 'less' ? 'A smaller' : 'A larger'} share of the debt force-closed, net, on ${OCT10_TOTALS.positions.toLocaleString('en-US')} Aave and Morpho liquidations of ${OCT10_TOTALS.window} at Membrane’s own lines, liquidity-capped, modelled (${OCT10_SCALE_LINE.split})`,
     line: OCT10_SCALE_LINE.figure,
   }
 }

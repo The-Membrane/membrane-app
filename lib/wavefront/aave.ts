@@ -134,6 +134,11 @@ export interface HalfSpec {
   share: number
   line: number
   delayClass: Exclude<DelayClass, 'mixed'>
+  /**
+   * Membrane runs only: the factor on this half's debt at t0 that sizes the position to
+   * MEMBRANE's line (lib/wavefront/membraneLine.ts membraneDebtScale). Unset = 1.
+   */
+  debtScale?: number
 }
 
 export interface PositionSpec {
@@ -421,7 +426,7 @@ export function t0Decision(ltv0: number, half: HalfSpec, band: number): T0Decisi
 
 /**
  * Kernel legs of one half, in the position's unit: its own collateral, and every debt leg
- * scaled by the half's share. Kernel leg keys are the spec legs' path keys. A collateral leg
+ * scaled by the half's share (and by its `debtScale` when Membrane sizes it to its own line). Kernel leg keys are the spec legs' path keys. A collateral leg
  * also carries its tokens and its liquidity-book key (read only by a liquidity-capped kernel).
  */
 export function kernelLegs(
@@ -435,7 +440,11 @@ export function kernelLegs(
       value0: l.value0,
       ...(l.token ? { tokens0: l.amount, liqKey: liqKeyOf(spec.chain, l.token) } : {}),
     })),
-    debt: spec.debt.map((l) => ({ key: l.key, symbol: l.symbol, value0: l.value0 * half.share })),
+    debt: spec.debt.map((l) => ({
+      key: l.key,
+      symbol: l.symbol,
+      value0: l.value0 * half.share * (half.debtScale ?? 1),
+    })),
   }
 }
 

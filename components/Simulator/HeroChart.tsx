@@ -18,29 +18,24 @@ import type { Comparison } from '@/lib/position-sim'
 import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
 import { OCT10_SCALE_LINE, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 
-const usdMillions = (value: number): string => `$${Math.round(value / 1_000_000)}M`
-const usdM1 = (value: number): string => `$${(value / 1_000_000).toFixed(1)}M`
+// SHARES, not dollars (owner ruling 2026-10-18): Membrane's borrower carries less debt (sized to
+// Membrane's own line), so each bar is the share of that side's OWN debt at the first
+// liquidation that was force-closed. Bars are drawn on a 0-100% scale.
+const shr = (x: number): string => `${(x * 100).toFixed(1)}%`
+const pp = (x: number): string => `${Math.abs(x).toFixed(1)} pp ${x >= 0 ? 'less' : 'more'}`
 
-const REAL_CLOSED = OCT10_TOTALS.realClosedUsd
-const MEMBRANE_CLOSED = OCT10_TOTALS.membraneClosedUsd
-/** NET: Membrane closes less on some positions and more on others (OCT10_SCALE_LINE.gross). */
-const NET = OCT10_TOTALS.keptUsd
-/** Bars are drawn against the larger side, so a Membrane total above the real one still fits. */
-const BAR_MAX = Math.max(OCT10_TOTALS.realClosedUsd, OCT10_TOTALS.membraneClosedUsd)
 const { aave, morpho } = OCT10_TOTALS.byProtocol
-const pctLess = (s: { realClosedUsd: number; keptUsd: number }) =>
-  `${Math.abs((100 * s.keptUsd) / s.realClosedUsd).toFixed(1)}% ${s.keptUsd >= 0 ? 'less' : 'more'}`
 
 const rows = [
   {
     label: 'Aave + Morpho',
-    value: REAL_CLOSED,
+    value: OCT10_TOTALS.realShare,
     color: SEMANTIC_COLORS.textPrimary,
     mark: '',
   },
   {
     label: 'Membrane',
-    value: MEMBRANE_CLOSED,
+    value: OCT10_TOTALS.membraneShare,
     color: SEMANTIC_COLORS.success,
     mark: '†',
   },
@@ -104,7 +99,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           color={SEMANTIC_COLORS.warning}
           {...tabular}
         >
-          {usdMillions(Math.abs(NET))} {OCT10_SCALE_LINE.direction}, net†
+          {pp(OCT10_TOTALS.gapPp)}, net†
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
@@ -113,19 +108,19 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           textTransform="uppercase"
           color={SEMANTIC_COLORS.textSecondary}
         >
-          debt force-closed · {OCT10_SCALE_LINE.gross}
+          of the debt force-closed · {OCT10_SCALE_LINE.gross}
         </Text>
       </Box>
     </Box>
 
     <Box
       role="img"
-      aria-label={`On 10-11 October 2025, Aave and Morpho force-closed ${usdMillions(REAL_CLOSED)} of debt and Membrane would have closed ${usdMillions(MEMBRANE_CLOSED)} (modelled) across the same ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions.`}
+      aria-label={`On 10-11 October 2025, across the same ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions, Aave and Morpho force-closed ${shr(OCT10_TOTALS.realShare)} of the debt and Membrane would have closed ${shr(OCT10_TOTALS.membraneShare)} of its own (modelled).`}
       display="grid"
       gap={SPACING.lg}
     >
       {rows.map((row) => {
-        const width = `${(row.value / BAR_MAX) * 100}%`
+        const width = `${Math.min(1, row.value) * 100}%`
         return (
           <Box key={row.label} display="grid" gap={SPACING.sm}>
             <Box display="flex" justifyContent="space-between" gap={SPACING.base}>
@@ -145,7 +140,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
                 fontWeight={700}
                 {...tabular}
               >
-                {usdMillions(row.value)}
+                {shr(row.value)}
                 {row.mark}
               </Text>
             </Box>
@@ -170,12 +165,17 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
       color={SEMANTIC_COLORS.textTertiary}
       {...tabular}
     >
-      Aave {usdM1(aave.realClosedUsd)} → {usdM1(aave.membraneClosedUsd)}† ({pctLess(aave)}) · Morpho{' '}
-      {usdM1(morpho.realClosedUsd)} → {usdM1(morpho.membraneClosedUsd)}† ({pctLess(morpho)}). Debt
-      repaid on the compared positions (
-      {OCT10_TOTALS.excluded.noMembraneLine.positions.toLocaleString('en-US')} with no Membrane line
-      and {OCT10_TOTALS.excluded.noCapacity.positions.toLocaleString('en-US')} with no observed
-      liquidity are left out of both sides); lower is less forced repayment. {MODELLED_FOOTNOTE}
+      Aave {shr(aave.realShare)} → {shr(aave.membraneShare)}† ({pp(aave.gapPp)}) · Morpho{' '}
+      {shr(morpho.realShare)} → {shr(morpho.membraneShare)}† ({pp(morpho.gapPp)}). Share of each
+      side&rsquo;s own debt at the first liquidation that was force-closed; Membrane&rsquo;s debt is
+      sized to its own line†, so the dollars differ and are not compared. Left out of both sides:{' '}
+      {(
+        OCT10_TOTALS.excluded.noMembraneLine.positions +
+        OCT10_TOTALS.excluded.partialMembraneLine.positions
+      ).toLocaleString('en-US')}{' '}
+      holding collateral without a Membrane line and{' '}
+      {OCT10_TOTALS.excluded.noCapacity.positions.toLocaleString('en-US')} with no observed
+      liquidity. Lower is less forced repayment. {MODELLED_FOOTNOTE}
     </Text>
   </Box>
 )

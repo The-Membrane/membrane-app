@@ -16,12 +16,23 @@
 // would sell a token with no observed liquidity). Debt repaid only. At those lines Membrane
 // closes MORE debt, net ($164.1M by the protocols, $193.0M by Membrane), so every line is
 // direction-aware. The stakes line is the size of the DAY (real side, all 3,197) and did not move.
+//
+// UPDATED 2026-10-18 again, deliberately (owner rulings, round 2 and 3): each Membrane position's
+// debt is sized to Membrane's line (debt0 x memLine / protocolLine), the walk is capped at a
+// uniform 0.98x capacity†, any position with a collateral leg lacking a Membrane line is
+// excluded, and the comparison is the SHARE of each side's own t0 debt closed, debt-weighted.
+// No Membrane dollar is set beside a real one. Real dollars stay only as the size of the day.
 
 import { describe, expect, it } from 'vitest'
 
 import file from '@/public/data/oct10-2025/evidence-census.json'
 import headline from '@/public/data/oct10-2025/evidence-census-headline.json'
-import { decodeEvidence, type EvidenceFile } from '@/components/Evidence/types'
+import {
+  compareRow,
+  decodeEvidence,
+  type CohortRow,
+  type EvidenceFile,
+} from '@/components/Evidence/types'
 import {
   OCT10_DAY,
   OCT10_SCALE_LINE,
@@ -32,11 +43,24 @@ import {
 
 const doc = decodeEvidence(file as unknown as EvidenceFile)
 const rows = doc.cohort
-const sum = (
-  xs: { realRepaidUsd: number; memRepaidUsd: number }[],
-  k: 'realRepaidUsd' | 'memRepaidUsd',
-) => xs.reduce((a, r) => a + r[k], 0)
-const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThan(0.02)
+const near = (a: number, b: number, tol = 0.02) => expect(Math.abs(a - b)).toBeLessThan(tol)
+const sumOf = <T>(xs: readonly T[], f: (x: T) => number) => xs.reduce((a, x) => a + f(x), 0)
+
+/** The rows both shares are taken over: priced (two dust loans serve as $0.00 and weigh 0). */
+const pricedRows = (xs: readonly CohortRow[]) =>
+  xs.filter((r) => r.priced && r.realFrac != null && r.memFrac != null)
+
+/** Debt-weighted shares, recomputed from the rows (memFrac is served at 1e-5). */
+function sharesOf(xs: readonly CohortRow[]) {
+  const p = pricedRows(xs)
+  const rd = sumOf(p, (r) => r.debtUsd ?? 0)
+  const md = sumOf(p, (r) => r.memDebtUsd ?? 0)
+  return {
+    priced: p.length,
+    realShare: sumOf(p, (r) => r.realRepaidUsd) / rd,
+    memShare: sumOf(p, (r) => r.memFrac! * (r.memDebtUsd ?? 0)) / md,
+  }
+}
 
 describe('OCT10_TOTALS', () => {
   it('counts every compared position, and the census it is a part of', () => {
@@ -46,6 +70,7 @@ describe('OCT10_TOTALS', () => {
     expect(
       OCT10_TOTALS.positions +
         OCT10_TOTALS.excluded.noMembraneLine.positions +
+        OCT10_TOTALS.excluded.partialMembraneLine.positions +
         OCT10_TOTALS.excluded.noCapacity.positions,
     ).toBe(OCT10_TOTALS.censusPositions)
   })
@@ -54,8 +79,9 @@ describe('OCT10_TOTALS', () => {
     expect(OCT10_DAY.positions).toBe(doc.meta.censusPositions)
     near(
       OCT10_DAY.realClosedUsd,
-      sum(rows, 'realRepaidUsd') +
+      sumOf(rows, (r) => r.realRepaidUsd) +
         doc.meta.exclusions.noMembraneLine.realRepaidUsd +
+        doc.meta.exclusions.partialMembraneLine.realRepaidUsd +
         doc.meta.exclusions.noCapacity.realRepaidUsd,
     )
   })
@@ -65,10 +91,16 @@ describe('OCT10_TOTALS', () => {
     expect(OCT10_TOTALS.events).toBe(rows.reduce((a, r) => a + r.events, 0))
   })
 
-  it('recomputes both closed totals from the rows, to the cent', () => {
-    near(OCT10_TOTALS.realClosedUsd, sum(rows, 'realRepaidUsd'))
-    near(OCT10_TOTALS.membraneClosedUsd, sum(rows, 'memRepaidUsd'))
-    near(OCT10_TOTALS.keptUsd, sum(rows, 'realRepaidUsd') - sum(rows, 'memRepaidUsd'))
+  it('recomputes both shares from the rows, debt-weighted, and the real dollars to the cent', () => {
+    near(
+      OCT10_TOTALS.realClosedUsd,
+      sumOf(rows, (r) => r.realRepaidUsd),
+    )
+    const s = sharesOf(rows)
+    expect(s.priced).toBe(doc.debt.all.pricedPositions)
+    near(s.realShare, OCT10_TOTALS.realShare, 2e-5)
+    near(s.memShare, OCT10_TOTALS.membraneShare, 2e-5)
+    near(OCT10_TOTALS.gapPp, (OCT10_TOTALS.realShare - OCT10_TOTALS.membraneShare) * 100, 1e-3)
   })
 
   it('recomputes the per-protocol split from the rows', () => {
@@ -79,17 +111,12 @@ describe('OCT10_TOTALS', () => {
       const rs = rows.filter((r) => r.protocol === k)
       const t = OCT10_TOTALS.byProtocol[k]
       expect(t.positions).toBe(rs.length)
-      near(t.realClosedUsd, sum(rs, 'realRepaidUsd'))
-      near(t.membraneClosedUsd, sum(rs, 'memRepaidUsd'))
-      near(t.realClosedUsd, doc.debt.byProtocol[p].realRepaidUsd)
+      const s = sharesOf(rs)
+      near(s.realShare, t.realShare, 2e-5)
+      near(s.memShare, t.membraneShare, 2e-5)
+      expect(t.realShare).toBe(doc.debt.byProtocol[p].realShare)
+      expect(t.membraneShare).toBe(doc.debt.byProtocol[p].memShare)
     }
-  })
-
-  it('recomputes the collateral at risk from the priced rows', () => {
-    near(
-      OCT10_TOTALS.collateralAtRiskUsd,
-      rows.filter((r) => r.priced).reduce((a, r) => a + (r.collUsd ?? 0), 0),
-    )
   })
 
   it('lists exactly the chains the census spans', () => {
@@ -115,24 +142,26 @@ describe('the headline file the landing imports', () => {
       const h = headline[k]
       expect(h.positions).toBe(s.positions)
       expect(h.realRepaidUsd).toBe(s.realRepaidUsd)
-      expect(h.memRepaidUsd).toBe(s.memRepaidUsd)
-      expect(h.gapUsd).toBe(s.gapUsd)
-      expect(h.gapPct).toBe(s.gapPct)
+      expect(h.realShare).toBe(s.realShare)
+      expect(h.memShare).toBe(s.memShare)
+      expect(h.gapPp).toBe(s.gapPp)
+      expect([h.less, h.more, h.equal]).toEqual([s.less, s.more, s.equal])
     }
-    expect([headline.less, headline.more, headline.equal]).toEqual([
-      doc.debt.all.less,
-      doc.debt.all.more,
-      doc.debt.all.equal,
-    ])
     expect(headline.gridEnd).toEqual({
       positions: doc.meta.gridEnd.positions,
-      memRepaidUsd: doc.meta.gridEnd.memRepaidUsd,
+      memShare: doc.meta.gridEnd.memShare,
     })
     expect(headline.neverSold).toEqual(doc.time.neverSold)
     expect(headline.unpricedPositions).toBe(doc.meta.unpriced.positions)
-    expect(headline.sensitivity.band).toEqual(
-      doc.time.bandSensitivity.map((b) => ({ band: b.band, memRepaidUsd: b.memRepaidUsd })),
-    )
+    expect(headline.capacityMultiplier).toBe(0.98)
+    const row = headline.sensitivity.table.find((t) => t.headline)!
+    expect(row.key).toBe('capacity-0.98')
+    expect(row.memShare).toBe(headline.all.memShare)
+    expect(row.gapPp).toBe(headline.all.gapPp)
+  })
+
+  it('carries no Membrane dollar figure', () => {
+    expect(JSON.stringify(headline)).not.toMatch(/"mem(?!DebtUsd)[A-Za-z]*Usd"/)
   })
 })
 
@@ -144,41 +173,44 @@ describe('OCT10_STAKES_LINE', () => {
   })
 })
 
-describe('OCT10 kept figure', () => {
-  // UPDATED 2026-10-16 (review): the figure is NET — Membrane closes less on some positions
-  // and more on others — and it is a separate measure from the multi-year corpus line, with
-  // its own scope. So it says "net", never "protected", and never "alone".
-  it('is the NET census gap, direction-aware, marked modelled, with its set, split and gross', () => {
-    expect(OCT10_SCALE_LINE.direction).toBe(OCT10_TOTALS.keptUsd >= 0 ? 'less' : 'more')
+describe('OCT10 share line', () => {
+  // The figure is NET, in percentage points of each side's own debt: Membrane closes a smaller
+  // share on some positions and a larger one on others. It says "net", never "protected", never
+  // "alone", and its word comes from its sign.
+  it('is the NET share gap, direction-aware, marked modelled, with its set, split and gross', () => {
+    expect(OCT10_SCALE_LINE.direction).toBe(OCT10_TOTALS.gapPp >= 0 ? 'less' : 'more')
     expect(OCT10_SCALE_LINE.line).toBe(
-      'At its own, lower lines, Membrane would have force-closed $29M more debt, net†, across 2,280 of the 3,197 Aave and Morpho liquidations of 10–11 Oct 2025.',
+      '4% sounds small. The protocols force-closed 31.2% of the debt; at Membrane’s own lines a borrower would have lost 13.3%† of theirs — 17.9 pp less, net†, across 1,545 of the 3,197 Aave and Morpho liquidations of 10–11 Oct 2025.',
     )
-    expect(OCT10_SCALE_LINE.result).toBe('$29M more debt force-closed, net†')
+    expect(OCT10_SCALE_LINE.result).toBe(
+      '17.9 pp less of the debt force-closed, net† (31.2% → 13.3%†)',
+    )
     expect(OCT10_SCALE_LINE.scope).toBe(
-      'debt repaid on 2,280 of the 3,197 Aave V3 and Morpho Blue liquidations of 10–11 Oct 2025, Ethereum, Arbitrum, Optimism and Base, at Membrane’s own lines with liquidity-capped sales†',
+      'share of debt closed on 1,545 of the 3,197 Aave V3 and Morpho Blue liquidations of 10–11 Oct 2025, Ethereum, Arbitrum, Optimism and Base, at Membrane’s own lines with the debt sized to them and liquidity-capped sales†',
     )
-    expect(OCT10_SPLIT_LINE).toBe('Aave $31.5M more · Morpho $2.6M less')
+    expect(OCT10_SPLIT_LINE).toBe('Aave 13.9 pp less · Morpho 50.3 pp less')
     expect(OCT10_SCALE_LINE.split).toBe(OCT10_SPLIT_LINE)
     expect(OCT10_SCALE_LINE.gross).toBe(
-      `less on ${doc.debt.all.less.toLocaleString('en-US')} positions ($33.9M†), more on ${doc.debt.all.more.toLocaleString('en-US')} ($62.8M†)`,
+      'a smaller share on 1,018 positions (32.2% vs 7.1%†), a larger one on 383 (25.8% vs 44.8%†)',
     )
     for (const v of Object.values(OCT10_SCALE_LINE)) {
       expect(v).not.toMatch(/protected|\balone\b/i)
     }
   })
 
-  it('the gross less minus the gross more is the net, from the rows', () => {
-    const less = rows.filter(
-      (r) => r.priced && Math.round(r.memRepaidUsd * 100) < Math.round(r.realRepaidUsd * 100),
-    )
-    const more = rows.filter(
-      (r) => r.priced && Math.round(r.memRepaidUsd * 100) > Math.round(r.realRepaidUsd * 100),
-    )
-    const lessUsd = less.reduce((a, r) => a + r.realRepaidUsd - r.memRepaidUsd, 0)
-    const moreUsd = more.reduce((a, r) => a + r.memRepaidUsd - r.realRepaidUsd, 0)
-    expect([less.length, more.length]).toEqual([headline.less, headline.more])
-    near(lessUsd, headline.lessUsd)
-    near(moreUsd, headline.moreUsd)
-    near(lessUsd - moreUsd, OCT10_TOTALS.keptUsd)
+  it('the per-position less/more/equal counts and the gross shares come from the rows', () => {
+    const cmp = rows.map((r) => [r, compareRow(r)] as const)
+    const less = cmp.filter(([, c]) => c === 'less').map(([r]) => r)
+    const more = cmp.filter(([, c]) => c === 'more').map(([r]) => r)
+    const equal = cmp.filter(([, c]) => c === 'equal')
+    expect([less.length, more.length, equal.length]).toEqual([
+      headline.all.less,
+      headline.all.more,
+      headline.all.equal,
+    ])
+    near(sharesOf(less).realShare, headline.all.lessSet.realShare, 2e-5)
+    near(sharesOf(less).memShare, headline.all.lessSet.memShare, 2e-5)
+    near(sharesOf(more).realShare, headline.all.moreSet.realShare, 2e-5)
+    near(sharesOf(more).memShare, headline.all.moreSet.memShare, 2e-5)
   })
 })

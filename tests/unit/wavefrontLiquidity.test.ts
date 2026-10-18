@@ -11,8 +11,10 @@
  *     price fell), never past the borrow cap, and is cancelled when the price recovers;
  *   - a multi-leg sale splits pro rata by value and each leg fills against its own window;
  *   - a token with no capacity: never invented — the census leaves the position out;
- *   - the 1.1x multiplier, and unlimited (every offer fills, the uncapped walk bit for bit);
- *   - the whale (284k AAVE): Membrane at Aave's line, capped at 1.1x vs unlimited.
+ *   - the 0.98x headline multiplier (the mean of the research class medians at +8h), the
+ *     previous 1.1x, and unlimited (every offer fills, the uncapped walk bit for bit);
+ *   - the research per-class tables: recommended (0.70/0.55/0.75) and medians (0.77/0.99/1.17);
+ *   - the whale (284k AAVE): Membrane at Aave's line, capped at 0.98x vs unlimited.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -23,9 +25,12 @@ import {
   CAPACITY_MULTIPLIER,
   CAPACITY_WINDOW_MINUTES,
   LiquidityBook,
+  MULTIPLIER_BASIS,
+  PREVIOUS_CAPACITY_MULTIPLIER,
   RESEARCH_FLOW_READING_MULTIPLIER,
   computeCapacity,
   researchClassMultiplier,
+  researchMedianMultiplier,
   liqKeyOf,
   type CapacityEvent,
 } from '@/lib/wavefront/liquidity'
@@ -91,11 +96,19 @@ describe('the shared book', () => {
     expect(b.shortOffers.get(KEY)).toBe(2)
   })
 
-  it('applies the multiplier: 1.1x capacity, and unlimited fills everything', () => {
-    expect(CAPACITY_MULTIPLIER).toBe(1.1)
+  it('applies the multiplier: 0.98x capacity (headline), 1.1x, and unlimited fills everything', () => {
+    expect(CAPACITY_MULTIPLIER).toBe(0.98)
+    expect(PREVIOUS_CAPACITY_MULTIPLIER).toBe(1.1)
+    // 0.98 is the mean of the three class medians at +8h, to two places
+    expect(Math.round(((0.77 + 0.99 + 1.17) / 3) * 100) / 100).toBe(CAPACITY_MULTIPLIER)
+    expect(MULTIPLIER_BASIS).toBe(
+      'modelled: the average measured depth recovery 8h after five crashes (membrane-datasets liquidity-recovery/REPORT.md)',
+    )
     const b = new LiquidityBook(new Map([[KEY, 100]]), CAPACITY_MULTIPLIER, 60)
-    expect(b.limitOf(KEY)).toBeCloseTo(110, 12)
-    expect(b.take(0, [{ liqKey: KEY, tokens: 120 }])[0]).toBeCloseTo(110, 12)
+    expect(b.limitOf(KEY)).toBeCloseTo(98, 12)
+    expect(b.take(0, [{ liqKey: KEY, tokens: 120 }])[0]).toBeCloseTo(98, 12)
+    const p = new LiquidityBook(new Map([[KEY, 100]]), PREVIOUS_CAPACITY_MULTIPLIER, 60)
+    expect(p.take(0, [{ liqKey: KEY, tokens: 120 }])[0]).toBeCloseTo(110, 12)
     const u = new LiquidityBook(new Map([[KEY, 100]]), Infinity, 60)
     expect(u.take(0, [{ liqKey: KEY, tokens: 1e12 }])).toEqual([1e12])
     expect(u.take(0, [{ liqKey: KEY, tokens: 1e12 }])).toEqual([1e12])
@@ -108,6 +121,12 @@ describe('the shared book', () => {
     expect(researchClassMultiplier('LBTC')).toBe(0.55)
     expect(researchClassMultiplier('AAVE')).toBe(0.75)
     expect(researchClassMultiplier('USDC')).toBe(0.75)
+    expect(researchMedianMultiplier('WETH')).toBe(0.77)
+    expect(researchMedianMultiplier('weETH')).toBe(0.77)
+    expect(researchMedianMultiplier('WBTC')).toBe(0.99)
+    expect(researchMedianMultiplier('cbBTC')).toBe(0.99)
+    expect(researchMedianMultiplier('AAVE')).toBe(1.17)
+    expect(researchMedianMultiplier('USDC')).toBe(1.17)
     expect(RESEARCH_FLOW_READING_MULTIPLIER).toBe(0.2)
     const b = new LiquidityBook(
       new Map([
@@ -316,7 +335,7 @@ describe('the census, liquidity-capped (fixture)', () => {
     }
   })
 
-  it('the whale: no Membrane line, so out of the headline; at Aave’s line, 1.1x vs unlimited', () => {
+  it('the whale: no Membrane line, so out of the headline; at Aave’s line, 0.98x vs unlimited', () => {
     const head = buildCensus(inputs, { capacity: fx.capacity })
     expect(head.rows.find((r) => r.pid === WHALE)!.excluded).toBe('no-membrane-line')
     const capped = buildCensus(inputs, { capacity: fx.capacity, lineMode: 'protocol' })
@@ -330,10 +349,10 @@ describe('the census, liquidity-capped (fixture)', () => {
     const u = unl.rows.find((r) => r.pid === WHALE)!.mem!
     // Unlimited: one repay to cap at t0, past the band — the full census's own figure.
     expect(u.repaidUsd).toBeCloseTo(29_863_534.37, 2)
-    // Capped: AAVE on Ethereum allows 1.1 x the 97.6k tokens that left borrowers in the
+    // Capped: AAVE on Ethereum allows 0.98 x the 97.6k tokens that left borrowers in the
     // busiest 10 minutes. Alone in this fixture the whale fills that whole window at its t0
     // price; then AAVE recovers above its borrow cap before the window frees and the rest is
-    // cancelled. (In the full census other AAVE sales share the window: $13,097,271.37,
+    // cancelled. (In the full census other AAVE sales share the window: $11,523,540.89,
     // scripts/tests/wavefront-census.test.ts.)
     const aave = fx.capacity.find((x: any) => x.key === AAVE_KEY)
     expect(aave.capacityTokens).toBeCloseTo(97_556.85, 1)

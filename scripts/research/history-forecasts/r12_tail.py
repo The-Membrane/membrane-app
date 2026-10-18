@@ -26,6 +26,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
 
 import argparse  # noqa: E402
 import bisect  # noqa: E402
+import concurrent.futures as cf  # noqa: E402
 import csv  # noqa: E402
 import gzip  # noqa: E402
 import hashlib  # noqa: E402
@@ -1353,9 +1354,13 @@ def cmd_acquire(a):
     for s in sel["symbols"]:
         gp = os.path.join(b9d, f"binance-{s}-1h.json.gz")
         rows, files = {}, []
-        for key in sel["keys"][s]:
-            body = http_get(BULK + key)
-            want = http_get(BULK + key + ".CHECKSUM").decode().split()[0].lower()
+
+        def fetch(key):
+            return key, http_get(BULK + key), http_get(BULK + key + ".CHECKSUM").decode().split()[0].lower()
+
+        with cf.ThreadPoolExecutor(8) as ex:
+            fetched = list(ex.map(fetch, sel["keys"][s]))
+        for key, body, want in fetched:
             got = hashlib.sha256(body).hexdigest()
             if got != want:
                 raise SystemExit(f"STOP: {key}: sha256 differs from the published CHECKSUM")
@@ -1372,7 +1377,7 @@ def cmd_acquire(a):
                 nk += 1
             files.append({"key": key, "sha256": got, "bytes": len(body), "klines": nk})
             tot_zip += 1
-            del body, txt
+        del fetched
         st = min(rows)
         nh, nn = write_grid(gp, s, "binance bulk spot 1h klines (data.binance.vision)", st, rows)
         man["series"][s] = {"file": os.path.basename(gp), "sha256": R112.sha256_file(gp), "grid_start_utc": A.iso(st),

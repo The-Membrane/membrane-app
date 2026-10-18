@@ -1164,6 +1164,9 @@ export interface OracleGapMarketView {
   claim: typeof CLAIM.oracleGap
   market: string
   marketName: string
+  /** Collateral and loan token addresses, lowercase. */
+  collateral: string
+  loan: string
   collateralSymbol: string
   loanSymbol: string
   oracle: string
@@ -1254,6 +1257,85 @@ export interface OracleGapResponse {
   >
   markets: OracleGapMarketView[]
   total: number
+  /** Curator cuts on each listed market's collateral (lowercase address), from the feed:
+   *  the "peer moves" row of a card's signals. */
+  peerMoves: Record<string, PeerMoves>
+}
+
+// ── peer moves: curator cuts on a collateral ─────────────────────────────────
+
+/** A cut: a cap lowered or zeroed, a market removed or queued for removal, a market
+ *  taken out of the supply queue. */
+export const PEER_CUT_KINDS: ReadonlySet<ActionKind> = new Set<ActionKind>([
+  'cap_cut',
+  'cap_zero',
+  'removal_submit',
+  'market_removed',
+  'supply_queue_remove',
+])
+
+export interface PeerWindow {
+  /** Feed rows (deduped as the feed lists them) in the window. */
+  count: number
+  /** Distinct curator names, most rows first. */
+  curators: string[]
+}
+
+export interface PeerMoves {
+  h24: PeerWindow
+  d7: PeerWindow
+  /** The feed's own span: a window outside it was not read. */
+  feedFromTs?: number
+  feedToTs?: number
+}
+
+const DAY = 86400
+
+/**
+ * Curator cuts on each collateral in the last 24 h and 7 d before `nowS`, from the feed's
+ * actions. Only rows inside [nowS − 7 d, nowS] count; the feed's span goes with it, so a
+ * window the feed did not cover reads as not read, never as none.
+ */
+export function peerMovesOf(
+  feed: FeedFile,
+  collaterals: ReadonlySet<string>,
+  nowS: number,
+): Record<string, PeerMoves> {
+  const rows = dedupeSameRows(
+    feed.actions
+      .filter(
+        (a) =>
+          PEER_CUT_KINDS.has(a.kind) &&
+          a.ts <= nowS &&
+          a.ts > nowS - 7 * DAY &&
+          a.collateral.some((c) => collaterals.has(c.toLowerCase())),
+      )
+      .sort((x, y) => y.block - x.block || y.id.localeCompare(x.id)),
+    (a) => a,
+    (a) => statusOf(a, nowS),
+  )
+  const tally = (xs: FeedAction[]): PeerWindow => {
+    const by = new Map<string, number>()
+    for (const a of xs) {
+      const n = curatorLabel(feed.entities, a.vault)
+      by.set(n, (by.get(n) ?? 0) + 1)
+    }
+    return {
+      count: xs.length,
+      curators: [...by].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([n]) => n),
+    }
+  }
+  const out: Record<string, PeerMoves> = {}
+  for (const c of collaterals) {
+    const mine = rows.filter((a) => a.collateral.some((x) => x.toLowerCase() === c))
+    out[c] = {
+      h24: tally(mine.filter((a) => a.ts > nowS - DAY)),
+      d7: tally(mine),
+      feedFromTs: feed.meta.fromTs,
+      feedToTs: feed.meta.toTs,
+    }
+  }
+  return out
 }
 
 /**
@@ -1378,7 +1460,8 @@ export function buildOracleGapResponse(
     exposureBlock: exposure.block,
     exposureTs: exposure.ts,
   }
-  if (!decoded || !lastRun) return { meta, constants, record, ...empty, markets: [], total: 0 }
+  if (!decoded || !lastRun)
+    return { meta, constants, record, ...empty, markets: [], total: 0, peerMoves: {} }
 
   const holders = new Map<string, OracleGapMarketView['vaults']>()
   for (const v of exposure.vaults)
@@ -1418,6 +1501,8 @@ export function buildOracleGapResponse(
       claim: CLAIM.oracleGap,
       market,
       marketName: marketLabel(e, market),
+      collateral: m.collateral.toLowerCase(),
+      loan: m.loan.toLowerCase(),
       collateralSymbol: symbolOf(e, m.collateral),
       loanSymbol: symbolOf(e, m.loan),
       oracle: m.oracle.toLowerCase(),
@@ -1464,7 +1549,16 @@ export function buildOracleGapResponse(
       b.i3.hoursAboveConsecutive - a.i3.hoursAboveConsecutive ||
       (a.market < b.market ? -1 : 1),
   )
-  return { meta, constants, record, ...empty, markets: all.slice(0, q.limit), total: all.length }
+  const markets = all.slice(0, q.limit)
+  return {
+    meta,
+    constants,
+    record,
+    ...empty,
+    markets,
+    total: all.length,
+    peerMoves: peerMovesOf(feed, new Set(markets.map((x) => x.collateral)), nowS),
+  }
 }
 
 export { FLAG_DEFAULTS }

@@ -220,6 +220,12 @@ describe('GET /api/curator-feed?view=oracle-gap', () => {
     const b = r.body
     expect(b.meta).toMatchObject({ measured: true, runs: 30, lastRunTs: NOW - H, stale: false })
     expect(b.counts).toEqual({ fired: 2, building: 1, below: 1, stale: 0, unobserved: 2 })
+    // Each market carries its token addresses; peer moves are keyed by collateral.
+    expect(b.markets[0]).toMatchObject({ collateral: tok('3'), loan: tok('2') })
+    expect(Object.keys(b.peerMoves).sort()).toEqual(
+      [...new Set(b.markets.map((m: any) => m.collateral))].sort(),
+    )
+    expect(b.peerMoves[tok('3')]).toMatchObject({ h24: { count: 0 }, d7: { count: 0 } })
     expect(b.curatedUsd).toEqual({
       fired: 4_000_000,
       building: 3_000_000,

@@ -21,8 +21,13 @@
 // browser); a highlighted tie sorts above that. The grid scrolls inside a fixed height.
 // Stale is hatched ░ with the figure withheld. Every number comes from the API or the
 // chain read.
+//
+// Owner, 2026-10-18: tapping a card (or its title, from the keyboard) opens its market
+// signals in a sheet (SignalsSheet): oracle vs market, curator cuts on its collateral,
+// the loan token against its peg, and the withheld depositor forecast, each with its
+// track record; the actions are design only.
 
-import React, { memo, useEffect, useMemo, useState } from 'react'
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { Box, HStack, Input, Link, Select, Stack, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 
@@ -60,6 +65,7 @@ import {
 import { Chip, Fold, getJson, HATCH, LABEL, Mono } from './atoms'
 import { useExposure, useViewerAddress } from './hooks/useExposure'
 import { useStarred } from './hooks/useStarred'
+import { SignalsSheet, SIGNALS_SHEET_ID } from './SignalsSheet'
 import {
   bothPricesLine,
   cardNotes,
@@ -342,6 +348,8 @@ const GapCard = memo(function GapCard({
   starred,
   onStar,
   onWatch,
+  open,
+  onOpen,
 }: {
   m: OracleGapMarketView
   r: OracleGapResponse
@@ -352,6 +360,9 @@ const GapCard = memo(function GapCard({
   starred: boolean
   onStar: (market: string) => void
   onWatch: (symbol: string) => void
+  /** This card's signals sheet is open. */
+  open: boolean
+  onOpen: (market: string) => void
 }) {
   const mark = gapMark(m, r)
   const hatched = m.i3.state === 'stale' || m.i3.state === 'unobserved'
@@ -395,6 +406,14 @@ const GapCard = memo(function GapCard({
         frame?.inset ? `inset 0 0 0 1px ${frame.border}, ${NEWS.shadowRaised}` : NEWS.shadowRaised
       }
       bgImage={hatched ? HATCH : undefined}
+      // Tap the card (anywhere but its own controls) for its market signals; the title is
+      // the keyboard's way in.
+      cursor="pointer"
+      onClick={(e: React.MouseEvent<HTMLElement>) => {
+        if ((e.target as HTMLElement).closest('button, a, summary, details > *:not(summary)'))
+          return
+        onOpen(m.market)
+      }}
       // On the warning fill every line takes the card's paper-coloured text.
       sx={
         onFill
@@ -412,9 +431,30 @@ const GapCard = memo(function GapCard({
         )}
       </Box>
       <Box pr="36px">
-        <Mono size="13px" color={SEMANTIC_COLORS.textPrimary} title={m.market}>
+        <Box
+          as="button"
+          type="button"
+          aria-expanded={open}
+          aria-controls={open ? SIGNALS_SHEET_ID : undefined}
+          aria-haspopup="dialog"
+          aria-label={`${title}: market signals`}
+          title={m.market}
+          onClick={() => onOpen(m.market)}
+          textAlign="left"
+          minH={{ base: '44px', md: 'auto' }}
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="13px"
+          color={onFill ? 'inherit' : SEMANTIC_COLORS.textPrimary}
+          textDecoration="underline"
+          textDecorationColor={SEMANTIC_COLORS.borderStrong}
+          textUnderlineOffset="3px"
+          transition={TRANSITIONS.colors}
+          _hover={{ textDecorationColor: 'currentColor' }}
+          _focusVisible={FOCUS_STYLES.ring}
+          sx={{ fontVariantNumeric: 'tabular-nums' }}
+        >
           {title}
-        </Mono>
+        </Box>
       </Box>
       {hatched ? (
         // Stale or not measured: the figure is withheld. One line of ░ at the figure's
@@ -733,6 +773,9 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
   const [only, setOnly] = useState(false)
   const [starredOnly, setStarredOnly] = useState(false)
   const [curator, setCurator] = useState('')
+  // The card whose market signals are open (its market id), or none.
+  const [openId, setOpenId] = useState<string | null>(null)
+  const onOpen = useCallback((market: string) => setOpenId(market), [])
   const viewer = useViewerAddress()
   const { starred, toggle: toggleStar } = useStarred()
   const targets = useMemo(() => exposureTargets(r.markets, r.vaults), [r.markets, r.vaults])
@@ -795,8 +838,11 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
       starred={starred.has(m.market.toLowerCase())}
       onStar={toggleStar}
       onWatch={onWatch}
+      open={openId === m.market}
+      onOpen={onOpen}
     />
   )
+  const openMarket = openId ? r.markets.find((m) => m.market === openId) : undefined
   const anyGrid =
     held.length > 0 || (dust && unheld.length > 0) || (showUnchecked && pick.unchecked.length > 0)
 
@@ -959,6 +1005,12 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
         )}
       </Box>
       <HowMeasured r={r} />
+      <SignalsSheet
+        m={openMarket}
+        title={openMarket ? (titles.get(openMarket.market) ?? openMarket.marketName) : ''}
+        r={r}
+        onClose={() => setOpenId(null)}
+      />
     </Box>
   )
 }

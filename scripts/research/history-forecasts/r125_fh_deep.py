@@ -102,7 +102,7 @@ def score_cell(S, P, ec, T, k, seed_key, groups=None):
             "R_fH": float(ph.sum() / yc.sum()) if yc.sum() > 0 else None, "vs": {}}
     cell["R_cmp"] = {c: float(P[c][:, col].sum() / yc.sum()) if yc.sum() > 0 else None for c in ("f", "a")}
     cell["R_cmp"]["e"] = float(ec[col] * n / yc.sum()) if yc.sum() > 0 else None
-    pmax, gst = [], []
+    pmax, gst, gsa = [], [], []
     for cmp in CMPS5:
         pc = np.full(n, ec[col], float) if cmp == "e" else P[cmp][:, col]
         d = sec - (pc - yc) ** 2
@@ -115,15 +115,20 @@ def score_cell(S, P, ec, T, k, seed_key, groups=None):
         mb, sb = (float(Sp.mean()), float(Sp.std(ddof=1))) if len(Sp) > 1 else (np.nan, np.nan)
         gs = (Z_POW * sb / mb) ** 2 if (np.isfinite(mb) and mb < 0) else None
         gst.append(gs)
+        ma, sa = float(Sb.mean()), float(Sb.std(ddof=1))
+        ga = (Z_POW * sa / ma) ** 2 if ma < 0 else None          # all blocks (the test's unit), reported
+        gsa.append(ga)
         cell["vs"][cmp] = {"mean_d": float(d.mean()), "bss": 1 - float(sec.mean()) / bc if bc > 0 else None,
                            "boot": bt, "cr1": ct, "dk_hac_reported": dk,
                            "largest_block_share_of_d_sum": float(np.max(np.abs(Sb)) / abs(Sb.sum()))
                            if Sb.sum() != 0 else None,
-                           "pos_block_mean_d_sum": mb, "pos_block_sd_d_sum": sb, "G_star": gs}
+                           "pos_block_mean_d_sum": mb, "pos_block_sd_d_sum": sb, "G_star": gs,
+                           "all_block_mean_d_sum": ma, "all_block_sd_d_sum": sa, "G_star_all_blocks": ga}
         pmax += [bt["p_one_sided"], ct["p_one_sided"] if ct["p_one_sided"] is not None else 1.0]
     cell["cell_p"] = float(max(pmax))
     cell["all_mean_d_negative"] = bool(all(cell["vs"][c]["mean_d"] < 0 for c in CMPS5))
     cell["G_star_max"] = None if any(x is None for x in gst) else float(max(gst))
+    cell["G_star_all_blocks_max"] = None if any(x is None for x in gsa) else float(max(gsa))
     cell["R_in_band"] = bool(cell["R_fH"] is not None and R_BAND[0] <= cell["R_fH"] <= R_BAND[1])
     cell["reported_only_low_blocks"] = bool(pb.sum() < MIN_POS_BLOCKS)
     # reported: per-year and per-month R(fH), per-fold R, BSS vs f per year
@@ -342,10 +347,16 @@ def bybit_month(sym, key):
     body = http_get(BYBIT_ROOT + f"{sym}/{key}")
     h = hashlib.sha256(body).hexdigest()
     import pandas as pd
-    df = pd.read_csv(io.BytesIO(body), compression="gzip", usecols=["timestamp", "price", "volume"])
+    df = pd.read_csv(io.BytesIO(body), compression="gzip", usecols=["timestamp", "price", "volume"], dtype=str)
     del body
+    n_raw = len(df)
+    for c in ("timestamp", "price", "volume"):
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    df = df.dropna()                                        # malformed rows are dropped and counted
+    df = df[(df["price"] > 0)]
+    bad = n_raw - len(df)
     if len(df) == 0:
-        return {}, h, 0
+        return {}, h, 0, bad
     ts = df["timestamp"].to_numpy(float)
     sec = np.where(ts > 1e11, ts / 1000.0, ts)
     df["h"] = (np.floor(sec).astype(np.int64) // STEP) * STEP
@@ -355,7 +366,7 @@ def bybit_month(sym, key):
     o, hi, lo, cl, vo = (g["price"].first(), g["price"].max(), g["price"].min(), g["price"].last(),
                          g["volume"].sum())
     out = {int(t): (float(o[t]), float(hi[t]), float(lo[t]), float(cl[t]), float(vo[t])) for t in o.index}
-    return out, h, int(len(df))
+    return out, h, int(len(df)), int(bad)
 
 
 def cmd_acquire(a):
@@ -432,9 +443,10 @@ def cmd_acquire(a):
                     ym = key[len(sym) + 1:len(sym) + 8]
                     if A.utc(ym + "-01T00:00:00Z") >= ACQ_END:
                         continue
-                    r_, h_, ntr = bybit_month(sym, key)
+                    r_, h_, ntr, nbad = bybit_month(sym, key)
                     rows.update({t: v for t, v in r_.items() if t < ACQ_END})
-                    files.append({"key": key, "sha256": h_, "trades": ntr, "hours": len(r_)})
+                    files.append({"key": key, "sha256": h_, "trades": ntr, "malformed_rows_dropped": nbad,
+                                  "hours": len(r_)})
             if not rows:
                 return base, None, {"reason": "no data before the acquisition end"}
             st = min(rows)
@@ -521,6 +533,170 @@ def cmd_counts(a):
 
 
 # =============================================================================================
+# freeze and the one blind run
+# =============================================================================================
+DECISIONS5 = {
+    "D-R125-1": "(fH), (f), (a) come from r12_tail.series_task (A6 / R11.10 recipe, A6.6 per-series quarterly folds, "
+                "365-day warm-up, purge, A3.1 null rule, (fH)->(f) fallback when sigma_H is undefined), unchanged. "
+                "Every forecast ends with the running minimum across the ten levels. (e) is the frozen R12 "
+                "development constant per (T, level) from pooled-frozen-r12.json.",
+    "D-R125-2": "Scored rows: hourly origins inside a fold, label defined, window end <= min(2026-10-01, last hour + "
+                "1 h, and last hour + 1 h - 30 d for an ended series), outside 2026Q2 windows, (fH)/(f)/(a) finite.",
+    "D-R125-3": "Ended series: last printed hour more than 30 days before 2026-10-01. The 30-day delisting tail "
+                "applies to them only (B9 rule); live series keep every window to 2026-10-01.",
+    "D-R125-4": "Blocks: the registered R12 crash-episode blocks, rebuilt on each cell's scored rows (all series). "
+                "Tests: block bootstrap (10,000 draws, seed 20261825 with a per-cell key) and CR1 on block sums, "
+                "one-sided; cell p = max over (f), (a), (e) and both tests; Holm over the six confirmatory cells at "
+                "0.05. Driscoll-Kraay lag 168 h reported.",
+    "D-R125-5": "Venue cut (reported): the same tests on the OKX rows and on the Bybit rows. Era cut (reported): "
+                "origins before 2023-01-01 and from 2023-01-01. A passing cell is 'venue-robust' if every venue "
+                "subset with at least 30 positive blocks has mean d < 0 against all three comparators.",
+    "D-R125-6": "Underpowered label: a FAIL whose positive blocks are below the B9 G*max (R12 definition, "
+                "per-positive-block summed d, alpha 0.05/6, 80%) is labelled underpowered.",
+}
+
+
+def cmd_freeze(a):
+    os.makedirs(a.out, exist_ok=True)
+    path = os.path.join(a.out, "frozen-r125-config.json")
+    if os.path.exists(path):
+        raise SystemExit("STOP: frozen config exists")
+    if not R112.git_clean():
+        raise SystemExit("STOP: code tree not clean")
+    inputs = {"selection-b12.json": R112.sha256_file(os.path.join(a.acq, "selection-b12.json"))}
+    for venue in ("okx", "bybit"):
+        mn = f"manifest-acquire-{venue}.json"
+        man = json.load(open(os.path.join(a.acq, venue, mn)))
+        if "finished_utc" not in man:
+            raise SystemExit(f"STOP: {venue} acquisition not finished")
+        inputs[f"{venue}/{mn}"] = R112.sha256_file(os.path.join(a.acq, venue, mn))
+        for b, v in man["series"].items():
+            p = os.path.join(a.acq, venue, v["file"])
+            if R112.sha256_file(p) != v["sha256"]:
+                raise SystemExit(f"STOP: {p} sha256 differs from its manifest")
+            inputs[f"{venue}/{v['file']}"] = v["sha256"]
+    inputs["counts-r125.json"] = R112.sha256_file(os.path.join(a.power, "counts-r125.json"))
+    pw = json.load(open(os.path.join(a.power, "power-r125.json")))
+    gstar = {c: pw["sets"]["b9"][c]["G_star_max"] for c in pw["sets"]["b9"]}
+    dev = {n: R112.sha256_file(os.path.join(a.dev, n)) for n in ("pooled-frozen-r12.json", "pooled-arrays-r12.npz")}
+    e = {R12.TL[T]: {repr(k): float(e_consts(a.dev, T)[col_of(k)]) for k in LEVELS5} for T in HORIZONS5}
+    cfg = {"schema": "q26-r125/frozen-config/1", "created_utc": now_iso(), "prereg": PREREG,
+           "code": {"repo": "The-Membrane/membrane-app", "sha": R112.git_sha(),
+                    "files": {f: R112.sha256_file(os.path.join(HERE, f)) for f in
+                              ("r125_fh_deep.py", "r12_tail.py", "a6_touch.py", "a3_touch.py", "a2_touch.py",
+                               "a_touch.py", "r112_combine.py")}, "clean": R112.git_clean()},
+           "inputs": inputs, "dev_outputs": dev, "power_r125_sha256": R112.sha256_file(os.path.join(a.power,
+                                                                                                "power-r125.json")),
+           "e_constants": e, "b9_G_star_max": gstar,
+           "constants": {"horizons_h": list(HORIZONS5), "confirmatory_levels": list(CONF_LEVELS),
+                         "reported_levels": list(REP_LEVELS), "comparators": list(CMPS5), "alpha_family": ALPHA,
+                         "n_confirmatory": N_CONF, "R_band": list(R_BAND), "min_positive_blocks": MIN_POS_BLOCKS,
+                         "n_boot": N_BOOT, "seed": SEED, "tail_days": R12.TAIL_DAYS, "end": A.iso(ACQ_END),
+                         "q2_reported": [A.iso(R12.Q2_START), A.iso(R12.Q2_END)], "hac_lag_h": R12.HAC_LAG},
+           "decisions": DECISIONS5}
+    h = R112.write_json(path, cfg)
+    print(json.dumps({"frozen_config_sha256": h, "created_utc": cfg["created_utc"], "code": cfg["code"]["sha"]}))
+
+
+def groups_of(S, res):
+    keys = {j: r["key"] for j, r in enumerate(res)}
+    venue = np.array([keys[int(j)].split(":")[0] for j in S["sid"]])
+    pre = S["ts"] < A.utc("2023-01-01T00:00:00Z")
+    return {"venue:okx": venue == "okx", "venue:bybit": venue == "bybit", "era:<2023": pre, "era:>=2023": ~pre}
+
+
+def cmd_run(a):
+    t0 = time.time()
+    os.makedirs(a.out, exist_ok=True)
+    logf = open(os.path.join(a.out, "run-log.txt"), "a")
+
+    def log(s):
+        line = f"{now_iso()} {s}"
+        print(line, flush=True)
+        logf.write(line + "\n")
+        logf.flush()
+    cpath = os.path.join(a.cfgdir, "frozen-r125-config.json")
+    cfg = json.load(open(cpath))
+    want = open(cpath + ".sha256").read().split()[0]
+    if R112.sha256_file(cpath) != want:
+        raise SystemExit("STOP: frozen config hash mismatch")
+    if cfg["code"]["sha"] != R112.git_sha() or not R112.git_clean():
+        raise SystemExit("STOP: code sha differs from the frozen config or tree not clean")
+    for rel, h in cfg["inputs"].items():
+        base = a.power if rel == "counts-r125.json" else a.acq
+        if R112.sha256_file(os.path.join(base, rel)) != h:
+            raise SystemExit(f"STOP: input {rel} sha256 differs")
+    for rel, h in cfg["dev_outputs"].items():
+        if R112.sha256_file(os.path.join(a.dev, rel)) != h:
+            raise SystemExit(f"STOP: dev output {rel} sha256 differs")
+    rp = os.path.join(a.out, "results-r125.json")
+    marker = os.path.join(a.out, "run-started-r125.json")
+    if os.path.exists(rp) or os.path.exists(marker):
+        raise SystemExit("STOP: one run only")
+    R112.write_json(marker, {"started_utc": now_iso(), "config_sha256": want, "item": "r12.5"})
+    log(f"RUN START r12.5 (UTC); config sha256 {want}; code {cfg['code']['sha']}")
+    specs = b12_specs(a.acq)
+    results = {"schema": "q26-r125/results/1", "item": "r12.5", "started_utc": json.load(open(marker))["started_utc"],
+               "config_sha256": want, "code_sha": cfg["code"]["sha"], "n_specs": len(specs), "cells": {},
+               "full_series_variant": {}}
+    for ti, T in enumerate(HORIZONS5):
+        res = R12.run_pool([{"spec": s, "T": T, "grid": "1h"} for s in specs], a.workers, log, f"B12 {R12.TL[T]}")
+        S, P = forecasts(res)
+        ec = np.array([0.0] * len(R12.LEVELS))
+        for k in LEVELS5:
+            ec[col_of(k)] = cfg["e_constants"][R12.TL[T]][repr(k)]
+        grp = groups_of(S, res)
+        for j, k in enumerate(LEVELS5):
+            c = score_cell(S, P, ec, T, k, 100 * ti + j, groups=grp)
+            name = f"{R12.TL[T]} {k}"
+            c["confirmatory"] = k in CONF_LEVELS
+            results["cells"][name] = c
+            log(f"  {name}: R(fH) {c['R_fH']:.3f}; " + "; ".join(
+                f"vs {cc} BSS {c['vs'][cc]['bss']:+.4f} pb {c['vs'][cc]['boot']['p_one_sided']:.3g} "
+                f"pt {c['vs'][cc]['cr1']['p_one_sided']:.3g}" for cc in CMPS5) +
+                f"; cell p {c['cell_p']:.3g}; pos blocks {c['positive_blocks']} of {c['blocks']}")
+        Sf = R12.stack_rows(res, lambda rw: ~rw["q2"])
+        Pf = {"fH": np.minimum.accumulate(Sf["pH"].astype(float), axis=1),
+              "f": np.minimum.accumulate(Sf["pf"].astype(float), axis=1),
+              "a": np.minimum.accumulate(Sf["pa"].astype(float), axis=1)}
+        for j, k in enumerate(LEVELS5):
+            cf_ = score_cell(Sf, Pf, ec, T, k, 100 * ti + 50 + j)
+            results["full_series_variant"][f"{R12.TL[T]} {k}"] = {
+                "R_fH": cf_["R_fH"], "positive_blocks": cf_["positive_blocks"], "cell_p": cf_["cell_p"],
+                "bss": {cc: cf_["vs"][cc]["bss"] for cc in CMPS5}}
+        del res, S, P, Sf, Pf
+    conf = [n for n, c in results["cells"].items() if c["confirmatory"]]
+    hk = R12.holm(np.array([results["cells"][n]["cell_p"] for n in conf]))
+    for n, ok in zip(conf, hk):
+        c = results["cells"][n]
+        c["holm_pass"] = bool(ok)
+        c["pass"] = bool(c["all_mean_d_negative"] and ok and c["R_in_band"] and not c["reported_only_low_blocks"])
+        gs = cfg["b9_G_star_max"].get(n)
+        c["b9_G_star_max"] = gs
+        c["underpowered_at_b9_effect"] = bool(gs is None or gs > c["positive_blocks"])
+        c["label"] = ("PASS" if c["pass"] else "REPORTED ONLY (<30 positive blocks)" if c["reported_only_low_blocks"]
+                      else "FAIL (underpowered)" if c["underpowered_at_b9_effect"] else "FAIL")
+        vr = [g for g, v in c.get("by_group", {}).items() if g.startswith("venue:") and v["positive_blocks"] >= 30]
+        c["venue_robust"] = bool(c["pass"] and vr and all(c["by_group"][g]["all_mean_d_negative"] for g in vr))
+    for n, c in results["cells"].items():
+        if not c["confirmatory"]:
+            c["label"] = "REPORTED ONLY (-25%)"
+    results["verdicts"] = {n: results["cells"][n]["label"] for n in results["cells"]}
+    log("verdicts: " + json.dumps(results["verdicts"]))
+    try:
+        pf, pooled = R12.load_pooled(a.dev)
+        sp = [s for s in specs if s["key"] == "okx:ORBS"] or [specs[0]]
+        results["lookahead_check"] = [R12.lookahead(sp[0], T, "fH", pf, pooled) for T in (12, 72)]
+    except Exception as ex:                     # reported, never decides
+        results["lookahead_check"] = {"error": repr(ex)}
+    log(f"lookahead {results['lookahead_check']}")
+    results["finished_utc"] = now_iso()
+    results["runtime_s"] = time.time() - t0
+    h = R112.write_json(rp, results)
+    log(f"RUN END r12.5 (UTC); results sha256 {h}; {results['runtime_s']:.0f}s")
+
+
+# =============================================================================================
 # main
 # =============================================================================================
 def main():
@@ -535,7 +711,7 @@ def main():
     ap.add_argument("--only")
     ap.add_argument("--workers", type=int, default=4)
     a = ap.parse_args()
-    {"power": cmd_power, "acquire": cmd_acquire, "counts": cmd_counts}[a.cmd](a)
+    {"power": cmd_power, "acquire": cmd_acquire, "counts": cmd_counts, "freeze": cmd_freeze, "run": cmd_run}[a.cmd](a)
 
 
 if __name__ == "__main__":

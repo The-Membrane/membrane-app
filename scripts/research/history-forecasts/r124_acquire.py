@@ -32,7 +32,8 @@ CHAINS = {
                  "first": dt.date(2020, 12, 1)},
     "polygon": {"urls": ["https://polygon.drpc.org", "https://polygon.gateway.tenderly.co"],
                 "first": dt.date(2021, 3, 31)},
-    "avalanche": {"urls": ["https://api.avax.network/ext/bc/C/rpc", "https://avalanche.gateway.tenderly.co"],
+    # api.avax.network answered archive calls in about 1.8 s; Tenderly in about 0.13 s (2026-10-18)
+    "avalanche": {"urls": ["https://avalanche.gateway.tenderly.co", "https://gateway.tenderly.co/public/avalanche"],
                   "first": dt.date(2021, 9, 20)},
     "arbitrum": {"urls": ["https://arbitrum.gateway.tenderly.co", "https://gateway.tenderly.co/public/arbitrum"],
                  "first": dt.date(2022, 9, 1), "min_block": 22_207_818},          # Nitro genesis

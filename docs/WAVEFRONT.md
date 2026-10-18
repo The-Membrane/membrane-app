@@ -70,6 +70,8 @@ lower line a position starts further past its line. That is intended.
 | **1.1× (headline)** | **2,280** | **$164.12M** | **$193.03M** | **17.6% more** | **23.6% more** | **8.3% less** |
 | 2.0× | 2,280 | $164.12M | $209.79M | 27.8% more | 35.8% more | 6.8% less |
 | unlimited (the old assumption) | 2,280 | $164.12M | $220.52M | 34.4% more | 43.8% more | 6.8% less |
+| research per-class (ETH/LSTs 0.70×, BTC wrappers 0.55×, other 0.75×) | 2,280 | $164.12M | $174.03M | 6.0% more | 10.9% more | 15.0% less |
+| research per-class + flow reading (0.2× everywhere) | 2,280 | $164.12M | $112.39M | 31.5% less | 32.9% less | 25.7% less |
 | protocol's own line, 1.1× | 3,127 | $187.36M | $123.26M | 34.2% less | 28.2% less | 56.5% less |
 | protocol's own line, unlimited | 3,127 | $187.36M | $156.57M | 16.4% less | 5.7% less | 56.1% less |
 | strict lines, 1.1× | 1,545 | $135.17M | $149.67M | 10.7% more | 16.3% more | 8.3% less |

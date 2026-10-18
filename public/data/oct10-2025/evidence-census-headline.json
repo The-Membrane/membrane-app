@@ -214,6 +214,28 @@
     "morphoGapPct": 6.84
    },
    {
+    "key": "capacity-research-per-class",
+    "label": "research per-class capacity",
+    "headline": false,
+    "positions": 2280,
+    "realRepaidUsd": 164117704.83,
+    "memRepaidUsd": 174029686.56,
+    "gapPct": -6.04,
+    "aaveGapPct": -10.88,
+    "morphoGapPct": 15.02
+   },
+   {
+    "key": "capacity-research-flow",
+    "label": "research per-class + flow reading (0.2x everywhere)",
+    "headline": false,
+    "positions": 2280,
+    "realRepaidUsd": 164117704.83,
+    "memRepaidUsd": 112385124.78,
+    "gapPct": 31.52,
+    "aaveGapPct": 32.85,
+    "morphoGapPct": 25.74
+   },
+   {
     "key": "protocol-line",
     "label": "Membrane at the protocol's own line, 1.1x capacity",
     "headline": false,

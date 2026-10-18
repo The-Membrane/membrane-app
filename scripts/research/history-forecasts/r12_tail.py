@@ -1805,11 +1805,13 @@ def lookahead(spec, T, sel, pf, pooled):
     r0 = series_task({"spec": spec, "T": T, "grid": "1h"})
     st, cols = load_json_grid(spec["path"])
     i0, i1 = spec["slice"]
+    i1 = min(i1, len(cols["close"]))
     cut = i0 + int((i1 - i0) * 0.7)
     rng = np.random.default_rng(SEED_R121 + T)
     f = np.exp(rng.normal(0, 0.05, len(cols["close"]) - cut))
     tmp = os.path.join(os.path.dirname(spec["path"]), "..", "lookahead-tmp.json.gz")
-    g = json.loads(gzip.decompress(open(spec["path"], "rb").read()))
+    raw = open(spec["path"], "rb").read()
+    g = json.loads(gzip.decompress(raw) if spec["path"].endswith(".gz") else raw)
     for c in ("open", "high", "low", "close"):
         g["columns"][c] = [v if (v is None or i < cut) else v * float(f[i - cut]) for i, v in enumerate(g["columns"][c])]
     with gzip.GzipFile(tmp, "wb", mtime=0) as fh:

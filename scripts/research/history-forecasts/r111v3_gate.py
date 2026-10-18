@@ -564,7 +564,7 @@ def integrity(arb, inp, metas, seed=111):
     for i, r in enumerate(inp.reserves):
         tok_addr[(i, 0)] = r["aToken"]
         tok_addr[(i, 1)] = r["vDebt"]
-    pair_err, sum_err = [], []
+    pair_err, sum_err, pair_raw = [], [], []
     for blk, d in targets:
         while ptr < len(o) and key[o[ptr]] <= blk:
             st.apply_tok(t, o[ptr])
@@ -579,9 +579,12 @@ def integrity(arb, inp, metas, seed=111):
                 calls.append((tok_addr[(r, kind)], X.sel("scaledBalanceOf(address)") + X.enc_addr(addr)))
                 want.append(st.SA[u, r] if kind == 0 else st.SV[u, r])
             res = X.aggregate3(cl, calls, blk)
-            for (ok, rr), w in zip(res, want):
-                v = X.word(rr) if ok else None
-                pair_err.append(abs(w / v - 1) if v else (0.0 if w < 1 else 1.0))
+            for (ok, rr), w, (u, r) in zip(res, want, sel):
+                v = X.word(rr) if ok else 0
+                v = v or 0
+                floor = 1e-6 * 10 ** inp.dec[r]          # 1e-6 token: float residues of closed balances
+                pair_err.append(abs(w - v) / max(v, floor))
+                pair_raw.append(abs(w / v - 1) if v else (0.0 if w < 1 else 1.0))
         calls = []
         for u in ARB_USDC:
             r = inp.gidx[u]
@@ -593,6 +596,8 @@ def integrity(arb, inp, metas, seed=111):
                 sum_err.append(abs(st.SV[:, inp.gidx[u]].sum() / v - 1))
     pe, se = np.array(pair_err), np.array(sum_err)
     return {"pairs": int(len(pe)), "pairs_share_within_0p1pct": float(np.mean(pe <= 0.001)),
+            "pairs_share_within_0p1pct_no_floor": float(np.mean(np.array(pair_raw) <= 0.001)),
+            "pair_rule": "|rebuilt - chain| / max(chain, 1e-6 token) <= 0.001",
             "pairs_err_q99_max": [float(np.quantile(pe, 0.99)), float(pe.max())],
             "sum_checks": int(len(se)), "sum_share_within_0p1pct": float(np.mean(se <= 0.001)),
             "sum_err_q99_max": [float(np.quantile(se, 0.99)), float(se.max())],

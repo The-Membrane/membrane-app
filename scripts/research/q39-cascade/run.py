@@ -153,7 +153,12 @@ def _check_one(v, ts, row):
     r = {"venue": v, "day": ts, "block": blk, "chain_coll": coll, "chain_debt": debt, "chain_hf": hf,
          "rec_coll": float(mc), "rec_debt": float(md_), "rec_hf": float(mh)}
     r["rel_hf"], r["rel_coll"], r["rel_debt"] = _rel(mh, hf), _rel(mc, coll), _rel(md_, debt)
-    r["pass"] = bool(max(r["rel_hf"], r["rel_coll"], r["rel_debt"]) <= 1e-4)
+    # D6q: totals pass at 0.01% or within $0.000001 (100 units of the 8-decimal USD base); HF is not compared
+    # when collateral is under $0.01, where the base's precision decides it
+    ok_c = r["rel_coll"] <= 1e-4 or abs(mc - coll) <= 1e-6
+    ok_d = r["rel_debt"] <= 1e-4 or abs(md_ - debt) <= 1e-6
+    ok_h = r["rel_hf"] <= 1e-4 or min(mc, coll) < 0.01
+    r["pass"] = bool(ok_c and ok_d and ok_h)
     return r
 
 

@@ -232,7 +232,9 @@ def hd_fetch(p, per):
     for i in range(6):
         try:
             t = opener.open(req, timeout=120).read().decode("utf-8", "replace")
-            tk = re.search(r'name="tk" id="tk" value="([^"]+)"', t).group(1)
+            tk = re.search(r'name="tk" id="tk" value="([^"]*)"', t).group(1)
+            if not tk:
+                return None                    # the site offers no file for this period (recorded as unavailable)
             date = re.search(r'name="date" id="date" value="([^"]*)"', t).group(1)
             dm = re.search(r'name="datemonth" id="datemonth" value="([^"]*)"', t).group(1)
             body = urllib.parse.urlencode({"tk": tk, "date": date, "datemonth": dm, "platform": "ASCII",
@@ -292,12 +294,19 @@ def hd_one(p, out):
     man = []
     for per in pers:
         raw = hd_fetch(p, per)
+        if raw is None:
+            man.append({"period": per, "unavailable": True})
+            continue
         man.append({"period": per, "sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)})
         t, o, h, l, c = hd_parse(raw)
         man[-1]["malformed_rows_dropped"] = int(hd_parse.bad)
         del raw
         for k, v in zip(("t", "o", "h", "l", "c"), (t, o, h, l, c)):
             T[k].append(v)
+    gaps0 = [x["period"] for x in man if x.get("unavailable") and x["period"] < "2026/10"]
+    if gaps0:                                  # R13.4 rule: an instrument with an unavailable period is excluded
+        return {"pair": p, "class": cls, "split": sp, "periods": man, "unavailable_periods": gaps0,
+                "excluded_r134": True, "minutes": 0, "daily_bars": 0, "first_month": None}
     t = np.concatenate(T["t"])
     o, h, l, c = (np.concatenate(T[k]) for k in ("o", "h", "l", "c"))
     _, u = np.unique(t, return_index=True)
@@ -319,7 +328,8 @@ def hd_one(p, out):
         dev.update({f"h_{k}": v[hv_ok] for k, v in hrs.items()})
         np.savez_compressed(os.path.join(out, "hd", "dev", f"{cls}-{p}.npz"), **dev)
     first = datetime.fromtimestamp(int(t[0]), timezone.utc).strftime("%Y-%m")
-    return {"pair": p, "class": cls, "split": sp, "periods": man, "minutes": int(len(t)), "daily_bars": int(len(dly["b"])),
+    gaps = [x["period"] for x in man if x.get("unavailable") and x["period"] < "2026/10"]
+    return {"pair": p, "unavailable_periods": gaps, "excluded_r134": bool(gaps), "class": cls, "split": sp, "periods": man, "minutes": int(len(t)), "daily_bars": int(len(dly["b"])),
             "first_month": first}
 
 
@@ -335,14 +345,21 @@ def cmd_build_hd(a):
     with cf.ThreadPoolExecutor(a.workers) as ex:
         futs = {ex.submit(hd_one, p, out): p for p in inst}
         for f in cf.as_completed(futs):
-            r = f.result()
+            try:
+                r = f.result()
+            except Exception as e:  # noqa: BLE001
+                r = {"pair": futs[f], "class": hd_class(futs[f]), "split": "error", "error": repr(e), "periods": [],
+                     "daily_bars": 0, "first_month": None, "excluded_r134": True}
             res.append(r)
             print(f"{now_iso()} {r['pair']} {r['class']} {r['split']} first {r['first_month']} "
-                  f"periods {len(r['periods'])} daily bars {r['daily_bars']}", flush=True)
+                  f"periods {len(r['periods'])} daily bars {r['daily_bars']} excluded {r.get('excluded_r134')}",
+                  flush=True)
     res.sort(key=lambda r: r["pair"])
     counts = {}
     for r in res:
         k = f"{r['class']}/{r['split']}"
+        if r.get("excluded_r134"):
+            k = k + "/excluded"
         c = counts.setdefault(k, {"instruments": 0, "first_months": []})
         c["instruments"] += 1
         c["first_months"].append(r["first_month"])
@@ -948,11 +965,34 @@ def library_scores(rows, meta, log, a):
             libs = {"L_all": pooled_lib(R, libmask, classes=list(CLASSES)),
                     "L_cry": pooled_lib(R, libmask, classes=["crypto"]),
                     "L_new": pooled_lib(R, libmask, classes=[c for c in CLASSES if c != "crypto"])}
+            # decoder residual: crypto tail scale lambda vs a source library (fitted on library rows only)
+            zz = np.array([z for z in Z_GRID if -4.0 <= z <= -1.5])
+            Fc = wecdf_at(libs["L_cry"], zz)
+            lam = {}
+            for src in ("L_all", "L_new"):
+                if libs[src] is None:
+                    continue
+                best = min(((float(np.sum((np.log(Fc) - np.log(np.maximum(wecdf_at(libs[src], zz / l_), 1e-12))) ** 2)),
+                             float(l_)) for l_ in np.arange(0.5, 2.01, 0.01)))
+                lam[src] = best[1]
+            # regime-conditioned crypto library (vol-ratio terciles, cutpoints from library rows)
+            qv = np.nanquantile(R["vr"][libmask & isc], [1 / 3, 2 / 3])
+            tb = np.digitize(R["vr"], qv)
+            libs_reg = [pooled_lib(R, libmask & (tb == b_), classes=["crypto"]) for b_ in range(3)]
             e_const = Y[libmask & isc].mean(axis=0)
             sc = np.where(insc & keep)[0]
             P = {nm: np.stack([wecdf_at(lib, zk[sc, j]) for j in range(len(CRYPTO_LEVELS))], axis=1)
                  for nm, lib in libs.items() if lib is not None}
+            for src, l_ in lam.items():
+                P[f"{src}_lam"] = np.stack([wecdf_at(libs[src], zk[sc, j] / l_) for j in range(len(CRYPTO_LEVELS))], 1)
+            preg = np.full((len(sc), len(CRYPTO_LEVELS)), np.nan)
+            for b_ in range(3):
+                mb_ = tb[sc] == b_
+                if libs_reg[b_] is not None and mb_.any():
+                    preg[mb_] = np.stack([wecdf_at(libs_reg[b_], zk[sc[mb_], j]) for j in range(len(CRYPTO_LEVELS))], 1)
+            P["L_cry_reg"] = preg
             P["e"] = np.tile(e_const, (len(sc), 1))
+            log(f"  decoder residual h={hh} {scored}: lambda {lam}; vr cut {np.round(qv, 3).tolist()}")
             own = np.full((len(sc), len(CRYPTO_LEVELS)), np.nan)
             pa = np.full_like(own, np.nan)
             sids = R["sid"][sc]
@@ -986,6 +1026,8 @@ def library_scores(rows, meta, log, a):
             cell = {}
             for j, k in enumerate(CRYPTO_LEVELS):
                 segs = [("all", np.ones(len(sc), bool), P), ("young", young, P), ("mature", ~young, P)]
+                PE = {n_: v_ for n_, v_ in P.items() if n_ not in ("own", "a")}
+                segs.append(("no_own", ~np.isfinite(P["own"][:, j]), PE))
                 if np.isfinite(pfh[:, j]).any():
                     segs.append(("fH_rows", np.isfinite(pfh[:, j]), dict(P, fH=pfh)))
                 for seg, sm, PP in segs:
@@ -1012,9 +1054,10 @@ def library_scores(rows, meta, log, a):
                         e["bss_L_all_vs"][n_] = float(1 - e["brier"]["L_all"] / e["brier"][n_]) if e["brier"][n_] > 0 else None
                         e["Gstar_L_all_vs"][n_] = (float(((2.326 + 0.8416) * sb / mb) ** 2) if mb < 0 else None)
                     cell[f"{k}/{seg}"] = e
+            cell["_lambda"] = lam
             out[f"h{hh}/{scored}"] = cell
             for kk, e in cell.items():
-                if kk.endswith(("/all", "/young", "/fH_rows")):
+                if isinstance(e, dict) and "R" in e and kk.endswith(("/all", "/young", "/fH_rows", "/no_own")):
                     log(f"lib h={hh} {scored} {kk}: pos {e['pos']} blk {e['pos_blocks']} R " +
                         " ".join(f"{n}={v:.2f}" for n, v in e["R"].items()) + " | BSS L_all vs " +
                         " ".join(f"{n}={v:+.4f}" for n, v in e["bss_L_all_vs"].items() if v is not None))
@@ -1056,6 +1099,165 @@ def cmd_fh(a):
     np.savez_compressed(os.path.join(a.out, "fh-r134.npz"), **out)
 
 
+
+# =============================================================================================
+# P3b-a acquisition (outcome-blind) and counts-only checks on reserved sets
+# =============================================================================================
+BIN_KL = "https://data-api.binance.vision/api/v3/klines?symbol={s}&interval=1h&startTime={t}&limit=1000"
+ACQ_END_TS = date_days("2026-10-01") * DAY
+
+
+def fetch_binance_1h(sym):
+    t, rows, shas = 0, [], []
+    while True:
+        raw = http_get(BIN_KL.format(s=sym, t=t * 1000), headers={"User-Agent": "curl/8.5.0"})
+        shas.append(hashlib.sha256(raw).hexdigest())
+        page = json.loads(raw)
+        if not page:
+            break
+        rows.extend(page)
+        last = int(page[-1][0]) // 1000
+        if len(page) < 1000 or last + 3600 >= ACQ_END_TS:
+            break
+        t = last + 3600
+        time.sleep(0.3)
+    rows = [r for r in rows if int(r[0]) // 1000 < ACQ_END_TS]
+    st = int(rows[0][0]) // 1000
+    n = (int(rows[-1][0]) // 1000 - st) // 3600 + 1
+    cols = {k: [None] * n for k in ("open", "high", "low", "close", "volume")}
+    for r in rows:
+        i = (int(r[0]) // 1000 - st) // 3600
+        for k, j in (("open", 1), ("high", 2), ("low", 3), ("close", 4), ("volume", 5)):
+            cols[k][i] = float(r[j])
+    return {"asset": sym, "source": "Binance spot klines, data-api.binance.vision/api/v3/klines 1h (public, no key)",
+            "startTs": st, "stepSeconds": 3600, "count": n, "columns": cols, "fetchedAt": now_iso()}, shas
+
+
+def cmd_acquire_p3b(a):
+    sel = json.load(open(a.selection))
+    os.makedirs(a.out, exist_ok=True)
+    man = {"created_utc": now_iso(), "code_sha": git_sha(), "set": "P3b-a", "series": {}}
+    for sym in sel["P3b_a"]:
+        g, shas = fetch_binance_1h(sym)
+        p = os.path.join(a.out, f"binance-{sym}-1h.json")
+        write_json(p, g)
+        nnull = sum(1 for v in g["columns"]["close"] if v is None)
+        man["series"][sym] = {"file": os.path.basename(p), "hours": g["count"], "null_hours": nnull,
+                              "page_sha256": shas, "sha256": sha256_file(p)}
+        print(f"{now_iso()} {sym}: hours {g['count']}, null {nnull}", flush=True)
+    write_json(os.path.join(a.out, "manifest-p3b-a.json"), man)
+    print(f"sha256 manifest {sha256_file(os.path.join(a.out, 'manifest-p3b-a.json'))}")
+
+
+def load_set_series(a, which):
+    """reserved-set bars: 'EQ-A', 'ETF-A', 'FX-A', 'IDX-A', 'COM-A', 'P3b-a' (counts / run only)."""
+    out = []
+    if which in ("EQ-A", "ETF-A", "EQ-B", "ETF-B"):
+        cls = "equity" if which.startswith("EQ") else "etf"
+        d = os.path.join(a.data, "b3", "locked", which[-1])
+        files = sorted(f for f in os.listdir(d) if f.startswith(cls + "-"))
+        cal = np.unique(np.concatenate([np.load(os.path.join(a.data, "b3", sub, f))["d"]
+                                        for sub in ("dev", "locked/A", "locked/B")
+                                        for f in os.listdir(os.path.join(a.data, "b3", sub))]))
+        for f in files:
+            B = bars_b3(os.path.join(d, f), cal)
+            B.update(key=f"b3:{f[:-4].split('-', 1)[1]}", cls=cls, sub=which, asset=f)
+            out.append(B)
+    elif which in ("FX-A", "FX-B"):
+        d = os.path.join(a.data, "hd", "locked", which[-1])
+        for f in sorted(os.listdir(d)):
+            B = bars_hd(os.path.join(d, f))
+            B.update(key=f"hd:{f[:-4]}", cls="fx", sub=which, asset=f)
+            out.append(B)
+    elif which in ("IDX-A", "COM-A", "IDX-B", "COM-B"):
+        cls = "index" if which.startswith("IDX") else "commodity"
+        lo, hi = TIME_SPLIT[which[-1]]
+        d = os.path.join(a.data, "hd", "locked", "time")
+        for f in sorted(x for x in os.listdir(d) if x.startswith(cls + "-")):
+            B = bars_hd(os.path.join(d, f))
+            B["win"] = (date_days(lo), date_days(hi))
+            B.update(key=f"hd:{f[:-4]}", cls=cls, sub=which, asset=f)
+            out.append(B)
+    elif which == "P3b-a":
+        man = json.load(open(os.path.join(a.p3b, "manifest-p3b-a.json")))
+        for sym, v in sorted(man["series"].items()):
+            g = json.load(open(os.path.join(a.p3b, v["file"])))
+            arr = {k: np.array([np.nan if x is None else x for x in g["columns"][k]], float) for k in ("close", "low", "high")}
+            B = bars_crypto(arr["close"], arr["low"], arr["high"], int(g["startTs"]))
+            B["cap_day"] = ACQ_END_TS // DAY
+            B.update(key=f"p3b:{sym}", cls="crypto", sub=which, asset=sym)
+            out.append(B)
+    return out
+
+
+def encode_set(series, beta):
+    """encoded rows per h for a list of series with the frozen beta (no fit)."""
+    rows = {hh: {k: [] for k in ("cls", "sid", "day", "end", "m", "s", "vr", "age", "q2")} for hh in H_BARS}
+    for sid, s in enumerate(series):
+        E = encode_inputs(s)
+        for hh in H_BARS:
+            F = E["fwd"][hh]
+            ok = F["ok"].copy()
+            if "win" in s:                     # time-split sets: outcome window inside the reserved window
+                ok &= (s["d"] >= s["win"][0]) & (F["end_day"] <= s["win"][1])
+            if not ok.any():
+                continue
+            scale = np.sqrt(np.exp(E["X"][ok] @ beta[hh])) * math.sqrt(hh)
+            m = (np.log(F["wmin"][ok]) - E["lc"][ok]) / scale
+            R = rows[hh]
+            R["cls"].append(np.full(ok.sum(), CLASSES.index(s["cls"]), np.int8))
+            R["sid"].append(np.full(ok.sum(), sid, np.int32))
+            R["day"].append(s["d"][ok])
+            R["end"].append(F["end_day"][ok])
+            R["m"].append(m)
+            R["s"].append(scale)
+            R["vr"].append(E["vr"][ok])
+            R["age"].append(np.asarray(E["age"])[ok])
+            R["q2"].append(q2_overlap(s["d"][ok], F["end_day"][ok]))
+    return {hh: ({k: np.concatenate(v) for k, v in R.items()} if R["m"] else None) for hh, R in rows.items()}
+
+
+def cmd_counts(a):
+    """counts only on reserved sets with the frozen encoder: rows, positive origins, positive weeks and episodes per
+    registered cell. No forecast and no score."""
+    import r12_tail as R12  # noqa: E402
+    fz = json.load(open(a.frozen_beta))
+    beta = {int(k): np.array(v) for k, v in fz["beta"].items()}
+    out = {"created_utc": now_iso(), "code_sha": git_sha(), "note": "counts only (no forecast, no score)", "sets": {}}
+    for which in a.sets.split(","):
+        ser = load_set_series(a, which)
+        rows = encode_set(ser, beta)
+        ent = {"series": len(ser), "cells": {}}
+        for hh in H_BARS:
+            R = rows[hh]
+            if R is None:
+                continue
+            keep = ~R["q2"]
+            wk_all = week_of(R["day"][keep])
+            ent["cells"][f"h{hh}"] = {"rows": int(keep.sum()), "weeks": int(len(np.unique(wk_all)))}
+            for z in Z_GRID:
+                pos = keep & (R["m"] <= z)
+                ent["cells"][f"h{hh}"][f"z{z}"] = {"pos": int(pos.sum()),
+                                                   "pos_weeks": int(len(np.unique(week_of(R["day"][pos]))))}
+            if which.startswith("P3b") and hh in CRYPTO_H:
+                ts = (R["day"][keep].astype(np.int64) + 1) * DAY
+                for k in CRYPTO_LEVELS:
+                    y = (R["m"][keep] <= math.log(1 + k) / R["s"][keep]).astype(np.int8)
+                    if y.sum() == 0:
+                        ent["cells"][f"h{hh}"][f"k{k}"] = {"pos": 0, "pos_blocks": 0}
+                        continue
+                    bid, G, posb = R12.crash_blocks(ts, R["sid"][keep], y, hh * 24)
+                    young = R["age"][keep] < YOUNG_BARS
+                    ent["cells"][f"h{hh}"][f"k{k}"] = {"pos": int(y.sum()), "pos_blocks": int(posb.sum()),
+                                                       "blocks": int(G), "young_rows": int(young.sum())}
+        out["sets"][which] = ent
+        print(f"{now_iso()} counts {which}: series {len(ser)}; " + "; ".join(
+            f"h{hh} rows {c['rows']} wk {c['weeks']} z-3 posw {c['z-3.0']['pos_weeks']}" for hh, c in
+            ((int(k[1:]), v) for k, v in ent["cells"].items())), flush=True)
+    write_json(a.out, out)
+    print(f"sha256 {sha256_file(a.out)}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1082,11 +1284,20 @@ def main():
     p.add_argument("--datasets", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--workers", type=int, default=3)
+    p = sub.add_parser("acquire-p3b")
+    p.add_argument("--selection", required=True)
+    p.add_argument("--out", required=True)
+    p = sub.add_parser("counts")
+    p.add_argument("--data", required=True)
+    p.add_argument("--p3b", default="")
+    p.add_argument("--frozen-beta", required=True)
+    p.add_argument("--sets", required=True)
+    p.add_argument("--out", required=True)
     a = ap.parse_args()
-    if a.cmd in ("dev", "fh"):
+    if a.cmd in ("dev", "fh", "counts"):
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     {"build-b3": cmd_build_b3, "build-hd": cmd_build_hd, "select-p3b": cmd_select_p3b, "dev": cmd_dev,
-     "fh": cmd_fh}[a.cmd](a)
+     "fh": cmd_fh, "acquire-p3b": cmd_acquire_p3b, "counts": cmd_counts}[a.cmd](a)
 
 
 if __name__ == "__main__":

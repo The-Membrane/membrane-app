@@ -630,7 +630,7 @@ def phase_bt(mk, work):
     period (proxy Upgraded logs), the first BalanceTransfer is compared with its ERC20 Transfer in the same
     transaction (Transfer > BalanceTransfer value means the value is already scaled). Scaled = value or
     rayDiv(value, index) accordingly. The probe log is the first one with index > 1.0002 (at index 1 both readings
-    coincide); the reading whose implied Transfer is closer wins."""
+    coincide), the largest of the first 50 such logs (rounding); the reading whose implied Transfer is closer wins."""
     m = MARKETS[mk]
     rs = jload(os.path.join(work, "reserves.json.gz"))
     end = rs["end_block"]
@@ -663,7 +663,8 @@ def phase_bt(mk, work):
         ps = sorted(set(ps))
         for k, p0 in enumerate(ps):
             p1 = ps[k + 1] if k + 1 < len(ps) else end + 1
-            first = next((x for x in allbt if x[3] == a and p0 <= x[0] < p1 and x[7] > RAY * 1.0002), None)
+            cands = [x for x in allbt if x[3] == a and p0 <= x[0] < p1 and x[7] > RAY * 1.0002][:50]
+            first = max(cands, key=lambda x: x[6]) if cands else None
             if first is None:
                 continue
             tl = [y for y in cl.logs(a, [TR], first[0], first[0]) if y["transactionHash"] == first[8]

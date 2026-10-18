@@ -624,6 +624,82 @@ def phase_debt(mk, work):
     print(f"debt: {len(out)} days; rpc {cl.stats}", flush=True)
 
 
+def phase_bt(mk, work):
+    """aToken BalanceTransfer with its index (tok-bt/). The value field changed meaning across aToken
+    implementations: older ones emit the unscaled amount, newer ones the scaled amount. Per aToken implementation
+    period (proxy Upgraded logs), the first BalanceTransfer is compared with its ERC20 Transfer in the same
+    transaction (Transfer > BalanceTransfer value means the value is already scaled). Scaled = value or
+    rayDiv(value, index) accordingly."""
+    m = MARKETS[mk]
+    rs = jload(os.path.join(work, "reserves.json.gz"))
+    end = rs["end_block"]
+    atok = {r["aToken"]: i for i, r in enumerate(rs["reserves"])}
+    cl = X.Client(m["chain"], interval=0.1)
+    UPG = X.topic("Upgraded(address)")
+    TR = X.topic("Transfer(address,address,uint256)")
+    upg = cl.logs(sorted(atok), [UPG], m["start"], end)
+    periods = {a: [m["start"]] for a in atok}
+    for x in upg:
+        periods[x["address"].lower()].append(int(x["blockNumber"], 16))
+    od = os.path.join(work, "tok-bt")
+    os.makedirs(od, exist_ok=True)
+    span = m["span"] * 2
+    starts = list(range(m["start"], end + 1, span))
+    raw = {}
+
+    def one(s0):
+        lg = cl.logs(sorted(atok), [[T["BalanceTransfer"]]], s0, min(s0 + span - 1, end))
+        raw[s0] = [(int(x["blockNumber"], 16), int(x["logIndex"], 16), int(x.get("blockTimestamp") or "0x0", 16),
+                    x["address"].lower(), t_addr(x["topics"][1]), t_addr(x["topics"][2]), words(x["data"])[0],
+                    words(x["data"])[1], x["transactionHash"]) for x in lg]
+
+    with ThreadPoolExecutor(4) as ex:
+        list(ex.map(one, starts))
+    allbt = sorted(x for v in raw.values() for x in v)
+    # semantics per (aToken, period)
+    sem = {}
+    for a, ps in periods.items():
+        ps = sorted(set(ps))
+        for k, p0 in enumerate(ps):
+            p1 = ps[k + 1] if k + 1 < len(ps) else end + 1
+            first = next((x for x in allbt if x[3] == a and p0 <= x[0] < p1), None)
+            if first is None:
+                continue
+            tl = [y for y in cl.logs(a, [TR], first[0], first[0]) if y["transactionHash"] == first[8]
+                  and t_addr(y["topics"][1]) == first[4] and t_addr(y["topics"][2]) == first[5]]
+            tv = int(tl[0]["data"], 16) if tl else None
+            sem[(a, p0)] = {"start": p0, "end": p1, "scaled": bool(tv is not None and tv > first[6]),
+                            "checked": tv is not None}
+    def scaled_flag(a, b):
+        for (aa, p0), v in sem.items():
+            if aa == a and v["start"] <= b < v["end"]:
+                return v["scaled"]
+        return True
+
+    B, L, TS, RS, K, U, D = [], [], [], [], [], [], []
+    users = {}
+    for (b, li, ts, a, fr, to, val, idx, _tx) in allbt:
+        sc = val if scaled_flag(a, b) else (val * RAY + idx // 2) // idx
+        for who, sg in ((fr, -1.0), (to, 1.0)):
+            if who not in users:
+                users[who] = len(users)
+            B.append(b); L.append(li); TS.append(ts); RS.append(atok[a]); K.append(0); U.append(users[who])
+            D.append(sg * float(sc))
+    ul = [None] * len(users)
+    for a_, i in users.items():
+        ul[i] = a_
+    n = len(B)
+    npsave(os.path.join(od, "0.npz"), block=np.array(B, np.int64), lidx=np.array(L, np.int32), ts=np.array(TS, np.int64),
+           res=np.array(RS, np.int16), kind=np.array(K, np.int8), user=np.array(U, np.int32),
+           delta=np.array(D, np.float64), prin=np.zeros(n), rate=np.zeros(n),
+           users=np.array([bytes.fromhex(x[2:]) for x in ul], dtype="S20"))
+    jdump(os.path.join(work, "bt-semantics.json.gz"),
+          [{"reserve": atok[a], "start": v["start"], "end": v["end"], "scaled": v["scaled"], "checked": v["checked"]}
+           for (a, _), v in sorted(sem.items(), key=lambda kv: (atok[kv[0][0]], kv[0][1]))])
+    print(f"bt: {len(allbt)} BalanceTransfer logs, {len(upg)} upgrades, periods {len(sem)} "
+          f"(unscaled {sum(1 for v in sem.values() if not v['scaled'])}); rpc {cl.stats}", flush=True)
+
+
 def phase_liq(mk, work):
     m = MARKETS[mk]
     rs = jload(os.path.join(work, "reserves.json.gz"))
@@ -648,7 +724,7 @@ def phase_liq(mk, work):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("phase", choices=["reserves", "logs", "oracle", "meta", "hourly", "liq", "stable", "debt"])
+    ap.add_argument("phase", choices=["reserves", "logs", "oracle", "meta", "hourly", "liq", "stable", "debt", "bt"])
     ap.add_argument("--market", choices=list(MARKETS), required=True)
     ap.add_argument("--work", required=True)
     ap.add_argument("--threads", type=int, default=4)
@@ -658,7 +734,8 @@ def main():
     {"reserves": lambda: phase_reserves(a.market, a.work), "logs": lambda: phase_logs(a.market, a.work, a.threads),
      "oracle": lambda: phase_oracle(a.market, a.work), "meta": lambda: phase_meta(a.market, a.work),
      "hourly": lambda: phase_hourly(a.market, a.work), "liq": lambda: phase_liq(a.market, a.work),
-     "stable": lambda: phase_stable(a.market, a.work), "debt": lambda: phase_debt(a.market, a.work)}[a.phase]()
+     "stable": lambda: phase_stable(a.market, a.work), "debt": lambda: phase_debt(a.market, a.work),
+     "bt": lambda: phase_bt(a.market, a.work)}[a.phase]()
     print(f"{utcnow()} end {a.phase} {a.market}", flush=True)
 
 

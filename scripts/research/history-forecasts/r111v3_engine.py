@@ -71,6 +71,18 @@ class Inputs:
             for k in tk:
                 tk[k].append(remap(z["users"], z["user"]) if k == "user" else z[k])
         self.tok = {k: np.concatenate(v) for k, v in tk.items()}
+        bd = os.path.join(work, "tok-bt")
+        if os.path.isdir(bd):
+            # BalanceTransfer rows of tok/ used the raw value; tok-bt/ holds them rescaled per aToken implementation
+            z = np.load(os.path.join(bd, "0.npz"))
+            bkey = np.unique(z["block"] * 1_000_000 + z["lidx"])
+            tkey = self.tok["block"] * 1_000_000 + self.tok["lidx"]
+            keep = ~((self.tok["kind"] == 0) & np.isin(tkey, bkey))
+            nb = {k: self.tok[k][keep] for k in tk}
+            for k in tk:
+                nb[k] = np.concatenate([nb[k], remap(z["users"], z["user"]) if k == "user" else z[k]])
+            o = np.lexsort((nb["lidx"], nb["block"]))
+            self.tok = {k: v[o] for k, v in nb.items()}
         sd = os.path.join(work, "tok-stable")
         if os.path.isdir(sd):
             # kind-2 rows of tok/ came through the end-block placeholder address; tok-stable/ holds the real ones

@@ -538,9 +538,9 @@ def dir_digest(path):
 
 
 def l1_input_digests(arb):
-    out = {k: dir_digest(os.path.join(arb, k)) for k in ("tok", "tok-stable", "pool", "oracle", "meta", "hourly")}
+    out = {k: dir_digest(os.path.join(arb, k)) for k in ("tok", "tok-stable", "tok-bt", "pool", "oracle", "meta", "hourly")}
     for f in ("reserves.json.gz", "oracle-walk.json.gz", "liq-LOCKED.json.gz", "anchors.json.gz", "usdc-debt.json.gz",
-              "stable-tokens.json.gz"):
+              "stable-tokens.json.gz", "bt-semantics.json.gz"):
         out[f] = sha256_file(os.path.join(arb, f))
     return out
 

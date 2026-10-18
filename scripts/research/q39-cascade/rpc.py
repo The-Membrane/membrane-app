@@ -184,7 +184,7 @@ class Client:
             out.extend(_decode_try_aggregate(res))
         return out
 
-    def get_logs(self, address, topics, frm: int, to: int, step=200_000, min_step=500):
+    def get_logs(self, address, topics, frm: int, to: int, step=200_000, min_step=20):
         """All logs in [frm, to], splitting a range on any error down to min_step blocks. On a chain with a
         hard per-request cap the range is cut into capped sub-ranges fetched by a small thread pool."""
         cap = MAX_LOG_RANGE.get(self.chain)

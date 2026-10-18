@@ -16,7 +16,7 @@
   "modules": {
     "M1_touch_displayed": {
       "class": "P",
-      "evidence": "A6 (fH) displayed rung at 6 h-3 d, ETH and BTC, blind set 5 (BSS vs (f) +0.028 at 1 d, +0.012 at 3 d); A6 D3",
+      "evidence": "A6 (fH) displayed rung at 6 h-3 d, ETH and BTC, blind set 5 (BSS vs (f) +0.028 at 1 d, +0.012 at 3 d); A6 D3; P is kept for ETH and BTC at -5%/-10% (1 d, 3 d) because A6 preregistered blind set 5 (other Binance pairs) as its own blind test, which counts as a preregistered transfer test under ruling 10 (parent ruling 2026-10-18)",
       "labels": [
         "display pending owner decision"
       ]

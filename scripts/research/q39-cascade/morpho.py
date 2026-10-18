@@ -212,7 +212,10 @@ def replay(chain: str, work: str, days: dict[int, int], mk: dict):
             rows.append((uid[u], cval if E else 0.0, 0.0 if E else cval, 0.0, lt if E else 0.0, 0.0 if E else lt, 0.0,
                          lb if E else 1.0, 1.0 if E else lb, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, debt_usd, debt_usd,
                          cval * lt / debt_usd, midx[m]))
-        np.save(os.path.join(out_dir, f"{ts}.npy"), np.array(rows, dtype=dtype))
+        arr = np.array(rows, dtype=dtype)
+        # model population only (decision D6n): shock-linked collateral and >= $1 of debt
+        arr = arr[(arr["VE"] + arr["VB"] > 0) & (arr["DE"] + arr["DB"] + arr["DO"] >= 1.0)] if len(arr) else arr
+        np.save(os.path.join(out_dir, f"{ts}.npy"), arr)
 
     def flush_until(block):
         nonlocal si

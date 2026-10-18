@@ -363,6 +363,8 @@ def replay(meta: dict, work: str, days: dict[int, int], only_days: set | None = 
                          q(LB_, "E", 1.0), q(LB_, "B", 1.0), q(LB_, "O", 1.05), q(FE_, "E", 0.0), q(FE_, "B", 0.0),
                          q(FE_, "O", 0.1), D["E"], D["B"], D["O"], dmaxo, hf))
         arr = np.array(rows, dtype=dtype)
+        # model population only (decision D6n): shock-linked collateral and >= $1 of debt
+        arr = arr[(arr["VE"] + arr["VB"] > 0) & (arr["DE"] + arr["DB"] + arr["DO"] >= 1.0)] if len(arr) else arr
         np.save(os.path.join(out_dir, f"{ts}.npy"), arr)
 
     def flush_until(block):

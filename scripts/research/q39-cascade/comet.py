@@ -249,5 +249,8 @@ def replay(meta: dict, work: str, days: dict[int, int], holders: dict):
                 rows.append((uid[u], Cv["E"], Cv["B"], 0.0, q(C, "E"), q(C, "B"), 0.0, 1.0 + q(disc, "E"),
                              1.0 + q(disc, "B"), 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, debt, debt,
                              (C["E"] + C["B"]) / debt, ci))
-        np.save(os.path.join(out_dir, f"{ts}.npy"), np.array(rows, dtype=dtype))
+        arr = np.array(rows, dtype=dtype)
+        # model population only (decision D6n): shock-linked collateral and >= $1 of debt
+        arr = arr[(arr["VE"] + arr["VB"] > 0) & (arr["DE"] + arr["DB"] + arr["DO"] >= 1.0)] if len(arr) else arr
+        np.save(os.path.join(out_dir, f"{ts}.npy"), arr)
     json.dump({"users": sorted(uid, key=uid.get), "comets": cms}, open(os.path.join(work, "index.json"), "w"))

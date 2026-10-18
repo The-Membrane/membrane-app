@@ -509,7 +509,12 @@ def dev_task(a):
                 R[k].append(np.minimum.accumulate(v[ok], axis=1).astype(np.float32))
     if not R["ts"]:
         return {"key": key, "rows": None}
-    return {"key": key, "rows": {k: np.concatenate(v) for k, v in R.items()}}
+    rows = {k: np.concatenate(v) for k, v in R.items()}
+    if a.get("keep_keys"):
+        cols = np.array([LEVELS.index(k) for k in a["keep_levels"]])
+        rows = {k: (v[:, cols] if v.ndim == 2 else v) for k, v in rows.items() if k in a["keep_keys"] or
+                k in ("ts", "fold", "q2")}
+    return {"key": key, "rows": rows}
 
 
 def calib(p, y):
@@ -730,6 +735,275 @@ def cmd_power(a):
     print("sha256", sha256b(open(p, "rb").read()))
 
 
+# =============================================================================================
+# B13a counts-only check, freeze and the one run (D-R12.6c)
+# =============================================================================================
+TAIL_S = 30 * DAY
+RUN_T = (1, 3, 6, 12, 24, 72)
+RUN_LEVELS = {1: SHALLOW, 3: SHALLOW, 6: SHALLOW, 12: (-0.10, -0.15, -0.20), 24: (-0.10, -0.15, -0.20),
+              72: (-0.10, -0.15, -0.20)}
+RUN_KEYS = ("yL", "yC", "yW", "yO", "fHAW", "fHAO", "fHW", "fW", "aW", "fHL", "fL", "aL", "fHC", "fHO")
+SEED_RUN = 20261828
+N_BOOT_RUN = 10000
+R_BAND6 = (0.8, 1.25)
+MIN_POS_WEEKS = 30
+
+
+def b13_specs(acq, set_name):
+    man = json.load(open(os.path.join(acq, f"manifest-acquire-{set_name}.json")))
+    out = []
+    for p in man["pairs"]:
+        if p.get("empty") or not p.get("hours"):
+            continue
+        last = p.get("last_minute_ts")
+        ended = last is not None and last < END - TAIL_S
+        cap = (last + MIN - TAIL_S) // STEP * STEP if ended else END
+        out.append({"key": p["pair"], "path": os.path.join(acq, f"{p['pair']}.npz"), "cap": int(cap),
+                    "ended": bool(ended)})
+    return out
+
+
+def count_task(a):
+    """labels only (no forecast): validated hourly origins and positives per target and level."""
+    d = np.load(a["path"])
+    st = int(d["startTs"])
+    cols = {k: d[k] for k in ("close", "low", "tw_min", "tw_end", "or_min", "or_end")}
+    T, cap = a["T"], a["cap"]
+    ser = M3.S3(a["key"], a["key"], "kucoin", cols["close"], cols["low"], LEVELS, st, st)
+    folds = R12.generic_folds(ser, st)
+    if not folds:
+        return None
+    n = ser.N + 1
+    Y = {}
+    for X in TARGETS:
+        mn, en = TGT_COLS[X]
+        Y[X] = A.make_labels(A.spot_series(cols[en]), M3.window_min_null_rule(cols[mn], T), LEVELS)[:n]
+    lab = np.all([np.isfinite(Y[X][:, 0]) for X in TARGETS], axis=0)
+    ts = st + STEP * np.arange(n)
+    inf = np.zeros(n, bool)
+    for f in folds:
+        inf[f["qs_i"]:min(f["qe_i"], n)] = True
+    ok = inf & lab & (ts + T * STEP <= min(END, cap)) & ~((ts + T * STEP > R12.Q2_START) & (ts < R12.Q2_END))
+    cl = [LEVELS.index(k) for k in RUN_LEVELS[T]]
+    return {"ts": ts[ok], **{X: Y[X][ok][:, cl].astype(np.int8) for X in TARGETS}}
+
+
+def cmd_counts(a):
+    import multiprocessing as mp
+    specs = b13_specs(a.acq, "B13a")
+    out = {"schema": "q26-r126-counts-v1", "prereg": PREREG, "created_utc": now_iso(), "set": "B13a",
+           "manifest_sha256": sha256b(open(os.path.join(a.acq, "manifest-acquire-B13a.json"), "rb").read()),
+           "series_acquired": len(specs), "ended_series": int(sum(s["ended"] for s in specs)), "cells": []}
+    for T in RUN_T:
+        with mp.get_context("fork").Pool(a.workers) as pool:
+            res = pool.map(count_task, [{**s, "T": T} for s in specs], chunksize=4)
+        res = [r for r in res if r is not None and len(r["ts"])]
+        ts = np.concatenate([r["ts"] for r in res])
+        w = R12.wk(ts)
+        for j, k in enumerate(RUN_LEVELS[T]):
+            c = {"T": R12.TL[T], "level": k, "series": len(res), "validated_origins": int(len(ts)),
+                 "weeks": int(len(np.unique(w)))}
+            for X in TARGETS:
+                y = np.concatenate([r[X][:, j] for r in res])
+                c[X] = {"positives": int(y.sum()), "positive_weeks": int(len(np.unique(w[y > 0])))}
+            out["cells"].append(c)
+            print(f"{R12.TL[T]} {k:+.2f} series {c['series']} rows {c['validated_origins']} weeks {c['weeks']} " +
+                  " ".join(f"{X} {c[X]['positives']}/{c[X]['positive_weeks']}w" for X in TARGETS), flush=True)
+    p = os.path.join(a.out, "counts-r126.json")
+    os.makedirs(a.out, exist_ok=True)
+    json.dump(out, open(p, "w"), indent=1)
+    print("sha256", sha256b(open(p, "rb").read()))
+
+
+def week_tests(g, d, idx):
+    bt = R12.boot_test(g, d, idx)
+    ct = R12.cr1_test(g, d)
+    return bt, ct
+
+
+def lookahead_check(spec, T, tmpdir):
+    """perturb every hourly column after a cut; forecasts at origins t with t <= cut - 1 h must not change."""
+    d = dict(np.load(spec["path"]))
+    n = len(d["close"])
+    cut_i = int(n * 0.6)
+    pert = {k: (v.copy() if k == "startTs" else np.concatenate([v[:cut_i], v[cut_i:] * 0.5])) for k, v in d.items()}
+    pth = os.path.join(tmpdir, "lookahead.npz")
+    np.savez_compressed(pth, **pert)
+    base = dev_task({"path": spec["path"], "T": T, "key": spec["key"], "grid": "1h", "cap": spec["cap"]})["rows"]
+    alt = dev_task({"path": pth, "T": T, "key": spec["key"], "grid": "1h", "cap": spec["cap"]})["rows"]
+    cut_ts = int(d["startTs"]) + STEP * cut_i
+    mb = base["ts"] < cut_ts
+    ma = alt["ts"] < cut_ts
+    if mb.sum() != ma.sum() or not np.array_equal(base["ts"][mb], alt["ts"][ma]):
+        return {"key": spec["key"], "T": T, "cut_ts": cut_ts, "rows_equal": False}
+    mx = max(float(np.nanmax(np.abs(base[k][mb] - alt[k][ma]))) if mb.any() else 0.0
+             for k in base if k.startswith(("fH", "f", "a")) and k not in ("fold",))
+    os.remove(pth)
+    return {"key": spec["key"], "T": T, "cut_ts": cut_ts, "rows_before_cut": int(mb.sum()), "max_abs_diff": mx}
+
+
+def cmd_run(a):
+    import multiprocessing as mp
+    cfg_path = os.path.join(a.cfgdir, "frozen-r126-config.json")
+    cfg = json.load(open(cfg_path))
+    os.makedirs(a.out, exist_ok=True)
+    log = open(os.path.join(a.out, "run-log.txt"), "a")
+
+    def say(x):
+        print(x, flush=True)
+        log.write(x + "\n")
+        log.flush()
+    t_start = now_iso()
+    say(f"{t_start} R12.6 run start; frozen config sha256 {sha256b(open(cfg_path, 'rb').read())}")
+    specs = b13_specs(a.acq, "B13a")
+    econ = cfg["e_constants"]
+    res_all = {"schema": "q26-r126-run-v1", "prereg": PREREG, "utc_start": t_start,
+               "frozen_config_sha256": sha256b(open(cfg_path, "rb").read()), "confirmatory": [], "owner_question": [],
+               "reported": [], "lookahead": []}
+    pvals = []
+    for T in RUN_T:
+        t0 = time.time()
+        tasks = [{"path": s_["path"], "T": T, "key": s_["key"], "grid": "1h", "cap": s_["cap"],
+                  "keep_keys": RUN_KEYS, "keep_levels": RUN_LEVELS[T]} for s_ in specs]
+        with mp.get_context("fork").Pool(a.workers, maxtasksperchild=4) as pool:
+            res = pool.map(dev_task, tasks, chunksize=1)
+        S = R12.stack_rows(res, lambda rw: ~rw["q2"])
+        del res
+        w = R12.wk(S["ts"])
+        _, g = np.unique(w, return_inverse=True)
+        G = int(g.max()) + 1
+        say(f"{now_iso()} T={T}: {len(S['ts'])} rows, {len(np.unique(S['sid']))} series, {G} weeks "
+            f"({time.time() - t0:.0f}s)")
+        yrs = np.array([A.iso(int(t))[:4] for t in S["ts"]])
+        if T in CONF_T:
+            numW, denW, numL, denL = (np.zeros(G) for _ in range(4))
+        for j, k in enumerate(RUN_LEVELS[T]):
+            yv = {X: S["y" + X][:, j].astype(float) for X in TARGETS}
+            # reported: every target, in-sample e (labelled)
+            rep = {"T": R12.TL[T], "level": k, "rows": int(len(g)), "weeks": G, "targets": {}}
+            for X in TARGETS:
+                y = yv[X]
+                e_in = float(y.mean())
+                models = {"fH": S["fH" + X][:, j]}
+                if X in ("W", "O"):
+                    models["fHA"] = S["fHA" + X][:, j]
+                if X in ("L", "W"):
+                    models["f"], models["a"] = S["f" + X][:, j], S["a" + X][:, j]
+                be = float(np.mean((e_in - y) ** 2))
+                rep["targets"][X] = {"positives": int(y.sum()),
+                                     "positive_weeks": int((np.bincount(g, weights=y, minlength=G) > 0).sum()),
+                                     "e_in_sample": e_in,
+                                     "bss_vs_e_in_sample": {m: 1 - float(np.mean((p.astype(float) - y) ** 2)) / be
+                                                            if be > 0 else None for m, p in models.items()},
+                                     "R": {m: float(p.astype(float).sum() / y.sum()) if y.sum() > 0 else None
+                                           for m, p in models.items()}}
+            res_all["reported"].append(rep)
+            if T not in CONF_T:
+                continue
+            y = yv["W"]
+            ew = float(econ[R12.TL[T]][repr(k)]["W"])
+            el = float(econ[R12.TL[T]][repr(k)]["L"])
+            P = {"fHA": S["fHAW"][:, j].astype(float), "fH": S["fHW"][:, j].astype(float),
+                 "f": S["fW"][:, j].astype(float), "a": S["aW"][:, j].astype(float), "e": np.full(len(y), ew)}
+            se = {m: (p - y) ** 2 for m, p in P.items()}
+            rng = np.random.default_rng(np.random.SeedSequence([SEED_RUN, T, j]))
+            idx = rng.integers(0, G, size=(N_BOOT_RUN, G))
+            posw = int((np.bincount(g, weights=y, minlength=G) > 0).sum())
+            cell = {"T": R12.TL[T], "level": k, "rows": int(len(y)), "series": int(len(np.unique(S["sid"]))),
+                    "positives": int(y.sum()), "weeks": G, "positive_weeks": posw,
+                    "R_fHA": float(P["fHA"].sum() / y.sum()) if y.sum() > 0 else None, "vs": {}}
+            pm = []
+            for c in ("fH", "f", "a", "e"):
+                d = se["fHA"] - se[c]
+                bt, ct = week_tests(g, d, idx)
+                dk = R12.dk_hac(S["ts"], d)
+                cell["vs"][c] = {"mean_d": float(d.mean()), "bss": 1 - float(se["fHA"].mean() / se[c].mean()),
+                                 "boot": bt, "cr1": ct, "dk_hac_reported": dk}
+                pm += [bt["p_one_sided"], ct["p_one_sided"] if ct["p_one_sided"] is not None else 1.0]
+            cell["cell_p"] = float(max(pm))
+            cell["all_mean_d_negative"] = bool(all(cell["vs"][c]["mean_d"] < 0 for c in cell["vs"]))
+            cell["R_in_band"] = bool(cell["R_fHA"] is not None and R_BAND6[0] <= cell["R_fHA"] <= R_BAND6[1])
+            cell["enough_positive_weeks"] = posw >= MIN_POS_WEEKS
+            cell["per_year"] = {}
+            for u in np.unique(yrs):
+                mm = yrs == u
+                sy = float(y[mm].sum())
+                cell["per_year"][str(u)] = {"rows": int(mm.sum()), "pos": sy,
+                                            "R_fHA": float(P["fHA"][mm].sum() / sy) if sy > 0 else None,
+                                            "bss_vs_fH": 1 - float(se["fHA"][mm].mean() / se["fH"][mm].mean())}
+            res_all["confirmatory"].append(cell)
+            pvals.append(cell["cell_p"])
+            say(f"  {R12.TL[T]} {k:+.2f} pos {cell['positives']} posw {posw}/{G} R {cell['R_fHA']:.2f} cell_p "
+                f"{cell['cell_p']:.4g} " + " ".join(f"{c} {cell['vs'][c]['bss']:+.3f}" for c in cell["vs"]))
+            yl = yv["L"]
+            numW += np.bincount(g, weights=se["fHA"], minlength=G)
+            denW += np.bincount(g, weights=se["e"], minlength=G)
+            numL += np.bincount(g, weights=(S["fHL"][:, j].astype(float) - yl) ** 2, minlength=G)
+            denL += np.bincount(g, weights=(el - yl) ** 2, minlength=G)
+        if T in CONF_T:
+            rng = np.random.default_rng(np.random.SeedSequence([SEED_RUN, T, 99]))
+            idx = rng.integers(0, G, size=(N_BOOT_RUN, G))
+            dS = (1 - numW.sum() / denW.sum()) - (1 - numL.sum() / denL.sum())
+            bb = (1 - numW[idx].sum(1) / denW[idx].sum(1)) - (1 - numL[idx].sum(1) / denL[idx].sum(1))
+            p = (1 + int(np.sum(bb <= 0))) / (N_BOOT_RUN + 1)
+            oq = {"T": R12.TL[T], "skill_W_fHA": float(1 - numW.sum() / denW.sum()),
+                  "skill_L_fH": float(1 - numL.sum() / denL.sum()), "diff": float(dS), "boot_p": float(p),
+                  "ci90": [float(np.quantile(bb, 0.05)), float(np.quantile(bb, 0.95))],
+                  "pass_bonferroni_3": bool(dS > 0 and p <= 0.05 / 3)}
+            res_all["owner_question"].append(oq)
+            say(f"  owner question {R12.TL[T]}: {oq}")
+        del S
+        json.dump(res_all, open(os.path.join(a.out, "results-r126.json"), "w"), indent=1)
+    ok = R12.holm(np.array(pvals))
+    for c, h in zip(res_all["confirmatory"], ok):
+        c["holm_pass"] = bool(h)
+        c["PASS"] = bool(h and c["all_mean_d_negative"] and c["R_in_band"] and c["enough_positive_weeks"])
+    res_all["n_pass"] = int(sum(c["PASS"] for c in res_all["confirmatory"]))
+    for s_ in specs[:1]:
+        for T in (3,):
+            res_all["lookahead"].append(lookahead_check(s_, T, a.out))
+    res_all["utc_end"] = now_iso()
+    p = os.path.join(a.out, "results-r126.json")
+    json.dump(res_all, open(p, "w"), indent=1)
+    say(f"{res_all['utc_end']} done; PASS cells {res_all['n_pass']} of {len(res_all['confirmatory'])}; "
+        f"lookahead {res_all['lookahead']}; results sha256 {sha256b(open(p, 'rb').read())}")
+
+
+def cmd_freeze(a):
+    code = os.path.abspath(__file__)
+    pw = json.load(open(a.power))
+    cnt = json.load(open(a.counts))
+    import subprocess
+    sha = subprocess.run(["git", "-C", HERE, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    dirty = subprocess.run(["git", "-C", HERE, "status", "--porcelain", "."], capture_output=True,
+                           text=True).stdout.strip()
+    if dirty:
+        raise SystemExit("STOP: worktree not clean")
+    cfg = {"schema": "q26-r126-frozen-v1", "prereg": PREREG, "created_utc": now_iso(), "code_sha": sha,
+           "code_sha256": {os.path.basename(f): sha256b(open(f, "rb").read()) for f in
+                           (code, os.path.join(HERE, "r12_tail.py"), os.path.join(HERE, "a6_touch.py"),
+                            os.path.join(HERE, "a3_touch.py"), os.path.join(HERE, "a2_touch.py"),
+                            os.path.join(HERE, "a_touch.py"))},
+           "inputs": {"manifest_B13a_sha256": sha256b(open(os.path.join(a.acq, "manifest-acquire-B13a.json"),
+                                                            "rb").read()),
+                      "counts_sha256": sha256b(open(a.counts, "rb").read()),
+                      "power_sha256": sha256b(open(a.power, "rb").read()),
+                      "counts_manifest_sha256": cnt.get("manifest_sha256")},
+           "e_constants": pw["e_constants"], "candidate": "fHA on W (gap-anchored (fH), 1 h TWAP target)",
+           "comparators": ["fH_W (re-targeted)", "f_W", "a_W", "e_W (frozen dev constant)"],
+           "cells": [[R12.TL[T], k] for T in CONF_T for k in CONF_K], "holm_family": N_CONF6,
+           "R_band": R_BAND6, "min_positive_weeks": MIN_POS_WEEKS, "seed": SEED_RUN, "n_boot": N_BOOT_RUN,
+           "owner_question": "per T in 1h,3h,6h: pooled BSS_W(fHA vs e_W) - BSS_L(fH_L vs e_L) > 0, weekly "
+                             "bootstrap, alpha 0.05/3",
+           "rules": {"twap": "60 one-minute closes, >= 57 present", "oracle": "0.5% / 60 min",
+                     "null_hour": "< 57 one-minute bars", "tail": "ended series (last minute > 30 d before "
+                     "2026-10-01): windows ending in the last 30 days dropped"}}
+    os.makedirs(a.out, exist_ok=True)
+    p = os.path.join(a.out, "frozen-r126-config.json")
+    json.dump(cfg, open(p, "w"), indent=1)
+    print(p, sha256b(open(p, "rb").read()), cfg["created_utc"])
+
+
 def main():
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(dest="cmd", required=True)
@@ -749,13 +1023,27 @@ def main():
     s.add_argument("--hours", required=True)
     s.add_argument("--out", required=True)
     s.add_argument("--workers", type=int, default=3)
+    s = sp.add_parser("counts")
+    s.add_argument("--acq", required=True)
+    s.add_argument("--out", required=True)
+    s.add_argument("--workers", type=int, default=3)
+    s = sp.add_parser("freeze")
+    s.add_argument("--acq", required=True)
+    s.add_argument("--power", required=True)
+    s.add_argument("--counts", required=True)
+    s.add_argument("--out", required=True)
+    s = sp.add_parser("run")
+    s.add_argument("--acq", required=True)
+    s.add_argument("--cfgdir", required=True)
+    s.add_argument("--out", required=True)
+    s.add_argument("--workers", type=int, default=3)
     s = sp.add_parser("dev")
     s.add_argument("--hours", required=True)
     s.add_argument("--out", required=True)
     s.add_argument("--workers", type=int, default=4)
     a = ap.parse_args()
     {"select-kucoin": cmd_select_kucoin, "build-binance": cmd_build_binance,
-     "acquire-kucoin": cmd_acquire_kucoin, "dev": cmd_dev, "power": cmd_power}[a.cmd](a)
+     "acquire-kucoin": cmd_acquire_kucoin, "dev": cmd_dev, "power": cmd_power, "counts": cmd_counts, "freeze": cmd_freeze, "run": cmd_run}[a.cmd](a)
 
 
 if __name__ == "__main__":

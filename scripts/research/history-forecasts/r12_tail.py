@@ -1260,8 +1260,8 @@ B9_CUT = {"BCHABCUSDT": "2019-11-28", "STRATUSDT": "2020-11-18", "LENDUSDT": "20
 B9_RENAME = {"XZCUSDT": "FIROUSDT", "TOMOUSDT": "VICUSDT", "STORMUSDT": "STMXUSDT", "ANYUSDT": "MULTIUSDT",
              "BZRXUSDT": "OOKIUSDT", "BCCUSDT": "BCHABCUSDT"}
 B10_PAIRS = {"tLTCUSD": "2017-12-13T00:00Z", "tETCUSD": "2018-06-12T00:00Z", "tZECUSD": "2019-03-21T00:00Z",
-             "tDSHUSD": "2019-03-28T00:00Z", "tXMRUSD": "B9:XMRUSDT", "tOMGUSD": "B9:OMGUSDT",
-             "tBTGUSD": "B9:BTGUSDT", "tETPUSD": "END", "tSANUSD": "END", "tEDOUSD": "END", "tLEOUSD": "END"}
+             "tDSHUSD": "2019-03-28T00:00Z", "tXMRUSD": "2019-03-15T00:00Z", "tOMGUSD": "2019-04-03T00:00Z",
+             "tBTGUSD": "2021-04-16T00:00Z", "tETPUSD": "END", "tSANUSD": "END", "tEDOUSD": "END", "tLEOUSD": "END"}
 BFX = "https://api-pub.bitfinex.com/v2/candles/trade:1h:{p}/hist?start={s}&end={e}&limit=10000&sort=1"
 
 
@@ -1345,6 +1345,8 @@ def cmd_acquire(a):
     os.makedirs(b9d, exist_ok=True)
     os.makedirs(b10d, exist_ok=True)
     t_start = now_iso()
+    if a.only == "b10":
+        return acquire_b10(b10d)
     sel = b9_selection(a.datasets)
     print(json.dumps({k: (len(v) if isinstance(v, (list, dict)) else v) for k, v in sel.items()}), flush=True)
     man = {"schema": "q26-r12/acquire-b9/1", "started_utc": t_start, "code_sha": R112.git_sha(),
@@ -1387,17 +1389,19 @@ def cmd_acquire(a):
     man["finished_utc"] = now_iso()
     man["status"] = "LOCKED for Round 12 (design/Q26_ROUND12_PREREG.md)"
     h9 = write_json(os.path.join(b9d, "manifest-acquire-b9.json"), man)
-    # B10
-    first9 = {s: int(min(json.loads(gzip.decompress(open(os.path.join(b9d, v["file"]), "rb").read()))["startTs"]
-                         for _ in [0])) for s, v in man["series"].items() if s in ("XMRUSDT", "OMGUSDT", "BTGUSDT")}
+    h10 = acquire_b10(b10d)
+    print(json.dumps({"b9_series": len(man["series"]), "b9_zips": tot_zip, "b9_manifest_sha256": h9,
+                      "b10_manifest_sha256": h10}))
+
+
+def acquire_b10(b10d):
+    """registered windows: to the stated date 00:00Z (the day of the first B9 kline of the same asset), else END."""
     m10 = {"schema": "q26-r12/acquire-b10/1", "started_utc": now_iso(), "code_sha": R112.git_sha(),
            "source": "api-pub.bitfinex.com v2 candles trade:1h (free, keyless; no published checksum; sha256 of every "
            "raw page recorded)", "series": {}}
     for p, e in B10_PAIRS.items():
         if e == "END":
             end_ms = END * 1000
-        elif e.startswith("B9:"):
-            end_ms = first9[e[3:]] * 1000
         else:
             end_ms = A.utc(e.replace("Z", ":00Z")) * 1000
         rows, start, pages = {}, 0, []
@@ -1422,8 +1426,8 @@ def cmd_acquire(a):
     m10["finished_utc"] = now_iso()
     m10["status"] = "LOCKED for Round 12 (design/Q26_ROUND12_PREREG.md)"
     h10 = write_json(os.path.join(b10d, "manifest-acquire-b10.json"), m10)
-    print(json.dumps({"b9_series": len(man["series"]), "b9_zips": tot_zip, "b10_series": len(m10["series"]),
-                      "b9_manifest_sha256": h9, "b10_manifest_sha256": h10}))
+    print(json.dumps({"b10_series": len(m10["series"]), "b10_manifest_sha256": h10}))
+    return h10
 
 
 # ---------------------------------------------------------------------------------------------
@@ -2017,6 +2021,7 @@ def main():
     ap.add_argument("--item", choices=("r12.1", "r12.2"))
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--only", choices=("b10",))
     a = ap.parse_args()
     {"dev": cmd_dev, "acquire": cmd_acquire, "counts": cmd_counts, "freeze": cmd_freeze, "run": cmd_run}[a.cmd](a)
 

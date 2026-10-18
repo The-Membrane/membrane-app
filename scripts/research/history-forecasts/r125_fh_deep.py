@@ -438,10 +438,16 @@ def cmd_acquire(a):
                 sym = base + "USDT"
                 lst = http_get(BYBIT_ROOT + sym + "/").decode()
                 keys = sorted(set(re.findall(r'href="(' + re.escape(sym) + r'-\d{4}-\d{2}\.csv\.gz)"', lst)))
+                # daily files cover the months after the last monthly file (the final partial month of an ended
+                # pair, or the current month)
+                lastm = keys[-1][len(sym) + 1:len(sym) + 8] if keys else "0000-00"
+                daily = sorted(set(re.findall(r'href="(' + re.escape(sym) + r'_\d{4}-\d{2}-\d{2}\.csv\.gz)"', lst)))
+                keys += [k for k in daily if k[len(sym) + 1:len(sym) + 8] > lastm]
                 rows, files = {}, []
                 for key in keys:
                     ym = key[len(sym) + 1:len(sym) + 8]
-                    if A.utc(ym + "-01T00:00:00Z") >= ACQ_END:
+                    day = key[len(sym) + 1:len(sym) + 11] if key[len(sym)] == "_" else ym + "-01"
+                    if A.utc(day + "T00:00:00Z") >= ACQ_END:
                         continue
                     r_, h_, ntr, nbad = bybit_month(sym, key)
                     rows.update({t: v for t, v in r_.items() if t < ACQ_END})

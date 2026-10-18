@@ -329,6 +329,315 @@ def cmd_select_kucoin(a):
     print("sha256", sha256b(open(p, "rb").read()))
 
 
+# =============================================================================================
+# B13 acquisition (outcome-blind builder; prints counts only)
+# =============================================================================================
+def parse_kucoin_csv(raw):
+    """KuCoin 1 m CSV: time (s), open, close, high, low, volume, turnover; rows unsorted -> (open_ms, h, l, c)."""
+    rows = [r for r in csv.reader(io.StringIO(raw.decode())) if r and r[0][:1].isdigit()]
+    if not rows:
+        return np.zeros(0, np.int64), np.zeros(0), np.zeros(0), np.zeros(0)
+    a = np.array([[float(x) for x in r[:5]] for r in rows])
+    t = a[:, 0].astype(np.int64)
+    t = np.where(t > 10 ** 11, t, t * 1000)
+    return t, a[:, 3], a[:, 4], a[:, 2]
+
+
+def kucoin_pair(a):
+    base, out = a
+    pair = base + "USDT"
+    path = os.path.join(out, f"{pair}.npz")
+    if os.path.exists(path + ".meta.json"):
+        return json.load(open(path + ".meta.json"))
+    keys = [k for k in s3_keys("kucoin", f"data/spot/daily/klines/{pair}/1m/", delimiter=False)
+            if k.endswith(".zip") and k.rsplit("-1m-", 1)[-1][:10] < "2026-10-01"]
+    files, parts = [], []
+
+    def one(k):
+        raw = http_get(KC_ROOT + k)
+        ck = http_get(KC_ROOT + k + ".CHECKSUM").decode().split()[0].lower()
+        h = hashlib.md5(raw).hexdigest() if len(ck) == 32 else sha256b(raw)
+        if h != ck:
+            raise SystemExit(f"STOP: {k} checksum {h} != CHECKSUM {ck}")
+        z = zipfile.ZipFile(io.BytesIO(raw))
+        return k, ck, sha256b(raw), parse_kucoin_csv(z.read(z.namelist()[0]))
+    with cf.ThreadPoolExecutor(KC_THREADS) as ex:
+        for k, ck, h, p in ex.map(one, sorted(keys)):
+            files.append({"key": k, "checksum": ck, "sha256": h})
+            parts.append(p)
+    meta = {"pair": pair, "files": files, "n_files": len(files)}
+    g = assemble(parts) if parts else None
+    if g is None:
+        meta["empty"] = True
+    else:
+        st, c, lo, hi = g
+        meta["startTs"] = st
+        fin = np.where(np.isfinite(c))[0]
+        meta["last_minute_ts"] = int(st + MIN * fin[-1]) if len(fin) else None
+        meta = save_hours(path, pair, st, hourly_columns(c, lo, hi), meta)
+        meta["npz_sha256"] = sha256b(open(path, "rb").read())
+    json.dump(meta, open(path + ".meta.json", "w"))
+    return meta
+
+
+KC_THREADS = 12
+
+
+def cmd_acquire_kucoin(a):
+    sel = json.load(open(a.selection))
+    bases = sel[a.set]
+    os.makedirs(a.out, exist_ok=True)
+    print(f"{now_iso()} acquire {a.set}: {len(bases)} tickers", flush=True)
+    t0 = time.time()
+    with cf.ProcessPoolExecutor(a.workers) as ex:
+        for j, m in enumerate(ex.map(kucoin_pair, [(b, a.out) for b in bases])):
+            print(f"  {j + 1}/{len(bases)} files {m['n_files']} hours {m.get('hours')} ({time.time() - t0:.0f}s)",
+                  flush=True)
+    man = {"schema": "q26-r126-b13-acq-v1", "set": a.set, "created_utc": now_iso(),
+           "selection_sha256": sha256b(open(a.selection, "rb").read()), "pairs": []}
+    for b in bases:
+        m = json.load(open(os.path.join(a.out, f"{b}USDT.npz.meta.json")))
+        e = {k: m.get(k) for k in ("pair", "n_files", "hours", "null_hours", "startTs", "last_minute_ts",
+                                   "npz_sha256", "empty")}
+        e["files_sha256"] = sha256b(json.dumps(m["files"], sort_keys=True).encode())
+        man["pairs"].append(e)
+    p = os.path.join(a.out, f"manifest-acquire-{a.set}.json")
+    json.dump(man, open(p, "w"), indent=1)
+    print(f"{now_iso()} done; manifest sha256 {sha256b(open(p, 'rb').read())}", flush=True)
+
+
+# =============================================================================================
+# development scoring (seen data only)
+# =============================================================================================
+import a3_touch as M3  # noqa: E402
+import a6_touch as A6  # noqa: E402
+
+LEVELS = R12.LEVELS
+LNK = np.log1p(np.asarray(LEVELS, float))
+SHALLOW = (-0.02, -0.03, -0.05, -0.07, -0.10)
+DEEP6 = (-0.15, -0.20)
+CELLS = {1: SHALLOW, 3: SHALLOW, 6: SHALLOW, 12: SHALLOW + DEEP6, 24: DEEP6, 72: DEEP6}
+TGT_COLS = {"L": ("low", "close"), "C": ("close", "close"), "W": ("tw_min", "tw_end"), "O": ("or_min", "or_end")}
+ISSUE_6H = 6 * STEP
+N_BOOT_DEV, SEED_DEV = 1000, 20261826
+
+
+def dev_task(a):
+    path, T, key = a["path"], a["T"], a["key"]
+    d = np.load(path)
+    st = int(d["startTs"])
+    cols = {k: d[k] for k in ("close", "low", "high", "tw_min", "tw_end", "or_min", "or_end")}
+    ser = M3.S3(key, key, "binance", cols["close"], cols["low"], LEVELS, st, st)
+    A6.attach_high(ser, cols["high"])
+    folds = R12.generic_folds(ser, st)
+    if not folds:
+        return {"key": key, "rows": None}
+    A6.har_of(ser)
+    A6.sfut_of(ser, T)
+    s_raw = A.spot_series(cols["close"])
+    PS, WM, SX = {}, {}, {}
+    for X in TARGETS:
+        mn, en = TGT_COLS[X]
+        WM[X] = M3.window_min_null_rule(cols[mn], T)
+        SX[X] = A.spot_series(cols[en])
+        ser._wmin = {T: WM[X]}
+        ser._lab = {}
+        ser.spot = SX[X]
+        PS[X] = A6.Prep6(ser, T, with_fbL=False)
+    ser.spot = s_raw
+    PL = PS["L"]
+    n = PL.n
+    scale = PL.P.scale
+    i_all = np.arange(n)
+    ts_all = ser.base_ts + STEP * i_all
+    lab_all = np.all([PS[X].P.lab_ok for X in TARGETS], axis=0)
+    # anchored depth (target window minimum relative to the raw spot) for W and O
+    with np.errstate(invalid="ignore", divide="ignore"):
+        dA = {X: np.log(WM[X][:n] / s_raw[:n]) for X in ("W", "O")}
+        gap = {X: np.log(SX[X][:n] / s_raw[:n]) for X in ("W", "O")}
+    R = {"ts": [], "fold": [], "q2": []}
+    for X in TARGETS:
+        R["y" + X] = []
+        for m in ("fH", "f", "a") + (("fHA",) if X in ("W", "O") else ()):
+            R[m + X] = []
+    for gid, f in enumerate(folds):
+        qs, qe = f["qs_i"], min(f["qe_i"], n)
+        lim = qs - T
+        tr = i_all <= lim
+        coef, _ = PL.har_coef(qs)
+        sH = PL.sigma_H(coef)
+        te = np.arange(qs, qe)
+        te = te[lab_all[te] & (ts_all[te] + T * STEP <= END) & (ts_all[te] % ISSUE_6H == 0)]
+        if len(te) == 0:
+            continue
+        thr = PL.P.thresholds(sH[te])
+        out = {}
+        ok = np.ones(len(te), bool)
+        for X in TARGETS:
+            P6 = PS[X]
+            P = P6.P
+            z, valid = P6.z_of(sH)
+            pH = M2.fhs_predict(z[valid & tr], thr)
+            pf = M2.fhs_predict(P.z[1.0][P.valid[1.0] & tr], P.thresholds(ser.sigma[te]))
+            fb = ~np.all(np.isfinite(pH), axis=1)
+            pH[fb] = pf[fb]
+            pa = np.tile(P.freq_upto(lim), (len(te), 1))
+            out["fH" + X], out["f" + X], out["a" + X] = pH, pf, pa
+            if X in ("W", "O"):
+                with np.errstate(invalid="ignore", divide="ignore"):
+                    zA = dA[X] / (sH * scale)
+                    thrA = (LNK[None, :] + gap[X][te][:, None]) / (sH[te][:, None] * scale)
+                vA = P.lab_ok & np.isfinite(zA) & tr
+                pA = M2.fhs_predict(zA[vA], thrA)
+                fbA = ~np.all(np.isfinite(pA), axis=1)
+                pA[fbA] = pH[fbA]
+                out["fHA" + X] = pA
+            out["y" + X] = P.Y[te]
+            for m in ("fH", "f", "a"):
+                ok &= np.all(np.isfinite(out[m + X]), axis=1)
+        if not ok.any():
+            continue
+        R["ts"].append(ts_all[te][ok])
+        R["fold"].append(np.full(int(ok.sum()), gid, np.int16))
+        R["q2"].append((ts_all[te][ok] + T * STEP > R12.Q2_START) & (ts_all[te][ok] < R12.Q2_END))
+        for k, v in out.items():
+            if k.startswith("y"):
+                R[k].append(v[ok].astype(np.int8))
+            else:
+                R[k].append(np.minimum.accumulate(v[ok], axis=1).astype(np.float32))
+    if not R["ts"]:
+        return {"key": key, "rows": None}
+    return {"key": key, "rows": {k: np.concatenate(v) for k, v in R.items()}}
+
+
+def calib(p, y):
+    """logistic recalibration y ~ a + b logit(p): returns (a, b)."""
+    x = R12.logit(p)
+    a, b = 0.0, 1.0
+    for _ in range(25):
+        eta = np.clip(a + b * x, -30, 30)
+        mu = 1 / (1 + np.exp(-eta))
+        w = np.maximum(mu * (1 - mu), 1e-9)
+        g = np.array([np.sum(y - mu), np.sum((y - mu) * x)])
+        Hm = np.array([[np.sum(w), np.sum(w * x)], [np.sum(w * x), np.sum(w * x * x)]])
+        try:
+            st = np.linalg.solve(Hm, g)
+        except np.linalg.LinAlgError:
+            break
+        a, b = a + st[0], b + st[1]
+        if np.max(np.abs(st)) < 1e-8:
+            break
+    return float(a), float(b)
+
+
+def score_dev_cell(S, T, k, rng):
+    col = LEVELS.index(k)
+    deep = k <= -0.15
+    yL = S["yL"][:, col].astype(float)
+    if deep:
+        g, G, _ = R12.crash_blocks(S["ts"], S["sid"], yL, T)
+    else:
+        w = R12.wk(S["ts"])
+        _, g = np.unique(w, return_inverse=True)
+        G = int(g.max()) + 1
+    idx = rng.integers(0, G, size=(N_BOOT_DEV, G))
+    cell = {"T": R12.TL[T], "level": k, "rows": int(len(yL)), "series": int(len(np.unique(S["sid"]))),
+            "blocks": G, "block_rule": "crash-episode blocks (R12, on L labels)" if deep else "calendar weeks",
+            "targets": {}}
+    bss_boot = {}
+    for X in TARGETS:
+        y = S["y" + X][:, col].astype(float)
+        pos = y > 0
+        Bc = {}
+        models = {"fH": S["fH" + X][:, col], "f": S["f" + X][:, col], "a": S["a" + X][:, col],
+                  "e": np.full(len(y), y.mean()), "fH_raw": S["fHL"][:, col], "f_raw": S["fL"][:, col],
+                  "a_raw": S["aL"][:, col], "e_raw": np.full(len(y), yL.mean())}
+        if X in ("W", "O"):
+            models["fHA"] = S["fHA" + X][:, col]
+        se = {m: (p.astype(float) - y) ** 2 for m, p in models.items()}
+        sums = {m: np.bincount(g, weights=v, minlength=G) for m, v in se.items()}
+        cnt = np.bincount(g, minlength=G).astype(float)
+        posb = np.bincount(g, weights=y, minlength=G) > 0
+        t = {"positives": int(pos.sum()), "base_rate": float(y.mean()), "positive_blocks": int(posb.sum()),
+             "brier": {m: float(v.mean()) for m, v in se.items()},
+             "R": {m: (float(models[m].astype(float).sum() / y.sum()) if y.sum() > 0 else None) for m in models},
+             "calib_slope_intercept": {m: calib(models[m].astype(float), y) for m in ("fH", "f", "fH_raw") +
+                                       (("fHA",) if X in ("W", "O") else ()) if y.sum() > 0}}
+        bss = {}
+        for m in [x for x in models if x not in ("e", "e_raw")]:
+            for c in ("f", "a", "e"):
+                if m.endswith("_raw") and c != "e":
+                    continue
+                bss[f"{m}_vs_{c}"] = 1 - t["brier"][m] / t["brier"][c] if t["brier"][c] > 0 else None
+        t["bss"] = bss
+        # block bootstrap of BSS(fH vs e) and BSS(fH vs f); per-positive-block G* for fH vs f, a, e
+        for c in ("e", "f", "a"):
+            num = sums["fH"][idx].sum(1)
+            den = sums[c][idx].sum(1)
+            bb = 1 - num / den
+            Bc[c] = bb
+            t[f"bss_fH_vs_{c}_ci90"] = [float(np.quantile(bb, 0.05)), float(np.quantile(bb, 0.95))]
+            dsum = sums["fH"] - sums[c]
+            Sp = dsum[posb]
+            mb, sb = (float(Sp.mean()), float(Sp.std(ddof=1))) if len(Sp) > 1 else (np.nan, np.nan)
+            ma, sa = float(dsum.mean()), float(dsum.std(ddof=1))
+            t[f"block_d_fH_vs_{c}"] = {"pos_mean": mb, "pos_sd": sb, "all_mean": ma, "all_sd": sa,
+                                      "cr1": R12.cr1_test(g, se["fH"] - se[c])["p_one_sided"]}
+        bss_boot[X] = Bc
+        cell["targets"][X] = t
+        del cnt
+    # difference of skill between targets (paired blocks): BSS_X(fH vs c) - BSS_L(fH vs c)
+    cell["skill_diff_vs_L"] = {}
+    for X in ("C", "W", "O"):
+        for c in ("e", "f"):
+            dd = bss_boot[X][c] - bss_boot["L"][c]
+            pt = cell["targets"][X]["bss"][f"fH_vs_{c}"] - cell["targets"]["L"]["bss"][f"fH_vs_{c}"]
+            cell["skill_diff_vs_L"][f"{X}_{c}"] = {"diff": pt, "ci90": [float(np.quantile(dd, 0.05)),
+                                                                        float(np.quantile(dd, 0.95))],
+                                                   "share_boot_gt0": float(np.mean(dd > 0))}
+    return cell
+
+
+def cmd_dev(a):
+    os.makedirs(a.out, exist_ok=True)
+    man = json.load(open(os.path.join(a.hours, "manifest-dev-hours.json")))
+    keys = [p["pair"] for p in man["pairs"] if p.get("hours")]
+    log = open(os.path.join(a.out, "dev-log.txt"), "a")
+
+    def say(s):
+        print(s, flush=True)
+        log.write(s + "\n")
+        log.flush()
+    say(f"{now_iso()} R12.6 dev start: {len(keys)} series")
+    res_all = {"schema": "q26-r126-dev-v1", "prereg": PREREG, "created_utc": now_iso(),
+               "hours_manifest_sha256": sha256b(open(os.path.join(a.hours, "manifest-dev-hours.json"), "rb").read()),
+               "grid": "6-hourly development origins (00/06/12/18Z), A6.6 folds, 2026Q2 windows dropped",
+               "cells": []}
+    rng = np.random.default_rng(SEED_DEV)
+    import multiprocessing as mp
+    for T in (1, 3, 6, 12, 24, 72):
+        t0 = time.time()
+        tasks = [{"path": os.path.join(a.hours, f"{k}.npz"), "T": T, "key": k} for k in keys]
+        with mp.get_context("fork").Pool(a.workers, maxtasksperchild=4) as pool:
+            res = pool.map(dev_task, tasks, chunksize=1)
+        S = R12.stack_rows(res, lambda rw: ~rw["q2"])
+        del res
+        say(f"{now_iso()} T={T}: {len(S['ts'])} rows, {len(np.unique(S['sid']))} series ({time.time() - t0:.0f}s)")
+        for k in CELLS[T]:
+            c = score_dev_cell(S, T, k, rng)
+            res_all["cells"].append(c)
+            tt = c["targets"]
+            say(f"  {R12.TL[T]} {k:+.2f} " + " | ".join(
+                f"{X}: pos {tt[X]['positives']} pb {tt[X]['positive_blocks']} BSS fH v e/f/a "
+                f"{tt[X]['bss']['fH_vs_e']:+.3f}/{tt[X]['bss']['fH_vs_f']:+.3f}/{tt[X]['bss']['fH_vs_a']:+.3f} "
+                f"R {tt[X]['R']['fH']:.2f}" for X in TARGETS if tt[X]['positives'] > 0))
+        del S
+        json.dump(res_all, open(os.path.join(a.out, "dev-r126.json"), "w"), indent=1)
+    res_all["finished_utc"] = now_iso()
+    json.dump(res_all, open(os.path.join(a.out, "dev-r126.json"), "w"), indent=1)
+    say(f"{now_iso()} done")
+
+
 def main():
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(dest="cmd", required=True)
@@ -339,13 +648,18 @@ def main():
     s.add_argument("--datasets", required=True)
     s.add_argument("--out", required=True)
     s.add_argument("--workers", type=int, default=4)
+    s = sp.add_parser("acquire-kucoin")
+    s.add_argument("--selection", required=True)
+    s.add_argument("--set", required=True, choices=("B13a",))
+    s.add_argument("--out", required=True)
+    s.add_argument("--workers", type=int, default=6)
     s = sp.add_parser("dev")
     s.add_argument("--hours", required=True)
     s.add_argument("--out", required=True)
     s.add_argument("--workers", type=int, default=4)
     a = ap.parse_args()
     {"select-kucoin": cmd_select_kucoin, "build-binance": cmd_build_binance,
-     "dev": lambda x: cmd_dev(x)}[a.cmd](a)
+     "acquire-kucoin": cmd_acquire_kucoin, "dev": cmd_dev}[a.cmd](a)
 
 
 if __name__ == "__main__":

@@ -599,7 +599,8 @@ def load_deep_outcomes(sdir):
     return out
 
 
-def resolve_deep(row, ctx, now):
+def resolve_deep(row, ctx, now, extra=None):
+    """extra: {target name: fn(row) -> (status, info)} for targets added after D9 (D10 `membrane`)."""
     end = int(row["resolvesAt"])
     if now < end + C.RESOLVE_MARGIN:
         return None, "before origin + T + 15 min"
@@ -609,6 +610,8 @@ def resolve_deep(row, ctx, now):
            "xclose": truth_exchange(c["kidx"], c["lastOpen"], t, T_h, k, 1),
            "oracle": truth_oracle(c["logs"], c["logsCov"], t, T_h, float(row["L"]), float(row["S"]), a),
            "twap": truth_twap(c["m1"], c["m1LastClose"], c["kidx"], t, T_h, k)}
+    for name, fn in (extra or {}).items():
+        res[name] = fn(row)
     if any(s == "pending" for s, _ in res.values()) and now < end + GIVE_UP_AFTER:
         return None, "a target store does not yet cover origin + T"
     out = {x: row[x] for x in ("date", "origin", "asset", "T", "T_h", "k", "confirm", "S", "L", "resolvesAt",
@@ -672,10 +675,11 @@ def week_boot_p(ts, d, seed, B=BOOT_B):
     return QS.week_boot_p(ts, d, B=B, seed=seed)
 
 
-def summarize_deep(outcomes, rows, pending):
+def summarize_deep(outcomes, rows, pending, targets=TARGETS, target_def=None):
+    tdef = dict(TARGET_DEF, **(target_def or {}))
     out = {"schema": SCHEMA + "/summary", "prereg": PREREG, "display": "none (log only)",
            "nRows": len(rows), "nOutcomes": len(outcomes), "nPending": len(pending),
-           "targets": {t: TARGET_DEF[t] for t in TARGETS},
+           "targets": {t: tdef[t] for t in targets},
            "evidenceRule": {"test": "per (asset, T, target), pooled over the -15% and -20% rows: one-sided HAC "
                                     "(Newey-West Bartlett lag max(24 h, 2T), normal) and weekly block bootstrap (10,000 "
                                     "draws) on per-origin Brier differences of (fH) vs (f), (a) and (e); pass = mean d < 0 "
@@ -690,7 +694,7 @@ def summarize_deep(outcomes, rows, pending):
            "cells": {}}
     for a in ASSETS:
         for T in HORIZONS:
-            for ti, tgt in enumerate(TARGETS):
+            for ti, tgt in enumerate(targets):
                 rs_all = [o for o in outcomes if o["asset"] == a and o["T_h"] == T
                           and o["targets"][tgt]["status"] == "resolved"]
                 if not rs_all:
@@ -710,7 +714,7 @@ def summarize_deep(outcomes, rows, pending):
                                                     "hac_p": hac_p(d, HAC_LAG[T]),
                                                     "boot_p": week_boot_p(ts, d, BOOT_SEED + 100 * ti + 10 * ci + T)}
                     R = cell["pooled"]["fH"]["R"]
-                    need = EVIDENCE_DAYS[tgt][T]
+                    need = EVIDENCE_DAYS.get(tgt, {}).get(T)
                     due = need is not None and od >= need
                     passed = (all(cell["tests"][f"vs_{c}"]["mean_d"] < 0
                                   and (cell["tests"][f"vs_{c}"]["hac_p"] or 1) < ALPHA
@@ -718,6 +722,8 @@ def summarize_deep(outcomes, rows, pending):
                               and C.r_inside(R, *R_BAND) and cell["pooled"]["n_ep"] >= MIN_EPISODES)
                     cell["verdict"] = {"applied": bool(due and a == "ETH"), "pass": bool(passed),
                                        "originDaysNeeded": need}
+                    if tgt not in TARGETS:
+                        cell["verdict"]["reportOnly"] = True
                 out["cells"].setdefault(a, {}).setdefault(TL[T], {})[tgt] = cell
     return out
 
@@ -737,10 +743,38 @@ def build_ctx(ldir, kidx_by_asset):
     return ctx
 
 
-def score_deep(ldir, idir, sdir, kidx, now, http_get=None, logs_rpc=None, clock=time.time, log=print):
+def update_membrane_store(ldir, membrane_rpc=None, clock=time.time, log=print):
+    """D10: append the membrane-oracle store. A failure is logged and never stops the score."""
+    import q26_live_membrane as QM
+    rpc = membrane_rpc or C.RpcClient(urls=QM.RPC_URLS, max_batch=QM.RPC_BATCH, max_calls=5000)
+    try:
+        e = QM.update_store(rpc, ldir, clock=clock)
+        log(f"membrane store: {e['mode']} +{e['appendedTicks']} ticks +{e['appendedQuotes']} quotes "
+            f"(store {e['storeTicks']})")
+        chk = e.get("observeCheck") or {}
+        if chk.get("maxAbsDiffTicks") is not None:
+            log(f"membrane observe check: {chk['pools']} pools, max |diff| {chk['maxAbsDiffTicks']} ticks")
+        return e, None, rpc.stats()
+    except Exception as ex:  # noqa: BLE001
+        log("membrane store: FAILED")
+        return None, f"{type(ex).__name__}: {str(ex)[:160]}", rpc.stats()
+
+
+def score_deep(ldir, idir, sdir, kidx, now, http_get=None, logs_rpc=None, clock=time.time, log=print,
+               membrane=False, membrane_rpc=None):
     """Update the deep stores, resolve due deep rows (append-only deep-outcomes-YYYY-MM.jsonl), and return
-    (summary, new, pending, store report, store errors)."""
+    (summary, new, pending, store report, store errors). membrane=True (D10) adds the fifth target `membrane`."""
     rep, err = update_deep_stores(ldir, http_get=http_get, logs_rpc=logs_rpc, clock=clock, log=log)
+    extra, targets, tdef, m_rep = None, TARGETS, None, None
+    if membrane:
+        import q26_live_membrane as QM
+        m_entry, m_err, m_rpc = update_membrane_store(ldir, membrane_rpc=membrane_rpc, clock=clock, log=log)
+        if m_err:
+            err["membraneOracle"] = m_err
+        m_rep = {"update": m_entry, "rpc": m_rpc}
+        mctx = QM.build_ctx(ldir)
+        extra = {"membrane": lambda row: QM.truth_membrane(mctx, row)}
+        targets, tdef = TARGETS + ("membrane",), {"membrane": QM.TARGET_DEF}
     rows = load_deep_rows(idir)
     done = load_deep_outcomes(sdir)
     keys = {deep_key(o) for o in done}
@@ -749,7 +783,7 @@ def score_deep(ldir, idir, sdir, kidx, now, http_get=None, logs_rpc=None, clock=
     for r in rows:
         if deep_key(r) in keys:
             continue
-        o, why = resolve_deep(r, ctx, now)
+        o, why = resolve_deep(r, ctx, now, extra=extra)
         if o is None:
             pending.append(why)
             continue
@@ -758,7 +792,13 @@ def score_deep(ldir, idir, sdir, kidx, now, http_get=None, logs_rpc=None, clock=
         path = os.path.join(sdir, f"deep-outcomes-{C.utc_date(now)[:7]}.jsonl")
         C.append_bytes(path, "".join(json.dumps(C.clean(o), separators=(",", ":"), allow_nan=False) + "\n"
                                      for o in new).encode())
-    summ = summarize_deep(done + new, rows, pending)
+    summ = summarize_deep(done + new, rows, pending, targets=targets, target_def=tdef)
+    if membrane:
+        import q26_live_membrane as QM
+        summ["membrane"] = {"schema": QM.SCHEMA, "prereg": QM.PREREG, "oracleSource": QM.ORACLE_SRC,
+                            "firstOrigin": QM.FIRST_ORIGIN, "firstOriginIso": C.iso(QM.FIRST_ORIGIN),
+                            "routes": QM.ROUTES, "pools": QM.POOLS, "quoteFeeds": QM.QUOTE_FEEDS,
+                            "reportOnly": True, "store": m_rep}
     summ["storeUpdates"] = {k: v for k, v in rep.items() if k != "rpc"}
     summ["storeUpdateErrors"] = err
     summ["logsRpc"] = rep.get("rpc")

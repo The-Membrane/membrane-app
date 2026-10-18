@@ -23,6 +23,9 @@ Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3
 - Deep levels (HISTORY_TOUCH_LIVE.md D9; only with --deep-fh): q26_live_deep.score_deep appends the Binance 1 m kline
   and Chainlink AnswerUpdated stores, scores `deepRows` against four targets into scores/deep-outcomes-YYYY-MM.jsonl
   (append-only) and adds summary.json `deep`. A failed deep store update never stops the score.
+- Membrane oracle (HISTORY_TOUCH_LIVE.md D10; only with --deep-fh --membrane-oracle): q26_live_membrane appends the
+  membrane-oracle store (Uniswap V3 swap ticks, quote-feed answers) and the deep rows gain a fifth target `membrane`
+  (report only). A failed store update never stops the score.
 """
 import argparse
 import json
@@ -267,7 +270,8 @@ def _light(key, pairs, T):
                     rung=pairs[0][1] if pairs else None)
 
 
-def score(out_root, rpc, http_get=None, clock=time.time, code=None, log=print, deep_fh=False, logs_rpc=None):
+def score(out_root, rpc, http_get=None, clock=time.time, code=None, log=print, deep_fh=False, logs_rpc=None,
+          membrane=False, membrane_rpc=None):
     now = int(clock())
     ldir = C.live_dir(out_root)
     idir = C.issues_dir(ldir)
@@ -315,7 +319,8 @@ def score(out_root, rpc, http_get=None, clock=time.time, code=None, log=print, d
     if deep_fh:
         import q26_live_deep as QD
         d_summ, d_new, d_pend, _, d_err = QD.score_deep(ldir, idir, sdir, kidx, now, http_get=http_get,
-                                                        logs_rpc=logs_rpc, clock=clock, log=log)
+                                                        logs_rpc=logs_rpc, clock=clock, log=log,
+                                                        membrane=membrane, membrane_rpc=membrane_rpc)
         doc["deep"] = d_summ
     C.write_atomic(os.path.join(sdir, "summary.json"), C.dumps(doc))
     log(f"scored: {len(new)} new outcomes ({sum(o['status'] == 'resolved' for o in new)} resolved), "
@@ -336,12 +341,16 @@ def main(argv=None):
     ap.add_argument("--max-calls", type=int, default=20000, help="RPC call budget for this run")
     ap.add_argument("--deep-fh", action="store_true", help="D9: score the deep rows against four targets and append "
                     "the 1 m kline and AnswerUpdated stores")
+    ap.add_argument("--membrane-oracle", action="store_true", help="D10 (with --deep-fh): add the fifth deep target, "
+                    "Membrane's route-median Uniswap V3 oracle, and append its store")
     a = ap.parse_args(argv)
+    if a.membrane_oracle and not a.deep_fh:
+        raise SystemExit("STOP: --membrane-oracle needs --deep-fh")
     code = C.code_meta(expect_commit=a.expect_commit)
     if a.expect_commit and code["dirty"]:
         raise SystemExit(f"STOP: code files differ from the pinned commit: {code['dirty']}")
     rpc = C.RpcClient(max_calls=a.max_calls, log=lambda m: print(m, file=sys.stderr))
-    score(a.out, rpc, code=code, log=lambda *x: print(*x, flush=True), deep_fh=a.deep_fh)
+    score(a.out, rpc, code=code, log=lambda *x: print(*x, flush=True), deep_fh=a.deep_fh, membrane=a.membrane_oracle)
     return 0
 
 

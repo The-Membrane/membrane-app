@@ -205,9 +205,15 @@ class Client:
                                                   "fromBlock": hex(a), "toBlock": hex(b)}], need_logs=True, retries=4)
             except (RangeTooLarge, RpcError) as e:
                 if cur <= min_step:
-                    raise RpcError(f"getLogs {a}-{b} failed at min step: {e}")
+                    tries = getattr(self, "_min_tries", 0) + 1
+                    self._min_tries = tries
+                    if tries > 8:
+                        raise RpcError(f"getLogs {a}-{b} failed at min step: {e}")
+                    time.sleep(5 * tries)
+                    continue
                 cur = max(min_step, cur // 4)
                 continue
+            self._min_tries = 0
             logs.extend(res)
             a = b + 1
             if len(res) < 2000 and cur < step:

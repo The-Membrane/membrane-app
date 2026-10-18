@@ -347,7 +347,9 @@ def bybit_month(sym, key):
     body = http_get(BYBIT_ROOT + f"{sym}/{key}")
     h = hashlib.sha256(body).hexdigest()
     import pandas as pd
-    df = pd.read_csv(io.BytesIO(body), compression="gzip", usecols=["timestamp", "price", "volume"])
+    # from 2025-04 the rows carry a sixth field (rpi) under a five-name header: read by position, never by name
+    df = pd.read_csv(io.BytesIO(body), compression="gzip", header=None, skiprows=1, index_col=False,
+                     names=["id", "timestamp", "price", "volume", "side", "rpi"])[["timestamp", "price", "volume"]]
     del body
     n_raw = len(df)
     for c in ("timestamp", "price", "volume"):

@@ -495,6 +495,8 @@ def _bt_scaled_at(c, tokens, b, span):
     lg = c.get_logs(tokens, [T_BXFER], b, b + span, step=span + 1)
     for l in lg:
         rc = c.call("eth_getTransactionReceipt", [l["transactionHash"]], need_logs=True)
+        if not rc:
+            continue
         bt = words(l["data"])
         tr = [int(x["data"][:66], 16) for x in rc["logs"] if x["address"].lower() == l["address"].lower()
               and x["topics"][0] == T_ERC_TRANSFER and x["topics"][1:3] == l["topics"][1:3]]

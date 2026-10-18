@@ -5,6 +5,10 @@
 # D4 (membrane-board 0fd1020) adds the blind-5 basis file.
 # D8 (2026-10-18, membrane-board 4170235): short horizons 1 h / 3 h / 12 h with (fH), shallow levels, hourly origins
 #    inside the daily issue (--short-fh), scored inside the daily score job. Log only. Cron times unchanged.
+# D9 (2026-10-18, membrane-board 929cf6e): deep levels -15/-20% (-25% reported) at 12 h / 1 d / 3 d with (fH),
+#    ETH and BTC, hourly origins inside the daily issue (--deep-fh); the score job (--deep-fh) scores them against four
+#    touch targets and appends two new stores (Binance 1 m klines, Chainlink AnswerUpdated logs). Log only. Cron
+#    times, sparse lists and frozen inputs unchanged.
 #
 # Moved 2026-10-17 from the private triccs/membrane-datasets to this PUBLIC repo (owner ruling 2026-10-17:
 # free Actions minutes; the data library stays private). Schedules run only from `main`, so THIS FILE LIVES ON
@@ -51,7 +55,7 @@ concurrency:
 
 env:
   APP_REPO: The-Membrane/membrane-app
-  APP_SHA: cd2f4b34e5cf3e3bee6c0dd13c3d1554ac0647f7   # membrane-app research/history-forecasts, live/ code (model A6 + displayed rung + D8 short horizons)
+  APP_SHA: 54537cbaf7ec018cd9e62c8e76aafe421f9ee2f2   # membrane-app research/history-forecasts, live/ code (model A6 + displayed rung + D8 short horizons + D9 deep levels)
   DATASETS_REPO: triccs/membrane-datasets
   LIVE_DIR: forecasts/q26-touch-live
 
@@ -144,6 +148,7 @@ jobs:
             --display-a6 history-forecasts/a6/run-015512cb/display-a6.json \
             --display-a6-sha256 8e9086179ac40da1ec90976c5ba6a551c3893b002f0b7338a097a777a8362e62 \
             --short-fh \
+            --deep-fh \
             >"$out" 2>&1 || rc=$?
           # Public log: status and counts only. The run's own output is withheld and deleted.
           echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \
@@ -151,6 +156,7 @@ jobs:
           grep -E '^(rounds (ETH|BTC|stETH): (append|bootstrap) \+[0-9]+ \(store [0-9]+\)|binance [A-Z]+: \+[0-9]+ \(store [0-9]+\))$' "$out" || true
           sed -nE 's/^wrote .*; ([0-9]+) rows$/issued: \1 rows/p' "$out"
           grep -E '^short: [0-9]+ origins, [0-9]+ rows$' "$out" || true
+          grep -E '^deep: [0-9]+ origins, [0-9]+ rows$' "$out" || true
           rm -f "$out"
           exit "$rc"
 
@@ -161,11 +167,13 @@ jobs:
           out="$RUNNER_TEMP/q26-run.log"; rc=0
           python app/scripts/research/history-forecasts/live/q26_live_score.py \
             --out datasets --expect-commit "$APP_SHA" \
+            --deep-fh \
             >"$out" 2>&1 || rc=$?
           # Public log: status and counts only. The run's own output is withheld and deleted.
           echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \
                "FAILED $(grep -c 'FAILED' "$out" || true), Traceback $(grep -c '^Traceback' "$out" || true)"
           grep -E '^(rounds (ETH|BTC|stETH): (append|bootstrap) \+[0-9]+ \(store [0-9]+\)|binance [A-Z]+: \+[0-9]+ \(store [0-9]+\)|scored: [0-9]+ new outcomes \([0-9]+ resolved\), [0-9]+ pending, [0-9]+ outcomes in total from [0-9]+ issue files|short scored: [0-9]+ new outcomes \([0-9]+ resolved\), [0-9]+ pending, [0-9]+ outcomes in total)$' "$out" || true
+          grep -E '^(binance1m [A-Z]+: (\+[0-9]+ \(store [0-9]+\)|FAILED)|oraclelogs (ETH|BTC): ((bootstrap|append) \+[0-9]+ \(store [0-9]+\)|FAILED)|deep scored: [0-9]+ new outcomes, [0-9]+ pending, [0-9]+ outcomes in total, [0-9]+ store errors)$' "$out" || true
           rm -f "$out"
           exit "$rc"
 

@@ -62,7 +62,7 @@ class Client:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read())
 
-    def request(self, method, params, tries=10):
+    def request(self, method, params, tries=40):
         payload = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode()
         err = None
         for k in range(tries):
@@ -90,7 +90,7 @@ class Client:
                 err = e
                 with self.lock:
                     self.stats["errors"] += 1
-                time.sleep(min(2 + 2 * k, 20))
+                time.sleep(min(2 + 2 * k, 60))
         raise RpcError(f"{method} failed after {tries}: {err}")
 
     def batch(self, reqs, tries=10):

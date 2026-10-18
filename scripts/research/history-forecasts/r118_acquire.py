@@ -356,9 +356,17 @@ def phase_daily(market, work):
     done = [0]
     t0 = time.time()
 
+    failed = []
+
     def job(k):
         b = blocks[k][0]
-        r = read_day(rpc, m, b, chain_urls(chain, b))
+        try:
+            r = read_day(rpc, m, b, chain_urls(chain, b))
+        except RuntimeError as e:          # flaky endpoint: leave the day for the next (resuming) run
+            with lock:
+                failed.append(k)
+            print(f"daily {market}: {k} failed ({str(e)[:80]}); retry on the next run", flush=True)
+            return
         r["block"], r["block_ts"] = b, blocks[k][1]
         with lock:
             out[k] = r
@@ -372,6 +380,8 @@ def phase_daily(market, work):
     jdump(path, out)
     with open(os.path.join(work, f"rpc-daily-{market}.json"), "w") as f:
         json.dump(rpc.counts, f)
+    if failed:
+        print(f"daily {market}: INCOMPLETE {len(failed)} days failed; rerun to resume", flush=True)
     print(f"daily {market}: done {len(out)}; rpc {json.dumps(rpc.counts)}", flush=True)
 
 

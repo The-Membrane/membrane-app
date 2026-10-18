@@ -38,7 +38,7 @@ CHAINS = {
     "arbitrum": {"urls": ["https://arbitrum.gateway.tenderly.co", "https://gateway.tenderly.co/public/arbitrum"],
                  "first": dt.date(2022, 9, 1), "min_block": 22_207_818},          # Nitro genesis
     "optimism": {"urls": ["https://mainnet.optimism.io", "https://optimism.gateway.tenderly.co"],
-                 "first": dt.date(2022, 3, 12), "legacy_urls": ["https://mainnet.optimism.io"],
+                 "first": dt.date(2022, 3, 12), "legacy_urls": ["https://mainnet.optimism.io", "https://optimism.drpc.org"],
                  "bedrock": 105_235_063},
     "base": {"urls": ["https://mainnet.base.org", "https://base.gateway.tenderly.co", "https://base.drpc.org"],
              "first": dt.date(2023, 8, 8)},

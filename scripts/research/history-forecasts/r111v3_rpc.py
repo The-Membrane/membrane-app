@@ -174,6 +174,37 @@ def enc_u(n):
     return int(n).to_bytes(32, "big")
 
 
+def aggregate3_data(calls):
+    head = sel("aggregate3((address,bool,bytes)[])")
+    n = len(calls)
+    parts = []
+    for tgt, data in calls:
+        pad = data + bytes((32 - len(data) % 32) % 32)
+        parts.append(enc_addr(tgt) + enc_u(1) + enc_u(96) + enc_u(len(data)) + pad)
+    offs = []
+    pos = 32 * n
+    for p in parts:
+        offs.append(pos)
+        pos += len(p)
+    body = enc_u(32) + enc_u(n) + b"".join(enc_u(o) for o in offs) + b"".join(parts)
+    return "0x" + (head + body).hex()
+
+
+def aggregate3_decode(raw):
+    raw = bytes.fromhex(raw[2:])
+    w = lambda p: int.from_bytes(raw[p:p + 32], "big")
+    base = w(0)
+    m = w(base)
+    out = []
+    for i in range(m):
+        o = base + 32 + w(base + 32 + 32 * i)
+        ok = bool(w(o))
+        bo = o + w(o + 32)
+        ln = w(bo)
+        out.append((ok, raw[bo + 32:bo + 32 + ln]))
+    return out
+
+
 def aggregate3(client, calls, block):
     """calls = [(target, calldata bytes)] -> [(ok, bytes)] via Multicall3.aggregate3 (allowFailure)."""
     head = sel("aggregate3((address,bool,bytes)[])")

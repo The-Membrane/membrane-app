@@ -43,7 +43,8 @@ MARKETS = {
             "oracle": "0xb56c2f0b653b2e0b10c9b928c8580ac5df02c7c7", "start": 7_700_000,
             "end_ts": int(dt.datetime(2026, 10, 1, tzinfo=dt.timezone.utc).timestamp()),
             "usdc": ["0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", "0xaf88d065e77c8cc2239327c5edb3a432268e5831"],
-            "span": 1_000_000, "first_day": "2022-09-01", "min_state_block": 22_207_818},
+            "span": 1_000_000, "first_day": "2022-09-01", "min_state_block": 22_207_818,
+            "pap": "0xa97684ead0e402dc232d5a977953df7ecbab3cdb"},
 }
 T = {
     "Mint": X.topic("Mint(address,address,uint256,uint256,uint256)"),
@@ -326,6 +327,18 @@ def walk_sources(cl, oracle, assets, block):
     return res
 
 
+def sentinel_read(cl, pap, blk):
+    """PriceOracleSentinel (L2): address, grace period and the sequencer uptime feed's aggregator(s)."""
+    s = X.as_addr(X.word(X.aggregate3(cl, [(pap, X.sel("getPriceOracleSentinel()"))], blk)[0][1]))
+    if not s or not int(s, 16):
+        return {"present": False, "grace": 0, "seq_aggs": []}
+    o = X.aggregate3(cl, [(s, X.sel("getSequencerOracle()")), (s, X.sel("getGracePeriod()"))], blk)
+    so = X.as_addr(X.word(o[0][1]))
+    ag = X.aggregate3(cl, [(so, X.sel("aggregator()"))], blk)[0]
+    return {"present": True, "grace": X.word(o[1][1]),
+            "seq_aggs": [X.as_addr(X.word(ag[1]))] if ag[0] and len(ag[1]) == 32 else []}
+
+
 def phase_oracle(mk, work):
     m = MARKETS[mk]
     rs = jload(os.path.join(work, "reserves.json.gz"))
@@ -340,9 +353,13 @@ def phase_oracle(mk, work):
             lst = X.aggregate3(cl, [(m["pool"], X.sel("getReservesList()"))], blk)[0][1]
             n = X.word(lst, 1)
             assets = [X.as_addr(X.word(lst, 2 + i)) for i in range(n)]
-            walks.append({"ts": ts, "block": blk, "map": walk_sources(cl, m["oracle"], assets, blk)})
+            w = {"ts": ts, "block": blk, "map": walk_sources(cl, m["oracle"], assets, blk), "sentinel": None}
+            if m.get("pap"):
+                w["sentinel"] = sentinel_read(cl, m["pap"], blk)
+            walks.append(w)
         ts += 7 * 86400
-    aggs = sorted({g for w in walks for v in w["map"].values() for g in v["aggs"]})
+    aggs = sorted({g for w in walks for v in w["map"].values() for g in v["aggs"]}
+                  | {g for w in walks if w["sentinel"] for g in w["sentinel"]["seq_aggs"]})
     lc = X.Client(m["chain"], interval=0.1)
     lo, hi = walks[0]["block"], rs["end_block"]
     od = os.path.join(work, "oracle")
@@ -483,16 +500,23 @@ def phase_hourly(mk, work):
         p = os.path.join(hd, f"{day}.json.gz")
         if os.path.exists(p):
             return
-        rows = []
+        data = X.aggregate3_data([(m["oracle"], X.sel("getAssetPrice(address)") + X.enc_addr(a)) for a in allassets])
+        blks = []
         for h in by_day[day]:
             i = int(np.searchsorted(t, h, side="left")) - 1
-            blk = int(b[i])
-            calls = [(m["oracle"], X.sel("getAssetPrice(address)") + X.enc_addr(a)) for a in allassets]
-            res = X.aggregate3(cl, calls, blk)
-            bo = cl.request("eth_getBlockByNumber", [hex(blk), False])
+            blks.append(int(b[i]))
+        reqs = []
+        for blk in blks:
+            reqs += [("eth_call", [{"to": X.MULTICALL3, "data": data}, hex(blk)]),
+                     ("eth_getBlockByNumber", [hex(blk), False])]
+        res = cl.batch(reqs)
+        rows = []
+        for k, (h, blk) in enumerate(zip(by_day[day], blks)):
+            dec = X.aggregate3_decode(res[2 * k])
+            bo = res[2 * k + 1]
             rows.append({"hour": h, "block": blk, "ts": int(bo["timestamp"], 16),
                          "base_fee": int(bo.get("baseFeePerGas") or "0x0", 16),
-                         "prices": [X.word(r) if ok and len(r) == 32 else None for ok, r in res]})
+                         "prices": [X.word(r) if ok and len(r) == 32 else None for ok, r in dec]})
         jdump(p, {"date": day, "assets": allassets, "rows": rows})
 
     with ThreadPoolExecutor(6) as ex:

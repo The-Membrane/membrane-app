@@ -186,7 +186,10 @@ def daily_state(meta: dict, work: str, days: dict[int, int], holders: dict):
             out = os.path.join(d, f"{cm}-{ts}.json")
             if os.path.exists(out) or blk < v["deploy"]:
                 continue
-            users = sorted(holders[cm].get(str(ts), {}))
+            scale = {a["asset"].lower(): a["scale"] for a in v["assets"]}
+            # D6s: a holder with < 2e-5 ETH/BTC-equivalent of collateral cannot back $1 of debt; skip the call
+            users = sorted(u for u, h in (holders[cm].get(str(ts), {}) or {}).items()
+                           if sum(x / scale.get(a, 1) for a, x in h.items()) >= 2e-5)
             calls = [(cm, S_BFEED), (cm, S_RES), (cm, S_TRES), (cm, S_SFPF)]
             calls += [(cm, S_AINFO + enc_addr(a["asset"])) for a in keep]
             calls += [(cm, S_BB + enc_addr(u)) for u in users]

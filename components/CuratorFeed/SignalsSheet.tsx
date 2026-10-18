@@ -7,7 +7,7 @@
 // signalsView.ts from the API response only. The actions are design only on this branch:
 // each says what it would do and who can do it, and none signs or subscribes anything.
 
-import React from 'react'
+import React, { useRef } from 'react'
 import {
   Box,
   Drawer,
@@ -123,11 +123,10 @@ const Row: React.FC<{ row: SignalRow }> = ({ row }) => {
 
 /** A design-only action: a real button (focusable, announced) marked unavailable, with
  *  what it would do and who can do it beside it. */
-const DesignOnlyAction: React.FC<{ id: string; label: string; note: string; first: boolean }> = ({
+const DesignOnlyAction: React.FC<{ id: string; label: string; note: string }> = ({
   id,
   label,
   note,
-  first,
 }) => (
   <Box minW={0}>
     <Box
@@ -140,8 +139,8 @@ const DesignOnlyAction: React.FC<{ id: string; label: string; note: string; firs
       px={SPACING.sm}
       border="1px solid"
       borderRadius={0}
-      borderColor={first ? NEWS.danger : SEMANTIC_COLORS.borderStrong}
-      color={first ? NEWS.danger : SEMANTIC_COLORS.textPrimary}
+      borderColor={SEMANTIC_COLORS.borderStrong}
+      color={SEMANTIC_COLORS.textPrimary}
       bg="transparent"
       fontFamily={NEWS_FONT.mono}
       fontSize="12px"
@@ -164,13 +163,28 @@ export const SignalsSheet: React.FC<{
   title: string
   r: OracleGapResponse
   onClose: () => void
-}> = ({ m, title, r, onClose }) => {
+  /** The card title that opened the sheet: focus goes back to it on close, however the
+   *  card was opened (a tap on its body leaves focus nowhere). */
+  finalFocusRef?: React.RefObject<HTMLElement>
+}> = ({ m: open, title: openTitle, r, onClose, finalFocusRef }) => {
   const placement =
     useBreakpointValue<'bottom' | 'right'>({ base: 'bottom', md: 'right' }, { ssr: false }) ??
     'right'
+  // While the sheet animates out, m is already gone: keep showing the last market.
+  const last = useRef<{ m: OracleGapMarketView; title: string } | null>(null)
+  if (open) last.current = { m: open, title: openTitle }
+  const isOpen = !!open
+  const m = open ?? last.current?.m
+  const title = open ? openTitle : (last.current?.title ?? openTitle)
   const s = m ? marketSignals(m, r) : undefined
   return (
-    <Drawer isOpen={!!m} onClose={onClose} placement={placement} returnFocusOnClose>
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      placement={placement}
+      returnFocusOnClose
+      finalFocusRef={finalFocusRef}
+    >
       <DrawerOverlay />
       <DrawerContent
         data-news-tokens
@@ -210,7 +224,7 @@ export const SignalsSheet: React.FC<{
               Curator feed · market signals
             </Text>
             <Mono size="11px" color={SEMANTIC_COLORS.textSecondary}>
-              {title} · Ethereum
+              {title}
             </Mono>
           </Box>
           {s && (
@@ -261,20 +275,14 @@ export const SignalsSheet: React.FC<{
                 ))}
               </Box>
               <Grid
-                templateColumns={{ base: 'minmax(0, 1fr)', md: 'repeat(3, minmax(0, 1fr))' }}
+                templateColumns={{ base: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))' }}
                 gap={SPACING.sm}
                 mt={SPACING.lg}
                 role="group"
                 aria-label="Actions (design only)"
               >
-                {SIGNAL_ACTIONS.map((a, i) => (
-                  <DesignOnlyAction
-                    key={a.id}
-                    id={a.id}
-                    label={a.label}
-                    note={a.note}
-                    first={i === 0}
-                  />
+                {SIGNAL_ACTIONS.map((a) => (
+                  <DesignOnlyAction key={a.id} id={a.id} label={a.label} note={a.note} />
                 ))}
               </Grid>
               <Box

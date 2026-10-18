@@ -94,7 +94,10 @@ export function i3RecordLine(r: I3Record): string {
 
 /** "Q25 T2 · retrospective · FAIL overall, n = 3 incidents" */
 export const i3RecordTest = (r: I3Record): string =>
-  `${r.lane} ${r.test.split(/\s/)[0]} · retrospective · ${r.verdict} overall, n = ${r.incidentCount} incidents`
+  `Indicator record, all markets (${r.lane} ${r.test.split(/\s/)[0]}) · retrospective · ${r.verdict} overall, n = ${r.incidentCount} incidents`
+
+/** T2 scored the oracle ABOVE market only: below market the indicator is untested. */
+export const BELOW_UNTESTED = 'Not yet tested (T2 tested oracle above market only)'
 
 // ── rows ───────────────────────────────────────────────────────────────────────
 
@@ -125,16 +128,27 @@ function oracleRow(
           : 'no point at the newest run',
     }
   const s = cardState(m, c)
+  const below = s.dir === 'below'
+  // Above market the run is I3's, over the whole stored series. Below market it is read on
+  // the card's last 2 × persistence points: a run filling all of them is at least that.
+  const capped = below && m.series.length >= 2 * i3.persistence && s.hours >= m.series.length
+  const hours = capped ? `≥${m.series.length}` : String(s.hours)
+  const line1 = stateLine(s, c).replace(`${s.hours} h`, `${hours} h`)
+  const peg = m.loanSide
+    ? loanSideOff(m, c)
+      ? `collateral side · ${m.loanSymbol} valued at its peg here (it is off its peg: see below)`
+      : `collateral side · ${m.loanSymbol} valued at its peg`
+    : undefined
   return {
     ...base,
+    ...(below ? { record: BELOW_UNTESTED, recordSub: undefined, recordTitle: undefined } : {}),
     state: s.tone === 'neutral' ? 'off' : 'on',
-    now:
-      s.tone === 'neutral' ? gapText(i3.currentGap) : `${gapText(i3.currentGap)} for ${s.hours} h`,
+    now: s.tone === 'neutral' ? gapText(i3.currentGap) : `${gapText(i3.currentGap)} for ${hours} h`,
     nowSub: [
-      s.tone === 'neutral'
-        ? stateLine(s, c)
-        : `${stateLine(s, c)} · fires at ≥ ${line} for ${c.persistenceHours} h`,
-      ...(m.loanSide ? ['collateral side · loan token at its peg'] : []),
+      s.tone === 'neutral' || below
+        ? line1
+        : `${line1} · fires at ≥ ${line} for ${c.persistenceHours} h`,
+      ...(peg ? [peg] : []),
     ].join(' · '),
   }
 }
@@ -169,12 +183,17 @@ function peersRow(p: PeerMoves | undefined, symbol: string, now: number): Signal
           ? `feed from ${utc(from)}`
           : undefined
   const cuts = (n: number) => `${n} cut${n === 1 ? '' : 's'}`
-  const week =
+  const unknown = p.d7.directionUnknown
+    ? `${p.d7.directionUnknown} cap change${p.d7.directionUnknown === 1 ? '' : 's'}, direction unknown (not counted)`
+    : undefined
+  const week = [
     p.d7.count > 0
       ? `7 d: ${cuts(p.d7.count)} · ${names(p.d7.curators)}`
       : read7
         ? '7 d: none'
-        : '7 d: none in the part read'
+        : '7 d: none in the part read',
+    ...(unknown ? [unknown] : []),
+  ].join(' · ')
   if (p.h24.count > 0)
     return {
       ...base,
@@ -197,7 +216,7 @@ function peersRow(p: PeerMoves | undefined, symbol: string, now: number): Signal
   }
 }
 
-function pegRow(m: OracleGapMarketView, c: I3Constants): SignalRow {
+function pegRow(m: OracleGapMarketView, c: I3Constants, now: number): SignalRow {
   const line = thresholdText(c)
   const base = {
     id: 'peg' as const,
@@ -216,6 +235,15 @@ function pegRow(m: OracleGapMarketView, c: I3Constants): SignalRow {
       }
     return { ...base, state: 'unread', now: '░ not read at the newest point' }
   }
+  // The loan price is read with the market's point: a stale or unobserved market has no
+  // reading now, only its last one.
+  if (m.i3.state === 'stale' || m.i3.state === 'unobserved')
+    return {
+      ...base,
+      state: 'unread',
+      now: '░ not read at the newest point',
+      nowSub: `last reading ${gapText(l.gap)}${m.latest ? `, ${durationText(now - m.latest.ts)} old` : ''}`,
+    }
   const price =
     l.ref === 'USD'
       ? `${l.symbol} ${usdPrice(l.loanUsd / l.pegUsd)} vs $1`
@@ -230,7 +258,7 @@ function pegRow(m: OracleGapMarketView, c: I3Constants): SignalRow {
 
 const depositorsRow = (): SignalRow => ({
   id: 'depositors',
-  name: 'Top depositors likely to leave',
+  name: 'Top depositors leaving (forecast)',
   kind: 'forecast',
   state: 'withheld',
   now: DEPOSITORS_WITHHELD,
@@ -251,7 +279,7 @@ export function marketSignals(
   const rows = [
     oracleRow(m, r.constants, r.record, now),
     peersRow(r.peerMoves?.[m.collateral], m.collateralSymbol, now),
-    pegRow(m, r.constants),
+    pegRow(m, r.constants, now),
     depositorsRow(),
   ]
   const counted = rows.filter((x) => x.state === 'on' || x.state === 'off' || x.state === 'unread')
@@ -269,27 +297,22 @@ export function marketSignals(
 // ── the actions: design only on this branch ──────────────────────────────────
 
 export interface SignalAction {
-  id: 'freeze' | 'cap' | 'alert'
+  id: 'cap' | 'alert'
   label: string
   /** What it would do and who can do it. */
   note: string
 }
 
 /**
- * None is wired: the two curator / governance actions would sign transactions, and no
+ * None is wired: lowering a cap would sign a transaction, and no
  * alert on this branch carries this signal (Radar's alerts route venue alarms to tracked
  * addresses; oracle vs market is not one of them).
  */
 export const SIGNAL_ACTIONS: readonly SignalAction[] = [
   {
-    id: 'freeze',
-    label: 'Vote to freeze new borrowing',
-    note: 'Would put a stop on new borrowing to a governance vote. Who: governance voters. A Morpho Blue market has no freeze switch of its own.',
-  },
-  {
     id: 'cap',
     label: 'Lower your cap',
-    note: "Would cut your vault's supply cap on this market; a cut applies at once. Who: the vault's curator (or a Vault V2 sentinel).",
+    note: "Would cut your vault's supply cap on this market; a cut applies at once. Who: the vault's curator or owner (V1), or curator or sentinel (V2).",
   },
   {
     id: 'alert',

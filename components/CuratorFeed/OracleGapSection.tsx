@@ -27,7 +27,7 @@
 // the loan token against its peg, and the withheld depositor forecast, each with its
 // track record; the actions are design only.
 
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Box, HStack, Input, Link, Select, Stack, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 
@@ -362,7 +362,7 @@ const GapCard = memo(function GapCard({
   onWatch: (symbol: string) => void
   /** This card's signals sheet is open. */
   open: boolean
-  onOpen: (market: string) => void
+  onOpen: (market: string, trigger: HTMLElement | null) => void
 }) {
   const mark = gapMark(m, r)
   const hatched = m.i3.state === 'stale' || m.i3.state === 'unobserved'
@@ -412,7 +412,12 @@ const GapCard = memo(function GapCard({
       onClick={(e: React.MouseEvent<HTMLElement>) => {
         if ((e.target as HTMLElement).closest('button, a, summary, details > *:not(summary)'))
           return
-        onOpen(m.market)
+        onOpen(
+          m.market,
+          (e.currentTarget as HTMLElement).querySelector<HTMLElement>(
+            'button[aria-haspopup="dialog"]',
+          ),
+        )
       }}
       // On the warning fill every line takes the card's paper-coloured text.
       sx={
@@ -439,7 +444,7 @@ const GapCard = memo(function GapCard({
           aria-haspopup="dialog"
           aria-label={`${title}: market signals`}
           title={m.market}
-          onClick={() => onOpen(m.market)}
+          onClick={(e: React.MouseEvent<HTMLElement>) => onOpen(m.market, e.currentTarget)}
           textAlign="left"
           minH={{ base: '44px', md: 'auto' }}
           fontFamily={TYPOGRAPHY.fontMono}
@@ -775,7 +780,12 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
   const [curator, setCurator] = useState('')
   // The card whose market signals are open (its market id), or none.
   const [openId, setOpenId] = useState<string | null>(null)
-  const onOpen = useCallback((market: string) => setOpenId(market), [])
+  // The title button that opened it: focus returns there on close.
+  const trigger = useRef<HTMLElement | null>(null)
+  const onOpen = useCallback((market: string, el: HTMLElement | null) => {
+    trigger.current = el
+    setOpenId(market)
+  }, [])
   const viewer = useViewerAddress()
   const { starred, toggle: toggleStar } = useStarred()
   const targets = useMemo(() => exposureTargets(r.markets, r.vaults), [r.markets, r.vaults])
@@ -1010,6 +1020,7 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
         title={openMarket ? (titles.get(openMarket.market) ?? openMarket.marketName) : ''}
         r={r}
         onClose={() => setOpenId(null)}
+        finalFocusRef={trigger as React.RefObject<HTMLElement>}
       />
     </Box>
   )

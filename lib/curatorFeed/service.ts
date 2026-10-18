@@ -1277,6 +1277,9 @@ export const PEER_CUT_KINDS: ReadonlySet<ActionKind> = new Set<ActionKind>([
 export interface PeerWindow {
   /** Feed rows (deduped as the feed lists them) in the window. */
   count: number
+  /** V1 cap changes whose previous cap was not read (classify: "direction inferred"):
+   *  not counted as cuts. */
+  directionUnknown: number
   /** Distinct curator names, most rows first. */
   curators: string[]
 }
@@ -1290,6 +1293,11 @@ export interface PeerMoves {
 }
 
 const DAY = 86400
+
+/** A V1 cap event with no prior read: by the contract a cut or the acceptance of an older
+ *  raise (classify.ts), so its direction is not known. */
+const directionUnknown = (a: FeedAction): boolean =>
+  a.kind === 'cap_cut' && !!a.note?.startsWith('direction inferred')
 
 /**
  * Curator cuts on each collateral in the last 24 h and 7 d before `nowS`, from the feed's
@@ -1306,6 +1314,8 @@ export function peerMovesOf(
       .filter(
         (a) =>
           PEER_CUT_KINDS.has(a.kind) &&
+          // Aave cap changes are protocol governance, not a curator's.
+          a.protocol !== 'aave-v3' &&
           a.ts <= nowS &&
           a.ts > nowS - 7 * DAY &&
           a.collateral.some((c) => collaterals.has(c.toLowerCase())),
@@ -1314,14 +1324,16 @@ export function peerMovesOf(
     (a) => a,
     (a) => statusOf(a, nowS),
   )
-  const tally = (xs: FeedAction[]): PeerWindow => {
+  const tally = (all: FeedAction[]): PeerWindow => {
     const by = new Map<string, number>()
+    const xs = all.filter((a) => !directionUnknown(a))
     for (const a of xs) {
       const n = curatorLabel(feed.entities, a.vault)
       by.set(n, (by.get(n) ?? 0) + 1)
     }
     return {
       count: xs.length,
+      directionUnknown: all.length - xs.length,
       curators: [...by].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([n]) => n),
     }
   }

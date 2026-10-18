@@ -6,6 +6,7 @@ import {
   i3RecordTest,
   marketSignals,
   NOT_YET_TESTED,
+  BELOW_UNTESTED,
   SIGNAL_ACTIONS,
 } from '@/components/CuratorFeed/signalsView'
 import record from '@/lib/curatorFeed/i3Record.generated.json'
@@ -45,8 +46,8 @@ const mkt = (o: Partial<OracleGapMarketView> = {}): OracleGapMarketView => ({
 })
 
 const peers = (o: Partial<PeerMoves> = {}): PeerMoves => ({
-  h24: { count: 0, curators: [] },
-  d7: { count: 0, curators: [] },
+  h24: { count: 0, directionUnknown: 0, curators: [] },
+  d7: { count: 0, directionUnknown: 0, curators: [] },
   feedFromTs: NOW - 90 * 86400,
   feedToTs: NOW - 600,
   ...o,
@@ -71,7 +72,9 @@ describe('the record line comes from the generated T2 record', () => {
     expect(i3RecordLine(REC)).toBe(
       'Warned AZND 49d ahead · sdeUSD 6.7d (under 9 d) · not Oct 10 · 2 false alarms (stETH)',
     )
-    expect(i3RecordTest(REC)).toBe('Q25 T2 · retrospective · FAIL overall, n = 3 incidents')
+    expect(i3RecordTest(REC)).toBe(
+      'Indicator record, all markets (Q25 T2) · retrospective · FAIL overall, n = 3 incidents',
+    )
   })
 
   it('follows the record, not a constant: a changed record changes the line', () => {
@@ -108,7 +111,7 @@ describe('which signals are on', () => {
     expect(row.oracle.state).toBe('on')
     expect(row.oracle.now).toBe('+3.10% for 30 h')
     expect(row.oracle.nowSub).toBe(
-      '✖ fired · 30 h ≥ 2% above market · fires at ≥ 2% for 24 h · collateral side · loan token at its peg',
+      '✖ fired · 30 h ≥ 2% above market · fires at ≥ 2% for 24 h · collateral side · USDC valued at its peg',
     )
     expect(row.oracle.record).toBe(i3RecordLine(REC))
     expect(row.oracle.recordTitle).toBe(REC.test)
@@ -122,6 +125,28 @@ describe('which signals are on', () => {
     const { row } = byId(m, peers())
     expect(row.oracle.state).toBe('on')
     expect(row.oracle.now).toBe('−5.00% for 3 h')
+    // T2 scored above market only: no record borrowed, no "fires at".
+    expect(row.oracle.record).toBe(BELOW_UNTESTED)
+    expect(row.oracle.recordSub).toBeUndefined()
+    expect(row.oracle.nowSub).not.toMatch(/fires at/)
+  })
+
+  it('below market through the whole 48-point series: "≥48 h", not a capped 48', () => {
+    const m = mkt({
+      i3: { state: 'below', currentGap: -0.05, hoursAboveConsecutive: 0, persistence: 24 },
+      series: hourly(Array(48).fill(-0.05)),
+    })
+    const { row } = byId(m, peers())
+    expect(row.oracle.now).toBe('−5.00% for ≥48 h')
+    expect(row.oracle.nowSub).toMatch(/^✖ fired · ≥48 h ≥ 2% below market/)
+  })
+
+  it('above market the hours are I3’s full run, past the 48-point series', () => {
+    const m = mkt({
+      i3: { state: 'fired', currentGap: 0.03, hoursAboveConsecutive: 88, persistence: 24 },
+      series: hourly(Array(48).fill(0.03)),
+    })
+    expect(byId(m, peers()).row.oracle.now).toBe('+3.00% for 88 h')
   })
 
   it('stale or unobserved oracle: not read, never off', () => {
@@ -138,15 +163,16 @@ describe('which signals are on', () => {
     expect(row.oracle.state).toBe('unread')
     expect(row.oracle.now).toBe('░ not measured now')
     expect(row.oracle.nowSub).toBe('last point 5h old')
-    expect(s.headline).toBe('0 of 3 signals on for this market · 1 not read now')
+    // The peg row's reading is from the same stale point: not read either.
+    expect(s.headline).toBe('0 of 3 signals on for this market · 2 not read now')
   })
 
   it('peer cuts in 24 h: on, count and names from the feed', () => {
     const { s, row } = byId(
       mkt(),
       peers({
-        h24: { count: 2, curators: ['Steakhouse', 'Gauntlet'] },
-        d7: { count: 3, curators: ['Steakhouse', 'Gauntlet', 'MEV Capital'] },
+        h24: { count: 2, directionUnknown: 0, curators: ['Steakhouse', 'Gauntlet'] },
+        d7: { count: 3, directionUnknown: 0, curators: ['Steakhouse', 'Gauntlet', 'MEV Capital'] },
       }),
     )
     expect(row.peers.state).toBe('on')
@@ -192,7 +218,27 @@ describe('which signals are on', () => {
     expect(row.peg.nowSub).toBe('msUSD $0.885 vs $1 · DefiLlama spot')
     expect(row.peg.record).toBe(NOT_YET_TESTED)
     // The oracle row says its figure is collateral-side.
-    expect(row.oracle.nowSub).toMatch(/collateral side · loan token at its peg$/)
+    // The oracle row says its figure values msUSD at the peg, and that msUSD is off it.
+    expect(row.oracle.nowSub).toMatch(
+      /collateral side · msUSD valued at its peg here \(it is off its peg: see below\)$/,
+    )
+  })
+
+  it('a stale or unobserved market: the loan reading is its last one, not now', () => {
+    for (const state of ['stale', 'unobserved'] as const) {
+      const m = mkt({
+        i3: { state, hoursAboveConsecutive: 0, persistence: 24, lastTs: NOW - 5 * H },
+        latest: { ts: NOW - 5 * H, oracleUsd: 1, marketUsd: 1 },
+        loanSide: { symbol: 'msUSD', ref: 'USD', loanUsd: 0.885, pegUsd: 1, gap: -0.115 },
+      })
+      const { s, row } = byId(m, peers())
+      expect(row.peg).toMatchObject({
+        state: 'unread',
+        now: '░ not read at the newest point',
+        nowSub: 'last reading −11.50%, 5h old',
+      })
+      expect(s.on).toBe(0)
+    }
   })
 
   it('a pegged loan token with no stored reading: not read; no peg on file: does not apply', () => {
@@ -213,12 +259,11 @@ describe('which signals are on', () => {
 })
 
 describe('the actions are design only', () => {
-  it('three, each with what it would do and who', () => {
-    expect(SIGNAL_ACTIONS.map((a) => a.label)).toEqual([
-      'Vote to freeze new borrowing',
-      'Lower your cap',
-      'Alert me',
-    ])
+  it('two (no freeze: a Morpho Blue market has no lever for it), each with what and who', () => {
+    expect(SIGNAL_ACTIONS.map((a) => a.label)).toEqual(['Lower your cap', 'Alert me'])
+    expect(SIGNAL_ACTIONS[0].note).toMatch(
+      /Who: the vault's curator or owner \(V1\), or curator or sentinel \(V2\)\./,
+    )
     for (const a of SIGNAL_ACTIONS) expect(a.note.length).toBeGreaterThan(20)
     expect(SIGNAL_ACTIONS.filter((a) => a.id !== 'alert').every((a) => /Who:/.test(a.note))).toBe(
       true,
@@ -271,10 +316,31 @@ describe('peer moves from the feed', () => {
       act({ vault: V1, ts: NOW + H }), // after the clock (a pinned replay)
     ])
     const p = peerMovesOf(f, new Set([COLL]), NOW)[COLL]
-    expect(p.h24).toEqual({ count: 2, curators: ['Gauntlet', 'Steakhouse'] })
-    expect(p.d7).toEqual({ count: 3, curators: ['Gauntlet', 'Steakhouse'] })
+    expect(p.h24).toEqual({ count: 2, directionUnknown: 0, curators: ['Gauntlet', 'Steakhouse'] })
+    expect(p.d7).toEqual({ count: 3, directionUnknown: 0, curators: ['Gauntlet', 'Steakhouse'] })
     expect(p.feedFromTs).toBe(NOW - 30 * 86400)
     expect(p.feedToTs).toBe(NOW - 60)
+  })
+
+  it('Aave cap cuts are governance, not curators: not counted', () => {
+    const f = feed([
+      act({ protocol: 'aave-v3', kind: 'cap_cut', capType: 'supply', ts: NOW - H }),
+      act({ protocol: 'aave-v3', kind: 'cap_cut', capType: 'borrow', ts: NOW - 2 * H }),
+    ])
+    const p = peerMovesOf(f, new Set([COLL]), NOW)[COLL]
+    expect(p.h24).toEqual({ count: 0, directionUnknown: 0, curators: [] })
+  })
+
+  it('a V1 cap change with the direction inferred is not a cut: counted apart', () => {
+    const f = feed([
+      act({ ts: NOW - H, note: 'direction inferred: previous cap not read' }),
+      act({ vault: V2, ts: NOW - 2 * H }),
+    ])
+    const p = peerMovesOf(f, new Set([COLL]), NOW)[COLL]
+    expect(p.h24).toEqual({ count: 1, directionUnknown: 1, curators: ['Gauntlet'] })
+    const { row } = byId(mkt(), p)
+    expect(row.peers.now).toBe('1 cut in 24 h')
+    expect(row.peers.nowSub).toMatch(/1 cap change, direction unknown \(not counted\)/)
   })
 
   it('a collateral with no cuts still gets a row (zero, with the feed span)', () => {

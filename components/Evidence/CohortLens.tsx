@@ -39,6 +39,15 @@ const legs = (xs: [string, number | null][]) =>
   xs.map(([sym, v]) => (v == null ? sym : `${usd(v)} ${sym}`)).join(' + ')
 
 /** The cure column's state, one place. */
+/**
+ * Membrane's t0 LTV: the real LTV with the debt sized to Membrane's line (memDebtUsd / debtUsd,
+ * per half for a split position; unpriced: memLine / protocolLine, exact for one leg).
+ */
+const memLtv0 = (r: CohortRow) =>
+  r.debtUsd != null && r.debtUsd > 0 && r.memDebtUsd != null
+    ? (r.ltv0 * r.memDebtUsd) / r.debtUsd
+    : (r.ltv0 * r.line) / r.protocolLine
+
 const cureState = (r: CohortRow): { text: string; color: string } => {
   if (!r.cure || r.cure.noWindow) return { text: '—', color: SEMANTIC_COLORS.textTertiary }
   if (r.cure.healthyAt8h && r.cure.curedInWindow)
@@ -79,8 +88,9 @@ const Detail: React.FC<{ r: CohortRow }> = ({ r }) => {
           lineHeight="1.9"
         >
           At its first liquidation ({minuteClock(r.t0Minute)}) it held {legs(r.coll)} against{' '}
-          {legs(r.debt)}, at {pct(r.ltv0, 2)} LTV against Membrane&rsquo;s {pct(r.line, 2)} line†
-          (the protocol&rsquo;s own: {pct(r.protocolLine, 2)}).{' '}
+          {legs(r.debt)}, at {pct(r.ltv0, 2)} LTV against the protocol&rsquo;s{' '}
+          {pct(r.protocolLine, 2)} line. A Membrane borrower at Membrane&rsquo;s {pct(r.line, 2)}{' '}
+          line† carries the debt sized to it: {pct(memLtv0(r), 2)} LTV†, as far past.{' '}
           {r.priced ? (
             <>
               The protocol liquidated it {times}, repaying {usd(r.realRepaidUsd)}
@@ -327,7 +337,7 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
                     fontSize={TYPOGRAPHY.xs}
                     color={SEMANTIC_COLORS.textTertiary}
                   >
-                    {pct(r.ltv0, 1)} / {pct(r.line, 1)}
+                    {pct(memLtv0(r), 1)} / {pct(r.line, 1)}
                   </Text>
                   <Text
                     fontFamily={TYPOGRAPHY.fontMono}

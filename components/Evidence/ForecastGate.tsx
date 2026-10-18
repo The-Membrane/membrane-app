@@ -120,7 +120,7 @@ export const ForecastGate: React.FC<ForecastGateProps> = ({
             lineHeight="1.7"
           >
             {right
-              ? `That intuition is the skill this page teaches. The lenses below carry the evidence, including the ${membraneMore.toLocaleString('en-US')} positions where our engine closes more.`
+              ? `That intuition is the skill this page teaches. The lenses below carry the evidence, including the ${membraneMore.toLocaleString('en-US')} positions where our engine closes a larger share of its debt.`
               : 'Most people guess low. Liquidation sounds like a trim, and it takes most of the loan. Carry that gap into the lenses below.'}
           </Text>
         </VStack>

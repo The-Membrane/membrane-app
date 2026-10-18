@@ -85,7 +85,7 @@ const LENSES: {
       'Every position is here and filterable — including the ones where Membrane does worse. Check the claim rather than taking it.',
     metric: (d) => d.meta.positions.toLocaleString('en-US'),
     caption: (d) =>
-      `real positions · ${d.debt.all.more.toLocaleString('en-US')} where Membrane closes more`,
+      `real positions · ${d.debt.all.more.toLocaleString('en-US')} where Membrane closes a larger share`,
   },
 ]
 

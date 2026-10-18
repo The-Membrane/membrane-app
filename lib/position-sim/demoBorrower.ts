@@ -98,7 +98,8 @@ export const DEMO_BORROWER_MEASURED: MeasuredCensus = {
   aaveClosedFrac: fixture.censusAaveClosedFrac,
   membraneClosedFrac: fixture.censusMembraneClosedFrac,
   t0Index: fixture.censusT0Index,
-  line: fixture.row.liqLine,
+  // the line the census walked Membrane at (its own since 2026-10-18), not Aave's
+  line: fixture.row.memLine ?? fixture.row.liqLine,
   eligibleCount: fixture.eligibleCount,
   pool: fixture.selectionPool,
 }
@@ -112,7 +113,7 @@ export interface MeasuredCensus {
   /** Share of ITS OWN, line-sized t0 debt Membrane closes (†). The census compares these. */
   membraneClosedFrac?: number
   t0Index: number
-  /** The census row's own liquidation line. */
+  /** The line the census row walks Membrane at: Membrane's own (modelled †). */
   line?: number
   /** How many census positions cleared every selection gate (the winner is the best). */
   eligibleCount?: number

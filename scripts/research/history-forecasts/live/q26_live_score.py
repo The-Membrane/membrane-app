@@ -20,6 +20,9 @@ Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3
 - Short horizons (HISTORY_TOUCH_LIVE.md D8): issue files with `shortRows` are scored by q26_live_short.score_short
   into scores/short-outcomes-YYYY-MM.jsonl (append-only) and summary.json `short` (per-level and per-month R, HAC
   lag 24 h and weekly block bootstrap p, vs (f) and (a)). Without short rows the summary is unchanged.
+- Deep levels (HISTORY_TOUCH_LIVE.md D9; only with --deep-fh): q26_live_deep.score_deep appends the Binance 1 m kline
+  and Chainlink AnswerUpdated stores, scores `deepRows` against four targets into scores/deep-outcomes-YYYY-MM.jsonl
+  (append-only) and adds summary.json `deep`. A failed deep store update never stops the score.
 """
 import argparse
 import json
@@ -264,7 +267,7 @@ def _light(key, pairs, T):
                     rung=pairs[0][1] if pairs else None)
 
 
-def score(out_root, rpc, http_get=None, clock=time.time, code=None, log=print):
+def score(out_root, rpc, http_get=None, clock=time.time, code=None, log=print, deep_fh=False, logs_rpc=None):
     now = int(clock())
     ldir = C.live_dir(out_root)
     idir = C.issues_dir(ldir)
@@ -309,12 +312,20 @@ def score(out_root, rpc, http_get=None, clock=time.time, code=None, log=print):
     s_summ, s_new, s_pend = QS.score_short(idir, sdir, rounds, kidx, coverage, now)
     if s_summ["nRows"] or s_summ["nOutcomes"]:
         doc["short"] = s_summ
+    if deep_fh:
+        import q26_live_deep as QD
+        d_summ, d_new, d_pend, _, d_err = QD.score_deep(ldir, idir, sdir, kidx, now, http_get=http_get,
+                                                        logs_rpc=logs_rpc, clock=clock, log=log)
+        doc["deep"] = d_summ
     C.write_atomic(os.path.join(sdir, "summary.json"), C.dumps(doc))
     log(f"scored: {len(new)} new outcomes ({sum(o['status'] == 'resolved' for o in new)} resolved), "
         f"{len(pending)} pending, {len(allo)} outcomes in total from {len(files)} issue files")
     if s_summ["nRows"] or s_summ["nOutcomes"]:
         log(f"short scored: {len(s_new)} new outcomes ({sum(o['status'] == 'resolved' for o in s_new)} resolved), "
             f"{len(s_pend)} pending, {s_summ['nOutcomes']} outcomes in total")
+    if deep_fh:
+        log(f"deep scored: {len(d_new)} new outcomes, {len(d_pend)} pending, {d_summ['nOutcomes']} outcomes in total, "
+            f"{len(d_err)} store errors")
     return doc, new
 
 
@@ -323,12 +334,14 @@ def main(argv=None):
     ap.add_argument("--out", required=True, help="root that holds forecasts/q26-touch-live/")
     ap.add_argument("--expect-commit", default=None, help="refuse unless the code checkout is at this commit")
     ap.add_argument("--max-calls", type=int, default=20000, help="RPC call budget for this run")
+    ap.add_argument("--deep-fh", action="store_true", help="D9: score the deep rows against four targets and append "
+                    "the 1 m kline and AnswerUpdated stores")
     a = ap.parse_args(argv)
     code = C.code_meta(expect_commit=a.expect_commit)
     if a.expect_commit and code["dirty"]:
         raise SystemExit(f"STOP: code files differ from the pinned commit: {code['dirty']}")
     rpc = C.RpcClient(max_calls=a.max_calls, log=lambda m: print(m, file=sys.stderr))
-    score(a.out, rpc, code=code, log=lambda *x: print(*x, flush=True))
+    score(a.out, rpc, code=code, log=lambda *x: print(*x, flush=True), deep_fh=a.deep_fh)
     return 0
 
 

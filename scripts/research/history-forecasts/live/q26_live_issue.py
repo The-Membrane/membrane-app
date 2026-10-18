@@ -4,7 +4,7 @@
   python3 q26_live_issue.py --datasets <membrane-datasets> --out <root> [--expect-commit <sha>]
       [--frozen-a5 <rel> --frozen-a5-sha256 <sha> [--basis-final <rel> --basis-final-sha256 <sha>]
        [--frozen-a6 <rel> --frozen-a6-sha256 <sha> [--basis-final-a6 <rel> --basis-final-a6-sha256 <sha>]
-        [--display-a6 <rel> --display-a6-sha256 <sha>]]] [--short-fh]
+        [--display-a6 <rel> --display-a6-sha256 <sha>]]] [--short-fh] [--deep-fh]
 
 Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3c61, sha256 8961eb5c...).
 
@@ -36,6 +36,9 @@ Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3
   at 1 h, 3 h and 12 h on the validated shallow levels, at hourly origins inside this daily issue (q26_live_short.py).
   The file adds the block `short` (before nRows) and the list `shortRows` (after rows); every other field is
   byte-identical to a run without the flag. Log only: nothing is displayed.
+- Deep levels (HISTORY_TOUCH_LIVE.md D9, owner approval 2026-10-18; only with --deep-fh): (fH), (f), (a) and (e) at
+  12 h, 1 d and 3 d for -15% / -20% (-25% reported), ETH and BTC, hourly origins (q26_live_deep.py). The file adds the
+  block `deep` (before nRows) and the list `deepRows` (last); every other field is byte-identical. Log only.
 """
 import os
 
@@ -98,7 +101,7 @@ def last_frozen_hour_check(rounds, asset, fc):
 
 def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=None, code=None, log=print,
           frozen_a5=None, basis_final=None, frozen_a6=None, basis_final_a6=None, display_a6=None,
-          short_fh=False, short_forecaster=None):
+          short_fh=False, short_forecaster=None, deep_fh=False, deep_forecaster=None):
     """One live issue. `clock`, the transports and `forecaster` are injectable for the offline tests only;
     the CLI always uses the real wall clock, the public endpoints and the A3 refit (model A5: plus fbL).
     frozen_a5 / basis_final: None, or (path relative to datasets, sha256) -- model A5 when frozen_a5 is given."""
@@ -264,6 +267,22 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
         log(f"short: {len(origins)} origins, {len(srows)} rows")
     else:
         data = C.dumps_with_rows(doc)
+    if deep_fh:
+        import q26_live_deep as QD
+        prev_last_d = QD.prev_deep_origin(idir)
+        origins_d = QD.batch_origins(asof, prev_last_d)
+        t2 = time.time()
+        dfc = (deep_forecaster or QD.deep_forecasts)(datasets, upto_asof, asof, origins_d, log=log)
+        drows = QD.deep_rows(dfc, upto_asof, origins_d, issued_at)
+        dblock = QD.deep_block(dfc, origins_d, drows, prev_last_d)
+        dblock["modelSeconds"] = round(time.time() - t2, 1)
+        tail = [k for k in ("nRows", "rows", "shortRows") if k in doc]
+        doc = {**{k: doc[k] for k in doc if k not in tail}, "deep": dblock, **{k: doc[k] for k in tail}}
+        body = {k: doc[k] for k in doc}
+        data = QS.dumps_issue(body) if short_fh else C.dumps_with_rows(body)
+        data = QD.append_deep_rows(data, drows)
+        doc["deepRows"] = drows
+        log(f"deep: {len(origins_d)} origins, {len(drows)} rows")
     path = os.path.join(idir, date + ".json")
     try:
         C.write_exclusive(path, data)
@@ -295,6 +314,8 @@ def main(argv=None):
     ap.add_argument("--display-a6-sha256", default=None, help="A6 D3: the registered sha256 of that file")
     ap.add_argument("--short-fh", action="store_true", help="D8: (fH)/(f)/(a) at 1 h, 3 h, 12 h, shallow levels, "
                     "hourly origins inside this issue (log only)")
+    ap.add_argument("--deep-fh", action="store_true", help="D9: (fH)/(f)/(a)/(e) at 12 h, 1 d, 3 d, -15/-20/-25%%, "
+                    "ETH and BTC, hourly origins inside this issue (log only)")
     a = ap.parse_args(argv)
     if (a.frozen_a5 is None) != (a.frozen_a5_sha256 is None):
         raise SystemExit("STOP: --frozen-a5 and --frozen-a5-sha256 go together")
@@ -321,7 +342,8 @@ def main(argv=None):
           basis_final=(a.basis_final, a.basis_final_sha256) if a.basis_final else None,
           frozen_a6=(a.frozen_a6, a.frozen_a6_sha256) if a.frozen_a6 else None,
           basis_final_a6=(a.basis_final_a6, a.basis_final_a6_sha256) if a.basis_final_a6 else None,
-          display_a6=(a.display_a6, a.display_a6_sha256) if a.display_a6 else None, short_fh=a.short_fh)
+          display_a6=(a.display_a6, a.display_a6_sha256) if a.display_a6 else None, short_fh=a.short_fh,
+          deep_fh=a.deep_fh)
     return 0
 
 

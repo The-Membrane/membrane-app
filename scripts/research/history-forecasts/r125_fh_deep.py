@@ -347,11 +347,12 @@ def bybit_month(sym, key):
     body = http_get(BYBIT_ROOT + f"{sym}/{key}")
     h = hashlib.sha256(body).hexdigest()
     import pandas as pd
-    df = pd.read_csv(io.BytesIO(body), compression="gzip", usecols=["timestamp", "price", "volume"], dtype=str)
+    df = pd.read_csv(io.BytesIO(body), compression="gzip", usecols=["timestamp", "price", "volume"])
     del body
     n_raw = len(df)
     for c in ("timestamp", "price", "volume"):
-        df[c] = pd.to_numeric(df[c], errors="coerce")
+        if not pd.api.types.is_numeric_dtype(df[c]):
+            df[c] = pd.to_numeric(df[c], errors="coerce")
     df = df.dropna()                                        # malformed rows are dropped and counted
     df = df[(df["price"] > 0)]
     bad = n_raw - len(df)

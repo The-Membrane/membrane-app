@@ -397,3 +397,82 @@ def replay(meta: dict, work: str, days: dict[int, int], only_days: set | None = 
             em[r[3]] = r[4]
     flush_until(10**12)
     json.dump(sorted(uid, key=uid.get), open(os.path.join(work, "users.json"), "w"))
+
+
+def gho_fix(meta: dict, work: str, days: dict[int, int]):
+    """GHO on Aave Core: GhoVariableDebtToken applies the stkAAVE discount by burning scaled balance with no
+    event, so the replay overstates GHO debt. For every day, read balanceOf(user) on the GHO debt token for
+    every account the replay shows with GHO debt, and replace that account's GHO debt in the records.
+    Records are rewritten in place; a marker file makes the step idempotent."""
+    import numpy as np
+    gi = [i for i, r in enumerate(meta["reserves"]) if r["symbol"].upper() == "GHO"]
+    if not gi:
+        return
+    gi = gi[0]
+    vtok = meta["reserves"][gi]["vDebt"]
+    mark = os.path.join(work, "gho-fix.json")
+    done = json.load(open(mark)) if os.path.exists(mark) else {}
+    c = Client(meta["chain"])
+    uid = {u: i for i, u in enumerate(json.load(open(os.path.join(work, "users.json"))))}
+    V: dict[str, int] = {}
+    sched = sorted((b, ts) for ts, b in days.items() if b >= meta["pool_deploy_block"])
+    si = 0
+    sel_bal = selector("balanceOf(address)")
+    stats = {"days": 0, "accounts": 0, "abs_usd_fixed": 0.0}
+
+    def fix(ts, blk):
+        p = os.path.join(work, "positions", f"{ts}.npy")
+        if str(ts) in done or not os.path.exists(p):
+            return
+        users = [u for u, s in V.items() if s > 0 and u in uid]
+        st = json.load(open(os.path.join(work, "state", f"{ts}.json")))
+        rs = st["reserves"].get(str(gi))
+        if not users or not rs or rs["price"] is None:
+            done[str(ts)] = 0
+            return
+        px = int(rs["price"]) / 1e8
+        vdi = int(rs["vdebt"])
+        res = c.multicall([(vtok, sel_bal + enc_addr(u)) for u in users], blk, chunk=300)
+        arr = np.load(p)
+        pos = {int(x): k for k, x in enumerate(arr["user"])}
+        dec = meta["reserves"][gi]["decimals"]
+        n = 0
+        for u, r in zip(users, res):
+            if r is None or uid[u] not in pos:
+                continue
+            k = pos[uid[u]]
+            real = int.from_bytes(r[:32], "big") / 10 ** dec * px
+            rep = ray_mul(V[u], vdi) / 10 ** dec * px
+            delta = real - rep
+            if abs(delta) < 1e-9:
+                continue
+            arr["DO"][k] = max(0.0, arr["DO"][k] + delta)
+            if abs(arr["DmaxO"][k] - rep) < 1e-6 * max(1.0, rep) or arr["DmaxO"][k] < real:
+                arr["DmaxO"][k] = max(real, arr["DmaxO"][k] + min(0.0, delta))
+            dt = arr["DE"][k] + arr["DB"][k] + arr["DO"][k]
+            num = arr["ltE"][k] * arr["VE"][k] + arr["ltB"][k] * arr["VB"][k] + arr["ltO"][k] * arr["VO"][k]
+            arr["hf"][k] = num / dt if dt > 0 else np.inf
+            n += 1
+            stats["abs_usd_fixed"] += abs(delta)
+        np.save(p, arr)
+        done[str(ts)] = n
+        stats["days"] += 1
+        stats["accounts"] += n
+        if stats["days"] % 50 == 0:
+            json.dump(done, open(mark, "w"))
+
+    for r in iter_logs(work):
+        blk = r[0]
+        while si < len(sched) and sched[si][0] < blk:
+            fix(sched[si][1], sched[si][0])
+            si += 1
+        if r[2] in ("vM", "vB") and r[3] == gi:
+            d = ray_div(abs(r[5]), r[6]) * (1 if r[5] >= 0 else -1)
+            if r[2] == "vB":
+                d = -d
+            V[r[4]] = V.get(r[4], 0) + d
+    while si < len(sched):
+        fix(sched[si][1], sched[si][0])
+        si += 1
+    json.dump(done, open(mark, "w"))
+    print(f"[{meta['market']}] gho fix", stats, flush=True)

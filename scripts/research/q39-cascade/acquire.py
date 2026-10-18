@@ -70,6 +70,8 @@ def main():
             aave.daily_state(meta, w, days)
         if "replay" in ph:
             aave.replay(meta, w, days)
+        if "gho" in ph or ("replay" in ph and meta["market"] in ("aave-core-eth", "aave-prime-eth")):
+            aave.gho_fix(meta, w, days)
     elif a.what == "morpho":
         import morpho
         w = os.path.join(WORK, f"morpho-{a.chain}")

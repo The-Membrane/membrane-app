@@ -681,5 +681,105 @@ def test():
     print(json.dumps({x: (a["verdict"], a["bss_vs_plain"], a["bss_vs_plain_ci90"]) for x, a in out["assets"].items()}))
 
 
+# --------------------------------------------------------------------------------- reported, not deciding
+def _logscore(p, y):
+    p = min(max(p, 1e-9), 1 - 1e-9)
+    return float(np.log(p) if y else np.log(1 - p))
+
+
+def stress():
+    """C.7.3: both models at the 00:00 origins E - 1 d and E for every stress case with data. Failures first."""
+    cfg = json.load(open(os.path.join(RES, "frozen-config.json")))
+    out = []
+    for name, date in MD.STRESS.items():
+        E = MD.ts_of(date)
+        for asset in ("eth", "btc"):
+            lab, S, sig = _labels(asset, E - 86400, E)
+            F = features(asset, [E - 86400, E], cfg, sig)
+            for t in (E - 86400, E):
+                if t not in F:
+                    out.append({"case": name, "asset": asset, "origin": t, "status": "no density snapshot (outside venue data)"})
+                    continue
+                cells = []
+                for T in MD.HORIZONS:
+                    for d in MD.LEVELS:
+                        if (t, d, T) not in lab:
+                            continue
+                        pb = cfg["p0"][asset][f"{d}|{T}"]["p"]
+                        pc = _predict(asset, F, cfg["p0"][asset], cfg["beta"][f"{asset}|{T}"], "c", d, T, t)
+                        y = lab[(t, d, T)]
+                        cells.append({"d": d, "T": T, "y": y, "plain": pb, "cascade": float(pc),
+                                      "lead": F[t]["c"][d], "dlog": _logscore(pc, y) - _logscore(pb, y)})
+                tot = float(sum(c["dlog"] for c in cells))
+                out.append({"case": name, "asset": asset, "origin": t, "cells": cells, "sum_dlog": tot,
+                            "status": "pass" if tot > 0 else ("tie" if tot == 0 else "fail")})
+    order = {"fail": 0, "tie": 1, "pass": 2}
+    out.sort(key=lambda r: (order.get(r["status"], 3), r["case"], r["asset"], r["origin"]))
+    save("stress.json", out)
+    for r in out:
+        print(r["case"], r["asset"], r["origin"], r["status"], r.get("sum_dlog"))
+
+
+def mech():
+    """C.7.2 density and impact checks; C.8 delay persistence."""
+    cfg = json.load(open(os.path.join(RES, "frozen-config.json")))
+    ev = liq_events()
+    res = {}
+    for asset, cls in (("eth", "E"), ("btc", "B")):
+        st, close, low = MD.load_series(DATASETS, asset)
+        real = {}
+        for e in ev:
+            if e["cls"] == cls and e["kind"] in ("liq", "absorb") and e["ts"] >= 1672531200:
+                real[day_of(e["ts"])] = real.get(day_of(e["ts"]), 0.0) + (e["usd_day"] if np.isfinite(e["usd_day"]) else 0)
+        rows = []
+        for dts, usd in sorted(real.items()):
+            z = load_sched(dts)
+            if z is None or usd < 1e5:
+                continue
+            sched, caps, _ = z
+            i = (dts - st) // 3600
+            if i - 1 < 0 or i + 24 > len(low):
+                continue
+            S0 = close[i - 1]
+            lo = np.nanmin(low[i:i + 24])
+            g = lo / S0
+            k = int(min(CS.NG - 1, max(0, round((1 - g) / 0.001))))
+            pred = 0.0
+            for key, sc in sched.items():
+                pred += sc.get("abs" + cls, sc.get(cls))[k]
+            rows.append({"day": dts, "realized": usd, "predicted": float(pred), "move": float(g - 1),
+                         "span": "dev" if dts < MD.TEST_START else "test", "stress": MD.stress_purged(dts, 0)})
+        err = [abs(r["predicted"] - r["realized"]) / r["realized"] for r in rows]
+        res[asset] = {"density_days": len(rows), "median_abs_rel_err": float(np.median(err)) if err else None,
+                      "share_within_25pct": float(np.mean([x <= 0.25 for x in err])) if err else None,
+                      "rows": rows}
+        # impact out of sample
+        s_v = cfg["s_v"]
+        ep = [r for r in impact_episodes(asset, s_v, span=()) if r["t"] >= MD.TEST_START
+              and not MD.stress_purged(r["day"], 0)]
+        if ep:
+            Yt, lo_, hi_, nd = _boot_ratio(ep, lambda r: -r["sigma"] * np.sqrt(r["Q"]), lambda r: r["r"])
+            res[asset]["impact_test"] = {"Yp_test": Yt, "ci90": [lo_, hi_], "n_episodes": len(ep), "n_days": nd,
+                                         "Yp_dev": cfg["impact"][asset]["Yp"]}
+        # C.8 persistence of 5% bucket mass across 24 h (test span)
+        num = den = 0.0
+        for t in range(MD.TEST_START, MD.DATA_END - 86400, 86400):
+            a, b = load_sched(t - 86400), load_sched(t)
+            if a is None or b is None:
+                continue
+            def buckets(z):
+                tot = np.zeros(CS.NG)
+                for key, sc in z[0].items():
+                    tot += sc.get("abs" + cls, sc.get(cls))
+                edges = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600]
+                return np.diff(tot[edges])
+            ma, mb = buckets(a), buckets(b)
+            num += np.minimum(ma, mb).sum()
+            den += ma.sum()
+        res[asset]["persistence_24h"] = num / den if den else None
+    save("mech.json", res)
+    print(json.dumps({a: {k: v for k, v in r.items() if k != "rows"} for a, r in res.items()}, indent=1, default=float))
+
+
 if __name__ == "__main__":
     globals()[sys.argv[1].replace("-", "_")]()

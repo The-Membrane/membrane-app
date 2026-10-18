@@ -103,7 +103,7 @@ def schedule(rec: np.ndarray, kind: str, fM: float = 1.0) -> dict:
             # an account left with no collateral stops (Aave burns the deficit)
             dead = (VE + VB + VO) <= 1e-6
             alive &= ~dead
-        for c in cum:
+        for c in out:
             out[c][k] = cum[c]
     return out
 
@@ -154,8 +154,8 @@ def lead(o: np.ndarray, d: float) -> float:
     hit = np.where(final <= 1.0 - d + 1e-12)[0]
     if len(hit) == 0:
         return 0.0
-    m_star = 1.0 - GRID[hit[0]]
-    return max(0.0, d - m_star)
+    m_star = hit[0] / 1000.0
+    return max(0.0, round(d - m_star, 6))
 
 
 # ------------------------------------------------------------------------------- naive baseline (C.5.4)

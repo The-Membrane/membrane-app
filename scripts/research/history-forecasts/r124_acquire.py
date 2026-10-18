@@ -159,8 +159,10 @@ def phase_meta(work):
                 res = rpc.batch([("eth_call", [{"to": pool, "data": "0x" + SIG_LIST.hex()}, "latest"])])[0]
                 w = A.words(res)
                 lists[inst] = ["0x" + x.to_bytes(32, "big")[12:].hex() for x in w[2:]] if w else []
-            syms = rpc.batch([("eth_call", [{"to": a, "data": "0x" + SIG_SYMBOL.hex()}, "latest"])
-                              for a in lists[inst]])
+            syms = []
+            for i in range(0, len(lists[inst]), 5):     # small batches: some keyless endpoints refuse large ones
+                syms += rpc.batch([("eth_call", [{"to": a, "data": "0x" + SIG_SYMBOL.hex()}, "latest"])
+                                   for a in lists[inst][i:i + 5]])
             hits = [a for a, h in zip(lists[inst], syms) if decode_string(h) == sym]
             rec["check_listed"] = len(hits) == 1
             if len(hits) == 1:

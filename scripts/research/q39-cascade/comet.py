@@ -180,12 +180,15 @@ def daily_state(meta: dict, work: str, days: dict[int, int], holders: dict):
     c = Client(meta["chain"])
     d = os.path.join(work, "state")
     os.makedirs(d, exist_ok=True)
+    from concurrent.futures import ThreadPoolExecutor
     for cm, v in meta["comets"].items():
         keep = [a for a in v["assets"] if a["cls"] in ("E", "B")]
-        for ts, blk in sorted(days.items()):
+
+        def one_day(item, cm=cm, v=v, keep=keep):
+            ts, blk = item
             out = os.path.join(d, f"{cm}-{ts}.json")
             if os.path.exists(out) or blk < v["deploy"]:
-                continue
+                return
             scale = {a["asset"].lower(): a["scale"] for a in v["assets"]}
             # D6s: a holder with < 2e-5 ETH/BTC-equivalent of collateral cannot back $1 of debt; skip the call
             users = sorted(u for u, h in (holders[cm].get(str(ts), {}) or {}).items()
@@ -193,7 +196,7 @@ def daily_state(meta: dict, work: str, days: dict[int, int], holders: dict):
             calls = [(cm, S_BFEED), (cm, S_RES), (cm, S_TRES), (cm, S_SFPF)]
             calls += [(cm, S_AINFO + enc_addr(a["asset"])) for a in keep]
             calls += [(cm, S_BB + enc_addr(u)) for u in users]
-            res = c.multicall(calls, blk, chunk=200)
+            res = c.multicall(calls, blk, chunk=400)
             st = {"block": blk, "assets": {}, "bb": {}}
             bfeed = to_addr(words(res[0])[0]) if res[0] else None
             st["reserves"] = signed(words(res[1])[0]) if res[1] else None
@@ -223,6 +226,9 @@ def daily_state(meta: dict, work: str, days: dict[int, int], holders: dict):
                         info["px"] = words(r)[0] / 1e8
             json.dump(st, open(out + ".tmp", "w"))
             os.replace(out + ".tmp", out)
+
+        with ThreadPoolExecutor(4) as ex:
+            list(ex.map(one_day, sorted(days.items())))
     print(f"[comet-{meta['chain']}] daily state done (rpc {c.n_requests})", flush=True)
 
 

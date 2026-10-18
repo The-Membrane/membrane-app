@@ -19,8 +19,7 @@ ENDPOINTS = {
                  "https://arb1.arbitrum.io/rpc"],
     # Polygon PoS (R11.1-v4, D-R11.1k): the Tenderly gateway serves logs with blockTimestamp, 100,000-block spans and
     # archive state from the Aave V3 Pool deployment (block 25,826,028); publicnode refuses archive reads (HTTP 403)
-    "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon",
-                "https://polygon.api.onfinality.io/public", "https://rpc-mainnet.matic.quiknode.pro"],
+    "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"],
 }
 # archive eth_call: arb1.arbitrum.io holds no archive state (D-R11.9a inventory note)
 CALL_ENDPOINTS = {

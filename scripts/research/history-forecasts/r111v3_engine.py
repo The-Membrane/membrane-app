@@ -38,6 +38,13 @@ def jload(path):
         return json.load(f)
 
 
+def check_ts(arrs):
+    """R11.1-v4: every input timestamp must be positive (D-R11.1j: 0 defaults on Arbitrum)."""
+    bad = {k: int((np.asarray(v) <= 0).sum()) for k, v in arrs.items() if len(v) and (np.asarray(v) <= 0).any()}
+    if bad:
+        raise RuntimeError(f"non-positive timestamps in inputs: {bad}")
+
+
 def _parts(d):
     return sorted(os.listdir(d), key=lambda x: int(x.split(".")[0]))
 
@@ -112,6 +119,9 @@ class Inputs:
         for k in [k for k in self.pool if k.startswith("rdu_")]:
             self.pool[k] = self.pool[k][o]
         self.rdu_key = self.pool["rdu_block"] * 1_000_000 + self.pool["rdu_lidx"]
+        # R11.1-v4 (D-R11.1j): a zero timestamp accrues decades of interest and breaks the hour lookup; refuse it
+        check_ts({"tok.ts": self.tok["ts"], "pool.rdu_ts": self.pool["rdu_ts"], "pool.f_ts": self.pool["f_ts"],
+                  "pool.e_ts": self.pool["e_ts"]})
 
     def load_oracle(self):
         w = jload(os.path.join(self.work, "oracle-walk.json.gz"))
@@ -123,6 +133,7 @@ class Inputs:
             bl.append(z["block"]); li.append(z["lidx"]); ts.append(z["ts"]); ag.append(z["agg"]); an.append(z["answer"])
         self.ora = {"block": np.concatenate(bl), "lidx": np.concatenate(li), "ts": np.concatenate(ts),
                     "agg": np.concatenate(ag), "answer": np.concatenate(an)}
+        check_ts({"oracle.ts": self.ora["ts"]})
         # driver aggregators per asset per weekly walk (asset index -> list of aggregator ids)
         aidx = {a: i for i, a in enumerate(self.aggs)}
         self.walk_blocks = [x["block"] for x in self.walks]

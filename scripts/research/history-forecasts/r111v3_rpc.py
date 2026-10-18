@@ -17,16 +17,22 @@ ENDPOINTS = {
     "ethereum": ["https://mainnet.gateway.tenderly.co", "https://gateway.tenderly.co/public/mainnet"],
     "arbitrum": ["https://arbitrum.gateway.tenderly.co", "https://gateway.tenderly.co/public/arbitrum",
                  "https://arb1.arbitrum.io/rpc"],
+    # Polygon PoS (R11.1-v4, D-R11.1k): the Tenderly gateway serves logs with blockTimestamp, 100,000-block spans and
+    # archive state from the Aave V3 Pool deployment (block 25,826,028); publicnode refuses archive reads (HTTP 403)
+    "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"],
 }
 # archive eth_call: arb1.arbitrum.io holds no archive state (D-R11.9a inventory note)
 CALL_ENDPOINTS = {
     "ethereum": ["https://mainnet.gateway.tenderly.co", "https://eth.drpc.org", "https://rpc.mevblocker.io"],
     "arbitrum": ["https://arbitrum.gateway.tenderly.co", "https://gateway.tenderly.co/public/arbitrum"],
+    "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"],
 }
 # hourly reads spread over more keyless archive endpoints (no batch on nodies); block headers from the full nodes
 HOURLY_CALL_ENDPOINTS = {"arbitrum": ["https://arbitrum.gateway.tenderly.co", "https://gateway.tenderly.co/public/arbitrum",
-                                      "https://arbitrum-one.public.blastapi.io", "https://arb-pokt.nodies.app"]}
-HEADER_ENDPOINTS = {"arbitrum": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one.publicnode.com"]}
+                                      "https://arbitrum-one.public.blastapi.io", "https://arb-pokt.nodies.app"],
+                         "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"]}
+HEADER_ENDPOINTS = {"arbitrum": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one.publicnode.com"],
+                    "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"]}
 MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11"
 
 
@@ -47,7 +53,8 @@ class Client:
         self.lock = threading.Lock()
         self.last = 0.0
         self.i = 0
-        self.stats = {"requests": 0, "errors": 0, "splits": 0, "logs": 0}
+        self.stats = {"requests": 0, "errors": 0, "splits": 0, "logs": 0, "ts_filled": 0}
+        self._hdr_ts = {}
 
     def _pace(self):
         with self.lock:
@@ -147,7 +154,29 @@ class Client:
                 self.stats["logs"] += len(res)
             out.extend(res)
         out.sort(key=lambda x: (int(x["blockNumber"], 16), int(x["logIndex"], 16)))
+        self.fill_ts(out)
         return out
+
+    def header_ts(self, block):
+        """Block timestamp from the block header (cached). Raises on a missing or zero timestamp."""
+        if block not in self._hdr_ts:
+            h = self.request("eth_getBlockByNumber", [hex(block), False])
+            ts = int((h or {}).get("timestamp") or "0x0", 16)
+            if ts <= 0:
+                raise RpcError(f"header of block {block} has no timestamp")
+            with self.lock:
+                self._hdr_ts[block] = ts
+        return self._hdr_ts[block]
+
+    def fill_ts(self, logs):
+        """R11.1-v4 (D-R11.1j/k): some keyless endpoints omit blockTimestamp. Never default it to 0: fill every
+        missing one from the block header, then check that every log carries a positive timestamp."""
+        for x in logs:
+            if not x.get("blockTimestamp") or int(x["blockTimestamp"], 16) <= 0:
+                x["blockTimestamp"] = hex(self.header_ts(int(x["blockNumber"], 16)))
+                with self.lock:
+                    self.stats["ts_filled"] += 1
+        return logs
 
 
 # ---------------------------------------------------------------------------------------------

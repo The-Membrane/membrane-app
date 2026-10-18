@@ -12,8 +12,13 @@ simulated volume, outcome comparison or score is computed here.
   python3 r111v3_acquire.py liq      --market M --work DIR    Pool LiquidationCall logs (Arbitrum: locked file,
                                                               counts printed only)
 
-Markets: core (Aave V3 Ethereum Core, development period D only) and arb (Aave V3 Arbitrum, blind set L1).
+Markets: core (Aave V3 Ethereum Core, development period D only), arb (Aave V3 Arbitrum, blind set L1) and poly
+(Aave V3 Polygon, L1-secondary confirmation set of R11.1-v4, D-R11.1k).
 Free keyless JSON-RPC only. Addresses stay inside --work (never published).
+
+R11.1-v4 (D-R11.1j/k): a missing blockTimestamp is never defaulted to 0. The RPC client fills it from the block
+header and every compacted row is checked (log_ts raises on a missing or non-positive timestamp). The block lookup
+(ts_to_block_fn) is built from the event (block, header timestamp) pairs and must be monotonic.
 """
 from __future__ import annotations
 
@@ -45,6 +50,12 @@ MARKETS = {
             "usdc": ["0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", "0xaf88d065e77c8cc2239327c5edb3a432268e5831"],
             "span": 1_000_000, "first_day": "2022-09-01", "min_state_block": 22_207_818,
             "pap": "0xa97684ead0e402dc232d5a977953df7ecbab3cdb"},
+    # R11.1-v4 confirmation set (D-R11.1k): Pool code from block 25,826,028 (2022-03-11); no PriceOracleSentinel
+    "poly": {"chain": "polygon", "pool": "0x794a61358d6845594f94dc1db02a252b5b4814ad",
+             "oracle": "0xb023e699f5a33916ea823a16485e259257ca8bd1", "start": 25_826_028,
+             "end_ts": int(dt.datetime(2026, 10, 1, tzinfo=dt.timezone.utc).timestamp()),
+             "usdc": ["0x2791bca1f2de4661ed88a30c99a7a9449aa84174", "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359"],
+             "span": 100_000, "first_day": "2022-03-15", "pap": "0xa97684ead0e402dc232d5a977953df7ecbab3cdb"},
 }
 T = {
     "Mint": X.topic("Mint(address,address,uint256,uint256,uint256)"),
@@ -89,6 +100,15 @@ def npsave(path, **arrs):
 def words(data):
     raw = bytes.fromhex(data[2:])
     return [int.from_bytes(raw[i:i + 32], "big") for i in range(0, len(raw), 32)]
+
+
+def log_ts(lg):
+    """Header timestamp of a log. R11.1-v4: never 0 (the client fills a missing one from the header)."""
+    v = lg.get("blockTimestamp")
+    ts = int(v, 16) if v else 0
+    if ts <= 0:
+        raise RuntimeError(f"log without a block timestamp at block {int(lg['blockNumber'], 16)}")
+    return ts
 
 
 def t_addr(t):
@@ -147,7 +167,7 @@ def compact_token(logs, tok_map):
     def put(lg, res, kind, user, delta, prin=0.0, rate=0.0):
         B.append(int(lg["blockNumber"], 16))
         L.append(int(lg["logIndex"], 16))
-        TS.append(int(lg["blockTimestamp"], 16) if lg.get("blockTimestamp") else 0)
+        TS.append(log_ts(lg))
         RS.append(res)
         K.append(kind)
         U.append(uid(user))
@@ -204,7 +224,7 @@ def compact_pool(logs, res_idx):
     for lg in logs:
         t0 = lg["topics"][0]
         b, li = int(lg["blockNumber"], 16), int(lg["logIndex"], 16)
-        ts = int(lg["blockTimestamp"], 16) if lg.get("blockTimestamp") else 0
+        ts = log_ts(lg)
         if t0 == T["RDU"]:
             r = res_idx.get(t_addr(lg["topics"][1]))
             if r is None:
@@ -278,16 +298,34 @@ def phase_logs(mk, work, threads=4):
 
 # ---------------------------------------------------------------------------------------------
 def ts_to_block_fn(work):
-    """Block lookup from the held pool-event timestamps (any block with an event at or before ts)."""
+    """Block lookup from the held event (block, header timestamp) pairs: pool events and token logs.
+    R11.1-v4 (D-R11.1j): every timestamp must be positive, one block has one timestamp, and timestamps must not
+    decrease with the block number. f(ts) = the last held block with timestamp <= ts."""
     bl, tl = [], []
-    for name in sorted(os.listdir(os.path.join(work, "pool")), key=lambda x: int(x.split(".")[0])):
-        z = np.load(os.path.join(work, "pool", name))
-        bl.append(z["rdu_block"])
-        tl.append(z["rdu_ts"])
+    for sub, pairs in (("pool", [("rdu_block", "rdu_ts"), ("f_block", "f_ts"), ("e_block", "e_ts")]),
+                       ("tok", [("block", "ts")])):
+        d = os.path.join(work, sub)
+        if not os.path.isdir(d):
+            continue
+        for name in os.listdir(d):
+            z = np.load(os.path.join(d, name))
+            for kb, kt in pairs:
+                if kb in z.files and len(z[kb]):
+                    bl.append(z[kb])
+                    tl.append(z[kt])
     b = np.concatenate(bl)
     t = np.concatenate(tl)
-    o = np.argsort(b)
+    if (t <= 0).any():
+        raise RuntimeError(f"{int((t <= 0).sum())} event rows with a non-positive timestamp")
+    o = np.lexsort((t, b))
     b, t = b[o], t[o]
+    keep = np.ones(len(b), dtype=bool)
+    keep[1:] = b[1:] != b[:-1]
+    if (t[1:][~keep[1:]] != t[:-1][~keep[1:]]).any():
+        raise RuntimeError("one block with two timestamps")
+    b, t = b[keep], t[keep]
+    if (np.diff(t) < 0).any():
+        raise RuntimeError(f"timestamps decrease with the block number at {int((np.diff(t) < 0).sum())} places")
 
     def f(ts):
         i = int(np.searchsorted(t, ts, side="right")) - 1
@@ -375,7 +413,7 @@ def phase_oracle(mk, work):
         lg = lc.logs(aggs, [T["Answer"]], s, min(s + span - 1, hi))
         npsave(p, block=np.array([int(x["blockNumber"], 16) for x in lg], np.int64),
                lidx=np.array([int(x["logIndex"], 16) for x in lg], np.int32),
-               ts=np.array([int(x.get("blockTimestamp") or "0x0", 16) for x in lg], np.int64),
+               ts=np.array([log_ts(x) for x in lg], np.int64),
                agg=np.array([aidx[x["address"].lower()] for x in lg], np.int16),
                answer=np.array([float(int(x["topics"][1], 16) - (1 << 256) if int(x["topics"][1], 16) >> 255
                                       else int(x["topics"][1], 16)) for x in lg]))
@@ -521,7 +559,10 @@ def phase_hourly(mk, work):
                 dec = None
             if dec is None:
                 raise RuntimeError(f"hourly multicall undecodable at {blk}")
-            rows.append({"hour": h, "block": blk, "ts": int(bo["timestamp"], 16),
+            hts = int(bo["timestamp"], 16)
+            if not (0 < hts < h):
+                raise RuntimeError(f"hourly read block {blk} has header ts {hts} not before hour {h}")
+            rows.append({"hour": h, "block": blk, "ts": hts,
                          "base_fee": int(bo.get("baseFeePerGas") or "0x0", 16),
                          "prices": [X.word(r) if ok and len(r) == 32 else None for ok, r in dec]})
         jdump(p, {"date": day, "assets": allassets, "rows": rows})
@@ -650,7 +691,7 @@ def phase_bt(mk, work):
 
     def one(s0):
         lg = cl.logs(sorted(atok), [[T["BalanceTransfer"]]], s0, min(s0 + span - 1, end))
-        raw[s0] = [(int(x["blockNumber"], 16), int(x["logIndex"], 16), int(x.get("blockTimestamp") or "0x0", 16),
+        raw[s0] = [(int(x["blockNumber"], 16), int(x["logIndex"], 16), log_ts(x),
                     x["address"].lower(), t_addr(x["topics"][1]), t_addr(x["topics"][2]), words(x["data"])[0],
                     words(x["data"])[1], x["transactionHash"]) for x in lg]
 
@@ -712,10 +753,10 @@ def phase_liq(mk, work):
     for x in lg:
         w = words(x["data"])
         rows.append({"block": int(x["blockNumber"], 16), "log_index": int(x["logIndex"], 16),
-                     "ts": int(x.get("blockTimestamp") or "0x0", 16), "tx": x["transactionHash"],
+                     "ts": log_ts(x), "tx": x["transactionHash"],
                      "collateral": t_addr(x["topics"][1]), "debt": t_addr(x["topics"][2]), "user": t_addr(x["topics"][3]),
                      "debtToCover": w[0], "collateralAmount": w[1], "receiveAToken": w[3]})
-    name = "liq-LOCKED.json.gz" if mk == "arb" else "liq.json.gz"
+    name = "liq.json.gz" if mk == "core" else "liq-LOCKED.json.gz"
     jdump(os.path.join(work, name), {"rows": rows})
     usdc = set(m["usdc"])
     n_u = sum(r["debt"] in usdc for r in rows)

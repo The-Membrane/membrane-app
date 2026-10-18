@@ -591,11 +591,12 @@ def phase_debt(mk, work):
     tokens = {r["asset"]: r for r in rs["reserves"]}
     tmap = stable_tokens(work)
     anchors = jload(os.path.join(work, "anchors.json.gz"))
-    cl = X.Client(m["chain"], interval=0.1, calls=True)
+    cl = X.Client(m["chain"], interval=0.05, calls=True)
+    cl.urls = list(X.HOURLY_CALL_ENDPOINTS.get(m["chain"], cl.urls))
     out = {}
     keys = sorted(anchors)
-    for i in range(0, len(keys), 25):
-        chunk = keys[i:i + 25]
+    for i in range(0, len(keys), 1):
+        chunk = keys[i:i + 1]
         reqs, meta = [], []
         for k in chunk:
             md = jload(os.path.join(work, "meta", f"{k}.json.gz"))
@@ -607,7 +608,7 @@ def phase_debt(mk, work):
                 calls.append((own or tokens[u]["vDebt"], X.sel("totalSupply()") if own else X.sel("decimals()")))
                 meta.append((k, u, bool(own)))
             reqs.append(("eth_call", [{"to": X.MULTICALL3, "data": X.aggregate3_data(calls)}, hex(anchors[k])]))
-        res = cl.batch(reqs)
+        res = [cl.request(mth, prm) for mth, prm in reqs]
         j = 0
         for k, raw in zip(chunk, res):
             dec = X.aggregate3_decode(raw)

@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildHolderView, curatedVaults, CUT_KINDS, isCut, WEEK_S } from '@/lib/curatorFeed/holder'
+import {
+  aboveDust,
+  buildHolderView,
+  curatedVaults,
+  CUT_KINDS,
+  isCut,
+  judgeRead,
+  MAX_FAILED_CALL_SHARE,
+  WEEK_S,
+  type ChunkResult,
+} from '@/lib/curatorFeed/holder'
+import { HOLDER_IP_LIMIT, singleFlight, WINDOW_MS, WindowCounter } from '@/lib/curatorFeed/holderLimits'
 import type { FeedFile } from '@/lib/curatorFeed/store'
 import type { ActionKind, Entities, FeedAction, Scope } from '@/lib/curatorFeed/types'
-import { CURATORS_COPY, curatorsHeadline, curatorsView, dayMonth, MAX_DOTS, MAX_VAULT_ROWS } from '@/components/Today/curatorsView'
+import { CURATORS_COPY, curatorsHeadline, curatorsView, dayMonth, dayRange, MAX_DOTS, MAX_VAULT_ROWS } from '@/components/Today/curatorsView'
 import type { HolderResponse } from '@/pages/api/curator-feed/holder'
 
 // ── fixture: three curated vaults, one Aave configurator, a week of actions ─────
@@ -161,6 +172,31 @@ describe('buildHolderView: filtered to the reader’s own vaults', () => {
     expect(v.vaults).toEqual([])
   })
 
+  it('counts cuts as distinct (vault, target) marks, so the headline matches the dots', () => {
+    const twice = { ...feed, actions: [act(STEAK, 'cap_cut', H, M1), act(STEAK, 'cap_zero', 2 * H, M1), act(STEAK, 'cap_cut', 3 * H, M2)] }
+    const v = buildHolderView(twice, [STEAK])!
+    expect(v.changes).toBe(3)
+    expect(v.cuts).toBe(2)
+    expect(v.vaults[0].targets.filter((t) => t.cut)).toHaveLength(v.cuts)
+  })
+
+  it('a vault-level cut (adapter cap) is a filled square and counts once per target', () => {
+    const AD = id(900)
+    const adapter = {
+      ...feed,
+      actions: [
+        act(STEAK, 'cap_cut', H, AD, 'adapter', 'morpho-v1'),
+        act(STEAK, 'cap_zero', 2 * H, AD, 'adapter', 'morpho-v1'),
+        act(STEAK, 'cap_raise', 3 * H, id(901), 'adapter', 'morpho-v1'),
+      ],
+    }
+    const v = buildHolderView(adapter, [STEAK])!
+    expect(v.vaults[0].targets).toEqual([])
+    expect(v.vaults[0].vaultWideCuts).toBe(1)
+    expect(v.vaults[0].vaultWide).toBe(1)
+    expect(v.cuts).toBe(1)
+  })
+
   it('curatedVaults lists every MetaMorpho / Vault V2 / Euler Earn vault the feed knows', () => {
     expect(curatedVaults(feed)).toEqual([OTHER, GAUNT, STEAK].sort())
   })
@@ -196,14 +232,37 @@ describe('curatorsView', () => {
     })
   })
 
-  it('the no-change line when held vaults had nothing this week', () => {
+  it('the no-change line when held vaults had nothing this week (fresh feed)', () => {
     const quiet = { ...feed, actions: [] }
-    const v = curatorsView({ data: response([GAUNT], quiet), error: false, nowMs: NOW })
+    const fresh = (TO + 3600) * 1000
+    const data = { ...response([GAUNT], quiet), readAt: new Date(fresh - 60_000).toISOString() }
+    const v = curatorsView({ data, error: false, nowMs: fresh })
     expect(v.state).toBe('none')
     if (v.state !== 'none') return
+    expect(v.kicker).toBe('Your curators this week')
     expect(v.headline).toBe('No changes by your curators this week')
     expect(v.rows).toEqual([])
-    expect(v.credit).toBe('7 days to 11 Oct 17:52 UTC · curator feed · 1 vault held, read 11:58 UTC')
+    expect(v.credit).toBe(
+      '7 days to 17:52 UTC · curator feed · 1 vault held, read 18:51 UTC · shares posted as collateral or wrapped elsewhere not counted',
+    )
+  })
+
+  it('a feed window that ended over a day ago is dated, not "this week"', () => {
+    const quiet = { ...feed, actions: [] }
+    const v = curatorsView({ data: response([GAUNT], quiet), error: false, nowMs: NOW })
+    if (v.state !== 'none') throw new Error(v.state)
+    expect(v.kicker).toBe('Your curators · 4–11 Oct (feed 6 days old)')
+    expect(v.headline).toBe('No changes by your curators')
+    expect(v.credit).toContain('holdings read now; changes from that window')
+    // A day old exactly is still this week.
+    const edge = curatorsView({ data: response([GAUNT], quiet), error: false, nowMs: (TO + 86_400) * 1000 })
+    if (edge.state !== 'none') throw new Error(edge.state)
+    expect(edge.kicker).toBe('Your curators this week')
+  })
+
+  it('dayRange spans months', () => {
+    expect(dayRange(Date.parse('2026-09-28T00:00:00Z') / 1000, Date.parse('2026-10-05T00:00:00Z') / 1000)).toBe('28 Sep–5 Oct')
+    expect(dayRange(Date.parse('2026-10-04T00:00:00Z') / 1000, Date.parse('2026-10-11T00:00:00Z') / 1000)).toBe('4–11 Oct')
   })
 
   it('the changes line, dot rows and dated latest list', () => {
@@ -250,5 +309,98 @@ describe('curatorsView', () => {
 
   it('dayMonth is UTC', () => {
     expect(dayMonth(Date.parse('2026-10-06T23:30:00Z') / 1000)).toBe('6 Oct')
+  })
+})
+
+// ── the holdings read ──────────────────────────────────────────────────────────
+
+const okCalls = (n: number, failed = 0): ChunkResult<string> => ({
+  ok: true,
+  calls: Array.from({ length: n }, (_, i) => (i < failed ? { ok: false as const } : { ok: true as const, value: '0x' })),
+})
+
+describe('judgeRead: an RPC outage is never "holds nothing"', () => {
+  it('a clean read is ok', () => {
+    expect(judgeRead([okCalls(150), okCalls(100)], 250)).toEqual({ ok: true, calls: 250, failedCalls: 0, rejectedChunks: 0 })
+  })
+  it('any rejected chunk fails the read', () => {
+    expect(judgeRead([okCalls(150), { ok: false }], 300).ok).toBe(false)
+  })
+  it('a few per-call reverts are tolerated, a burst is not', () => {
+    const allowed = Math.floor(1000 * MAX_FAILED_CALL_SHARE)
+    expect(judgeRead([okCalls(1000, allowed)], 1000).ok).toBe(true)
+    expect(judgeRead([okCalls(1000, allowed + 1)], 1000).ok).toBe(false)
+  })
+  it('a short answer (fewer results than calls) fails', () => {
+    expect(judgeRead([okCalls(149)], 150).ok).toBe(false)
+  })
+})
+
+describe('aboveDust', () => {
+  const base = { vault: STEAK, shareDecimals: 18, assetDecimals: 6 }
+  it('with a price: held at ≥ $1 of assets', () => {
+    expect(aboveDust({ ...base, shares: 10n ** 18n, assets: 1_000_000n, priceUsd: 1 })).toBe(true)
+    expect(aboveDust({ ...base, shares: 10n ** 17n, assets: 999_999n, priceUsd: 1 })).toBe(false)
+  })
+  it('the PoolManager-style dust ($0.001 of USDC) is not held', () => {
+    expect(aboveDust({ ...base, shares: 1_145_566_325_253_600n, assets: 1_204n, priceUsd: 1 })).toBe(false)
+  })
+  it('with no price: ≥ 1e-6 of a whole share', () => {
+    expect(aboveDust({ ...base, shares: 10n ** 12n, assets: 1n })).toBe(true)
+    expect(aboveDust({ ...base, shares: 10n ** 12n - 1n, assets: 1n })).toBe(false)
+  })
+  it('zero shares is never held', () => {
+    expect(aboveDust({ ...base, shares: 0n, assets: 0n, priceUsd: 1 })).toBe(false)
+  })
+})
+
+describe('WindowCounter (per-IP limit, global RPC budget)', () => {
+  it('allows the limit per key per minute, then refuses until the window rolls', () => {
+    const c = new WindowCounter(HOLDER_IP_LIMIT)
+    for (let i = 0; i < HOLDER_IP_LIMIT; i++) expect(c.take('1.2.3.4', 1000)).toBe(true)
+    expect(c.take('1.2.3.4', 1000)).toBe(false)
+    expect(c.take('5.6.7.8', 1000)).toBe(true)
+    expect(c.take('1.2.3.4', 1000 + WINDOW_MS)).toBe(true)
+  })
+  it('a cost that would overrun the budget takes nothing', () => {
+    const b = new WindowCounter(10)
+    expect(b.take('rpc', 0, 6)).toBe(true)
+    expect(b.take('rpc', 0, 6)).toBe(false)
+    expect(b.take('rpc', 0, 4)).toBe(true)
+    expect(b.take('rpc', 0, 1)).toBe(false)
+  })
+  it('bounds the number of keys it remembers', () => {
+    const c = new WindowCounter(1, 3)
+    for (const k of ['a', 'b', 'c', 'd']) expect(c.take(k, 0)).toBe(true)
+    // 'a' was dropped to make room, so it starts a fresh window.
+    expect(c.take('a', 0)).toBe(true)
+  })
+})
+
+describe('singleFlight', () => {
+  it('concurrent reads of one address share one run; a later read runs again', async () => {
+    const map = new Map<string, Promise<number>>()
+    let runs = 0
+    let release!: (n: number) => void
+    const run = () => {
+      runs++
+      return new Promise<number>((r) => (release = r))
+    }
+    const a = singleFlight(map, 'x', run)
+    const b = singleFlight(map, 'x', run)
+    expect(runs).toBe(1)
+    release(7)
+    expect(await a).toBe(7)
+    expect(await b).toBe(7)
+    await Promise.resolve()
+    expect(map.size).toBe(0)
+    singleFlight(map, 'x', run)
+    expect(runs).toBe(2)
+  })
+  it('a failed run is not kept', async () => {
+    const map = new Map<string, Promise<number>>()
+    await expect(singleFlight(map, 'x', () => Promise.reject(new Error('rpc')))).rejects.toThrow('rpc')
+    await Promise.resolve()
+    expect(map.size).toBe(0)
   })
 })

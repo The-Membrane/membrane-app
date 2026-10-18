@@ -65,9 +65,14 @@ export interface HolderVault {
   protocol: Protocol
   /** Cuts first, then the most recently touched. */
   targets: HolderTarget[]
-  /** Vault-wide changes (timelock, roles, adapters, adapter caps): no market of their own. */
+  /** Vault-wide changes that are not cuts (timelock, roles, adapters, adapter cap
+   *  raises): no market of their own. Drawn as one hollow square. */
   vaultWide: number
+  /** Distinct vault-level targets cut (an adapter cap cut, a write-off): filled squares. */
+  vaultWideCuts: number
+  /** All actions this week. */
   changes: number
+  /** Distinct (vault, target) pairs with a cut this week: the filled marks. */
   cuts: number
 }
 
@@ -91,7 +96,9 @@ export interface HolderView {
   /** Held vaults with at least one change this week, most changes first. */
   vaults: HolderVault[]
   latest: HolderLatest[]
+  /** Actions this week. */
   changes: number
+  /** Distinct (vault, target) pairs cut this week: equals the filled dots and squares. */
   cuts: number
 }
 
@@ -124,9 +131,13 @@ export function buildHolderView(
   const vaults: HolderVault[] = [...byVault.entries()].map(([vault, acts]) => {
     const targets = new Map<string, HolderTarget & { last: number }>()
     let vaultWide = 0
+    // Vault-level marks cut (an adapter cap cut, a write-off with no market): one filled
+    // square per distinct target, so the headline's cut count equals the filled marks.
+    const vaultWideCut = new Set<string>()
     for (const a of acts) {
       if (!a.target || !DOT_SCOPES.has(a.scope)) {
-        vaultWide++
+        if (isCut(a)) vaultWideCut.add(a.target ?? '')
+        else vaultWide++
         continue
       }
       const t = targets.get(a.target) ?? {
@@ -150,8 +161,9 @@ export function buildHolderView(
         .sort((x, y) => Number(y.cut) - Number(x.cut) || y.last - x.last || x.target.localeCompare(y.target))
         .map(({ last: _last, ...t }) => t),
       vaultWide,
+      vaultWideCuts: vaultWideCut.size,
       changes: acts.length,
-      cuts: acts.filter(isCut).length,
+      cuts: [...targets.values()].filter((t) => t.cut).length + vaultWideCut.size,
     }
   })
   vaults.sort((x, y) => y.changes - x.changes || x.vaultName.localeCompare(y.vaultName))
@@ -172,6 +184,68 @@ export function buildHolderView(
       cut: isCut(a),
     })),
     changes: mine.length,
-    cuts: mine.filter(isCut).length,
+    cuts: vaults.reduce((n, v) => n + v.cuts, 0),
   }
+}
+
+// ── the holdings read: what counts as held, and when the read is trustworthy ─────
+
+/** Below this a holding is dust and does not count as held (alertLogic DUST_USD, $1). */
+export const DUST_USD = 1
+/** With no price: shares below this fraction of one whole share are dust. */
+export const DUST_SHARE_FRACTION = 1e-6
+/** Per-call failures tolerated (verified vault contracts rarely revert; a burst of
+ *  failures is an RPC problem, not "holds nothing"). */
+export const MAX_FAILED_CALL_SHARE = 0.02
+
+export interface HoldingProbe {
+  vault: string
+  shares: bigint
+  shareDecimals: number
+  /** convertToAssets(shares), in the asset's base units. */
+  assets: bigint
+  assetDecimals: number
+  /** Collection-time USD price of the asset, when the feed has one. */
+  priceUsd?: number
+}
+
+const toUnits = (x: bigint, decimals: number): number => Number(x) / 10 ** decimals
+
+/** Held = worth ≥ $1 when the asset has a price, else ≥ 1e-6 of a whole share. */
+export function aboveDust(p: HoldingProbe): boolean {
+  if (p.shares <= 0n) return false
+  if (p.priceUsd !== undefined && Number.isFinite(p.priceUsd) && p.priceUsd > 0)
+    return toUnits(p.assets, p.assetDecimals) * p.priceUsd >= DUST_USD
+  return toUnits(p.shares, p.shareDecimals) >= DUST_SHARE_FRACTION
+}
+
+/** One chunk of a batched read: rejected outright (an RPC error), or per-call results. */
+export type ChunkResult<T> = { ok: false } | { ok: true; calls: ({ ok: true; value: T } | { ok: false })[] }
+
+export interface ReadVerdict {
+  ok: boolean
+  calls: number
+  failedCalls: number
+  rejectedChunks: number
+}
+
+/**
+ * Trust a batched read only when no chunk was rejected and per-call failures stay under
+ * MAX_FAILED_CALL_SHARE. Otherwise the caller answers 503 and caches nothing: an RPC
+ * outage must never read as "holds nothing".
+ */
+export function judgeRead<T>(chunks: ChunkResult<T>[], expectedCalls: number): ReadVerdict {
+  const rejectedChunks = chunks.filter((c) => !c.ok).length
+  let calls = 0
+  let failedCalls = 0
+  for (const c of chunks) {
+    if (!c.ok) continue
+    calls += c.calls.length
+    failedCalls += c.calls.filter((x) => !x.ok).length
+  }
+  const ok =
+    rejectedChunks === 0 &&
+    calls === expectedCalls &&
+    failedCalls <= Math.floor(expectedCalls * MAX_FAILED_CALL_SHARE)
+  return { ok, calls, failedCalls, rejectedChunks }
 }

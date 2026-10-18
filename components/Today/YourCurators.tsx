@@ -46,8 +46,8 @@ function Dot({ cut, label }: { cut: boolean; label: string }) {
   )
 }
 
-function VaultSquare({ n }: { n: number }) {
-  const label = `${n} vault setting${n === 1 ? '' : 's'} changed`
+function VaultSquare({ n, cut }: { n: number; cut?: boolean }) {
+  const label = cut ? 'vault-level cut' : `${n} vault setting${n === 1 ? '' : 's'} changed`
   return (
     <Box
       as="span"
@@ -58,7 +58,8 @@ function VaultSquare({ n }: { n: number }) {
       flex="none"
       w={SQUARE}
       h={SQUARE}
-      border={`1.5px solid ${NEWS.ink2}`}
+      border={`1.5px solid ${cut ? NEWS.danger : NEWS.ink2}`}
+      bg={cut ? NEWS.danger : 'transparent'}
     />
   )
 }
@@ -74,7 +75,13 @@ function Legend() {
   )
   return (
     <Flex as="ul" aria-label="Legend" columnGap={SPACING.base} rowGap={SPACING.xs} wrap="wrap" pt={SPACING.sm}>
-      {item(<Box as="span" aria-hidden="true" w={DOT} h={DOT} borderRadius="50%" bg={NEWS.danger} />, CURATORS_COPY.legendCut)}
+      {item(
+        <Flex as="span" aria-hidden="true" align="center" columnGap={SPACING.xs}>
+          <Box as="span" w={DOT} h={DOT} borderRadius="50%" bg={NEWS.danger} />
+          <Box as="span" w={SQUARE} h={SQUARE} bg={NEWS.danger} />
+        </Flex>,
+        CURATORS_COPY.legendCut,
+      )}
       {item(
         <Box as="span" aria-hidden="true" w={DOT} h={DOT} borderRadius="50%" border={`1.5px solid ${NEWS.ink}`} />,
         CURATORS_COPY.legendChange,
@@ -105,6 +112,9 @@ function VaultRow({ r }: { r: VaultRowView }) {
             +{r.more}
           </Text>
         )}
+        {Array.from({ length: r.vaultWideCuts }, (_, i) => (
+          <VaultSquare key={`cut${i}`} n={1} cut />
+        ))}
         {r.vaultWide > 0 && <VaultSquare n={r.vaultWide} />}
       </Flex>
     </Box>
@@ -177,7 +187,7 @@ export const YourCurators = memo(function YourCurators({
   nowMs,
 }: {
   address: string
-  /** The demo-first read (the Radar's example address), marked "not yours". */
+  /** The demo-first read (CURATORS_EXAMPLE_ADDRESS), marked "not yours". */
   example: boolean
   nowMs: number
 }) {
@@ -190,9 +200,10 @@ export const YourCurators = memo(function YourCurators({
   const v = curatorsView({ data: q.data, error: q.isError, nowMs })
   if (v.state === 'hidden') return null
 
+  const kicker = v.state === 'unavailable' ? CURATORS_COPY.kicker : v.kicker
   const head = (
     <Flex justify="space-between" align="center" columnGap={SPACING.base} wrap="wrap">
-      <Kicker>{CURATORS_COPY.kicker}</Kicker>
+      <Kicker>{kicker}</Kicker>
       <Credit>{example ? EXAMPLE_BANNER : shortAddr(address)}</Credit>
     </Flex>
   )

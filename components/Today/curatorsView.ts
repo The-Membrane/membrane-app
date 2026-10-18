@@ -18,15 +18,36 @@
 import { utcClock } from '@/components/Weather/weatherView'
 import type { HolderResponse } from '@/pages/api/curator-feed/holder'
 
+/**
+ * The address this module reads when the reader has entered none (demo-first), marked
+ * "Example — not yours" like the Radar's. Not the Radar's example (the Uniswap v4
+ * PoolManager holds dust in ~200 vaults, nobody's typical book): a public mainnet EOA
+ * that the Morpho public API (userByAddress, 2026-10-18) and our own chain read both show
+ * holding two curated vaults, Gauntlet WETH Prime and Gauntlet LRT Core. Its holdings are
+ * read live like any other address; nothing here is a holding.
+ */
+export const CURATORS_EXAMPLE_ADDRESS = '0x28a55C4b4f9615FDE3CDAdDf6cc01FcF2E38A6b0'
+
+/** Past this, the feed's week is not "this week": the kicker dates it instead. */
+export const FEED_STALE_S = 86_400
+
 export const CURATORS_COPY = {
   kicker: 'Your curators this week',
+  /** Kicker when the feed's window ended more than FEED_STALE_S ago. */
+  kickerDated: 'Your curators',
   none: 'No changes by your curators this week',
+  /** The no-change line when the window is not this week. */
+  noneDated: 'No changes by your curators',
+  /** Always in the credit: what balanceOf cannot see. */
+  notCounted: 'shares posted as collateral or wrapped elsewhere not counted',
+  /** In the credit when the window is dated. */
+  readNow: 'holdings read now; changes from that window',
   unavailable: 'Your curators: reading unavailable',
   cta: "Alert me when a curator cuts a market I'm in",
   /** The alert flow on this branch routes venue alarms only; curator cuts have no delivery
    *  path yet, so the CTA is drawn but not live. */
   ctaPending: 'Not live yet: curator alerts have no delivery route.',
-  legendCut: 'cut',
+  legendCut: 'cut (market · vault-level)',
   legendChange: 'other change',
   legendVault: 'vault setting',
   latest: 'Latest',
@@ -41,9 +62,19 @@ export const dayMonth = (s: number): string => {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
-/** "N changes by the curators of the vaults you hold · M were cuts" / the no-change line. */
-export function curatorsHeadline(changes: number, cuts: number): string {
-  if (changes === 0) return CURATORS_COPY.none
+/** "4–11 Oct" / "28 Sep–5 Oct" (UTC). */
+export function dayRange(fromS: number, toS: number): string {
+  const a = new Date(fromS * 1000)
+  const b = new Date(toS * 1000)
+  return a.getUTCMonth() === b.getUTCMonth() && a.getUTCFullYear() === b.getUTCFullYear()
+    ? `${a.getUTCDate()}–${dayMonth(toS)}`
+    : `${dayMonth(fromS)}–${dayMonth(toS)}`
+}
+
+/** "N changes by the curators of the vaults you hold · M were cuts" / the no-change line
+ *  ("this week" dropped when the window is dated). */
+export function curatorsHeadline(changes: number, cuts: number, dated = false): string {
+  if (changes === 0) return dated ? CURATORS_COPY.noneDated : CURATORS_COPY.none
   const cutText = cuts === 0 ? 'none were cuts' : cuts === 1 ? '1 was a cut' : `${cuts} were cuts`
   return `${plural(changes, 'change', 'changes')} by the curators of the vaults you hold · ${cutText}`
 }
@@ -69,8 +100,10 @@ export interface VaultRowView {
   dots: DotView[]
   /** Dots beyond MAX_DOTS. */
   more: number
-  /** Vault-wide settings changed (timelock, roles, adapters): drawn as one square. */
+  /** Vault-wide settings changed that are not cuts: drawn as one hollow square. */
   vaultWide: number
+  /** Distinct vault-level cuts (an adapter cap cut, a write-off): one filled square each. */
+  vaultWideCuts: number
   /** "2 markets · 1 cut", "1 vault setting". */
   summary: string
 }
@@ -89,6 +122,8 @@ export type CuratorsView =
   | { state: 'unavailable'; headline: string }
   | {
       state: 'none' | 'changes'
+      /** "Your curators this week", or "Your curators · 4–11 Oct (feed 7 days old)". */
+      kicker: string
       headline: string
       rows: VaultRowView[]
       /** "+14 more vaults with changes", or null. */
@@ -113,11 +148,11 @@ export function curatorsView(input: {
   const v = data.view
   const rows: VaultRowView[] = v.vaults.slice(0, MAX_VAULT_ROWS).map((x) => {
     const markets = x.targets.length
-    const marketCuts = x.targets.filter((t) => t.cut).length
     const parts: string[] = []
     if (markets > 0) parts.push(plural(markets, 'market', 'markets'))
-    if (marketCuts > 0) parts.push(plural(marketCuts, 'cut', 'cuts'))
-    if (x.vaultWide > 0) parts.push(plural(x.vaultWide, 'vault setting', 'vault settings'))
+    if (x.cuts > 0) parts.push(plural(x.cuts, 'cut', 'cuts'))
+    const settings = x.vaultWide + x.vaultWideCuts
+    if (x.vaultWideCuts > 0 || x.vaultWide > 0) parts.push(plural(settings, 'vault setting', 'vault settings'))
     return {
       key: x.vault,
       vaultName: x.vaultName,
@@ -129,17 +164,26 @@ export function curatorsView(input: {
       })),
       more: Math.max(0, markets - MAX_DOTS),
       vaultWide: x.vaultWide,
+      vaultWideCuts: x.vaultWideCuts,
       summary: parts.join(' · '),
     }
   })
+  const ageS = nowMs / 1000 - v.to
+  const dated = ageS > FEED_STALE_S
+  const kicker = dated
+    ? `${CURATORS_COPY.kickerDated} · ${dayRange(v.from, v.to)} (feed ${plural(Math.floor(ageS / 86_400), 'day', 'days')} old)`
+    : CURATORS_COPY.kicker
   const credit = [
     `7 days to ${utcClock(v.to * 1000, nowMs)}`,
     'curator feed',
     `${plural(v.held, 'vault', 'vaults')} held, read ${utcClock(Date.parse(data.readAt), nowMs)}`,
+    ...(dated ? [CURATORS_COPY.readNow] : []),
+    CURATORS_COPY.notCounted,
   ].join(' · ')
   return {
     state: v.changes === 0 ? 'none' : 'changes',
-    headline: curatorsHeadline(v.changes, v.cuts),
+    kicker,
+    headline: curatorsHeadline(v.changes, v.cuts, dated),
     rows,
     moreVaults:
       v.vaults.length > MAX_VAULT_ROWS

@@ -275,7 +275,11 @@ def main():
             e2Q = (S["lfut"] - S["lsQ"]) ** 2
             ok = np.isfinite(e2H) & np.isfinite(e2Q)
             out["vol_mse"].setdefault(tag, {})[R12.TL[T]] = {"fH": float(e2H[ok].mean()),
-                                                           "fHQ": float(e2Q[ok].mean()), "n": int(ok.sum())}
+                                                           "fHQ": float(e2Q[ok].mean()), "n": int(ok.sum()),
+                                                           "median_fH": float(np.median(e2H[ok])),
+                                                           "median_fHQ": float(np.median(e2Q[ok])),
+                                                           "share_fHQ_err_gt_9": float(np.mean(e2Q[ok] > 9)),
+                                                           "share_fH_err_gt_9": float(np.mean(e2H[ok] > 9))}
             for k in sorted({kk for TT, kk in CELLS2 if TT == T} | ({-0.15, -0.20} if T >= 12 else set())):
                 c = cell_stats(S, T, k, P, 1000 * T + int(-100 * k))
                 out[tag][f"{R12.TL[T]} {k}"] = c
@@ -288,12 +292,12 @@ def main():
     # verdicts on B12 (pass lines in the docstring, fixed before the run)
     B = out["b12"]
     c1 = [B[f"{R12.TL[T]} {k}"] for T, k in CELLS1]
-    v1a = sum(c["M"]["bss_vs_fH"] >= 0 for c in c1)
-    v1b = sum(abs(np.log(c["M"]["R"])) < abs(np.log(c["fH"]["R"])) for c in c1)
-    v1c = sum(abs(np.log(c["M"]["R_top20"])) < abs(np.log(c["fH"]["R_top20"])) for c in c1)
+    v1a = int(sum(c["M"]["bss_vs_fH"] >= 0 for c in c1))
+    v1b = int(sum(abs(np.log(c["M"]["R"])) < abs(np.log(c["fH"]["R"])) for c in c1))
+    v1c = int(sum(abs(np.log(c["M"]["R_top20"])) < abs(np.log(c["fH"]["R_top20"])) for c in c1))
     c2 = [B[f"{R12.TL[T]} {k}"] for T, k in CELLS2]
-    v2a = sum(c["fHQ"]["bss_vs_fH"] > 0 for c in c2)
-    v2b = sum(out["vol_mse"]["b12"][R12.TL[T]]["fHQ"] < out["vol_mse"]["b12"][R12.TL[T]]["fH"] for T in HS)
+    v2a = int(sum(c["fHQ"]["bss_vs_fH"] > 0 for c in c2))
+    v2b = int(sum(out["vol_mse"]["b12"][R12.TL[T]]["fHQ"] < out["vol_mse"]["b12"][R12.TL[T]]["fH"] for T in HS))
     out["verdict"] = {
         "idea1_M": {"bss_ge0": v1a, "absLnR_better": v1b, "top20_better": v1c,
                     "result": "PASS" if (v1a >= 5 and v1b >= 5 and v1c >= 5) else "FAIL"},

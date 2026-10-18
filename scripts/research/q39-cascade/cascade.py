@@ -5,6 +5,7 @@ Schedule: for grid multiplier g_k = 1 - 0.001 k (k = 0..600), ETH- and BTC-linke
 g_k (C.1 joint shock). Positions are liquidated at the first grid step where HF < 1 (efficient liquidators),
 with up to MAX_ROUNDS calls per step:
   aave/spark : vendored Aave call rule (callrule.m_call_vec); liquidator receives seized - protocol fee.
+  v2         : Aave V2 / Compound V2 (aid test only): 50% of the chosen debt bucket per call.
   morpho     : repay = fM x debt (fM = development median repaid fraction), seize repay x LIF, capped.
   comet      : absorb the whole account; collateral enters reserves (sold only through buyCollateral).
 Positions already at HF < 1 before any move are excluded (they were not liquidated in reality: dust or
@@ -77,7 +78,7 @@ def schedule(rec: np.ndarray, kind: str, fM: float = 1.0) -> dict:
                 DO[idx] = np.where(cap, 0.0, DO[idx] - repay)   # Morpho realizes bad debt at zero collateral
                 DM[idx] = DO[idx]
                 continue
-            # aave / spark
+            # aave / spark (v3.3 rule); "v2" = Aave V2 / Compound V2: fixed 50% close factor on the chosen debt
             dE, dB, dO = DE[idx] * g, DB[idx] * g, DM[idx]
             j = np.argmax(np.column_stack([dE, dB, dO]), axis=1)
             debt_j = np.choose(j, [dE, dB, dO])
@@ -87,7 +88,16 @@ def schedule(rec: np.ndarray, kind: str, fM: float = 1.0) -> dict:
             lb_k = np.choose(kk, [lbE[idx], lbB[idx], lbO[idx]])
             fe_k = np.choose(kk, [feE[idx], feB[idx], feO[idx]])
             td = dE + dB + DO[idx]
-            repay, seized, fee, _ = m_call_vec(td, hf[idx], coll_k, debt_j, np.maximum(lb_k, 1.0 + 1e-9), fe_k, 0.0)
+            if kind == "v2":
+                lbk = np.maximum(lb_k, 1.0 + 1e-9)
+                repay = 0.5 * debt_j
+                seized = repay * lbk
+                cap = seized > coll_k
+                seized = np.where(cap, coll_k, seized)
+                repay = np.where(cap, coll_k / lbk, repay)
+                fee = (seized - seized / lbk) * fe_k
+            else:
+                repay, seized, fee, _ = m_call_vec(td, hf[idx], coll_k, debt_j, np.maximum(lb_k, 1.0 + 1e-9), fe_k, 0.0)
             got = seized - fee
             cum["E"] += float(got[kk == 0].sum())
             cum["B"] += float(got[kk == 1].sum())

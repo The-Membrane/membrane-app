@@ -685,7 +685,7 @@ def d1_rows(datasets_dir, d1_dir, log, qrt=True):
     ctx, res, flags = load_d1(datasets_dir, d1_dir, log)
     qinfo = {}
     if qrt:
-        qinfo = apply_qrt_d1(ctx, res, log)
+        qinfo = apply_qrt_d1(ctx, res, d1_dir, log)
     rows = G.build_rows(ctx, res, compute_labels=True)
     F.add_segments(rows, flags)
     F.v4a_features(rows, res, ctx.D)
@@ -701,16 +701,78 @@ def d1_rows(datasets_dir, d1_dir, log, qrt=True):
     return ctx, res, rows, qinfo
 
 
-def apply_qrt_d1(ctx, res, log):
-    """R9.1(b) QRT neutralisation on D1 (same detector and thresholds; supply before the burn from the exact scaled
-    total supply path x the event index), then the B6c patch (paths, label / feature anchors)."""
-    import b6c_cash as C6
+def qrt_from_events(d1_dir, R):
+    """R9.1(b) QRT detector (r9_correct.detect_qrt, thresholds unchanged) on one D1 reserve's decoded events.
+    Supply before a burn = exact scaled total supply at the end of the previous transaction x the burn's index
+    (every Mint / Burn of the aToken since its first log is in the files). -> qrts in the b6c_cash.map_legs format."""
+    import pandas as pd
     import r9_correct as R9
+    lo = R.name.lower()
+    d = os.path.join(d1_dir, R.name)
+    files = sorted(os.path.join(d, f) for f in os.listdir(d) if re.fullmatch(rf"events-{lo}-\d{{4}}\.csv\.gz", f))
+    ev = pd.concat([pd.read_csv(f, dtype=str, keep_default_na=False) for f in files], ignore_index=True)
+    blk = ev["block"].astype(np.int64).to_numpy()
+    txi = ev["tx_index"].astype(np.int64).to_numpy()
+    li = ev["log_index"].astype(np.int64).to_numpy()
+    o = np.lexsort((li, blk))
+    ev = ev.iloc[o].reset_index(drop=True)
+    blk, txi, li = blk[o], txi[o], li[o]
+    ts = ev["ts"].astype(np.int64).to_numpy()
+    typ = ev["type"].to_numpy()
+    val = [int(v) for v in ev["value_raw"]]
+    idx = [int(v) for v in ev["index_ray"]]
+    p1 = ev["party1"].str.lower().to_numpy()
+    tot = 0
+    sup_before = {}
+    cur_tx, tx_start_tot = None, 0
+    unit_events, burns = {}, []
+    for i in range(len(ev)):
+        tk = (int(blk[i]), int(txi[i]))
+        if tk != cur_tx:
+            cur_tx, tx_start_tot = tk, tot
+        sv = R9.ray_div(val[i], idx[i])
+        key = (int(blk[i]), int(txi[i]), int(li[i]))
+        if typ[i] == "Mint":
+            tot += sv
+            if val[i] > 0:
+                unit_events.setdefault(p1[i], []).append((key, int(ts[i]), "M", val[i], i))
+        elif typ[i] == "Burn":
+            tot -= sv
+            burns.append({"key": key, "unit": p1[i], "w": val[i], "ts": int(ts[i]), "i": i})
+            sup_before[i] = R9.ray_mul(tx_start_tot, idx[i])
+        elif typ[i] == "BalanceTransfer":
+            unit_events.setdefault(p1[i], []).append((key, int(ts[i]), "T", 0, i))
+    found = R9.detect_qrt(burns, unit_events, lambda b: sup_before[b["i"]])
+    aarr = np.array(R.addrs)
+    qrts = []
+    for qi, q in enumerate(found):
+        b = q["burn"]
+        a = b["unit"]
+        ui = int(np.searchsorted(aarr, a))
+        unit = ui if ui < len(aarr) and aarr[ui] == a else -1
+        rl = [(int(blk[ref]), int(li[ref]), int(t), int(take)) for ref, take, t, key in q["legs"]]
+        qrts.append({"qrt": qi, "role": f"d1-{unit}", "unit": unit, "w_block": int(blk[b["i"]]),
+                     "w_log": int(li[b["i"]]), "w_ts": b["ts"], "neutral": int(q["neutral"]), "redeposit": sorted(rl),
+                     "done_ts": max(x[2] for x in rl)})
+    return qrts
+
+
+def apply_qrt_d1(ctx, res, d1_dir, log):
+    """R9.1(b) on D1 with the B6c patch (paths, label-view and feature-view anchors) on each reserve."""
+    import b6c_cash as C6
     out = {}
     for R in res:
-        sp_events = [p for p in R.ev_files] if hasattr(R, "ev_files") else None
-        _ = sp_events
-        out[R.name] = {"note": "set by qrt_from_events"}
+        qrts = qrt_from_events(d1_dir, R)
+        inu = [q for q in qrts if q["unit"] >= 0]
+        by_year = {}
+        for q in qrts:
+            y = datetime.fromtimestamp(q["w_ts"], timezone.utc).year
+            by_year[str(y)] = by_year.get(str(y), 0) + 1
+        info = C6.patch_usdc(ctx, R, inu) if inu else {"note": "no QRT in the universe"}
+        out[R.name] = {"qrts": len(qrts), "qrts_in_universe": len(inu), "units": len({q["unit"] for q in inu}),
+                       "by_year": by_year, "neutralised_usd": sum(q["neutral"] for q in inu) / 1e6,
+                       "path_gate": {k: v for k, v in info.items() if k.startswith("path_gate")}}
+        log(f"  QRT {R.name}: {out[R.name]['qrts']} ({out[R.name]['qrts_in_universe']} in the universe)")
     return out
 
 
@@ -752,6 +814,151 @@ def phase_counts(datasets_dir, d1_dir, out_dir, log):
     return out
 
 
+def d1_manifest(d1_dir):
+    out = {}
+    for root, _, fs in os.walk(d1_dir):
+        for f in sorted(fs):
+            if f.endswith((".csv", ".csv.gz")) and "logs" not in root and not f.startswith("state-raw"):
+                pth = os.path.join(root, f)
+                out[os.path.relpath(pth, d1_dir)] = B.sha256_file(pth)
+    return out
+
+
+def phase_freeze(dev_results, d1_dir, out_dir, readings, log):
+    os.makedirs(out_dir, exist_ok=True)
+    fp = os.path.join(out_dir, "frozen-r142.json")
+    if os.path.exists(fp):
+        raise SystemExit(f"STOP: {fp} exists")
+    meta = code_meta()
+    if meta["tree_dirty"]:
+        raise SystemExit("STOP: commit the code before the freeze")
+    dev = json.load(open(dev_results))
+    frozen = {"prereg": PREREG, "readings": readings, "code": meta, "decisions": DECISIONS,
+              "dev_results_sha256": B.sha256_file(dev_results), "dev_code": dev["code"],
+              "fold_params_L": dev["fold_params_L"], "features": FEAT_NAMES, "q_seg": Q_SEG,
+              "primary": {"model": "L0", "comparator": "b4t1", "horizons": list(PRIMARY_H), "pool": list(THIN),
+                          "statistic": "BSS, Brier summed over the 5 x cells (stacked pairs), 30-day day blocks",
+                          "holm_alpha": ALPHA, "R_band": list(R_BAND), "guard_cells": [list(g) for g in HIGH_GUARD],
+                          "guard_lo": GUARD_LO},
+              "d1_fit_before_core_fold": D1_FIT_BEFORE_CORE, "seeds": {"d1_bootstrap": SEED_D1},
+              "d1_inputs_sha256": d1_manifest(d1_dir), "b4_run": B4_RUN, "frozen_utc": utcnow()}
+    B.write_json(fp, frozen, refuse_overwrite=True)
+    guard_no_address(fp)
+    rec = {"frozen_sha256": B.sha256_file(fp), "frozen_utc": frozen["frozen_utc"], "code_head": meta["git_head"]}
+    B.write_json(os.path.join(out_dir, "freeze-record.json"), rec, refuse_overwrite=True)
+    log(f"freeze: {rec}")
+    return rec
+
+
+def rolling_own_pop(rows, ctx):
+    """D1 plain history (own) and empirical frequency (pop): G9 on D1 rows resolved before each D1 quarter start."""
+    n = len(rows["t"])
+    own = np.full((n, G.NC), np.nan)
+    pop = np.full((n, G.NC), np.nan)
+    for qn, qs, qe in ctx.folds:
+        Tqs = int(ctx.T[qs]) if qs < ctx.D else int(ctx.T[-1]) + 86400
+        te = np.nonzero((rows["t"] >= qs) & (rows["t"] < qe) & rows["feat_ok"])[0]
+        if not len(te):
+            continue
+        for hi in range(NH):
+            for xi in range(NX):
+                ci = int(G.XCELL[hi, xi])
+                tr = G.train_mask_cell(rows["T0"], G.HSEC[hi], Tqs, rows["RES"][:, hi], rows["CAP"][:, ci],
+                                       rows["feat_ok"])
+                y = rows["Y"][tr, ci].astype(float)
+                if not len(y):
+                    continue
+                u = rows["unit"][tr]
+                p = float(y.mean())
+                O = np.bincount(u, weights=y, minlength=rows["n_units"])
+                nn = np.bincount(u, minlength=rows["n_units"])
+                o = np.where(nn > 0, O / np.maximum(nn, 1), p)
+                own[te, ci] = o[rows["unit"][te]]
+                pop[te, ci] = p
+    return own, pop
+
+
+D1_MODELS = ("L0", "b4t1", "b4v4a_t1", "pop_core", "own_d1", "pop_d1")
+D1_COMPS = (("L0_vs_b4t1", "L0", "b4t1"), ("L0_vs_b4v4a_t1", "L0", "b4v4a_t1"), ("L0_vs_pop_core", "L0", "pop_core"),
+            ("b4t1_vs_pop_core", "b4t1", "pop_core"))
+D1_COMPS_HIST = (("L0_vs_own_d1", "L0", "own_d1"), ("L0_vs_pop_d1", "L0", "pop_d1"),
+                 ("b4t1_vs_own_d1", "b4t1", "own_d1"), ("b4t1_vs_pop_d1", "b4t1", "pop_d1"))
+
+
+def holm(pvals, alpha=ALPHA):
+    order = sorted(range(len(pvals)), key=lambda i: pvals[i])
+    rej = [False] * len(pvals)
+    for r, i in enumerate(order):
+        if pvals[i] <= alpha / (len(pvals) - r):
+            rej[i] = True
+        else:
+            break
+    return rej
+
+
+def phase_run(datasets_dir, d1_dir, out_dir, frozen_sha256, log):
+    rec = json.load(open(os.path.join(out_dir, "freeze-record.json")))
+    fp = os.path.join(out_dir, "frozen-r142.json")
+    if frozen_sha256 != rec["frozen_sha256"] or B.sha256_file(fp) != rec["frozen_sha256"]:
+        raise SystemExit("STOP: frozen sha256 differs from the freeze record")
+    meta = code_meta()
+    if meta["tree_dirty"]:
+        raise SystemExit("STOP: dirty tree")
+    frozen = json.load(open(fp))
+    if d1_manifest(d1_dir) != frozen["d1_inputs_sha256"]:
+        raise SystemExit("STOP: D1 inputs differ from the frozen manifest")
+    marker = os.path.join(out_dir, "run-started.json")
+    started = utcnow()
+    B.write_json(marker, {"started_utc": started, "frozen_sha256": frozen_sha256, "code": meta}, refuse_overwrite=True)
+    t0 = time.time()
+    ctx, res, rows, qinfo = d1_rows(datasets_dir, d1_dir, log)
+    shipped = json.load(open(os.path.join(datasets_dir, B4_RUN, "shipped-b4.json")))
+    test = rows["feat_ok"].copy()
+    n = len(rows["t"])
+    mf = rows["model_fold"].astype(int)
+    PR = {k: np.full((n, G.NC), np.nan) for k in ("L0", "pop_core")}
+    for fi in sorted(set(mf[test].tolist())):
+        te = np.nonzero(test & (mf == fi))[0]
+        PR["L0"][te] = S.fix_grid(predict_L(rows, frozen["fold_params_L"][str(fi)], te, None), rows["CAP"][te])
+        for ci in G.XCELL.ravel():
+            PR["pop_core"][te, ci] = shipped["fold_params"][str(fi)][G.CELLS[ci]["id"]]["v2"]["pop"]
+    PR.update(b4_theta1(rows, shipped["fold_params"], shipped["cells"], mf, test))
+    PR["own_d1"], PR["pop_d1"] = rolling_own_pop(rows, ctx)
+    log("scoring ...")
+    ev = evaluate(rows, PR, test, D1_MODELS[:4], D1_COMPS, SEED_D1)
+    hist_ok = np.ones(n, bool)
+    for ci in G.XCELL.ravel():
+        hist_ok &= np.isfinite(PR["pop_d1"][:, ci]) | rows["CAP"][:, ci]
+    ev_hist = evaluate(rows, PR, test & hist_ok, D1_MODELS, D1_COMPS_HIST, SEED_D1 + 1)
+    # verdict (registered in D-R14.2a)
+    pv = [ev["primary"][h]["bss"]["L0_vs_b4t1"]["p_one_sided"] for h in PRIMARY_H]
+    rej = holm(pv)
+    prim = {}
+    for h, r in zip(PRIMARY_H, rej):
+        P = ev["primary"][h]
+        R = P["R"]["L0"]
+        prim[h] = {"bss": P["bss"]["L0_vs_b4t1"]["bss"], "ci95": P["bss"]["L0_vs_b4t1"].get("ci95"),
+                   "p_one_sided": P["bss"]["L0_vs_b4t1"]["p_one_sided"], "holm_reject": r, "R_L0": R,
+                   "R_in_band": R is not None and R_BAND[0] <= R <= R_BAND[1],
+                   "pass": bool(r and R is not None and R_BAND[0] <= R <= R_BAND[1])}
+    guard = {}
+    for cid, sg in HIGH_GUARD:
+        c = ev["cells"][cid][sg]["bss"].get("L0_vs_b4t1") if ev["cells"][cid][sg].get("bss") else None
+        lo = c["ci95"][0] if c and c.get("ci95") else None
+        guard[f"{cid}_{sg}"] = {"bss": c["bss"] if c else None, "ci95": c.get("ci95") if c else None,
+                                "pass": lo is not None and lo > GUARD_LO}
+    passed = any(v["pass"] for v in prim.values()) and all(v["pass"] for v in guard.values())
+    out = {"phase": "run (D1 blind set, once)", "prereg": PREREG, "frozen_sha256": frozen_sha256, "code": meta,
+           "qrt": qinfo, "units": {R.name: R.n for R in res}, "rows": int(n), "rows_scored": int(test.sum()),
+           "verdict": {"PASS": bool(passed), "primary": prim, "guard": guard}, "eval": ev, "eval_with_d1_history": ev_hist,
+           "started_utc": started, "finished_utc": utcnow(), "runtime_s": time.time() - t0}
+    rp = os.path.join(out_dir, "results-d1-r142.json")
+    B.write_json(rp, out, refuse_overwrite=True)
+    guard_no_address(rp)
+    log(f"run: PASS = {passed}; {rp}")
+    return out
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("phase", choices=("dev", "counts", "freeze", "run"))
@@ -760,6 +967,8 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     ap.add_argument("--allow-dirty", action="store_true")
     ap.add_argument("--frozen-sha256", default=None)
+    ap.add_argument("--dev-results", default=None)
+    ap.add_argument("--readings", default=None, help="JSON of the D-R14.2a readings (board commit, deviation id)")
     a = ap.parse_args(argv)
 
     def log(m):
@@ -768,8 +977,10 @@ def main(argv=None):
         phase_dev(a.datasets, a.out, log, a.allow_dirty)
     elif a.phase == "counts":
         phase_counts(a.datasets, a.d1, a.out, log)
+    elif a.phase == "freeze":
+        phase_freeze(a.dev_results, a.d1, a.out, json.load(open(a.readings)), log)
     else:
-        raise SystemExit("phase not implemented yet")
+        phase_run(a.datasets, a.d1, a.out, a.frozen_sha256, log)
 
 
 if __name__ == "__main__":

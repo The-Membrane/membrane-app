@@ -17,6 +17,9 @@ Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3
 - Writes each terminal row once to scores/outcomes-YYYY-MM.jsonl (append-only, month of the scorer run) and
   rewrites the derived scores/summary.json: per (asset, T, level, regime, rung) n, n_ep, Brier, BSS vs (a), R;
   the L.5 live check and live STALE values, applied only after 90 resolved issue days per horizon.
+- Short horizons (HISTORY_TOUCH_LIVE.md D8): issue files with `shortRows` are scored by q26_live_short.score_short
+  into scores/short-outcomes-YYYY-MM.jsonl (append-only) and summary.json `short` (per-level and per-month R, HAC
+  lag 24 h and weekly block bootstrap p, vs (f) and (a)). Without short rows the summary is unchanged.
 """
 import argparse
 import json
@@ -28,6 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import q26_live_common as C  # noqa: E402
 import r7_live as R7  # noqa: E402  (Q26 round 7 R7.1 traffic lights; q26_live_common puts MODEL_DIR on sys.path)
+import q26_live_short as QS  # noqa: E402  (D8 short horizons)
 
 SCHEMA = "q26-touch-live/scores/1"
 
@@ -302,9 +306,15 @@ def score(out_root, rpc, http_get=None, clock=time.time, code=None, log=print):
            "newOutcomes": len(new), "nOutcomes": len(allo), "nPending": len(pending),
            "pendingReasons": {why: sum(p["reason"] == why for p in pending) for why in {p["reason"] for p in pending}},
            "decisions": DECISIONS + DECISIONS_R7, **summ, "staleRule": R7.STALE_RULE, "trafficLights": traffic}
+    s_summ, s_new, s_pend = QS.score_short(idir, sdir, rounds, kidx, coverage, now)
+    if s_summ["nRows"] or s_summ["nOutcomes"]:
+        doc["short"] = s_summ
     C.write_atomic(os.path.join(sdir, "summary.json"), C.dumps(doc))
     log(f"scored: {len(new)} new outcomes ({sum(o['status'] == 'resolved' for o in new)} resolved), "
         f"{len(pending)} pending, {len(allo)} outcomes in total from {len(files)} issue files")
+    if s_summ["nRows"] or s_summ["nOutcomes"]:
+        log(f"short scored: {len(s_new)} new outcomes ({sum(o['status'] == 'resolved' for o in s_new)} resolved), "
+            f"{len(s_pend)} pending, {s_summ['nOutcomes']} outcomes in total")
     return doc, new
 
 

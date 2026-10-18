@@ -4,7 +4,7 @@
   python3 q26_live_issue.py --datasets <membrane-datasets> --out <root> [--expect-commit <sha>]
       [--frozen-a5 <rel> --frozen-a5-sha256 <sha> [--basis-final <rel> --basis-final-sha256 <sha>]
        [--frozen-a6 <rel> --frozen-a6-sha256 <sha> [--basis-final-a6 <rel> --basis-final-a6-sha256 <sha>]
-        [--display-a6 <rel> --display-a6-sha256 <sha>]]]
+        [--display-a6 <rel> --display-a6-sha256 <sha>]]] [--short-fh]
 
 Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3c61, sha256 8961eb5c...).
 
@@ -32,6 +32,10 @@ Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3
   Each row adds displayed, p_displayed, estimateRangeDisplayed and frozen_label_displayed; the file adds `displayed`,
   inputs.displayA6 and decisionsDisplay. Every other field is byte-identical to a run without the flag (`shipped`
   stays the A6 shipped rung). Without the flag nothing changes.
+- Short horizons (HISTORY_TOUCH_LIVE.md D8, owner approval 2026-10-18; only with --short-fh): (fH), (f) and (a)
+  at 1 h, 3 h and 12 h on the validated shallow levels, at hourly origins inside this daily issue (q26_live_short.py).
+  The file adds the block `short` (before nRows) and the list `shortRows` (after rows); every other field is
+  byte-identical to a run without the flag. Log only: nothing is displayed.
 """
 import os
 
@@ -93,7 +97,8 @@ def last_frozen_hour_check(rounds, asset, fc):
 
 
 def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=None, code=None, log=print,
-          frozen_a5=None, basis_final=None, frozen_a6=None, basis_final_a6=None, display_a6=None):
+          frozen_a5=None, basis_final=None, frozen_a6=None, basis_final_a6=None, display_a6=None,
+          short_fh=False, short_forecaster=None):
     """One live issue. `clock`, the transports and `forecaster` are injectable for the offline tests only;
     the CLI always uses the real wall clock, the public endpoints and the A3 refit (model A5: plus fbL).
     frozen_a5 / basis_final: None, or (path relative to datasets, sha256) -- model A5 when frozen_a5 is given."""
@@ -244,7 +249,21 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
                 doc["displayed"] = dz6["displayed"]
                 doc["decisionsDisplay"] = Q6.DECISIONS_DISPLAY
         doc = {k: doc[k] for k in [x for x in doc if x not in ("nRows", "rows")] + ["nRows", "rows"]}
-    data = C.dumps_with_rows(doc)
+    if short_fh:
+        import q26_live_short as QS
+        prev_last = QS.prev_short_origin(idir)
+        origins = QS.batch_origins(asof, prev_last)
+        t1 = time.time()
+        sfc = (short_forecaster or QS.short_forecasts)(datasets, upto_asof, asof, origins, log=log)
+        srows = QS.short_rows(sfc, upto_asof, origins, issued_at)
+        block = QS.short_block(sfc, origins, srows, prev_last)
+        block["modelSeconds"] = round(time.time() - t1, 1)
+        doc = {**{k: doc[k] for k in doc if k not in ("nRows", "rows")}, "short": block,
+               "nRows": doc["nRows"], "rows": doc["rows"], "shortRows": srows}
+        data = QS.dumps_issue(doc)
+        log(f"short: {len(origins)} origins, {len(srows)} rows")
+    else:
+        data = C.dumps_with_rows(doc)
     path = os.path.join(idir, date + ".json")
     try:
         C.write_exclusive(path, data)
@@ -274,6 +293,8 @@ def main(argv=None):
     ap.add_argument("--basis-final-a6-sha256", default=None, help="model A6: the registered sha256 of that file")
     ap.add_argument("--display-a6", default=None, help="A6 D3: display-a6.json (displayed rung per asset, T) path")
     ap.add_argument("--display-a6-sha256", default=None, help="A6 D3: the registered sha256 of that file")
+    ap.add_argument("--short-fh", action="store_true", help="D8: (fH)/(f)/(a) at 1 h, 3 h, 12 h, shallow levels, "
+                    "hourly origins inside this issue (log only)")
     a = ap.parse_args(argv)
     if (a.frozen_a5 is None) != (a.frozen_a5_sha256 is None):
         raise SystemExit("STOP: --frozen-a5 and --frozen-a5-sha256 go together")
@@ -300,7 +321,7 @@ def main(argv=None):
           basis_final=(a.basis_final, a.basis_final_sha256) if a.basis_final else None,
           frozen_a6=(a.frozen_a6, a.frozen_a6_sha256) if a.frozen_a6 else None,
           basis_final_a6=(a.basis_final_a6, a.basis_final_a6_sha256) if a.basis_final_a6 else None,
-          display_a6=(a.display_a6, a.display_a6_sha256) if a.display_a6 else None)
+          display_a6=(a.display_a6, a.display_a6_sha256) if a.display_a6 else None, short_fh=a.short_fh)
     return 0
 
 

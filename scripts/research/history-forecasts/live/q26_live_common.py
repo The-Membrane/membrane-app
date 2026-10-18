@@ -876,7 +876,8 @@ def load_frozen_a3(datasets):
 
 CODE_FILES = ("live/q26_live_common.py", "live/q26_live_issue.py", "live/q26_live_score.py",
               "live/q26_live_a5.py", "live/q26_live_a6.py", "a6_touch.py", "a5_touch.py", "a4_touch.py",
-              "a3_touch.py", "a2_touch.py", "a_touch.py", "r7_live.py")
+              "a3_touch.py", "a2_touch.py", "a_touch.py", "r7_live.py", "live/q26_live_short.py", "r1110_blind.py",
+              "r112_combine.py")
 
 
 def code_meta(expect_commit=None):

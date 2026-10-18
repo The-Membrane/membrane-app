@@ -65,7 +65,7 @@ def main():
         print(a.market, "pool deployed", meta["pool_deploy_block"], "reserves", len(meta["reserves"]), flush=True)
         if "logs" in ph:
             aave.fetch_logs(meta, w, end_block(meta["chain"]))
-        days = load_days(meta["chain"], 1672531200) if ("state" in ph or "replay" in ph) else None
+        days = load_days(meta["chain"], 1672531200) if ("state" in ph or "replay" in ph or "gho" in ph) else None
         if "state" in ph:
             aave.daily_state(meta, w, days)
         if "replay" in ph:

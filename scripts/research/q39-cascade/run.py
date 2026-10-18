@@ -233,7 +233,7 @@ def liq_events():
             s_, dec = sym.get(ca, ("?", 18))
             out.append({"venue": v, "chain": meta["chain"], "ts": e["ts"], "block": e["block"], "logIndex": e["logIndex"],
                         "tx": e["tx"], "token": ca, "cls": asset_class(meta["chain"], s_), "units": w[1] / 10 ** dec,
-                        "receiveAToken": bool(w[3]), "kind": "liq"})
+                        "receiveAToken": bool(w[3]), "kind": "liq", "liquidator": to_addr(w[2])})
     for v in MORPHO:
         ch = CHAIN[v]
         mp = os.path.join(WORK, v, "markets.json")
@@ -248,7 +248,8 @@ def liq_events():
             w = words(e["data"])
             out.append({"venue": v, "chain": ch, "ts": e["ts"], "block": e["block"], "logIndex": e["logIndex"],
                         "tx": e["tx"], "token": M["coll"].lower(), "cls": M["cls"], "units": w[2] / 10 ** M["cdec"],
-                        "kind": "liq", "market": mid, "repaidShares": w[1], "borrower": "0x" + e["topics"][3][-40:]})
+                        "kind": "liq", "market": mid, "repaidShares": w[1], "borrower": "0x" + e["topics"][3][-40:],
+                        "liquidator": "0x" + e["topics"][2][-40:]})
     for v in COMET:
         ch = CHAIN[v]
         mp = os.path.join(WORK, v, "meta.json")
@@ -267,7 +268,7 @@ def liq_events():
                 units = (w[0] if kind == "absorb" else w[1]) / info[a]["scale"]
                 out.append({"venue": v, "chain": ch, "ts": e["ts"], "block": e["block"], "logIndex": e["logIndex"],
                             "tx": e["tx"], "token": a, "cls": info[a]["cls"], "units": units, "kind": kind,
-                            "comet": cm})
+                            "comet": cm, "liquidator": "0x" + e["topics"][1][-40:]})
     for e in out:
         rb, ref = _ratio_book(e["chain"], day_of(e["ts"])) if e["ts"] >= 1672531200 else ({}, {})
         e["eq"] = e["units"] * rb.get(e["token"], 1.0)          # class-equivalent units (ETH or BTC)
@@ -279,6 +280,17 @@ def liq_events():
 def _dev_event(e):
     return MD.DEV[0] <= e["ts"] < MD.TEST_START and not MD.stress_purged(day_of(e["ts"]), 0) \
         and e["cls"] in ("E", "B")
+
+
+def _protocol_addrs(v):
+    if v in AAVE:
+        meta = json.load(open(os.path.join(WORK, v, "meta.json")))
+        return [meta["pool"]] + [r[k] for r in meta["reserves"] for k in ("aToken", "vDebt", "sDebt")]
+    if v in MORPHO:
+        from morpho import MORPHO as MB
+        return [MB]
+    meta = json.load(open(os.path.join(WORK, v, "meta.json")))
+    return list(meta["comets"])
 
 
 def audit_draw():
@@ -307,12 +319,15 @@ def sellthrough():
             cls = max(("E", "B"), key=lambda c: sum(x["usd_day"] for x in es if x["cls"] == c))
             rb, _ = _ratio_book(ch, day_of(es[0]["ts"]))
             jobs.append({"tx": s_["tx"], "cls": cls, "block": es[0]["block"], "ratio": rb,
+                         "exclude": _protocol_addrs(v) + [x.get("liquidator", "") for x in es if x.get("liquidator")],
                          "seized": sum(x["eq"] for x in es if x["cls"] == cls),
                          "usd": sum(x["usd_day"] for x in es if x["cls"] == cls)})
         book = ST.TokenBook(ch, os.path.join(WORK, f"tokens-{ch}.json"))
-        outp = os.path.join(RES, f"sellthrough-{v}.jsonl")
+        outp = os.path.join(RES, f"sellthrough-v2-{v}.jsonl")
         os.makedirs(RES, exist_ok=True)
-        ST.run(ch, jobs, book, outp)
+        cdir = os.path.join(WORK, "receipts", ch)
+        os.makedirs(cdir, exist_ok=True)
+        ST.run(ch, jobs, book, outp, cache_dir=cdir)
         got = {}
         for line in open(outp):
             r = json.loads(line)
@@ -329,7 +344,7 @@ def sellthrough():
         res[v] = {"s": num / den if den else 0.0, "n_tx": len(got) - n_err, "n_err": n_err,
                   "population_tx": len({e["tx"] for e in items}), "usd_sampled": den}
         print(v, res[v], flush=True)
-    save("sellthrough.json", res)
+    save("sellthrough.json", res)   # rule v2 (D5b); v1 results kept in sellthrough-<venue>.jsonl
 
 
 def morpho_fm():

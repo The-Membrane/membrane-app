@@ -11,6 +11,7 @@ Development-span sample: seed 20261018, up to N_PER_VENUE transactions per venue
 """
 from __future__ import annotations
 
+import gzip
 import json
 import os
 import random
@@ -49,10 +50,20 @@ class TokenBook:
         json.dump(self.d, open(self.path, "w"))
 
 
-def measure(receipt: dict, cls: str, chain: str, book: TokenBook, ratio: dict) -> float:
-    """Units of cls-equivalent (ETH or BTC) sold to swap counterparties in this receipt."""
+def measure(receipt: dict, cls: str, chain: str, book: TokenBook, ratio: dict, exclude=()) -> float:
+    """Units of cls-equivalent (ETH or BTC) sold to swap counterparties in this receipt, NET of buy-backs and
+    round trips (rule v2, after the C.7.2 audit; deviation D5b).
+
+    A counterparty is any address except the zero address, the transaction sender, the liquidator and the
+    lending-protocol contracts (`exclude`). It is a buyer of X when its net X flow is positive and it pays out
+    some non-X token; a seller of X when its net X flow is negative and it receives some non-X token.
+    "Non-X" is any token outside class X (the other shock asset counts: ETH sold for WBTC is an ETH sale).
+    sold = max(0, X bought by counterparties - X sold by counterparties)."""
+    ex = {a.lower() for a in exclude} | {"0x" + "0" * 40}
+    if receipt.get("from"):
+        ex.add(receipt["from"].lower())
     netX: dict[str, float] = {}
-    netO: dict[str, float] = {}
+    netY: dict[str, dict[str, float]] = {}
     for lg in receipt["logs"]:
         tp = lg["topics"]
         if not tp or tp[0] != T_TRANSFER or len(tp) != 3 or lg["data"] in ("0x", ""):
@@ -66,17 +77,19 @@ def measure(receipt: dict, cls: str, chain: str, book: TokenBook, ratio: dict) -
             x = amt * ratio.get(tok, 1.0)
             netX[fr] = netX.get(fr, 0.0) - x
             netX[to] = netX.get(to, 0.0) + x
-        elif k == "O":
-            netO[fr] = netO.get(fr, 0.0) - 1.0   # any outflow of a non-X token marks a payer
-            netO[to] = netO.get(to, 0.0) + 1.0
-    sold = 0.0
-    zero = "0x" + "0" * 40
-    for a, x in netX.items():
-        if a == zero or x <= 1e-12:
+        else:
+            netY.setdefault(fr, {})[tok] = netY.setdefault(fr, {}).get(tok, 0.0) - amt
+            netY.setdefault(to, {})[tok] = netY.setdefault(to, {}).get(tok, 0.0) + amt
+    bought = sold_back = 0.0
+    for a_, x in netX.items():
+        if a_ in ex or abs(x) <= 1e-12:
             continue
-        if netO.get(a, 0.0) < 0:
-            sold += x
-    return sold
+        ys = netY.get(a_, {}).values()
+        if x > 0 and any(y < -1e-18 for y in ys):
+            bought += x
+        elif x < 0 and any(y > 1e-18 for y in ys):
+            sold_back += -x
+    return max(0.0, bought - sold_back)
 
 
 def sample(events: list[dict], n=N_PER_VENUE, seed=SEED) -> list[dict]:
@@ -90,7 +103,7 @@ def sample(events: list[dict], n=N_PER_VENUE, seed=SEED) -> list[dict]:
     return [{"tx": t, "events": by_tx[t]} for t in pick]
 
 
-def run(chain: str, items: list[dict], book: TokenBook, out_path: str, threads=6):
+def run(chain: str, items: list[dict], book: TokenBook, out_path: str, threads=6, cache_dir=None):
     """items: [{tx, cls, seized_units (cls-equivalent), day_ratio: {token: ratio}}]. Appends results (resumable)."""
     done = {}
     if os.path.exists(out_path):
@@ -102,6 +115,12 @@ def run(chain: str, items: list[dict], book: TokenBook, out_path: str, threads=6
 
     def one(it):
         rc = None
+        cp = os.path.join(cache_dir, it["tx"] + ".json.gz") if cache_dir else None
+        if cp and os.path.exists(cp):
+            rc = json.load(gzip.open(cp, "rt"))
+            sold = measure(rc, it["cls"], chain, book, it.get("ratio", {}), it.get("exclude", ()))
+            return {"tx": it["tx"], "cls": it["cls"], "seized": it["seized"], "sold": sold,
+                    "st": min(1.0, sold / it["seized"]) if it["seized"] > 0 else None, "block": it["block"]}
         for _ in range(4):
             try:
                 rc = c.call("eth_getTransactionReceipt", [it["tx"]], need_logs=True)
@@ -111,7 +130,10 @@ def run(chain: str, items: list[dict], book: TokenBook, out_path: str, threads=6
                 break
         if not rc:
             return {"tx": it["tx"], "error": "null receipt x4"}
-        sold = measure(rc, it["cls"], chain, book, it.get("ratio", {}))
+        if cache_dir:
+            with gzip.open(os.path.join(cache_dir, it["tx"] + ".json.gz"), "wt") as f:
+                json.dump(rc, f)
+        sold = measure(rc, it["cls"], chain, book, it.get("ratio", {}), it.get("exclude", ()))
         return {"tx": it["tx"], "cls": it["cls"], "seized": it["seized"], "sold": sold,
                 "st": min(1.0, sold / it["seized"]) if it["seized"] > 0 else None, "block": it["block"]}
 

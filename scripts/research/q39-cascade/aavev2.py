@@ -36,6 +36,9 @@ Event semantics, verified against aave/protocol-v2 master (fetched 2026-10-18):
   GenericLogic.calculateUserAccountData: collateral counts reserves with usingAsCollateral and
     liquidationThreshold != 0; debt = stable + variable balanceOf; prices are oracle getAssetPrice (ETH wei).
     USD = ETH value * Chainlink ETH/USD latestAnswer at the same block (the ratio cancels in hf).
+Exception: aSTETH (Lido AStETH) and aAMPL (AAmplToken) are rebasing aTokens whose Mint/Burn/BalanceTransfer
+units are not plain liquidity-index scaled; their collateral balances are read with balanceOf at the snapshot
+block (see SPECIAL_SYMS). Their debt tokens are standard (stETH is not borrowable; AMPL debt checked exact).
 Liquidation (LendingPoolCollateralManager): close factor fixed 50% (LIQUIDATION_CLOSE_FACTOR_PERCENT = 5000),
 bonus multiplier = configuration bonus / 1e4, no protocol fee in V2 -> feeX = 0.
 """
@@ -288,8 +291,40 @@ class Book:
         return us
 
 
-def position(meta, cls, st, book: Book, u: str):
-    """(V, S(lt*V), LB(bonus*V), D, dmaxO, collETHwei-free totals) for one user at state `st` (USD)."""
+# Rebasing aTokens whose events are not in the standard units (spot check 2026-10-18 at block 16301023: all
+# 120 sampled standard aToken/vDebt/sDebt balances matched exactly; aSTETH (Lido AStETH, balance also scales
+# with the stETH share rate) and aAMPL (AAmplToken) did not). Their collateral balances are read with
+# aToken.balanceOf(user) at the snapshot block for every debtor whose collateral bit is set (cached).
+SPECIAL_SYMS = {"stETH", "AMPL"}
+
+
+def special_balances(meta, work, st, ts, book: Book, debtors) -> dict:
+    """{user: {ri: balanceOf}} for SPECIAL_SYMS aTokens, cached in work/special/<ts>.json."""
+    d = os.path.join(work, "special")
+    os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, f"{ts}.json")
+    if os.path.exists(path):
+        return {u: {int(k): int(v) for k, v in dv.items()} for u, dv in json.load(open(path)).items()}
+    R = meta["reserves"]
+    sp = [i for i, r in enumerate(R) if r["symbol"] in SPECIAL_SYMS and str(i) in st["reserves"]]
+    pairs = [(u, ri) for u in sorted(debtors) for ri in sp
+             if ri in book.coll.get(u, set()) and ri in book.A.get(u, {})]
+    out: dict = {}
+    if pairs:
+        c = Client("ethereum")
+        res = v2.multicall(c, [(R[ri]["aToken"], selector("balanceOf(address)") + enc_addr(u)) for u, ri in pairs],
+                           st["block"])
+        for (u, ri), r in zip(pairs, res):
+            if r is None:
+                raise RpcError(f"special balanceOf failed {u} {ri} at {st['block']}")
+            out.setdefault(u, {})[ri] = v2.w0(r)
+    json.dump({u: {str(k): str(v) for k, v in dv.items()} for u, dv in out.items()}, open(path, "w"))
+    return out
+
+
+def position(meta, cls, st, book: Book, u: str, special: dict | None = None):
+    """(V, S(lt*V), LB(bonus*V), D, dmaxO) for one user at state `st` (USD). `special` overrides the
+    collateral balance of SPECIAL_SYMS aTokens with balanceOf read at the snapshot block."""
     R = meta["reserves"]
     eth = st["eth_usd"] / 1e8
     rs = st["reserves"]
@@ -316,14 +351,23 @@ def position(meta, cls, st, book: Book, u: str):
     S_ = {"E": 0.0, "B": 0.0, "O": 0.0}
     LB_ = {"E": 0.0, "B": 0.0, "O": 0.0}
     cu = book.coll.get(u, set())
+    sp_ri = {i for i, r in enumerate(R) if r["symbol"] in SPECIAL_SYMS}
     for ri, s in book.A.get(u, {}).items():
+        if ri in sp_ri:
+            s = None
         v = rs.get(str(ri))
-        if s <= 0 or ri not in cu or not v or v["price"] is None or v["conf"] is None or v["income"] is None:
+        if ri in cu and s is None:
+            bal = (special or {}).get(u, {}).get(ri, 0)
+        else:
+            bal = None
+        if ((s is None and not bal) or (s is not None and s <= 0) or ri not in cu or not v or v["price"] is None
+                or v["conf"] is None or v["income"] is None):
             continue
         f = conf_fields(int(v["conf"]))
         if f["lt"] == 0:
             continue
-        val = ray_mul(s, int(v["income"])) / 10 ** R[ri]["decimals"] * int(v["price"]) / 1e18 * eth
+        amt = bal if s is None else ray_mul(s, int(v["income"]))
+        val = amt / 10 ** R[ri]["decimals"] * int(v["price"]) / 1e18 * eth
         c = cls[ri]
         V_[c] += val
         S_[c] += val * f["lt"] / 1e4
@@ -349,8 +393,10 @@ def replay(meta: dict, work: str, days: dict[int, int]):
     def snapshot(ts):
         st = json.load(open(os.path.join(work, "state", f"{ts}.json")))
         rows = []
-        for u in sorted(book.debtors()):
-            V_, S_, LB_, D, dmaxo = position(meta, cls, st, book, u)
+        debtors = book.debtors()
+        special = special_balances(meta, work, st, ts, book, debtors)
+        for u in sorted(debtors):
+            V_, S_, LB_, D, dmaxo = position(meta, cls, st, book, u, special)
             dt = D["E"] + D["B"] + D["O"]
             if dt <= 0:
                 continue

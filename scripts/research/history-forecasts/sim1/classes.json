@@ -1,7 +1,12 @@
 {
   "schema": "q26-sim/classes/1",
   "what": "Labels table for slice 1 (design section 3.2). Module classes with evidence; each output lists its module chain and takes the weakest class (design 3.3 rule 1). Reviewed with each new blind result.",
-  "order": ["P", "X", "N", "S"],
+  "order": [
+    "P",
+    "X",
+    "N",
+    "S"
+  ],
   "class_meaning": {
     "P": "probability: every module in the chain passed an unseen blind set (or preregistered transfer test) in this region",
     "X": "calibrated scenario: q95 coverage passed the simulator back-replay on an unseen set (none yet)",
@@ -9,54 +14,277 @@
     "S": "scenario: anything else (\"in k of N simulated paths\", \"scenario tail (95th of N paths)\")"
   },
   "modules": {
-    "M1_touch_displayed": {"class": "P", "evidence": "A6 (fH) displayed rung at 6 h-3 d, ETH and BTC, blind set 5 (BSS vs (f) +0.028 at 1 d, +0.012 at 3 d); A6 D3", "labels": ["display pending owner decision"]},
-    "M1_touch_deep15": {"class": "P", "evidence": "R12.5 PASS on B12 (OKX and Bybit altcoins) at 12 h-3 d, -15%; R 1.06-1.25 (D-R12.5b)", "labels": ["TRANSFER, MAY RUN HIGH"]},
-    "M1_touch_deep20": {"class": "N", "evidence": "R12.5 -20% passes but wick-only and venue-carried (design 2.1)", "labels": ["NOT CONFIRMED"]},
-    "M1_touch_outside": {"class": "S", "evidence": "no blind test at this level", "labels": ["OUTSIDE VALIDATED REGION"]},
-    "M1_paths": {"class": "S", "evidence": "(fH) FHS joint paths drive the coupled engine; path frequencies are scenarios (R11 rule 9)", "labels": []},
-    "M2_curve_core": {"class": "P", "evidence": "R10.1A: Core USDC curve exact, every sampled hour within 0.005 bp", "labels": []},
-    "M2_curve_arb": {"class": "P", "evidence": "slice-1 identity check on Arbitrum native USDC (R10.1A recipe); class falls to S if the check fails", "labels": [], "requires_check": "curvecheck_arb"},
-    "M3_liq_replay": {"class": "S", "evidence": "R11.1-v3 call rule; L1 gate unscored (D-R11.1h restart); no R10.2 forecast pass", "labels": []},
-    "M5_cash24_core": {"class": "P", "evidence": "R11.11-M1 frozen; Core USDC is development data (dev +8.46% pooled vs empirical); same native type as the C1 pass", "labels": ["DEVELOPMENT + TRANSFER"]},
-    "M5_cash24_arb": {"class": "P", "evidence": "R11.11 C1 PASS on Arbitrum native USDC: +31.8% vs 730-day empirical, p 1.4e-9, q05 hit 4.3% (R 1.16), effective N 236 (D-R11.11d)", "labels": ["BLIND TEST"]},
-    "M4_B4_core_lt50m": {"class": "P", "evidence": "B4 v4a/v4b per-deposit exit odds, Aave V3 Core USDC/USDT wallets under $50M, 24 h-7 d (B4, B4 D2 labels)", "labels": ["per-deposit label governs"]},
-    "M4_B4_big": {"class": "S", "evidence": "wallets >= $50M and contracts >= $10M have no blind confirmation", "labels": []},
-    "R72_runoff": {"class": "S", "evidence": "R7.2 stress block, never scored; measured balances are facts, the run-off is a scenario", "labels": []},
-    "coupling": {"class": "S", "evidence": "joint coupling (M3 -> M5 -> M2) has no preregistered test on real outcomes (R11 section S)", "labels": []},
-    "M7_stress": {"class": "S", "evidence": "named crisis replayed from today's positions; a stress line, never a frequency", "labels": ["STRESS LINE"]},
-    "ladder": {"class": "S", "evidence": "debt entering liquidation under a hypothetical common ETH/BTC move, measured from t0 positions", "labels": []}
+    "M1_touch_displayed": {
+      "class": "P",
+      "evidence": "A6 (fH) displayed rung at 6 h-3 d, ETH and BTC, blind set 5 (BSS vs (f) +0.028 at 1 d, +0.012 at 3 d); A6 D3",
+      "labels": [
+        "display pending owner decision"
+      ]
+    },
+    "M1_touch_deep15": {
+      "class": "N",
+      "evidence": "R12.5 PASS on B12 (OKX and Bybit altcoins) at 12 h-3 d, -15%; R 1.06-1.25 (D-R12.5b). Registered on altcoins, not preregistered as an ETH/BTC transfer test. Parent ruling 2026-10-18: class N for ETH/BTC",
+      "labels": [
+        "TRANSFER — NOT CONFIRMED FOR ETH, MAY RUN HIGH"
+      ]
+    },
+    "M1_touch_deep20": {
+      "class": "N",
+      "evidence": "R12.5 -20% passes but wick-only and venue-carried (design 2.1)",
+      "labels": [
+        "NOT CONFIRMED"
+      ]
+    },
+    "M1_touch_outside": {
+      "class": "S",
+      "evidence": "no blind test at this level",
+      "labels": [
+        "OUTSIDE VALIDATED REGION"
+      ]
+    },
+    "M1_paths": {
+      "class": "S",
+      "evidence": "(fH) FHS joint paths drive the coupled engine; path frequencies are scenarios (R11 rule 9)",
+      "labels": []
+    },
+    "M2_curve_core": {
+      "class": "P",
+      "evidence": "R10.1A: Core USDC curve exact, every sampled hour within 0.005 bp",
+      "labels": []
+    },
+    "M2_curve_arb": {
+      "class": "P",
+      "evidence": "slice-1 identity check on Arbitrum native USDC (R10.1A recipe); class falls to S if the check fails",
+      "labels": [],
+      "requires_check": "curvecheck_arb"
+    },
+    "M3_liq_replay": {
+      "class": "S",
+      "evidence": "R11.1-v3 call rule; L1 gate unscored (D-R11.1h restart); no R10.2 forecast pass",
+      "labels": []
+    },
+    "M5_cash24_core": {
+      "class": "N",
+      "evidence": "R11.11-M1 on Core USDC is development data (burned): dev +8.46% pooled vs empirical; R10.4 failed blind on C2; M1 passed blind only on C1 Arbitrum. Parent ruling 2026-10-18: class N",
+      "labels": [
+        "DEVELOPMENT"
+      ]
+    },
+    "M5_cash24_arb": {
+      "class": "P",
+      "evidence": "R11.11 C1 PASS on Arbitrum native USDC: +31.8% vs 730-day empirical, p 1.4e-9, q05 hit 4.3% (R 1.16), effective N 236 (D-R11.11d)",
+      "labels": [
+        "BLIND TEST"
+      ]
+    },
+    "M4_B4_core_lt50m": {
+      "class": "P",
+      "evidence": "B4 v4a/v4b per-deposit exit odds, Aave V3 Core USDC/USDT wallets under $50M, 24 h-7 d (B4, B4 D2 labels)",
+      "labels": [
+        "per-deposit label governs"
+      ]
+    },
+    "M4_B4_big": {
+      "class": "S",
+      "evidence": "wallets >= $50M and contracts >= $10M have no blind confirmation",
+      "labels": []
+    },
+    "R72_runoff": {
+      "class": "S",
+      "evidence": "R7.2 stress block, never scored; measured balances are facts, the run-off is a scenario",
+      "labels": []
+    },
+    "coupling": {
+      "class": "S",
+      "evidence": "joint coupling (M3 -> M5 -> M2) has no preregistered test on real outcomes (R11 section S)",
+      "labels": []
+    },
+    "M7_stress": {
+      "class": "S",
+      "evidence": "named crisis replayed from today's positions; a stress line, never a frequency",
+      "labels": [
+        "STRESS LINE"
+      ]
+    },
+    "ladder": {
+      "class": "S",
+      "evidence": "debt entering liquidation under a hypothetical common ETH/BTC move, measured from t0 positions",
+      "labels": []
+    }
   },
   "outputs": {
-    "CQ1.vault_bad_debt.q95": {"chain": ["M1_paths", "M3_liq_replay", "coupling"]},
-    "CQ1.vault_bad_debt.q99": {"chain": ["M1_paths", "M3_liq_replay", "coupling"], "tail": "q99", "q99_rule": "scenario-only unless a powered validation promotes it (owner decision (a))"},
-    "CQ1.vault_liquidity_loss.q95": {"chain": ["M1_paths", "coupling"]},
-    "CQ1.vault_liquidity_loss.q99": {"chain": ["M1_paths", "coupling"], "tail": "q99"},
-    "CQ1.reserve_liq_volume.q95": {"chain": ["M1_paths", "M3_liq_replay"]},
-    "CQ2.min_cash_24h.core": {"chain": ["M5_cash24_core"]},
-    "CQ2.min_cash_24h.arb": {"chain": ["M5_cash24_arb"]},
-    "CQ2.lock_share": {"chain": ["M1_paths", "coupling"]},
-    "CQ2.min_cash_scenario.q05": {"chain": ["M1_paths", "coupling"]},
-    "CQ3.apr_band_7d.core": {"chain": ["external_Q33_C3"], "withheld_reason": "Q33 owns the C3 band; not computed in slice 1"},
-    "CQ3.apr_band_7d.arb": {"chain": ["external_M2_offcore"], "withheld_reason": "M2 off Core is class N (R11.8, R12.4 FAIL, same direction); not computed in slice 1"},
-    "CQ3.scenario_apr.core": {"chain": ["M2_curve_core", "M1_paths", "coupling"]},
-    "CQ3.scenario_apr.arb": {"chain": ["M2_curve_arb", "M1_paths", "coupling"]},
-    "CQ3.apr_now.core": {"chain": ["M2_curve_core"]},
-    "CQ3.apr_now.arb": {"chain": ["M2_curve_arb"]},
-    "CQ4.tail_drivers": {"chain": ["M1_paths", "M3_liq_replay", "coupling"]},
-    "CQ5.move": {"chain": ["M1_paths", "M3_liq_replay", "coupling"], "note": "class of the compared metric"},
-    "CQ6.b4_exit_odds.core_lt50m": {"chain": ["M4_B4_core_lt50m"]},
-    "CQ6.big_holders.core": {"chain": ["M4_B4_big"]},
-    "CQ6.runoff.core": {"chain": ["R72_runoff"]},
-    "CQ6.top10.core": {"chain": ["R72_runoff"]},
-    "CQ7.touch.displayed": {"chain": ["M1_touch_displayed"]},
-    "CQ7.touch.deep15": {"chain": ["M1_touch_displayed", "M1_touch_deep15"]},
-    "CQ7.touch.deep20": {"chain": ["M1_touch_displayed", "M1_touch_deep20"]},
-    "CQ7.touch.outside": {"chain": ["M1_touch_outside"]},
-    "CQ7.ladder": {"chain": ["ladder"]},
-    "CQ8.stress": {"chain": ["M7_stress", "M3_liq_replay", "coupling"]}
+    "CQ1.vault_bad_debt.q95": {
+      "chain": [
+        "M1_paths",
+        "M3_liq_replay",
+        "coupling"
+      ]
+    },
+    "CQ1.vault_bad_debt.q99": {
+      "chain": [
+        "M1_paths",
+        "M3_liq_replay",
+        "coupling"
+      ],
+      "tail": "q99",
+      "q99_rule": "scenario-only unless a powered validation promotes it (owner decision (a))"
+    },
+    "CQ1.vault_liquidity_loss.q95": {
+      "chain": [
+        "M1_paths",
+        "coupling"
+      ]
+    },
+    "CQ1.vault_liquidity_loss.q99": {
+      "chain": [
+        "M1_paths",
+        "coupling"
+      ],
+      "tail": "q99"
+    },
+    "CQ1.reserve_liq_volume.q95": {
+      "chain": [
+        "M1_paths",
+        "M3_liq_replay"
+      ]
+    },
+    "CQ2.min_cash_24h.core": {
+      "chain": [
+        "M5_cash24_core"
+      ]
+    },
+    "CQ2.min_cash_24h.arb": {
+      "chain": [
+        "M5_cash24_arb"
+      ]
+    },
+    "CQ2.lock_share": {
+      "chain": [
+        "M1_paths",
+        "coupling"
+      ]
+    },
+    "CQ2.min_cash_scenario.q05": {
+      "chain": [
+        "M1_paths",
+        "coupling"
+      ]
+    },
+    "CQ3.apr_band_7d.core": {
+      "chain": [
+        "external_Q33_C3"
+      ],
+      "withheld_reason": "Q33 owns the C3 band; not computed in slice 1"
+    },
+    "CQ3.apr_band_7d.arb": {
+      "chain": [
+        "external_M2_offcore"
+      ],
+      "withheld_reason": "M2 off Core is class N (R11.8, R12.4 FAIL, same direction); not computed in slice 1"
+    },
+    "CQ3.scenario_apr.core": {
+      "chain": [
+        "M2_curve_core",
+        "M1_paths",
+        "coupling"
+      ]
+    },
+    "CQ3.scenario_apr.arb": {
+      "chain": [
+        "M2_curve_arb",
+        "M1_paths",
+        "coupling"
+      ]
+    },
+    "CQ3.apr_now.core": {
+      "chain": [
+        "M2_curve_core"
+      ]
+    },
+    "CQ3.apr_now.arb": {
+      "chain": [
+        "M2_curve_arb"
+      ]
+    },
+    "CQ4.tail_drivers": {
+      "chain": [
+        "M1_paths",
+        "M3_liq_replay",
+        "coupling"
+      ]
+    },
+    "CQ5.move": {
+      "chain": [
+        "M1_paths",
+        "M3_liq_replay",
+        "coupling"
+      ],
+      "note": "class of the compared metric"
+    },
+    "CQ6.b4_exit_odds.core_lt50m": {
+      "chain": [
+        "M4_B4_core_lt50m"
+      ]
+    },
+    "CQ6.big_holders.core": {
+      "chain": [
+        "M4_B4_big"
+      ]
+    },
+    "CQ6.runoff.core": {
+      "chain": [
+        "R72_runoff"
+      ]
+    },
+    "CQ6.top10.core": {
+      "chain": [
+        "R72_runoff"
+      ]
+    },
+    "CQ7.touch.displayed": {
+      "chain": [
+        "M1_touch_displayed"
+      ]
+    },
+    "CQ7.touch.deep15": {
+      "chain": [
+        "M1_touch_displayed",
+        "M1_touch_deep15"
+      ]
+    },
+    "CQ7.touch.deep20": {
+      "chain": [
+        "M1_touch_displayed",
+        "M1_touch_deep20"
+      ]
+    },
+    "CQ7.touch.outside": {
+      "chain": [
+        "M1_touch_outside"
+      ]
+    },
+    "CQ7.ladder": {
+      "chain": [
+        "ladder"
+      ]
+    },
+    "CQ8.stress": {
+      "chain": [
+        "M7_stress",
+        "M3_liq_replay",
+        "coupling"
+      ]
+    }
   },
   "external": {
-    "external_Q33_C3": {"class": "P", "evidence": "Q33 C3 on Core USDC (Q33 label governs)"},
-    "external_M2_offcore": {"class": "N", "evidence": "M2 off Core: R11.8 and R12.4 FAIL, same direction (11-13% better than C3)"}
-  }
+    "external_Q33_C3": {
+      "class": "P",
+      "evidence": "Q33 C3 on Core USDC (Q33 label governs)"
+    },
+    "external_M2_offcore": {
+      "class": "N",
+      "evidence": "M2 off Core: R11.8 and R12.4 FAIL, same direction (11-13% better than C3)"
+    }
+  },
+  "class_rule": "P only for outputs in a validated region with a blind pass (or preregistered transfer test) on the same asset class; otherwise N or S; weakest link over the chain (parent ruling 2026-10-18)"
 }

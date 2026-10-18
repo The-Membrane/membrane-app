@@ -35,6 +35,11 @@ from sim1 import liq as LQ  # noqa: E402
 from sim1 import paths as PA  # noqa: E402
 
 SCHEMA = "q26-sim/slice1-report/1"
+PATH_POOL_LIMITATION = (
+    "Path-pool coverage gap: the coupled paths draw only 00:00Z windows from 2023-07 to 2026-10 (the span with "
+    "flow history for both reserves), so 2020-2022 crashes are absent and the path set's touch frequencies run "
+    "below the live (fH) odds (for example ETH 1 d -5%: 6.8% of paths vs 9.1% live). Scenario tails are therefore "
+    "likely understated; the live A6 numbers (CQ7) use the full history.")
 ADDR_RE = re.compile(r"0x[0-9a-fA-F]{40}")
 HOUR, DAY = 3600, 86400
 MOVES = (0.05, 0.10, 0.25, 0.50)
@@ -227,6 +232,44 @@ def hf_stats(P):
             "n_compared": int(ok.sum())}
 
 
+def _base_id(o):
+    if o.get("class_id"):
+        return o["class_id"], o.get("tail")
+    oid, h = o["id"], o.get("horizon")
+    base = oid[:-(len(h) + 1)] if h and oid.endswith("." + h) else oid
+    tail = "q99" if ".q99" in base else ("q95" if (".q95" in base or base == "CQ5.move") else None)
+    return base, tail
+
+
+def reclass(full: dict, table: dict) -> dict:
+    """Re-apply the current labels table to an all-class report (classes, labels, evidence, wording) and floor
+    displayed cash quantiles at 0; path quantities are copied, never recomputed."""
+    out = json.loads(json.dumps(full))
+    checks = {"curvecheck_arb": bool(out["checks"]["curvecheck_arb"]["pass"])}
+    for qq in out["questions"]:
+        for o in qq["outputs"]:
+            base, tail = _base_id(o)
+            oc = CL.output_class(table, base, checks)
+            o.update({"class": oc["class"], "kind": oc["kind"], "labels": oc["labels"], "evidence": oc["evidence"],
+                      "wording": CL.wording(oc["class"], tail), "class_id": base, "tail": tail})
+            v = o.get("value")
+            if base.startswith("CQ2.min_cash_24h") and isinstance(v, dict) and v.get("ok"):
+                raw = {k: v[k] for k in ("q05_usd", "q25_usd", "q50_usd")}
+                for k in raw:
+                    v[k] = max(0.0, raw[k])
+                v.pop("display_floored_at_0_usd", None)
+                v.pop("note", None)
+                v["floored_at_0"] = True
+                v["research_raw_model_values"] = {**raw, "note": "RESEARCH FIELD, NOT FOR DISPLAY: the frozen "
+                                                  "model's unfloored quantiles; a negative value means the model's "
+                                                  "minimum crosses zero (cash fully used)"}
+    if PATH_POOL_LIMITATION not in out["limitations"]:
+        out["limitations"].append(PATH_POOL_LIMITATION)
+    out["class_rule"] = table.get("class_rule")
+    out["reclassified"] = "classes and displayed cash floors re-applied from classes.json (values copied)"
+    return out
+
+
 def refilter(full: dict, flt) -> dict:
     """Re-apply a confidence filter to a full (all-class) report; values are copied, never recomputed."""
     out = json.loads(json.dumps(full))
@@ -274,7 +317,8 @@ def build(a):
         oc = CL.output_class(table, out_id or oid, checks)
         o = {"id": oid + (f".{horizon}" if horizon else ""), "horizon": horizon, "metric": metric,
              "class": oc["class"], "kind": oc["kind"], "labels": oc["labels"], "evidence": oc["evidence"],
-             "wording": CL.wording(oc["class"], tail), "value": value, "decides": False}
+             "wording": CL.wording(oc["class"], tail), "value": value, "decides": False,
+             "class_id": out_id or oid, "tail": tail}
         if extra:
             o.update(extra)
         outputs.append(o)
@@ -444,6 +488,7 @@ def build(a):
             "the t0 underwater baseline), shared pro rata by the vault's allocation.",
             "CQ3 bands are owned by Q33 (C3 on Core) and are class N off Core (M2); not computed in slice 1.",
             "CQ6 covers Core USDC only (the live deposit log); Arbitrum has no holder census or B4 pass.",
+            PATH_POOL_LIMITATION,
         ],
     }
     text = json.dumps(report, sort_keys=True, default=float)
@@ -454,7 +499,7 @@ def build(a):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["run", "refilter"])
+    ap.add_argument("cmd", choices=["run", "refilter", "reclass"])
     ap.add_argument("--work")
     ap.add_argument("--datasets")
     ap.add_argument("--full", help="refilter: the all-class report")
@@ -464,6 +509,15 @@ def main(argv=None):
     ap.add_argument("--seed", type=int, default=CFG.SEED)
     ap.add_argument("--confidence", default="P")
     a = ap.parse_args(argv)
+    if a.cmd == "reclass":
+        rep = reclass(json.load(open(a.full)), CL.load())
+        text = json.dumps(rep, sort_keys=True)
+        if ADDR_RE.search(text):
+            raise SystemExit("STOP: an address-like string reached the report")
+        with open(a.out, "w") as f:
+            f.write(json.dumps(rep, indent=1, sort_keys=True))
+        print(f"wrote {a.out} (reclassified)")
+        return
     if a.cmd == "refilter":
         full = json.load(open(a.full))
         if a.work:      # recompute the HF agreement statistic only (no path quantity changes)

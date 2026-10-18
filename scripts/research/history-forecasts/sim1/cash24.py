@@ -25,11 +25,13 @@ def forecast(M: dict) -> dict:
     if fo is None:
         return {"ok": False, "reason": "R10.4 forecast_origin returned None (too little history)"}
     q = [float(x) / MICRO for x in fo["q1"]]
-    return {"ok": True, "origin": M["days"][n], "q05_usd": q[0], "q25_usd": q[1], "q50_usd": q[2],
+    return {"ok": True, "origin": M["days"][n], "q05_usd": max(0.0, q[0]), "q25_usd": max(0.0, q[1]),
+            "q50_usd": max(0.0, q[2]), "floored_at_0": True,
             "cash_t0_usd": float(M["cash_t0"][n]) / MICRO, "supply_t0_usd": float(M["S_snap"][n]) / MICRO,
             "n_paths": int(fo["n_paths"]), "model": "R11.11-M1 (frozen, r1111_cash.forecast_m1)",
             "model_source_sha256": R11.model_source_hash(),
             "model_source_matches_frozen": R11.model_source_hash() == FROZEN_MODEL_SHA256,
-            "display_floored_at_0_usd": [max(0.0, x) for x in q],
-            "note": "frozen quantiles are shown unchanged; a negative value means the model's minimum crosses zero "
-                    "(cash fully used); pool cash itself cannot go below 0"}
+            "research_raw_model_values": {"q05_usd": q[0], "q25_usd": q[1], "q50_usd": q[2],
+                                          "note": "RESEARCH FIELD, NOT FOR DISPLAY: the frozen model's unfloored "
+                                                  "quantiles; a negative value means the model's minimum crosses "
+                                                  "zero (cash fully used)"}}

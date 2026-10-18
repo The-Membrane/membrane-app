@@ -182,6 +182,9 @@ class TestClasses(unittest.TestCase):
         self.assertEqual(CL.output_class(t, "CQ3.apr_now.arb", {"curvecheck_arb": False})["class"], "S")
         self.assertEqual(CL.output_class(t, "CQ3.apr_now.arb", {"curvecheck_arb": True})["class"], "P")
         self.assertEqual(CL.output_class(t, "CQ7.touch.deep20")["class"], "N")
+        self.assertEqual(CL.output_class(t, "CQ2.min_cash_24h.core")["class"], "N")       # development data
+        self.assertEqual(CL.output_class(t, "CQ7.touch.deep15")["class"], "N")            # altcoin transfer only
+        self.assertIn("TRANSFER \u2014 NOT CONFIRMED FOR ETH, MAY RUN HIGH", CL.output_class(t, "CQ7.touch.deep15")["labels"])
 
     def test_filter(self):
         self.assertEqual(CL.parse_filter(None), ("P",))
@@ -213,6 +216,20 @@ class TestRefilter(unittest.TestCase):
         self.assertEqual(r["questions"][1]["outputs"][0]["value"], 1.0)
         with self.assertRaises(SystemExit):
             RP.refilter(r, ("P", "S"))          # a filtered report cannot be widened (values are gone)
+
+
+class TestReclass(unittest.TestCase):
+    def test_floor_and_class(self):
+        v = {"ok": True, "q05_usd": -35.0, "q25_usd": -2.0, "q50_usd": 12.0}
+        full = {"checks": {"curvecheck_arb": {"pass": True}}, "limitations": [], "questions": [
+            {"id": "CQ2", "outputs": [{"id": "CQ2.min_cash_24h.core.24h", "horizon": "24h", "class": "P",
+                                       "value": dict(v)}], "withheld": []}]}
+        r = RP.reclass(full, CL.load())
+        o = r["questions"][0]["outputs"][0]
+        self.assertEqual(o["class"], "N")
+        self.assertEqual((o["value"]["q05_usd"], o["value"]["q25_usd"], o["value"]["q50_usd"]), (0.0, 0.0, 12.0))
+        self.assertEqual(o["value"]["research_raw_model_values"]["q05_usd"], -35.0)
+        self.assertIn(RP.PATH_POOL_LIMITATION, r["limitations"])
 
 
 class TestGuard(unittest.TestCase):

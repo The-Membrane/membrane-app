@@ -47,8 +47,9 @@ MK = {
                                           "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359"],
              "gas": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",            # WPOL (formerly WMATIC)
              "pd_assets": ["0x7ceb23fd6bc0add59e62ac25578270cff1b9f619",      # WETH
-                           "0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6",      # WBTC
-                           "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"],     # WPOL (native gas token)
+                           "0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6"],     # WBTC (the D set; binding)
+             "pd_assets_reported": ["0x7ceb23fd6bc0add59e62ac25578270cff1b9f619", "0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6",
+                                    "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"],   # + WPOL, reported only
              "first": dt.date(2022, 3, 15), "last": dt.date(2026, 9, 30)},
 }
 EXCLUDE = {"2025-10-10", "2025-10-11"}
@@ -162,16 +163,23 @@ def magnitude(days, sim, real, debt_usd):
 
 
 def verdict4(cls, pooled, mag):
-    checks = {}
+    """Binding: per threshold H >= 0.60 and J > J_E; mean J over the three thresholds > mean J_PD; pooled Brier DM vs
+    climatology, E and PD; the magnitude sanity gate. Per-threshold J > J_PD is reported (D-R11.1l power: at the
+    L1-clean development effect it holds at $2.5M in about 67% of resamples)."""
+    checks, reported = {}, {}
     for X, v in cls.items():
         checks[f"H>=0.60@{X}"] = bool(v["H"] is not None and v["H"] >= 0.60)
         checks[f"J>J_E@{X}"] = bool(v["J"] is not None and v["J_E"] is not None and v["J"] > v["J_E"])
-        checks[f"J>J_PD@{X}"] = bool(v["J"] is not None and v["J_PD"] is not None and v["J"] > v["J_PD"])
+        reported[f"J>J_PD@{X}"] = bool(v["J"] is not None and v["J_PD"] is not None and v["J"] > v["J_PD"])
+    js = [v["J"] for v in cls.values()]
+    jp = [v["J_PD"] for v in cls.values()]
+    checks["meanJ>meanJ_PD"] = bool(None not in js and None not in jp and np.mean(js) > np.mean(jp))
     for k in ("clim", "E", "PD"):
         checks[f"DM_brier_vs_{k}_p<0.05"] = bool(pooled[k]["p_one_sided"] < 0.05 and pooled[k]["mean_d"] < 0)
     classifier = all(checks.values())
-    return {"checks": checks, "classifier_pass": classifier, "magnitude_checks": mag["checks"],
-            "magnitude_pass": mag["pass"], "pass": bool(classifier and mag["pass"])}
+    return {"checks": checks, "reported_checks": reported, "mean_J": float(np.mean(js)) if None not in js else None,
+            "mean_J_PD": float(np.mean(jp)) if None not in jp else None, "classifier_pass": classifier,
+            "magnitude_checks": mag["checks"], "magnitude_pass": mag["pass"], "pass": bool(classifier and mag["pass"])}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -251,8 +259,8 @@ def debt_usd(mk, work, metas):
     return out
 
 
-def mk_dd(mk, hours, inp):
-    ix = [inp.gidx[a] for a in MK[mk]["pd_assets"]]
+def mk_dd(mk, hours, inp, key="pd_assets"):
+    ix = [inp.gidx[a] for a in MK[mk][key]]
     return drawdown_by_day(np.array([h["hour"] for h in hours]), np.array([h["prices"][ix] for h in hours]))
 
 
@@ -505,10 +513,11 @@ READINGS = {
     "P-2": "Gate days 2022-03-15..2026-09-30 minus 2025-10-10/11; 2026Q2 reported only (rule 6).",
     "P-3": "Thresholds X in {0.5M, 1M, 2.5M} x (USDC.e + USDC total debt at the day's anchor, USD) / 530,255,152.",
     "P-4": "Sim class = v4 daily simulated USDC-debt repay >= X; E = real on the previous calendar day >= X; PD = max over "
-           "WETH, WBTC and WPOL of the 24 h drawdown of the hourly oracle price ending in the day >= x_pd (x_pd fixed on D "
-           "with WETH, WBTC); probabilities: online class frequency with the D prior (10 pseudo-days).",
-    "P-5": "Classifier pass: per threshold H >= 0.60, J > J_E, J > J_PD; pooled Brier DM (NW lag 7, HLN, one-sided) "
-           "p < 0.05 vs climatology, E and PD.",
+           "WETH and WBTC of the 24 h drawdown of the hourly oracle price ending in the day >= x_pd (x_pd = 6%, fixed on D "
+           "with WETH, WBTC); probabilities: online class frequency with the D prior (10 pseudo-days). WETH+WBTC+WPOL "
+           "variant reported only.",
+    "P-5": "Classifier pass: per threshold H >= 0.60 and J > J_E; mean J over the three thresholds > mean J_PD; pooled "
+           "Brier DM (NW lag 7, HLN, one-sided) p < 0.05 vs climatology, E and PD. Per-threshold J > J_PD reported.",
     "P-6": "Magnitude sanity gate (binding): Spearman on days with max(sim, real) >= $10k >= 0.50 and > E-rank; USD-weighted "
            "absolute log error < E's; sim/real total in [0.5, 2]; simulated daily volume <= USDC total debt at the anchor on "
            "every gate day (checked before the outcome file is opened).",
@@ -532,7 +541,7 @@ def cmd_freeze(a):
         raise SystemExit("integrity checks did not pass: no freeze")
     cfg = {"item": "Q26 R11.1-v4 gate on Aave V3 Polygon USDC debt (membrane-board design/Q26_ROUND11_PREREG.md D-R11.1k, l)",
            "code_sha": sha, "utc_created": utcnow(), "rule": json.load(open(a.rule)), "priors": dc["priors_for_poly"],
-           "x_pd": dc["x_pd"], "pd_assets": ["WETH", "WBTC", "WPOL"],
+           "x_pd": dc["x_pd"], "pd_assets": ["WETH", "WBTC"],
            "dcomp_sha256": G.sha256_file(os.path.join(a.dcomp, "dcomp.json")),
            "integrity_sha256": G.sha256_file(os.path.join(a.integrity, "integrity.json")),
            "thresholds_core": G.THRESH_CORE, "ref_core_usdc_debt": G.REF_CORE_DEBT, "prior_pseudo_days": G.PRIOR_A,
@@ -584,6 +593,8 @@ def cmd_run(a):
     dd = mk_dd(a.mk, hours, inp)
     cls, pooled = classify4(days, sim, real, scale, dd, cfg["x_pd"], priors=cfg["priors"])
     mag = magnitude(days, sim, real, debt)
+    dd_w = mk_dd(a.mk, hours, inp, "pd_assets_reported")
+    cls_w, pooled_w = classify4(days, sim, real, scale, dd_w, cfg["x_pd"], priors=cfg["priors"])
     q2 = [x for x in mk_days(a.mk, True) if x not in set(days)]
     cls_q2, pooled_q2 = classify4(q2, sim, real, scale, dd, cfg["x_pd"], priors=cfg["priors"])
     by_year = {}
@@ -595,6 +606,8 @@ def cmd_run(a):
            "real_usdc_debt_events": n_ev, "classification": cls, "pooled_dm": pooled, "magnitude": mag,
            "verdict": verdict4(cls, pooled, mag),
            "reported_only": {"q2_2026": {"classification": cls_q2, "pooled_dm": pooled_q2}, "by_year": by_year,
+                             "pd_with_wpol": {X: {k: v[k] for k in ("H_PD", "F_PD", "J_PD", "bss_vs_PD")} for X, v in cls_w.items()},
+                             "pd_with_wpol_dm": pooled_w["PD"],
                              "scale_q05_q50_q95": [float(np.quantile([scale[x] for x in days], q)) for q in (0.05, 0.5, 0.95)]},
            "engine": {"hours": rp.rec["hours"], "evals": rp.rec["evals"],
                       "cand_median": float(np.median(rp.rec["cand_sizes"])) if rp.rec["cand_sizes"] else 0,

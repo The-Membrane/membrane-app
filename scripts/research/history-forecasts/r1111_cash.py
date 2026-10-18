@@ -548,15 +548,12 @@ def cash_path_exact(tin, tout):
     lg = pd.concat(parts, ignore_index=True)
     lg["key"] = lg["block"].to_numpy(np.int64) * 100_000 + lg["tx_index"].to_numpy(np.int64)
     lg = lg.sort_values("key", kind="mergesort")
+    if sum(abs(int(x)) for x in lg["d"]) >= 2 ** 62:     # bounds every partial sum, so int64 sums are exact
+        raise SystemExit("STOP: amounts too large for exact int64 sums")
+    lg["d"] = lg["d"].astype(np.int64)                 # exact: |sum| < 2^62 guaranteed by the guard
     g = lg.groupby("key", sort=True)
     blocks, tss = g["block"].first().values, g["ts"].first().values
-    dsum = [sum(int(v) for v in grp) for _, grp in g["d"]]
-    cum, c = [], 0
-    for x in dsum:
-        c += x
-        cum.append(c)
-    if any(abs(x) >= 2 ** 62 for x in cum):
-        raise SystemExit("STOP: cash outside int64")
+    cum = np.cumsum(g["d"].sum().to_numpy(np.int64))
     if (np.diff(tss) < 0).any():
         raise SystemExit("STOP: timestamps not monotone in block order")
     return pd.DataFrame({"block": blocks, "ts": tss, "cash": np.array(cum, dtype=np.int64)})

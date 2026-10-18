@@ -488,61 +488,75 @@ def _comet_split(rec):
     return {int(c): rec[rec["comet"] == c] for c in np.unique(rec["comet"])} if len(rec) else {}
 
 
+def _venue_sched_path(v, ts):
+    return os.path.join(WORK, "schedules", v, f"{ts}.npz")
+
+
 def schedules(only=None):
-    """Per snapshot day: seizure schedules per venue (and per comet), naive densities. Cached per day."""
+    """Seizure schedules per (venue, snapshot day), cached per venue so venues can be added independently.
+    Venue list from argv[2:] if given."""
     fM = load("morpho-fm.json")["fM"]
-    d_out = os.path.join(WORK, "schedules")
-    os.makedirs(d_out, exist_ok=True)
-    all_days = sorted({int(fn[:-4]) for v in AAVE + MORPHO + COMET
-                       for fn in (os.listdir(os.path.join(WORK, v, "positions"))
-                                  if os.path.isdir(os.path.join(WORK, v, "positions")) else [])})
-    for ts in all_days:
-        if only and ts not in only:
+    venues = sys.argv[2:] or (AAVE + MORPHO + COMET)
+    for v in venues:
+        d = os.path.join(WORK, v, "positions")
+        if not os.path.isdir(d) or not (os.path.exists(os.path.join(WORK, v, "users.json"))
+                                        or os.path.exists(os.path.join(WORK, v, "index.json"))):
+            print("skip (no finished replay)", v, flush=True)
             continue
-        outp = os.path.join(d_out, f"{ts}.npz")
-        if os.path.exists(outp):
-            continue
-        arrs, recs, caps = {}, [], {}
-        for v in AAVE + MORPHO + COMET:
-            rp = rec_path(v, ts)
-            if not os.path.exists(rp):
+        os.makedirs(os.path.join(WORK, "schedules", v), exist_ok=True)
+        n = 0
+        for fn in sorted(os.listdir(d)):
+            ts = int(fn[:-4])
+            outp = _venue_sched_path(v, ts)
+            if os.path.exists(outp):
                 continue
-            rec = np.load(rp)
-            recs.append(rec)
+            rec = np.load(os.path.join(d, fn))
+            arrs = {}
             if KIND[v] == "comet":
                 meta_idx = json.load(open(os.path.join(WORK, v, "index.json")))
                 cp = _comet_caps(v, ts)
+                caps = {}
                 for ci, sub in _comet_split(rec).items():
                     cm = meta_idx["comets"][ci]
-                    sc = CS.schedule(sub, "comet")
-                    for k, a in sc.items():
-                        arrs[f"{v}|{cm}|{k}"] = a
-                    caps[f"{v}|{cm}"] = cp.get(cm, 0.0)
+                    for k, a_ in CS.schedule(sub, "comet").items():
+                        arrs[f"{cm}|{k}"] = a_
+                    caps[cm] = cp.get(cm, 0.0)
+                arrs["caps"] = np.array([json.dumps(caps)])
             else:
-                sc = CS.schedule(rec, KIND[v], fM)
-                for k, a in sc.items():
-                    arrs[f"{v}|{k}"] = a
-        arrs["naive|E"] = CS.naive_density(recs, "E")
-        arrs["naive|B"] = CS.naive_density(recs, "B")
-        arrs["caps"] = np.array([json.dumps(caps)])
-        np.savez_compressed(outp, **arrs)
-    print("schedules done", len(all_days))
+                for k, a_ in CS.schedule(rec, KIND[v], fM).items():
+                    arrs[k] = a_
+            arrs["naive|E"] = CS.naive_density([rec], "E")
+            arrs["naive|B"] = CS.naive_density([rec], "B")
+            np.savez_compressed(outp + ".tmp.npz", **arrs)
+            os.replace(outp + ".tmp.npz", outp)
+            n += 1
+        print("schedules", v, n, flush=True)
 
 
 def load_sched(ts):
-    p = os.path.join(WORK, "schedules", f"{ts}.npz")
-    if not os.path.exists(p):
-        return None
-    z = np.load(p)
-    caps = json.loads(str(z["caps"][0]))
-    sched = {}
-    for k in z.files:
-        if k in ("caps",) or k.startswith("naive|"):
+    """Merge every venue's schedule for snapshot day ts. Returns (sched, caps, naive) or None."""
+    sched, caps, naive = {}, {}, {"E": np.zeros(CS.NG), "B": np.zeros(CS.NG)}
+    found = False
+    for v in AAVE + MORPHO + COMET:
+        p = _venue_sched_path(v, ts)
+        if not os.path.exists(p):
             continue
-        parts = k.split("|")
-        key = "|".join(parts[:-1])
-        sched.setdefault(key, {})[parts[-1]] = z[k]
-    return sched, caps, {"E": z["naive|E"], "B": z["naive|B"]}
+        found = True
+        z = np.load(p)
+        naive["E"] += z["naive|E"]
+        naive["B"] += z["naive|B"]
+        if KIND[v] == "comet":
+            cp = json.loads(str(z["caps"][0]))
+            for k in z.files:
+                if k == "caps" or k.startswith("naive|"):
+                    continue
+                cm, f = k.split("|")
+                sched.setdefault(f"{v}|{cm}", {})[f] = z[k]
+            for cm, x in cp.items():
+                caps[f"{v}|{cm}"] = x
+        else:
+            sched[v] = {k: z[k] for k in z.files if not k.startswith("naive|")}
+    return (sched, caps, naive) if found else None
 
 
 def features(asset, origins, cfg, sigma):

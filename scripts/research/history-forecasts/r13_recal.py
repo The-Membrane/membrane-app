@@ -31,6 +31,7 @@ import math  # noqa: E402
 import multiprocessing as mp  # noqa: E402
 import sys  # noqa: E402
 import time  # noqa: E402
+import urllib.parse  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
 
 import numpy as np  # noqa: E402
@@ -105,7 +106,7 @@ def used_lists(datasets):
 
 def mexc_first_month(sym):
     """month (YYYY-MM) of the first monthly kline; only the open timestamp is read, prices are discarded."""
-    raw = R125.http_get(MEXC_K.format(s=sym, i="1M", a=1483228800000, b=ACQ_END * 1000, n=1000))
+    raw = R125.http_get(MEXC_K.format(s=urllib.parse.quote(sym), i="1M", a=1483228800000, b=ACQ_END * 1000, n=1000))
     d = json.loads(raw)
     if not isinstance(d, list) or not d:
         return None

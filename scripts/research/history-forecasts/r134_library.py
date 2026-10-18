@@ -888,7 +888,26 @@ def collapse_metrics(rows, meta, log):
                 e = np.sum((np.log(Fc) - np.log(np.maximum(wecdf_at(lib_all, zz / lam), 1e-12))) ** 2)
                 if best is None or e < best[1]:
                     best = (float(lam), float(e))
-            ent["lambda"][c] = {"lambda": round(best[0], 3), "sse_ln": best[1]}
+            lam_c = best[0]
+            resid = {str(z): float(math.log(max(tab[c]["F"][str(z)], 1e-12)) -
+                                   math.log(max(float(wecdf_at(lib_all, z / lam_c)), 1e-12))) for z in Z_GRID}
+            ent["lambda"][c] = {"lambda": round(lam_c, 3), "sse_ln": best[1], "resid_ln_after_lambda": resid}
+            # within-class asset heterogeneity at z = -2 (assets with >= 500 rows)
+            mk = keep & (R["cls"] == CLASSES.index(c))
+            sids, inv = np.unique(R["sid"][mk], return_inverse=True)
+            n_a = np.bincount(inv)
+            y2 = (R["m"][mk] <= -2.0).astype(float)
+            k_a = np.bincount(inv, weights=y2)
+            big = n_a >= 500
+            if big.sum() >= 5:
+                Fa = (k_a[big] + 0.5) / (n_a[big] + 1)
+                Fc2 = y2.mean()
+                lr = np.log(Fa / Fc2)
+                binom_sd = np.sqrt(np.mean((1 - Fc2) / (n_a[big] * Fc2)))
+                ent["lambda"][c]["assets_z-2"] = {"n_assets": int(big.sum()), "sd_ln_ratio": float(lr.std()),
+                                                  "binomial_sd_ln": float(binom_sd),
+                                                  "q10_q50_q90_ratio": np.round(np.exp(np.quantile(lr, [.1, .5, .9])),
+                                                                                3).tolist()}
         # regime: vol-ratio terciles (pooled cutpoints)
         q = np.nanquantile(R["vr"][keep], [1 / 3, 2 / 3])
         for ti, (lo, hi) in enumerate(((-np.inf, q[0]), (q[0], q[1]), (q[1], np.inf))):
@@ -897,6 +916,24 @@ def collapse_metrics(rows, meta, log):
             ent["regime"][f"vr_t{ti + 1}"] = {c: {str(z): t2[c]["F"][str(z)] for z in (-2.0, -3.0, -4.0)}
                                              for c in t2}
         ent["regime"]["vr_cut"] = q.tolist()
+        # crypto sub-sets (venue/era) as pseudo-classes: is crypto itself collapsed?
+        subs = np.array([m_["sub"] for m_ in meta])
+        ent["crypto_subsets"] = {}
+        for sb in ("pool", "b9", "b12", "b13a"):
+            mk = keep & (R["cls"] == 0) & np.isin(R["sid"], np.where(subs == sb)[0])
+            if mk.sum() < 1000:
+                continue
+            ent["crypto_subsets"][sb] = {"rows": int(mk.sum()),
+                                         "F": {str(z): float(np.mean(R["m"][mk] <= z)) for z in Z_GRID}}
+        # era split for every class: before 2020 vs 2020 and later
+        ent["era"] = {}
+        e20 = date_days("2020-01-01")
+        for ci, c in enumerate(CLASSES):
+            for nm, em in (("pre2020", R["day"] < e20), ("2020on", R["day"] >= e20)):
+                mk = keep & (R["cls"] == ci) & em
+                if mk.sum() >= 1000:
+                    ent["era"][f"{c}/{nm}"] = {"rows": int(mk.sum()),
+                                               "F": {str(z): float(np.mean(R["m"][mk] <= z)) for z in (-2.0, -3.0, -4.0)}}
         out[str(hh)] = ent
         line = "; ".join(f"{c} F(-3)={tab[c]['F']['-3.0']:.2e} loo R(-3)={(ent['loo_ratio'].get(c, {}).get('-3.0') or float('nan')):.2f}"
                          f" lam={ent['lambda'].get(c, {}).get('lambda')}" for c in present)
@@ -1037,22 +1074,28 @@ def library_scores(rows, meta, log, a):
                     yy = y[base, j].astype(float)
                     bid, G, posb = R12.crash_blocks(ts[base], sids[base], yy.astype(np.int8), hh * 24)
                     e = {"rows": int(base.sum()), "pos": int(yy.sum()), "pos_blocks": int(posb.sum()),
-                         "R": {}, "brier": {}, "bss_L_all_vs": {}, "Gstar_L_all_vs": {}}
+                         "R": {}, "brier": {}}
                     for n_ in PP:
                         p = np.clip(PP[n_][base, j], 0, 1)
                         e["R"][n_] = float(p.sum() / max(yy.sum(), 1))
                         e["brier"][n_] = brier(p, yy)
-                    pL = np.clip(PP["L_all"][base, j], 0, 1)
-                    for n_ in PP:
-                        if n_ == "L_all":
-                            continue
-                        pc = np.clip(PP[n_][base, j], 0, 1)
-                        d = (pL - yy) ** 2 - (pc - yy) ** 2
-                        sums = np.bincount(bid, weights=d, minlength=G)
-                        sp = sums[posb] if posb.any() else sums
-                        mb, sb = float(sp.mean()), float(sp.std(ddof=1)) if len(sp) > 1 else float("nan")
-                        e["bss_L_all_vs"][n_] = float(1 - e["brier"]["L_all"] / e["brier"][n_]) if e["brier"][n_] > 0 else None
-                        e["Gstar_L_all_vs"][n_] = (float(((2.326 + 0.8416) * sb / mb) ** 2) if mb < 0 else None)
+                    cands = [n_ for n_ in PP if n_.startswith("L_")]
+                    comps = [n_ for n_ in PP if not n_.startswith("L_")]
+                    e["vs"] = {}
+                    for cn in cands:
+                        pL = np.clip(PP[cn][base, j], 0, 1)
+                        for n_ in comps + [x for x in cands if x != cn]:
+                            pc = np.clip(PP[n_][base, j], 0, 1)
+                            d = (pL - yy) ** 2 - (pc - yy) ** 2
+                            sums = np.bincount(bid, weights=d, minlength=G)
+                            sp = sums[posb] if posb.any() else sums
+                            mb = float(sp.mean())
+                            sb = float(sp.std(ddof=1)) if len(sp) > 1 else float("nan")
+                            e["vs"][f"{cn}|{n_}"] = {
+                                "bss": float(1 - e["brier"][cn] / e["brier"][n_]) if e["brier"][n_] > 0 else None,
+                                "m_b": mb, "s_b": sb, "G_pos": int(len(sp)),
+                                "Gstar_a05": (float(((1.645 + 0.8416) * sb / mb) ** 2) if mb < 0 else None)}
+                    e["bss_L_all_vs"] = {n_: e["vs"][f"L_all|{n_}"]["bss"] for n_ in PP if n_ != "L_all"}
                     cell[f"{k}/{seg}"] = e
             cell["_lambda"] = lam
             out[f"h{hh}/{scored}"] = cell
@@ -1258,6 +1301,111 @@ def cmd_counts(a):
     print(f"sha256 {sha256_file(a.out)}")
 
 
+
+MENU = ("L_cry", "L_all", "L_new", "L_cry_reg", "L_all_lam", "L_new_lam")     # simplicity order (registered)
+COLL_CELLS = [(h_, z_) for h_ in (1, 5, 20) for z_ in (-2.0, -3.0)]
+NEW_CLASSES = ("equity", "etf", "fx", "index", "commodity")
+
+
+def cmd_select(a):
+    """registered development selection of the library candidate (D-R13.4b): mean BSS vs (e) over the 15 crypto
+    cells x 2 check sets (B12, B9; 'all' rows); the simplest candidate within one SE of the best is chosen."""
+    dev = json.load(open(a.dev))
+    L = dev["library_vs_asset"]
+    tab = {}
+    for c in MENU:
+        vals = []
+        for hh in CRYPTO_H:
+            for st in ("b12", "b9"):
+                cell = L.get(f"h{hh}/{st}", {})
+                for k in CRYPTO_LEVELS:
+                    e = cell.get(f"{k}/all")
+                    if e and f"{c}|e" in e.get("vs", {}):
+                        vals.append(e["vs"][f"{c}|e"]["bss"])
+        v = np.array(vals, float)
+        tab[c] = {"n": int(len(v)), "mean_bss_vs_e": float(v.mean()), "se": float(v.std(ddof=1) / math.sqrt(len(v)))}
+    best = max(tab, key=lambda c: tab[c]["mean_bss_vs_e"])
+    thr = tab[best]["mean_bss_vs_e"] - tab[best]["se"]
+    choice = next(c for c in MENU if tab[c]["mean_bss_vs_e"] >= thr)
+    out = {"created_utc": now_iso(), "code_sha": git_sha(), "dev_sha256": sha256_file(a.dev), "table": tab,
+           "best": best, "one_se_threshold": thr, "choice": choice}
+    write_json(a.out, out)
+    print(json.dumps(out, indent=1))
+
+
+
+def cmd_power(a):
+    """projected power at the reserved-set counts (D-R13.4b rule).
+    Family 1 (collapse, per class): equivalence of R = F_lib(z / lambda_c) / F_A(z) inside [0.8, 1.25] at the
+      6 cells (h 1, 5, 20 x z -2, -3); SE scaled from development by positive weeks; planning deviation = the
+      development residual after lambda_c. Power = Phi((ln 1.25 - |delta|) / SE - 1.645).
+    Family 2 (P3b-a): chosen candidate vs (own), (a), (e) on the young segment of B12 and B9 (pooled per cell);
+      power per comparator = Phi(sqrt(G_new) |m_b| / s_b - z_holm); cell power = the weakest comparator."""
+    from scipy.stats import norm
+    dev = json.load(open(a.dev))
+    cnt = json.load(open(a.counts))
+    sel = json.load(open(a.select))
+    out = {"created_utc": now_iso(), "code_sha": git_sha(), "family1": {}, "family2": {}}
+    C = dev["collapse"]
+    for c in NEW_CLASSES:
+        which = {"equity": "EQ-A", "etf": "ETF-A", "fx": "FX-A", "index": "IDX-A", "commodity": "COM-A"}[c]
+        if which not in cnt["sets"]:
+            continue
+        cells = {}
+        for hh, z in COLL_CELLS:
+            ent = C[str(hh)]
+            tc = ent["classes"].get(c)
+            if tc is None or tc["se_lnF"].get(str(z)) is None:
+                continue
+            se_dev, pw_dev = tc["se_lnF"][str(z)], tc["pos"][str(z)]
+            pos_weeks_dev = None
+            ca = cnt["sets"][which]["cells"].get(f"h{hh}", {}).get(f"z{z}")
+            if not ca or ca["pos"] == 0:
+                cells[f"h{hh}/z{z}"] = {"power": 0.0, "pos_A": 0}
+                continue
+            se_A = se_dev * math.sqrt(max(pw_dev, 1) / ca["pos"])        # SE of ln F scales ~ 1/sqrt(positives)
+            delta = abs(ent["lambda"][c]["resid_ln_after_lambda"][str(z)])
+            pw = float(norm.cdf((math.log(1.25) - delta) / se_A - 1.645))
+            cells[f"h{hh}/z{z}"] = {"se_dev": se_dev, "pos_dev": pw_dev, "pos_A": ca["pos"], "pos_weeks_A": ca["pos_weeks"],
+                                    "se_A": se_A, "delta": delta, "power": pw}
+            del pos_weeks_dev
+        out["family1"][c] = {"set": which, "cells": cells,
+                             "class_power_all_cells": float(np.prod([v["power"] for v in cells.values()])) if cells else 0}
+    choice = sel["choice"]
+    zh = norm.ppf(1 - 0.05 / 15)
+    L = dev["library_vs_asset"]
+    pc = cnt["sets"].get("P3b-a", {}).get("cells", {})
+    for hh in CRYPTO_H:
+        for k in CRYPTO_LEVELS:
+            legs = {}
+            for comp in ("own", "a", "e"):
+                ms, ss, gs = [], [], []
+                for st in ("b12", "b9"):
+                    e = L.get(f"h{hh}/{st}", {}).get(f"{k}/young")
+                    if e and f"{choice}|{comp}" in e["vs"]:
+                        v = e["vs"][f"{choice}|{comp}"]
+                        ms.append(v["m_b"] * v["G_pos"])
+                        ss.append((v["s_b"] ** 2) * (v["G_pos"] - 1))
+                        gs.append(v["G_pos"])
+                if not gs:
+                    continue
+                G = sum(gs)
+                m_b = sum(ms) / G
+                s_b = math.sqrt(sum(ss) / max(G - len(gs), 1))
+                Gn = pc.get(f"h{hh}", {}).get(f"k{k}", {}).get("pos_blocks", 0)
+                pw = float(norm.cdf(math.sqrt(Gn) * abs(m_b) / s_b - zh)) if (m_b < 0 and Gn > 0) else 0.0
+                legs[comp] = {"m_b": m_b, "s_b": s_b, "G_dev": G, "G_new": Gn, "power": pw,
+                              "Gstar": float(((zh + 0.8416) * s_b / m_b) ** 2) if m_b < 0 else None}
+            out["family2"][f"h{hh}/{k}"] = {"legs": legs, "cell_power": min((v["power"] for v in legs.values()),
+                                                                            default=0.0)}
+    write_json(a.out, out)
+    for c, v in out["family1"].items():
+        print(c, v["set"], {k: round(x["power"], 2) for k, x in v["cells"].items()})
+    for k, v in out["family2"].items():
+        print(k, round(v["cell_power"], 2), {c: (round(x["power"], 2), x["G_new"], round(x["Gstar"] or -1)) for c, x in v["legs"].items()})
+    print(f"sha256 {sha256_file(a.out)}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1293,11 +1441,20 @@ def main():
     p.add_argument("--frozen-beta", required=True)
     p.add_argument("--sets", required=True)
     p.add_argument("--out", required=True)
+    p = sub.add_parser("power")
+    p.add_argument("--dev", required=True)
+    p.add_argument("--counts", required=True)
+    p.add_argument("--select", required=True)
+    p.add_argument("--out", required=True)
+    p = sub.add_parser("select")
+    p.add_argument("--dev", required=True)
+    p.add_argument("--out", required=True)
     a = ap.parse_args()
     if a.cmd in ("dev", "fh", "counts"):
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     {"build-b3": cmd_build_b3, "build-hd": cmd_build_hd, "select-p3b": cmd_select_p3b, "dev": cmd_dev,
-     "fh": cmd_fh, "acquire-p3b": cmd_acquire_p3b, "counts": cmd_counts}[a.cmd](a)
+     "fh": cmd_fh, "acquire-p3b": cmd_acquire_p3b, "counts": cmd_counts,
+     "select": cmd_select, "power": cmd_power}[a.cmd](a)
 
 
 if __name__ == "__main__":

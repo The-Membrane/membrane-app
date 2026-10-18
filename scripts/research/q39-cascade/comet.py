@@ -107,24 +107,28 @@ def iter_logs(work, cm):
                     yield [int(x) if isinstance(x, str) and x.isdigit() else x for x in r]
 
 
-def holders_by_day(meta: dict, work: str, days: dict[int, int]) -> dict:
-    """{comet: {day_ts: {user: {asset: amount}}}} for E/B collateral holders. Cached."""
-    p = os.path.join(work, "holders.json.gz")
-    if os.path.exists(p):
-        return json.load(gzip.open(p, "rt"))
-    out = {}
+def holders_by_day(meta: dict, work: str, days: dict[int, int]) -> "Holders":
+    """E/B collateral holders per (comet, day), one gzip JSON per (comet, day) under work/holders/ (resumable;
+    a single all-days dict exhausted memory on Optimism)."""
+    d = os.path.join(work, "holders")
+    os.makedirs(d, exist_ok=True)
     for cm, v in meta["comets"].items():
+        done = os.path.join(d, f"{cm}.done")
+        if os.path.exists(done):
+            continue
         keep = {a["asset"].lower() for a in v["assets"] if a["cls"] in ("E", "B")}
         bal: dict[str, dict[str, int]] = {}
         sched = sorted((b, ts) for ts, b in days.items() if b >= v["deploy"])
-        si, res = 0, {}
+        si = 0
 
         def flush(block):
             nonlocal si
             while si < len(sched) and sched[si][0] < block:
                 ts = sched[si][1]
-                res[str(ts)] = {u: {a: x for a, x in d.items() if x > 0} for u, d in bal.items()
-                                if any(x > 0 for x in d.values())}
+                snap = {u: {a: x for a, x in dd.items() if x > 0} for u, dd in bal.items()
+                        if any(x > 0 for x in dd.values())}
+                with gzip.open(os.path.join(d, f"{cm}-{ts}.json.gz"), "wt") as f:
+                    json.dump(snap, f)
                 si += 1
 
         for r in iter_logs(work, cm):
@@ -144,9 +148,23 @@ def holders_by_day(meta: dict, work: str, days: dict[int, int]) -> dict:
                 bal.setdefault(r[4], {})[a] = bal.setdefault(r[4], {}).get(a, 0) - r[6]
                 bal.setdefault(r[5], {})[a] = bal.setdefault(r[5], {}).get(a, 0) + r[6]
         flush(10**12)
-        out[cm] = res
-    json.dump(out, gzip.open(p, "wt"))
-    return out
+        open(done, "w").write("ok")
+    return Holders(d)
+
+
+class Holders:
+    """holders[cm].get(str(ts), {}) interface over the per-day files."""
+    def __init__(self, d):
+        self.d = d
+
+    def __getitem__(self, cm):
+        d = self.d
+
+        class _One:
+            def get(self, ts, default=None):
+                p = os.path.join(d, f"{cm}-{ts}.json.gz")
+                return json.load(gzip.open(p, "rt")) if os.path.exists(p) else default
+        return _One()
 
 
 S_BB = selector("borrowBalanceOf(address)")

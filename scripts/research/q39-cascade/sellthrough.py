@@ -101,10 +101,16 @@ def run(chain: str, items: list[dict], book: TokenBook, out_path: str, threads=6
     c = Client(chain)
 
     def one(it):
-        try:
-            rc = c.call("eth_getTransactionReceipt", [it["tx"]], need_logs=True)
-        except RpcError as e:
-            return {"tx": it["tx"], "error": str(e)[:200]}
+        rc = None
+        for _ in range(4):
+            try:
+                rc = c.call("eth_getTransactionReceipt", [it["tx"]], need_logs=True)
+            except RpcError as e:
+                return {"tx": it["tx"], "error": str(e)[:200]}
+            if rc:
+                break
+        if not rc:
+            return {"tx": it["tx"], "error": "null receipt x4"}
         sold = measure(rc, it["cls"], chain, book, it.get("ratio", {}))
         return {"tx": it["tx"], "cls": it["cls"], "seized": it["seized"], "sold": sold,
                 "st": min(1.0, sold / it["seized"]) if it["seized"] > 0 else None, "block": it["block"]}

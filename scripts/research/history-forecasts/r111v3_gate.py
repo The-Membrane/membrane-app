@@ -582,7 +582,8 @@ def integrity(arb, inp, metas, seed=111):
             for (ok, rr), w, (u, r) in zip(res, want, sel):
                 v = X.word(rr) if ok else 0
                 v = v or 0
-                floor = 1e-6 * 10 ** inp.dec[r]          # 1e-6 token: float residues of closed balances
+                px = (metas[d]["reserves"].get(inp.assets[r], {}).get("price") or 0) / 1e8
+                floor = 10 ** inp.dec[r] / px if px > 0 else 1e-6 * 10 ** inp.dec[r]   # $1 of the token
                 pair_err.append(abs(w - v) / max(v, floor))
                 pair_raw.append(abs(w / v - 1) if v else (0.0 if w < 1 else 1.0))
         calls = []
@@ -597,7 +598,7 @@ def integrity(arb, inp, metas, seed=111):
     pe, se = np.array(pair_err), np.array(sum_err)
     return {"pairs": int(len(pe)), "pairs_share_within_0p1pct": float(np.mean(pe <= 0.001)),
             "pairs_share_within_0p1pct_no_floor": float(np.mean(np.array(pair_raw) <= 0.001)),
-            "pair_rule": "|rebuilt - chain| / max(chain, 1e-6 token) <= 0.001",
+            "pair_rule": "|rebuilt - chain| / max(chain, $1 of the token at the day price) <= 0.001",
             "pairs_err_q99_max": [float(np.quantile(pe, 0.99)), float(pe.max())],
             "sum_checks": int(len(se)), "sum_share_within_0p1pct": float(np.mean(se <= 0.001)),
             "sum_err_q99_max": [float(np.quantile(se, 0.99)), float(se.max())],

@@ -32,6 +32,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
     os.environ.setdefault(_v, "1")
 
 import argparse  # noqa: E402
+import http.client  # noqa: E402
 import concurrent.futures as cf  # noqa: E402
 import hashlib  # noqa: E402
 import io  # noqa: E402
@@ -88,7 +89,7 @@ def http_get(url, data=None, headers=None, tries=6, timeout=180):
             req = urllib.request.Request(url, data=data, headers=h)
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 return r.read()
-        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+        except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException, OSError) as e:
             last = e
             if isinstance(e, urllib.error.HTTPError) and e.code == 404:
                 raise

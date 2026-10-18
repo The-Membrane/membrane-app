@@ -196,29 +196,103 @@ def _episodes(asset, s_v, span, with_ext):
     return rows
 
 
+def _sv_fit():
+    """Sell-through restricted to transactions inside the fit span (C.5.3 fits s_v on FIT)."""
+    out = {}
+    days = {}
+    allev = {}
+    for e in R.liq_events():
+        allev.setdefault(e["venue"], {})[e["tx"]] = e
+    for v in R.AAVE + R.MORPHO + R.COMET:
+        p = os.path.join(R.RES, f"sellthrough-v2-{v}.jsonl")
+        if not os.path.exists(p):
+            continue
+        if R.CHAIN[v] not in days:
+            days[R.CHAIN[v]] = sorted((b, t) for t, b in R.days_of(R.CHAIN[v]).items())
+        ev = allev.get(v, {})
+        num = den = 0.0
+        n = 0
+        for line in open(p):
+            r = json.loads(line)
+            if r.get("st") is None:
+                continue
+            day = _day_for_block(days[R.CHAIN[v]], r["block"])
+            if day is None or not (FIT[0] <= day <= FIT[1]):
+                continue
+            e = ev.get(r["tx"]) if ev else None
+            w = e["usd_day"] if e and np.isfinite(e.get("usd_day", np.nan)) else r["seized"]
+            num += r["st"] * w
+            den += w
+            n += 1
+        out[v] = {"s": num / den if den else 0.0, "n_tx": n}
+    return out
+
+
 def test():
-    s_v = {k: v["s"] for k, v in R.load("sellthrough.json").items()}
+    """The registered aid decision. p0 is the FIT-span plain touch in both arms (C.5.3 refits beta, Y', s_v)."""
+    sv_fit = _sv_fit()
+    s_v = {k: v["s"] for k, v in sv_fit.items()}
     s_v.update({k: v["s"] for k, v in R.load("aid-sellthrough.json").items()})
-    out = {"fit_span": FIT, "score_span": SCORE, "ext_span": EXT, "assets": {}}
+    out = {"fit_span": FIT, "score_span": SCORE, "ext_span": EXT, "s_v_fit": sv_fit, "assets": {}}
     for asset in ("eth", "btc"):
         a = {}
+        Y = {}
         for tag, ext in (("without", False), ("with", True)):
             rows = _episodes(asset, s_v, FIT, ext)
-            Y, lo, hi, nd = R._boot_ratio(rows, lambda r: -r["sigma"] * np.sqrt(r["Q"]), lambda r: r["r"])
-            a[tag] = {"Yp": Y, "Yp_ci90": [lo, hi], "Yp_used": Y if lo > 0 else 0.0, "n_episodes": len(rows),
+            y, lo, hi, nd = R._boot_ratio(rows, lambda r: -r["sigma"] * np.sqrt(r["Q"]), lambda r: r["r"])
+            a[tag] = {"Yp": y, "Yp_ci90": [lo, hi], "Yp_used": y if lo > 0 else 0.0, "n_episodes": len(rows),
                       "n_days": nd}
-        both_zero = a["without"]["Yp_used"] == 0.0 and a["with"]["Yp_used"] == 0.0
-        if both_zero:
-            # with Y' = 0 the overshoot is identically 0, so the cascade lead is 0 and both fits equal plain touch
-            a["bss_with_over_without"] = 0.0
-            a["bss_ci90"] = [0.0, 0.0]
-            a["note"] = "Y' CI includes 0 with and without the extension: identical predictions, BSS = 0"
-        else:
-            a["note"] = "non-zero impact in one arm: full beta refit and scoring required (not reached)"
+            Y[tag] = a[tag]["Yp_used"]
+        cfg = {"s_v": s_v, "impact": {asset: {"Yp_used": 0.0, "lambda_used": 0.0}}}
+        lab_f, S_f, sig_f = R._labels(asset, FIT[0], FIT[1])
+        p0 = MD.plain_touch(lab_f, sorted(S_f))
+        lab_e, S_e, sig_e = R._labels(asset, EXT[0], EXT[1])
+        lab_s, S_s, sig_s = R._labels(asset, SCORE[0], SCORE[1])
+        preds = {}
+        for tag in ("without", "with"):
+            F_fit = R.features(asset, sorted(S_f), cfg, sig_f, Yp=Y[tag])
+            F_ext = R.features(asset, sorted(S_e), cfg, sig_e, Yp=Y[tag]) if tag == "with" else {}
+            beta = {}
+            for T in MD.HORIZONS:
+                rows = []
+                for F, lab in ((F_fit, lab_f), (F_ext, lab_e)):
+                    for t in F:
+                        for d in MD.LEVELS:
+                            if (t, d, T) in lab and not MD.stress_purged(t, T):
+                                if F is F_fit and t + T * 86400 > SCORE[0]:
+                                    continue   # label purge: no fit label window crosses into the score span
+                                rows.append((MD.logit(p0[(d, T)]["p"]), F[t]["c"][d], lab[(t, d, T)]))
+                beta[T] = MD.fit_beta(rows) if Y[tag] > 0 else 0.0
+            F_s = R.features(asset, sorted(S_s), cfg, sig_s, Yp=Y[tag])
+            pr = {}
+            for t in F_s:
+                for T in MD.HORIZONS:
+                    if MD.stress_purged(t, T):
+                        continue
+                    for d in MD.LEVELS:
+                        if (t, d, T) in lab_s:
+                            off = MD.logit(p0[(d, T)]["p"])
+                            pr[(t, d, T)] = (1 / (1 + np.exp(-(off + beta[T] * F_s[t]["c"][d]))), lab_s[(t, d, T)])
+            preds[tag] = pr
+            a[tag]["beta"] = beta
+            a[tag]["lead_mean_score"] = {str(d): float(np.mean([F_s[t]["c"][d] for t in F_s])) for d in MD.LEVELS} \
+                if F_s else None
+            a[tag]["n_ext_origins"] = len(F_ext)
+        keys = sorted(set(preds["with"]) & set(preds["without"]))
+        days = [k[0] for k in keys]
+        pw = [preds["with"][k][0] for k in keys]
+        po = [preds["without"][k][0] for k in keys]
+        y = [preds["with"][k][1] for k in keys]
+        est, boot = MD.block_bootstrap_bss(days, pw, po, y, max(30, 2 * max(MD.HORIZONS)))
+        a["bss_with_over_without"] = est
+        a["bss_ci90"] = [float(np.quantile(boot, 0.05)), float(np.quantile(boot, 0.95))]
+        a["n_rows"] = len(keys)
+        a["brier_with"], a["brier_without"] = MD.brier(pw, y), MD.brier(po, y)
         out["assets"][asset] = a
-    out["admitted"] = all(out["assets"][x].get("bss_ci90", [0, 0])[0] > 0 for x in out["assets"])
+        print(asset, {k: a[k] for k in ("bss_with_over_without", "bss_ci90", "n_rows")}, flush=True)
+    out["admitted"] = all(out["assets"][x]["bss_ci90"][0] > 0 for x in out["assets"])
     R.save("aid.json", out)
-    print(json.dumps(out, indent=1, default=float))
+    print("admitted", out["admitted"])
 
 
 if __name__ == "__main__":

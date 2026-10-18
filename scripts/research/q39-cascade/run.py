@@ -34,10 +34,11 @@ SEED = 20261018
 AAVE = ["aave-core-eth", "aave-prime-eth", "spark-eth", "aave-arb", "aave-op", "aave-base"]
 MORPHO = ["morpho-ethereum", "morpho-base"]
 COMET = ["comet-ethereum", "comet-arbitrum", "comet-base", "comet-optimism"]
+AIDV = ["aave-v2-eth", "comp-v2-eth"]   # C.5.3 extension venues (2021-22 only)
 CHAIN = {"aave-core-eth": "ethereum", "aave-prime-eth": "ethereum", "spark-eth": "ethereum", "aave-arb": "arbitrum",
          "aave-op": "optimism", "aave-base": "base", "morpho-ethereum": "ethereum", "morpho-base": "base",
          "comet-ethereum": "ethereum", "comet-arbitrum": "arbitrum", "comet-base": "base",
-         "comet-optimism": "optimism"}
+         "comet-optimism": "optimism", "aave-v2-eth": "ethereum", "comp-v2-eth": "ethereum"}
 
 
 def days_of(chain):
@@ -465,7 +466,8 @@ def impact():
 
 # ----------------------------------------------------------------------------------------- schedules
 DELTA = {"eth": 0.005, "btc": 0.005}   # oracle-registry catalog deviationThresholdBps 50 (deviation D4)
-KIND = {**{v: "aave" for v in AAVE}, **{v: "morpho" for v in MORPHO}, **{v: "comet" for v in COMET}}
+KIND = {**{v: "aave" for v in AAVE}, **{v: "morpho" for v in MORPHO}, **{v: "comet" for v in COMET},
+        **{v: "v2" for v in AIDV}}
 
 
 def _comet_caps(v, ts):
@@ -537,7 +539,7 @@ def load_sched(ts):
     """Merge every venue's schedule for snapshot day ts. Returns (sched, caps, naive) or None."""
     sched, caps, naive = {}, {}, {"E": np.zeros(CS.NG), "B": np.zeros(CS.NG)}
     found = False
-    for v in AAVE + MORPHO + COMET:
+    for v in AAVE + MORPHO + COMET + AIDV:
         p = _venue_sched_path(v, ts)
         if not os.path.exists(p):
             continue
@@ -559,7 +561,7 @@ def load_sched(ts):
     return (sched, caps, naive) if found else None
 
 
-def features(asset, origins, cfg, sigma):
+def features(asset, origins, cfg, sigma, Yp=None):
     """Cascade lead c_t(d) and naive lead per origin, from the snapshot 24 h before the origin (C.8)."""
     cls = {"eth": "E", "btc": "B"}[asset]
     s_v = cfg["s_v"]
@@ -571,7 +573,7 @@ def features(asset, origins, cfg, sigma):
         sched, caps, naive = z
         s_full = {k: s_v.get(k.split("|")[0], 0.0) for k in sched}
         Q = CS.sell_flow(sched, cls, s_full, caps)
-        o = CS.overshoot(Q, cfg["impact"][asset]["Yp_used"], sigma[t], DELTA[asset])
+        o = CS.overshoot(Q, cfg["impact"][asset]["Yp_used"] if Yp is None else Yp, sigma[t], DELTA[asset])
         on = CS.naive_overshoot(naive[cls], cfg["impact"][asset]["lambda_used"])
         out[t] = {"c": {d: CS.lead(o, d) for d in MD.LEVELS}, "cn": {d: CS.lead(on, d) for d in MD.LEVELS},
                   "Q60": float(Q[-1]), "o10": float(o[100])}

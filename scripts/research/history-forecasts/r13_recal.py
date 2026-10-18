@@ -250,7 +250,7 @@ def row_task(a):
     Wd = wick_design(P6, ser) if with_vol else None
     ts_all = ser.base_ts + STEP * np.arange(n)
     i_all = np.arange(n)
-    keys = ["ts", "y", "pH", "pf", "pa", "q2", "tail"] + (["lfut", "lsH", "lsQ", "lsW"] if with_vol else [])
+    keys = ["ts", "y", "pH", "pf", "pa", "q2", "tail", "fold"] + (["lfut", "lsH", "lsQ", "lsW"] if with_vol else [])
     out = {k: [] for k in keys}
     for f in folds:
         qs, qe = f["qs_i"], min(f["qe_i"], n)
@@ -281,6 +281,7 @@ def row_task(a):
             out[k_].append(np.minimum.accumulate(arr, axis=1).astype(np.float32))
         out["q2"].append((ts + T * STEP > R12.Q2_START) & (ts < R12.Q2_END))
         out["tail"].append(ts + T * STEP > caps["primary"])
+        out["fold"].append(np.full(len(ts), int(f["qs_ts"]), np.int64))
         if with_vol:
             lsH = np.log(sH[te])
             sQ = DC.sig_of(Q["X"], Q["okX"], DC.coef_of(Q, lim))
@@ -546,6 +547,12 @@ def cmd_dev(a):
             "b13a": (b13a_specs(a.datasets), "1h", True)}
     out = {"schema": "q26-r13.1-dev/1", "label": "DEVELOPMENT ONLY (seen data)", "code_sha": R112.git_sha(),
            "menu": MENU, "maps": {}, "maps_loo": {}, "cells": {}, "power": {}, "vol": {}, "J": {}}
+    part = os.path.join(a.out, "dev-r131-partial.json")
+    if os.path.exists(part):                    # resume: keep horizons already finished (same code path)
+        prev = json.load(open(part))
+        for kk in ("maps", "maps_loo", "cells", "vol"):
+            out[kk].update(prev.get(kk, {}))
+        out["resumed_from"] = {"code_sha": prev.get("code_sha"), "horizons": sorted(prev.get("maps", {}))}
     hs = [int(x) for x in a.horizons.split(",")] if a.horizons else list(HS)
     for T in hs:
         St, off = {}, 0
@@ -607,28 +614,28 @@ def cmd_dev(a):
         log(f"  vol {TL[T]}: fHQ d {out['vol'][TL[T]]['lsQ']['mean_diff']:+.5f} (weeks80 "
             f"{out['vol'][TL[T]]['lsQ']['weeks_to_80']}), fHW d {out['vol'][TL[T]]['lsW']['mean_diff']:+.5f} "
             f"(weeks80 {out['vol'][TL[T]]['lsW']['weeks_to_80']})")
-        # per-week sums for the menu criterion J (written to an npz, combined after the loop)
+        # per-week sums for the menu criterion J (bincounts per week only; written to an npz)
         wkid = R12.wk(C["ts"])
-        Jp = {}
+        Jz = {}
         for fam, cells in (("shallow", CELLS_SHALLOW), ("deep", CELLS_DEEP)):
             for TT, k in cells:
                 if TT != T:
                     continue
                 col = KIX[k]
                 for sidx in (0, 1):
-                    m = score & (setid == sidx)
+                    m = np.flatnonzero(score & (setid == sidx))
                     yy = C["y"][m, col].astype(float)
-                    w = wkid[m]
+                    uw, gi = np.unique(wkid[m], return_inverse=True)
                     for nm in P:
                         if not (nm.startswith("M2") or nm == "fH"):
                             continue
-                        p = P[nm][m, col]
+                        p = P[nm][m, col].astype(float)
                         top, _ = quint_masks(p)
-                        Jp[f"{TL[T]}|{k}|{sidx}|{nm}"] = np.stack([w, p, yy, p * top, yy * top])
-        np.savez_compressed(os.path.join(a.out, f"jsums-{TL[T]}.npz"),
-                            **{kk: np.vstack([np.bincount(np.searchsorted(np.unique(v[0]), v[0]), v[j])
-                                              for j in range(1, 5)]) for kk, v in Jp.items()},
-                            **{f"weeks|{kk}": np.unique(v[0]) for kk, v in Jp.items()})
+                        kk = f"{TL[T]}|{k}|{sidx}|{nm}"
+                        Jz[kk] = np.vstack([np.bincount(gi, v, len(uw)) for v in (p, yy, p * top, yy * top)])
+                        Jz[f"weeks|{kk}"] = uw
+                        del p, top
+        np.savez_compressed(os.path.join(a.out, f"jsums-{TL[T]}.npz"), **Jz)
         del St, C, P
         json.dump(out, open(os.path.join(a.out, "dev-r131-partial.json"), "w"), indent=1, default=float)
     out["finished_utc"] = now_iso()
@@ -677,16 +684,335 @@ def cmd_select(a):
     print(json.dumps(res, indent=1))
 
 
+# =============================================================================================
+# B15a acquisition (outcome-blind), counts only
+# =============================================================================================
+def mexc_fetch(sym, first_month):
+    """60m klines from the first month to ACQ_END (exclusive), 500 hours per page; sha256 per raw page."""
+    rows, pages = {}, []
+    t = int(datetime.strptime(first_month + "-01", "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
+    span = 500 * STEP
+    while t < ACQ_END:
+        e = min(t + span, ACQ_END)
+        url = MEXC_K.format(s=urllib.parse.quote(sym), i="60m", a=t * 1000, b=e * 1000 - 1, n=500)
+        for k in range(8):
+            raw = R125.http_get(url)
+            try:
+                d = json.loads(raw)
+            except ValueError:
+                d = None
+            if isinstance(d, list):
+                break
+            time.sleep(2.0 * (k + 1))
+        else:
+            raise SystemExit(f"STOP: MEXC {sym}: no list after retries")
+        pages.append({"start": t, "end": e, "sha256": sha256b(raw), "candles": len(d)})
+        for c in d:                         # [open_ms, o, h, l, c, vol, close_ms, quote_vol]
+            ot = int(c[0]) // 1000
+            if t <= ot < e and ot % STEP == 0:
+                rows[ot] = (c[1], c[2], c[3], c[4], c[5])
+        t = e
+        time.sleep(0.06)
+    return rows, pages
+
+
+def cmd_acquire_b15a(a):
+    sel = json.load(open(os.path.join(a.datasets, "b15-mexc-prices/selection-b15.json")))
+    vd = os.path.join(a.acq, "b15a")
+    os.makedirs(vd, exist_ok=True)
+    mp_ = os.path.join(vd, "manifest-acquire-b15a.json")
+    man = json.load(open(mp_)) if os.path.exists(mp_) else {
+        "schema": "q26-r13/acquire-b15a/1", "started_utc": now_iso(), "code_sha": R112.git_sha(),
+        "selection_sha256": sha_file(os.path.join(a.datasets, "b15-mexc-prices/selection-b15.json")),
+        "source": "MEXC public REST api/v3/klines 60m (free, keyless; no published checksum; sha256 of every raw "
+                  "page recorded); a missing hour is null; no fill, no filter",
+        "series": {}, "dropped": {}}
+
+    def one(base):
+        if base in man["series"] or base in man["dropped"]:
+            return None
+        rows, pages = mexc_fetch(sel["symbol"][base], sel["first_month"][base])
+        if not rows:
+            return base, None, {"reason": "no data before the acquisition end"}
+        st = min(rows)
+        if st >= R125.FIRST_MAX:
+            return base, None, {"reason": "first hour on or after 2025-07-01 (no A6.6 fold)", "first_utc": A.iso(st)}
+        gp = os.path.join(vd, f"mexc-{base}USDT-1h.json.gz")
+        nh, nn = R12.write_grid(gp, f"{base}USDT", "mexc 1h", st, rows)
+        last = max(rows)
+        return base, {"file": os.path.basename(gp), "sha256": R112.sha256_file(gp), "grid_start_utc": A.iso(st),
+                      "last_hour_utc": A.iso(last), "ended": bool(last + STEP < ACQ_END - R125.LIVE_GAP),
+                      "hours": nh, "null_hours": nn, "pages": pages}, None
+
+    done = 0
+    with cf.ThreadPoolExecutor(4) as ex:
+        for r in ex.map(one, sel["B15a"]):
+            if r is None:
+                continue
+            b, v, drop = r
+            if v is None:
+                man["dropped"][b] = drop
+            else:
+                man["series"][b] = v
+            done += 1
+            if done % 10 == 0:
+                R112.write_json(mp_, man)
+                print(f"{now_iso()} acquired {done}/{len(sel['B15a'])}", flush=True)
+    man["finished_utc"] = now_iso()
+    man["status"] = "LOCKED for Q26 R13.1 (design/Q26_ROUND13_PREREG.md D-R13.1a)"
+    h = R112.write_json(mp_, man)
+    print(json.dumps({"series": len(man["series"]), "dropped": len(man["dropped"]),
+                      "hours": sum(v["hours"] for v in man["series"].values()),
+                      "null_hours": sum(v["null_hours"] for v in man["series"].values()),
+                      "ended": sum(v["ended"] for v in man["series"].values()), "manifest_sha256": h}), flush=True)
+
+
+def b15a_specs(acq):
+    man = json.load(open(os.path.join(acq, "b15a", "manifest-acquire-b15a.json")))
+    specs = []
+    for b, v in sorted(man["series"].items()):
+        path = os.path.join(acq, "b15a", v["file"])
+        st, cols = R12.load_json_grid(path)
+        n = len(cols["close"])
+        last = st + STEP * (n - 1)
+        cap_full = min(ACQ_END, last + STEP)
+        cap_pri = min(cap_full, last + STEP - R12.TAIL_DAYS * DAY) if v["ended"] else cap_full
+        sp = R12.redenom_splits(cols["close"])
+        bounds = [0] + sp + [n]
+        for j in range(len(bounds) - 1):
+            if bounds[j + 1] - bounds[j] <= 0:
+                continue
+            specs.append({"key": f"b15a:{b}" + ("" if j == 0 else f"#{j + 1}"), "asset": b, "kind": "grid",
+                          "path": path, "slice": (bounds[j], bounds[j + 1]), "cap_full": cap_full,
+                          "cap_primary": cap_pri})
+    return specs
+
+
+def cmd_counts(a):
+    """counts only: validated origins, positive origins, positive crash-episode blocks (R12 definitions) and positive
+    calendar weeks per cell. No forecast, no score, no price statistic."""
+    from numpy.lib.stride_tricks import sliding_window_view
+    specs = b15a_specs(a.acq)
+    c = R12.count_set(specs, True)
+    pw = {T: [set() for _ in LEVELS] for T in HS}
+    allw = {T: set() for T in HS}
+    for spc in specs:
+        st, cols = R12.load_json_grid(spc["path"])
+        i0, i1 = spc["slice"]
+        lo, cl = cols["low"][i0:i1], cols["close"][i0:i1]
+        t0 = st + STEP * i0
+        n = len(cl)
+        for T in HS:
+            if n - T < 1:
+                continue
+            idx = np.arange(1, n - T + 1)
+            tt = t0 + idx * STEP
+            ok = (tt >= t0 + R12.WARMUP_DAYS * DAY) & (tt + T * STEP <= spc["cap_primary"]) & ~np.isnan(cl[idx - 1])
+            ok &= ~((tt < R12.Q2_END) & (tt + T * STEP > R12.Q2_START))
+            cs = np.concatenate([[0], np.cumsum(np.isnan(lo).astype(np.int32))])
+            ok &= (cs[idx + T] - cs[idx]) <= math.floor(0.05 * T)
+            lo_f = np.where(np.isnan(lo), np.inf, lo)
+            wmin = lo_f[idx] if T == 1 else sliding_window_view(lo_f, T).min(axis=1)[idx]
+            ok &= np.isfinite(wmin)
+            sel = np.where(ok)[0]
+            S = cl[idx - 1][sel]
+            w = R12.wk(tt[sel])
+            allw[T].update(w.tolist())
+            for j, k in enumerate(LEVELS):
+                pw[T][j].update(w[wmin[sel] <= S * (1 + k)].tolist())
+    out = {"schema": "q26-r13/counts-b15a/1", "created_utc": now_iso(), "code_sha": R112.git_sha(),
+           "note": "counts only", "specs": len(specs), "series_with_origins": c["series"], "cells": {}}
+    for T, k in CELLS:
+        lv = next(x for x in c["T"][str(T)]["levels"] if x["level"] == k)
+        out["cells"][f"{TL[T]} {k}"] = {"validated_origins": c["T"][str(T)]["validated_origins"],
+                                       "positive_origins": lv["positive_origins"], "blocks": lv["blocks"],
+                                       "positive_blocks": lv["positive_blocks"],
+                                       "series_episodes": lv["series_episodes"], "weeks": len(allw[T]),
+                                       "positive_weeks": len(pw[T][KIX[k]])}
+    h = R112.write_json(os.path.join(a.out, "counts-b15a.json"), out)
+    for key, v in out["cells"].items():
+        print(key, {kk: v[kk] for kk in ("validated_origins", "positive_blocks", "blocks", "positive_weeks", "weeks")})
+    print("series with origins", c["series"], "counts sha256", h)
+
+
+def cmd_power(a):
+    """projected power of the chosen M2 at the B15a counts (development effect = pooled B12 U B13a check set)."""
+    dev = json.load(open(os.path.join(a.dev, "dev-r131.json")))
+    sel = json.load(open(os.path.join(a.dev, "select-r131.json")))
+    cnt = json.load(open(os.path.join(a.out, "counts-b15a.json")))
+    name = sel["chosen"]
+    out = {"chosen": name, "cells": {}}
+    for fam, cells in (("shallow", CELLS_SHALLOW), ("deep", CELLS_DEEP)):
+        m = len(cells)
+        for T, k in cells:
+            key = f"{TL[T]} {k}"
+            cc = cnt["cells"][key]
+            G_new = cc["positive_weeks"] if fam == "shallow" else cc["positive_blocks"]
+            pw = cell_power(dev["cells"][key]["pooled"], name, G_new, m)
+            out["cells"][key] = {"family": fam, "G_b15a": G_new, **pw}
+            print(key, fam, "G", G_new, {kk: (round(v, 3) if isinstance(v, float) else v) for kk, v in pw.items()})
+    out["n_cells_ge80"] = int(sum(v["power_min"] >= 0.8 for v in out["cells"].values()))
+    h = R112.write_json(os.path.join(a.out, "power-b15a.json"), out)
+    print("cells at >= 80%:", out["n_cells_ge80"], "sha256", h)
+
+
+# =============================================================================================
+# freeze and run
+# =============================================================================================
+def cmd_freeze(a):
+    dev = json.load(open(os.path.join(a.dev, "dev-r131.json")))
+    sel = json.load(open(os.path.join(a.dev, "select-r131.json")))
+    W, kap = next((W, k) for W, k in MENU if f"M2_W{W}_k{int(k)}" == sel["chosen"])
+    e = {}
+    for T in HS:
+        ec = R125.e_consts(os.path.join(a.datasets, "history-forecasts/r12/dev-49e1af3a"), T)
+        e[TL[T]] = [float(x) for x in ec]
+    me = os.path.abspath(__file__)
+    cfg = {"schema": "q26-r13.1/frozen/1", "created_utc": now_iso(), "code_sha": R112.git_sha(),
+           "code_sha256": {os.path.basename(f): sha_file(f) for f in
+                           (me, os.path.join(HERE, "r12_tail.py"), os.path.join(HERE, "a6_touch.py"),
+                            os.path.join(HERE, "r13_devcheck.py"), os.path.join(HERE, "r125_fh_deep.py"))},
+           "inputs": {"manifest_b15a_sha256": sha_file(os.path.join(a.acq, "b15a", "manifest-acquire-b15a.json")),
+                      "counts_b15a_sha256": sha_file(os.path.join(a.out, "counts-b15a.json")),
+                      "power_b15a_sha256": sha_file(os.path.join(a.out, "power-b15a.json")),
+                      "dev_r131_sha256": sha_file(os.path.join(a.dev, "dev-r131.json")),
+                      "select_r131_sha256": sha_file(os.path.join(a.dev, "select-r131.json"))},
+           "maps": dev["maps"], "chosen": sel["chosen"], "W_days": W, "kappa": kap, "e_consts": e,
+           "cells_shallow": CELLS_SHALLOW, "cells_deep": CELLS_DEEP, "seed": SEED, "n_boot": 10000,
+           "ni_margin_bss": NI_MARGIN, "dsc_tol": DSC_TOL, "alpha": ALPHA, "min_pos_blocks": 30,
+           "level_grid_hours": 6, "pclip": PCLIP}
+    h = R112.write_json(os.path.join(a.out, "frozen-r131-config.json"), cfg)
+    print("frozen config sha256", h, "created_utc", cfg["created_utc"])
+
+
+def lookahead(spec, T, cfg, cut_frac=0.6):
+    """perturb prices after a cut; no p' issued at or before the cut may change."""
+    import gzip
+    import tempfile
+    st, cols = R12.load_json_grid(spec["path"])
+    i0, i1 = spec["slice"]
+    n = i1 - i0
+    cut = i0 + int(cut_frac * n)
+    cut_ts = st + STEP * cut
+    raw = json.loads(gzip.decompress(open(spec["path"], "rb").read()))
+    rng = np.random.default_rng(7)
+    f = np.exp(rng.normal(0, 0.05, len(raw["columns"]["close"])))
+    for c in ("open", "high", "low", "close"):
+        raw["columns"][c] = [x if (x is None or j < cut) else x * f[j] for j, x in enumerate(raw["columns"][c])]
+    td = tempfile.mkdtemp()
+    p2 = os.path.join(td, "x.json.gz")
+    with gzip.GzipFile(p2, "wb", mtime=0) as fh:
+        fh.write(json.dumps(raw).encode())
+    res = []
+    for path in (spec["path"], p2):
+        sp = dict(spec, path=path)
+        r = row_task({"spec": sp, "T": T, "grid": "1h"})["rows"]
+        sid = np.zeros(len(r["ts"]), np.int32)
+        p2_, _ = recal(r["pH"].astype(float), r["ts"], sid, r["y"], T, cfg["maps"][TL[T]], cfg["W_days"],
+                       cfg["kappa"])
+        m = r["ts"] <= cut_ts - T * STEP * 0     # origins at or before the cut
+        res.append((r["ts"][m], p2_[m]))
+    same = len(res[0][0]) == len(res[1][0]) and np.array_equal(res[0][0], res[1][0])
+    diff = float(np.max(np.abs(res[0][1] - res[1][1]))) if same and len(res[0][0]) else None
+    return {"series": spec["key"], "T": TL[T], "cut_utc": A.iso(cut_ts), "rows_checked": int(len(res[0][0])),
+            "same_rows": bool(same), "max_abs_diff": diff}
+
+
+def cmd_run(a):
+    cfg_p = os.path.join(a.out, "frozen-r131-config.json")
+    cfg = json.load(open(cfg_p))
+    if cfg["code_sha"] != R112.git_sha():
+        raise SystemExit("STOP: code sha differs from the frozen config")
+    run_dir = os.path.join(a.out, f"r131-run-{cfg['code_sha'][:8]}")
+    os.makedirs(run_dir, exist_ok=True)
+    logf = open(os.path.join(run_dir, "run-log.txt"), "a")
+
+    def log(s):
+        line = f"{now_iso()} {s}"
+        print(line, flush=True)
+        logf.write(line + "\n")
+        logf.flush()
+    log(f"START R13.1 run on B15a; frozen config sha256 {sha_file(cfg_p)}; code {cfg['code_sha']}")
+    specs = b15a_specs(a.acq)
+    out = {"schema": "q26-r13.1/results/1", "frozen_config_sha256": sha_file(cfg_p), "code_sha": cfg["code_sha"],
+           "started_utc": now_iso(), "cells": {}, "lookahead": []}
+    name = cfg["chosen"]
+    hs = sorted({T for T, _ in CELLS})
+    for T in hs:
+        S, keys = run_rows(specs, T, "1h", a.workers, log, "B15a")
+        maps = cfg["maps"][TL[T]]
+        p2, pb = recal(S["pH"].astype(float), S["ts"], S["sid"], S["y"], T, maps, cfg["W_days"], cfg["kappa"])
+        ec = np.array(cfg["e_consts"][TL[T]], float)
+        P = {"fH": S["pH"], "M2": p2.astype(np.float32), "slope": pb.astype(np.float32), "f": S["pf"],
+             "a": S["pa"], "e": np.tile(ec.astype(np.float32), (len(S["ts"]), 1))}
+        score = ~S["q2"] & ~S["tail"]
+        rows = np.flatnonzero(score)
+        for fam, cells in (("shallow", CELLS_SHALLOW), ("deep", CELLS_DEEP)):
+            for TT, k in cells:
+                if TT != T:
+                    continue
+                key = f"{TL[T]} {k}"
+                c = cell_eval(S, rows, T, k, fam, P, seed=1000 * T + int(-100 * k), nb=cfg["n_boot"])
+                col = KIX[k]
+                y = S["y"][rows, col].astype(float)
+                d = (P["M2"][rows, col].astype(float) - y) ** 2 - (P["fH"][rows, col].astype(float) - y) ** 2
+                c["dk_hac_168_M2_vs_fH"] = R12.dk_hac(S["ts"][rows], d)
+                yr = np.array([datetime.fromtimestamp(int(t), timezone.utc).year for t in S["ts"][rows]])
+                mo = np.array([datetime.fromtimestamp(int(t), timezone.utc).strftime("%Y-%m") for t in S["ts"][rows]])
+                rep = {}
+                for lab, grp in (("year", yr), ("month", mo), ("fold", S["fold"][rows])):
+                    rep[lab] = {}
+                    for gv in np.unique(grp):
+                        mm = grp == gv
+                        sy = y[mm].sum()
+                        rep[lab][str(gv)] = {"rows": int(mm.sum()), "pos": int(sy),
+                                             "R_fH": float(P["fH"][rows[mm], col].sum() / sy) if sy else None,
+                                             "R_M2": float(P["M2"][rows[mm], col].sum() / sy) if sy else None}
+                c["reported"] = rep
+                c["family"] = fam
+                out["cells"][key] = c
+                f = c["f"]
+                log(f"  {key}: R fH {f['fH']['R']:.3f} M2 {f['M2']['R']:.3f} slope {f['slope']['R']:.3f}; top20 "
+                    f"fH {f['fH']['R_top20']:.3f} M2 {f['M2']['R_top20']:.3f}; BSS M2 vs fH {f['M2']['bss_vs_ref']:+.4f}"
+                    f" {f['M2']['bss_ci90']}; p {f['M2']['p_d']:.4f}/{f['M2']['p_top']:.4f}; MCB {f['fH']['MCB']:.5f}"
+                    f"->{f['M2']['MCB']:.5f} DSC {f['fH']['DSC']:.5f}->{f['M2']['DSC']:.5f}; pos blocks "
+                    f"{c['pos_blocks']} of {c['blocks']}")
+        if T in (12, 72) and specs:
+            out["lookahead"].append(lookahead(specs[len(specs) // 2], T, cfg))
+            log(f"  look-ahead {out['lookahead'][-1]}")
+        del S, P, p2, pb
+    # verdicts
+    for fam, cells in (("shallow", CELLS_SHALLOW), ("deep", CELLS_DEEP)):
+        keys = [f"{TL[T]} {k}" for T, k in cells]
+        pv = np.array([out["cells"][kk]["f"]["M2"]["cell_p"] for kk in keys])
+        hol = R12.holm(pv, ALPHA)
+        for kk, h in zip(keys, hol):
+            c = out["cells"][kk]
+            f, r = c["f"]["M2"], c["f"]["fH"]
+            legs = {"d_abslnR_lt0": f["d_abslnR"] < 0, "d_top_lt0": f["d_top"] < 0, "holm": bool(h),
+                    "brier_ni": f["bss_ci90"][0] > NI_MARGIN, "mcb_down": f["MCB"] < r["MCB"],
+                    "dsc_not_down": f["DSC"] >= (1 - DSC_TOL) * r["DSC"], "pos_blocks_ge30": c["pos_blocks"] >= 30}
+            c["verdict"] = {"legs": {k_: bool(v) for k_, v in legs.items()},
+                            "result": "PASS" if all(legs.values()) else "FAIL"}
+            log(f"VERDICT {kk} ({fam}): {c['verdict']['result']} {c['verdict']['legs']}")
+    out["finished_utc"] = now_iso()
+    h = R112.write_json(os.path.join(run_dir, "results-r131.json"), out)
+    log(f"END results sha256 {h}")
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["select-b15", "dev", "select"])
+    ap.add_argument("cmd", choices=["select-b15", "dev", "select", "acquire-b15a", "counts", "power", "freeze", "run"])
     ap.add_argument("--datasets", default="/home/user/membrane-datasets")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--acq", default="")
+    ap.add_argument("--dev", default="")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--horizons", default="")
     ap.add_argument("--limit", type=int, default=0, help="smoke test only: first N specs per set")
     a = ap.parse_args()
-    {"select-b15": cmd_select_b15, "dev": cmd_dev, "select": cmd_select}[a.cmd](a)
+    {"select-b15": cmd_select_b15, "dev": cmd_dev, "select": cmd_select, "acquire-b15a": cmd_acquire_b15a,
+     "counts": cmd_counts, "power": cmd_power, "freeze": cmd_freeze, "run": cmd_run}[a.cmd](a)
 
 
 if __name__ == "__main__":

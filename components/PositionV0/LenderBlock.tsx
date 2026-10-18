@@ -15,14 +15,16 @@
 // warnings in words. Sources by venue: lib/position/lender.ts.
 
 import React, { useEffect, useId, useRef, useState } from 'react'
-import { Box, Text } from '@chakra-ui/react'
+import { Box, Button, Text } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
+import { TRANSITIONS } from '@/config/transitions'
 import { NEWS, NEWS_FIGURE, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { fmtAmount, fmtUsd, fmtUtc } from '@/lib/position/format'
 import {
   APR_NOTE,
   FORECAST_DAYS,
+  PAPER_UTILIZATION,
   HISTORY_DAYS,
   PENDING_MODEL,
   REWARDS_MARK,
@@ -38,10 +40,11 @@ import {
   type SeriesPoint,
 } from '@/lib/position/lender'
 import { fmtGap, gapSummary, unobservedLine } from '@/lib/position/oracleGap'
+import { BASELINE_LABEL, BASELINE_LOOKBACK_D, baselineFan, type Baseline } from '@/lib/position/baselineFan'
 import type { ProtocolPosition } from '@/lib/position-sim/types'
 
-import { Kicker, Mono, Section, Small } from './primitives'
-import { TYPE, TYPE_PX } from './typeScale'
+import { Headline, Kicker, Mono, Section, Small } from './primitives'
+import { CAPS, TYPE, TYPE_PX } from './typeScale'
 import { useLenderReport } from './useLenderReport'
 import { useOracleGap } from './useOracleGap'
 
@@ -103,6 +106,11 @@ interface SeriesChartProps {
   /** What the history region says when there is no history. */
   empty: string
   nowS: number
+  /**
+   * The untested baseline (lib/position/baselineFan.ts), drawn in the forward region in light
+   * halftone and labelled model-only in place of the hatch. Absent or not ok: the hatch and `pending`.
+   */
+  fan?: Baseline | null
 }
 
 const TONE = { ink: NEWS.ink, muted: NEWS.muted } as const
@@ -132,10 +140,12 @@ const SeriesSvg: React.FC<SeriesChartProps & { width: number; height: number; ui
   state,
   empty,
   nowS,
+  fan = null,
   width,
   height,
   uid,
 }) => {
+  const base = fan && fan.ok ? fan : null
   const pw = width - M.left - M.right
   const ph = height - M.top - M.bottom
   const floorY = M.top + ph
@@ -145,8 +155,11 @@ const SeriesSvg: React.FC<SeriesChartProps & { width: number; height: number; ui
   const shown = lines.map((l) => ({ ...l, points: l.points.filter((p) => p.t >= t0 - 3_600 && p.t <= nowS + 3_600) }))
   const vals = [...shown.flatMap((l) => l.points.map((p) => p.v)), ...(now !== null ? [now] : []), ...(refLine ? [refLine.v] : [])]
   const has = shown.some((l) => l.points.length > 0)
+  // The baseline's 90% range joins the axis, up to twice the measured top (paths are clipped).
+  const measuredTop = Math.max(...vals, 0)
+  const fanTop = base ? Math.min(Math.max(...base.steps.map((s) => s.p95)), measuredTop * 2 || Infinity) : 0
   let lo = 0
-  let hi = yMax ?? (Math.max(...vals, 0) * 1.15 || 1)
+  let hi = yMax ?? (Math.max(measuredTop, fanTop) * 1.15 || 1)
   if (axis === 'zero') {
     const m = Math.max(0.005, ...vals.map((v) => Math.abs(v))) * 1.3
     lo = -m
@@ -154,6 +167,13 @@ const SeriesSvg: React.FC<SeriesChartProps & { width: number; height: number; ui
   }
   const x = (t: number) => M.left + ((t - t0) / (span * 86_400)) * pw
   const y = (v: number) => M.top + ph * (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo))
+  /** Unclamped, for the clipped baseline. */
+  const yr = (v: number) => M.top + ph * (1 - (v - lo) / (hi - lo))
+  const xf = (h: number) => nowX + (h / FORECAST_DAYS) * (M.left + pw - nowX)
+  const band = (a: 'p05' | 'p25', b: 'p95' | 'p75') =>
+    base
+      ? [...base.steps.map((s) => `${xf(s.h).toFixed(1)},${yr(s[b]).toFixed(1)}`), ...[...base.steps].reverse().map((s) => `${xf(s.h).toFixed(1)},${yr(s[a]).toFixed(1)}`)].join(' ')
+      : ''
   const font = { fontFamily: NEWS_FONT.mono, fontSize: TYPE_PX.label }
   const halo = { ...font, paintOrder: 'stroke' as const, stroke: NEWS.paper, strokeWidth: 3, strokeLinejoin: 'round' as const }
   const ticks = axis === 'zero' ? [lo, 0, hi] : [hi / 2, hi]
@@ -169,6 +189,16 @@ const SeriesSvg: React.FC<SeriesChartProps & { width: number; height: number; ui
         <pattern id={`ar-${uid}`} width="3" height="3" patternUnits="userSpaceOnUse">
           <circle cx="1" cy="1" r="0.6" fill={NEWS.muted} />
         </pattern>
+        {/* the baseline: light halftone, the 50% range a step denser than the 90% */}
+        <pattern id={`f90-${uid}`} width="4" height="4" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="0.55" fill={NEWS.muted} opacity={0.55} />
+        </pattern>
+        <pattern id={`f50-${uid}`} width="3" height="3" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="0.65" fill={NEWS.muted} opacity={0.75} />
+        </pattern>
+        <clipPath id={`fc-${uid}`}>
+          <rect x={nowX} y={M.top} width={M.left + pw - nowX} height={ph} />
+        </clipPath>
       </defs>
       <text x={M.left} y={M.top - 8} fill={NEWS.muted} style={font}>
         {caption}
@@ -181,13 +211,32 @@ const SeriesSvg: React.FC<SeriesChartProps & { width: number; height: number; ui
           </text>
         </g>
       ))}
-      {/* the forecast region: hatched, labelled with the model it waits on, no numbers */}
-      <rect x={nowX} y={M.top} width={M.left + pw - nowX} height={ph} fill={`url(#mp-${uid})`} />
-      {pending.split('\n').map((ln, i) => (
-        <text key={i} x={midPend} y={M.top + ph / 2 - 6 + i * 13} textAnchor="middle" fill={NEWS.ink2} style={halo}>
-          {ln}
+      {base ? (
+        // the forward region: the untested baseline, model-only, no chance figure
+        <g data-baseline="model-only" clipPath={`url(#fc-${uid})`}>
+          <polygon points={band('p05', 'p95')} fill={`url(#f90-${uid})`} />
+          <polygon points={band('p25', 'p75')} fill={`url(#f50-${uid})`} />
+          {base.paths.map((p, k) => (
+            <polyline key={k} points={p.map((v, h) => `${xf(h).toFixed(1)},${yr(v).toFixed(1)}`).join(' ')} fill="none" stroke={NEWS.muted} strokeWidth={0.6} opacity={0.8} />
+          ))}
+          <line x1={nowX} x2={M.left + pw} y1={yr(base.level)} y2={yr(base.level)} stroke={NEWS.ink} strokeWidth={1} strokeDasharray="3 2" />
+        </g>
+      ) : (
+        <>
+          {/* the forecast region: hatched, labelled with the model it waits on, no numbers */}
+          <rect x={nowX} y={M.top} width={M.left + pw - nowX} height={ph} fill={`url(#mp-${uid})`} />
+          {pending.split('\n').map((ln, i) => (
+            <text key={i} x={midPend} y={M.top + ph / 2 - 6 + i * 13} textAnchor="middle" fill={NEWS.ink2} style={halo}>
+              {ln}
+            </text>
+          ))}
+        </>
+      )}
+      {base && (
+        <text x={M.left + pw} y={M.top - 8} textAnchor="end" fill={NEWS.ink2} style={font}>
+          model-only
         </text>
-      ))}
+      )}
       {shown.map((l, k) => {
         if (l.points.length === 0) return null
         const pts = l.points.map((p) => `${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`)
@@ -336,31 +385,121 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
   const isVault = v.venue === 'morpho-vault'
   const showsMark = state === 'ok' && v.apr.marked && !isVault
 
-  // --- capacity / exit -------------------------------------------------------
+  // --- capacity / exit: "Can you get out?" ------------------------------------------
+  // Measured free liquidity, your supply as your exit line, then the forward region: the
+  // untested baseline (expected = today's level; ranges and paths from this series' real
+  // 1–7-day moves over the last 12 months), model-only, or "model pending" when the source
+  // does not give 12 months (vaults). No chance figure: none has a realized-outcome record.
+  const fan: Baseline | null = isVault || !report ? null : baselineFan(report.liquidityYearUsd, v.liquidityUsd, nowAxis, 'ratio')
+  const fanOk = fan !== null && fan.ok
+  const fanWhy = isVault
+    ? `no liquidity history is reported for vaults, so there is no baseline`
+    : fan && !fan.ok
+      ? `no baseline: ${fan.reason}`
+      : state === 'ok'
+        ? ''
+        : 'baseline waits on the history read'
+  const yieldNow =
+    isVault && v.apr.reported !== null
+      ? { text: pct2(v.apr.reported), note: 'net APR, Morpho API, reported' }
+      : v.apr.total !== null && state === 'ok'
+        ? { text: `${pct2(v.apr.total)}${v.apr.marked ? ` ${REWARDS_MARK}` : ''}`, note: v.apr.marked ? 'supply APR, base on-chain + rewards reported' : 'supply APR, on-chain' }
+        : v.apr.base !== null
+          ? { text: pct2(v.apr.base), note: 'supply APR, on-chain' }
+          : null
+  const nowRows: { k: string; v: string; note?: string; danger?: boolean }[] = [
+    {
+      k: 'Cash withdrawable',
+      v: free,
+      note: `${isVault ? 'across the vault’s markets' : 'all lenders'}, on-chain at block ${m.block.toLocaleString('en-US')}${onPaper}`,
+    },
+    isVault
+      ? { k: 'The vault would pay you', v: `${fmtAmount(m.vault?.maxWithdraw ?? 0, 0)} ${v.symbol}`, note: 'its maxWithdraw, on-chain' }
+      : { k: 'Borrowed', v: `${(m.utilization * 100).toFixed(1)}%`, note: 'borrowed ÷ supplied', danger: m.utilization >= PAPER_UTILIZATION },
+    ...(yieldNow ? [{ k: 'Venue yield', v: yieldNow.text, note: v.paper ? `${yieldNow.note}, a paper rate (see What it pays)` : yieldNow.note }] : []),
+    { k: 'Your supply', v: fmtUsd(v.suppliedUsd), note: `${fmtAmount(v.supplied, v.supplied >= 100 ? 0 : 2)} ${v.symbol}${onPaper}` },
+  ]
   const exit = (
     <Section id="lending-exit" aria-live="polite" key="exit">
-      <Kicker>{v.paper ? 'At risk: can you get out' : 'Capacity: can you get out'}</Kicker>
+      <Kicker>{v.paper ? 'At risk: capacity' : 'Capacity'}</Kicker>
+      <Headline>Can you get out?</Headline>
       <Box display="flex" flexWrap="wrap" alignItems="baseline" columnGap={SPACING.md} minW={0}>
         <BigFigure danger={shareDanger}>{share}</BigFigure>
         <Mono as="span">of your supply could leave now</Mono>
       </Box>
-      <Mono>
-        {free} free {isVault ? 'across the vault’s markets' : 'for all lenders'} · your {fmtAmount(v.supplied, v.supplied >= 100 ? 0 : 2)} {v.symbol} (
-        {fmtUsd(v.suppliedUsd)}
-        {onPaper}){isVault ? ` · maxWithdraw ${fmtAmount(m.vault?.maxWithdraw ?? 0, 0)} ${v.symbol}` : ` · utilization ${(m.utilization * 100).toFixed(1)}%`}
-      </Mono>
-      <SeriesChart
-        label={`Liquidity free to withdraw: ${fmtUsd(v.liquidityUsd)} now against your ${fmtUsd(v.suppliedUsd)}; the next ${FORECAST_DAYS} days: model pending (${PENDING_MODEL.exit}).`}
-        caption={isVault ? 'free to withdraw from the vault ($)' : 'free to withdraw, all lenders ($)'}
-        lines={[{ points: report?.liquidityUsd ?? [], tone: 'ink', area: true }]}
-        now={v.liquidityUsd}
-        refLine={{ v: v.suppliedUsd, text: `your supply ${usdShort(v.suppliedUsd)}${onPaper}` }}
-        yFmt={axisUsd}
-        pending={pendingText(PENDING_MODEL.exit)}
-        state={state}
-        empty={isVault ? 'no history reported for vaults' : 'no history reported'}
-        nowS={nowAxis}
-      />
+      <Box display="grid" gridTemplateColumns={{ base: 'minmax(0, 1fr)', md: '220px minmax(0, 1fr)' }} gap={SPACING.lg} minW={0}>
+        <Box display="grid" alignContent="start" gap={SPACING.sm} minW={0} data-now-panel="">
+          <Kicker tone="muted">Now</Kicker>
+          <Box as="dl" m={0} display="grid" gap={SPACING.xs} minW={0}>
+            {nowRows.map((r) => (
+              <Box key={r.k} borderBottom={`1px solid ${NEWS.rule}`} pb={SPACING.xs} minW={0}>
+                <Box display="flex" justifyContent="space-between" columnGap={SPACING.sm} minW={0}>
+                  <Mono as="dt">{r.k}</Mono>
+                  <Mono as="dd" m={0} fontWeight={700} color={r.danger ? NEWS.danger : NEWS.ink} textAlign="right">
+                    {r.v}
+                  </Mono>
+                </Box>
+                {r.note && <Small>{r.note}</Small>}
+              </Box>
+            ))}
+          </Box>
+          {/* Design only: the alert store has no exit subject (price, utilization and supply APR only). */}
+          <Button
+            type="button"
+            variant="unstyled"
+            aria-disabled="true"
+            aria-describedby="lending-exit-alert-note"
+            data-design-only=""
+            onClick={(e) => e.preventDefault()}
+            minH="44px"
+            h="auto"
+            w="100%"
+            px={SPACING.sm}
+            py={SPACING.xs}
+            whiteSpace="normal"
+            borderRadius={0}
+            border={`1px solid ${NEWS.ink}`}
+            color={NEWS.ink}
+            fontFamily={NEWS_FONT.mono}
+            fontSize={TYPE.label}
+            fontWeight={700}
+            {...CAPS}
+            cursor="not-allowed"
+            transition={TRANSITIONS.colors}
+            _focusVisible={{ outline: `2px solid ${NEWS.ink}`, outlineOffset: '2px' }}
+          >
+            Alert me if you can’t exit
+          </Button>
+          <Small id="lending-exit-alert-note">Design only: alerts cover price, utilization and supply APR; an exit alert is not built yet.</Small>
+        </Box>
+        <Box display="grid" gap={SPACING.xs} minW={0}>
+          <SeriesChart
+            label={`Liquidity free to withdraw: ${fmtUsd(v.liquidityUsd)} now against your ${fmtUsd(v.suppliedUsd)}; the next ${FORECAST_DAYS} days: ${
+              fanOk ? 'an untested baseline from the last 12 months of moves, model-only, not a forecast' : `model pending (${PENDING_MODEL.exit})`
+            }.`}
+            caption={isVault ? 'free to withdraw from the vault ($)' : 'free to withdraw, all lenders ($)'}
+            lines={[{ points: report?.liquidityUsd ?? [], tone: 'ink', area: true }]}
+            now={v.liquidityUsd}
+            refLine={{ v: v.suppliedUsd, text: `your exit · ${usdShort(v.suppliedUsd)}${onPaper}` }}
+            yFmt={axisUsd}
+            pending={pendingText(PENDING_MODEL.exit)}
+            state={state}
+            empty={isVault ? 'no history reported for vaults' : 'no history reported'}
+            nowS={nowAxis}
+            fan={fan}
+          />
+          {fanOk ? (
+            <>
+              <Small color={NEWS.ink2} data-baseline-label="">
+                {BASELINE_LABEL[0]} · {BASELINE_LABEL[1]}
+              </Small>
+              <Small>— what happened · - - - what we expect (today’s level) · denser dots 50% range · light dots 90% range · thin lines: possible paths · red dashes your exit</Small>
+            </>
+          ) : (
+            <Small>— what happened · red dashes your exit · hatched: model pending ({PENDING_MODEL.exit}){fanWhy ? `, ${fanWhy}` : ''}</Small>
+          )}
+        </Box>
+      </Box>
       <Small>
         Now: on-chain at block {m.block.toLocaleString('en-US')}
         {isVault ? ' (Σ over the withdraw queue of min(vault supply, market liquidity); your exit is the vault’s own maxWithdraw)' : ''}. History:{' '}
@@ -368,7 +507,10 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
         {report?.source === 'DefiLlama yields' && (m.deficit ?? 0) > 0
           ? ` (its liquidity is supply − borrow, so it includes the ${usdShort((m.deficit ?? 0) * m.priceUsd)} deficit that is not cash)`
           : ''}
-        . Forecast: model pending ({PENDING_MODEL.exit}) — no number is shown.
+        .{' '}
+        {fan && fan.ok
+          ? `† After now: an untested baseline, not a forecast. Expected = today’s level; ranges and paths from the real 1–7-day moves of this series over the last ${BASELINE_LOOKBACK_D} days (${fan.days} daily points, ${src}, reported, in USD${m.symbol.toUpperCase().includes('USD') ? '' : `, so ${v.symbol}’s price moves are in them`}). No chance is given: none has a realized-outcome record. Replaced by ${PENDING_MODEL.exit} when it passes.`
+          : `Forecast: model pending (${PENDING_MODEL.exit}) — no number is shown.`}
       </Small>
     </Section>
   )

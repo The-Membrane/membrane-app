@@ -37,6 +37,8 @@ export const MORPHO_REPORT_URL = 'https://blue-api.morpho.org/graphql'
 export const LLAMA_CHART_URL = 'https://yields.llama.fi/chart/'
 /** Days of history the charts show. */
 export const HISTORY_DAYS = 30
+/** Days of free-liquidity history read for the exit region's untested baseline (lib/position/baselineFan.ts). */
+export const BASELINE_DAYS = 365
 /** The forecast region's width, days: the page's longest chance horizon. */
 export const FORECAST_DAYS = 7
 
@@ -78,6 +80,8 @@ export interface LenderReport {
   realizedBadDebtUsd: number | null
   /** Daily series, ascending by time. Empty = this source does not report it. */
   liquidityUsd: SeriesPoint[]
+  /** Free liquidity over the last BASELINE_DAYS (the exit baseline's input); empty when not reported. */
+  liquidityYearUsd: SeriesPoint[]
   utilization: SeriesPoint[]
   supplyApr: SeriesPoint[]
   borrowApr: SeriesPoint[]
@@ -102,25 +106,33 @@ const series = (xs: { x?: number; y?: number | null }[] | null | undefined, f: (
     .sort((a, b) => a.t - b.t)
 
 const RANGE = `options: { startTimestamp: $from, endTimestamp: $to, interval: DAY }`
+const YEAR_RANGE = `options: { startTimestamp: $fromYear, endTimestamp: $to, interval: DAY }`
+const lastDays = (xs: SeriesPoint[], fetchedAtS: number): SeriesPoint[] => xs.filter((p) => p.t >= fetchedAtS - HISTORY_DAYS * 86_400)
 
 /** One request for everything reported about one Morpho market. */
 export function reportQuery(marketId: string, nowS: number): { query: string; variables: Record<string, unknown> } {
   return {
-    query: `query MembraneLenderMarket($id: String!, $chainId: Int!, $from: Int!, $to: Int!) {
+    query: `query MembraneLenderMarket($id: String!, $chainId: Int!, $from: Int!, $fromYear: Int!, $to: Int!) {
   marketById(marketId: $id, chainId: $chainId) {
     state { rewards { asset { symbol } supplyApr } }
     warnings { type level }
     badDebt { usd }
     realizedBadDebt { usd }
     historicalState {
-      liquidityAssetsUsd(${RANGE}) { x y }
+      liquidityAssetsUsd(${YEAR_RANGE}) { x y }
       utilization(${RANGE}) { x y }
       supplyApy(${RANGE}) { x y }
       borrowApy(${RANGE}) { x y }
     }
   }
 }`,
-    variables: { id: marketId, chainId: 1, from: Math.floor(nowS - HISTORY_DAYS * 86_400), to: Math.floor(nowS) },
+    variables: {
+      id: marketId,
+      chainId: 1,
+      from: Math.floor(nowS - HISTORY_DAYS * 86_400),
+      fromYear: Math.floor(nowS - BASELINE_DAYS * 86_400),
+      to: Math.floor(nowS),
+    },
   }
 }
 
@@ -158,13 +170,15 @@ export function parseReport(body: unknown, fetchedAt: number): LenderReport {
   const m = b?.data?.marketById
   if (!m) throw new Error('Morpho API: no market in the response')
   const h = m.historicalState
+  const year = series(h?.liquidityAssetsUsd)
   return {
     source: 'Morpho API',
     rewards: (m.state?.rewards ?? []).map((r) => ({ symbol: r.asset?.symbol ?? '?', apr: num(r.supplyApr) ?? 0 })).filter((r) => r.apr > 0),
     warnings: (m.warnings ?? []).map((w) => ({ type: w.type ?? '?', level: w.level ?? '?' })),
     badDebtUsd: num(m.badDebt?.usd),
     realizedBadDebtUsd: num(m.realizedBadDebt?.usd),
-    liquidityUsd: series(h?.liquidityAssetsUsd),
+    liquidityUsd: lastDays(year, fetchedAt / 1000),
+    liquidityYearUsd: year,
     utilization: series(h?.utilization),
     supplyApr: series(h?.supplyApy, aprFromApy),
     borrowApr: series(h?.borrowApy, aprFromApy),
@@ -197,6 +211,7 @@ export function parseVaultReport(body: unknown, fetchedAt: number): LenderReport
     badDebtUsd: null,
     realizedBadDebtUsd: null,
     liquidityUsd: [],
+    liquidityYearUsd: [],
     utilization: [],
     supplyApr: series(v.historicalState?.netApyWithoutRewards, aprFromApy),
     borrowApr: [],
@@ -207,7 +222,7 @@ export function parseVaultReport(body: unknown, fetchedAt: number): LenderReport
 
 /**
  * DefiLlama's /chart/{pool} body → a report: daily liquidity (tvlUsd, which for a lending
- * pool is supply − borrow) and the base supply rate, the last HISTORY_DAYS days, one point
+ * pool is supply − borrow) and the base supply rate, the last HISTORY_DAYS days (and BASELINE_DAYS of liquidity for the baseline), one point
  * per UTC day (the newest of the day). Rewards: the newest apyReward, as one line, since
  * the chart names no reward token. Utilization and borrow history are not in the free API.
  */
@@ -215,15 +230,17 @@ export function parseLlamaChart(body: unknown, fetchedAt: number): LenderReport 
   const b = body as { status?: string; data?: { timestamp?: string; tvlUsd?: number | null; apyBase?: number | null; apyReward?: number | null }[] }
   if (!b || !Array.isArray(b.data)) throw new Error('DefiLlama: no data in the response')
   const from = fetchedAt / 1000 - HISTORY_DAYS * 86_400
+  const fromYear = fetchedAt / 1000 - BASELINE_DAYS * 86_400
   const byDay = new Map<number, { t: number; tvl: number | null; base: number | null; reward: number | null }>()
   for (const p of b.data) {
     const t = p.timestamp ? Date.parse(p.timestamp) / 1000 : NaN
-    if (!Number.isFinite(t) || t < from) continue
+    if (!Number.isFinite(t) || t < fromYear) continue
     const day = Math.floor(t / 86_400)
     const prev = byDay.get(day)
     if (!prev || t > prev.t) byDay.set(day, { t, tvl: num(p.tvlUsd), base: num(p.apyBase), reward: num(p.apyReward) })
   }
-  const pts = [...byDay.values()].sort((a, c) => a.t - c.t)
+  const year = [...byDay.values()].sort((a, c) => a.t - c.t)
+  const pts = year.filter((p) => p.t >= from)
   const last = pts[pts.length - 1]
   const reward = last?.reward ?? null
   return {
@@ -233,6 +250,7 @@ export function parseLlamaChart(body: unknown, fetchedAt: number): LenderReport 
     badDebtUsd: null,
     realizedBadDebtUsd: null,
     liquidityUsd: pts.filter((p) => p.tvl !== null).map((p) => ({ t: p.t, v: p.tvl as number })),
+    liquidityYearUsd: year.filter((p) => p.tvl !== null).map((p) => ({ t: p.t, v: p.tvl as number })),
     utilization: [],
     supplyApr: pts.filter((p) => p.base !== null).map((p) => ({ t: p.t, v: aprFromApy((p.base as number) / 100) })),
     borrowApr: [],

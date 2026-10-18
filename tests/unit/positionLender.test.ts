@@ -93,6 +93,7 @@ describe('parseReport', () => {
       { t: 100, v: 4 },
       { t: 200, v: 5 },
     ])
+    expect(r.liquidityYearUsd).toEqual(r.liquidityUsd)
     expect(r.utilization).toEqual([{ t: 100, v: 0.9 }])
     // APYs become the page's simple APR: ln(1 + APY).
     expect(r.supplyApr[0].v).toBeCloseTo(Math.log(1.05), 12)
@@ -108,6 +109,9 @@ describe('parseReport', () => {
   it('asks for 30 days of history ending now', () => {
     const q = reportQuery('0xabc', 1_000_000)
     expect(q.variables).toMatchObject({ id: '0xabc', chainId: 1, to: 1_000_000, from: 1_000_000 - 30 * 86_400 })
+    // Free liquidity alone goes back a year: the exit region's untested baseline reads it.
+    expect(q.variables).toMatchObject({ fromYear: 1_000_000 - 365 * 86_400 })
+    expect(q.query).toMatch(/liquidityAssetsUsd\(options: \{ startTimestamp: \$fromYear/)
   })
 })
 
@@ -248,6 +252,8 @@ describe('pooled venues and vaults', () => {
       now,
     )
     expect(r.liquidityUsd.map((p) => p.v)).toEqual([12])
+    // The year series keeps day −40 for the baseline; the 30-day chart does not.
+    expect(r.liquidityYearUsd.map((p) => p.v)).toEqual([1, 12])
     expect(r.supplyApr.map((p) => p.v)).toEqual([Math.log1p(0.06), Math.log1p(0.04)])
     // apyReward is a reward rate in percent, not a compounded APY: divided by 100 only.
     expect(r.rewards).toEqual([{ symbol: 'reward tokens', apr: 0.02 }])

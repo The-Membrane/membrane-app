@@ -499,13 +499,17 @@ def arb_hours(inp, arb):
     return out
 
 
-def arb_scale(metas, inp):
+def arb_scale(metas, inp, arb):
+    """USDC.e + native USDC total debt (variable + the day's own stable token) at the day's anchor, over the D
+    median of Core USDC debt."""
+    debt = jl(os.path.join(arb, "usdc-debt.json.gz"))
     sc = {}
     for d, m in metas.items():
         usd = 0.0
         for u in ARB_USDC:
-            if u in m.get("usdc_debt_raw", {}) and u in m["reserves"]:
-                usd += int(m["usdc_debt_raw"][u]) / 1e6 * ((m["reserves"][u]["price"] or 1e8) / 1e8)
+            x = debt.get(d, {}).get(u)
+            if x and u in m["reserves"]:
+                usd += (int(x["v"]) + int(x["s"])) / 1e6 * ((m["reserves"][u]["price"] or 1e8) / 1e8)
         sc[d] = usd / REF_CORE_DEBT
     return sc
 
@@ -534,8 +538,9 @@ def dir_digest(path):
 
 
 def l1_input_digests(arb):
-    out = {k: dir_digest(os.path.join(arb, k)) for k in ("tok", "pool", "oracle", "meta", "hourly")}
-    for f in ("reserves.json.gz", "oracle-walk.json.gz", "liq-LOCKED.json.gz", "anchors.json.gz"):
+    out = {k: dir_digest(os.path.join(arb, k)) for k in ("tok", "tok-stable", "pool", "oracle", "meta", "hourly")}
+    for f in ("reserves.json.gz", "oracle-walk.json.gz", "liq-LOCKED.json.gz", "anchors.json.gz", "usdc-debt.json.gz",
+              "stable-tokens.json.gz"):
         out[f] = sha256_file(os.path.join(arb, f))
     return out
 
@@ -667,7 +672,7 @@ def cmd_run(a):
     while d <= L1_LAST:
         real[d.isoformat()] = real_ev.get(d.isoformat(), 0.0)
         d += dt.timedelta(days=1)
-    scale = arb_scale(metas, inp)
+    scale = arb_scale(metas, inp, a.arb)
     days = l1_days()
     cls, pooled = classify(days, sim, real, scale, priors=cfg["priors"])
     q2 = [x for x in l1_days(True) if x not in set(days)]

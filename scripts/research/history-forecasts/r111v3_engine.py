@@ -71,6 +71,20 @@ class Inputs:
             for k in tk:
                 tk[k].append(remap(z["users"], z["user"]) if k == "user" else z[k])
         self.tok = {k: np.concatenate(v) for k, v in tk.items()}
+        sd = os.path.join(work, "tok-stable")
+        if os.path.isdir(sd):
+            # kind-2 rows of tok/ came through the end-block placeholder address; tok-stable/ holds the real ones
+            keep = self.tok["kind"] != 2
+            for k in tk:
+                self.tok[k] = self.tok[k][keep]
+            st = {k: [self.tok[k]] for k in tk}
+            for n in _parts(sd):
+                z = np.load(os.path.join(sd, n))
+                for k in tk:
+                    st[k].append(remap(z["users"], z["user"]) if k == "user" else z[k])
+            self.tok = {k: np.concatenate(v) for k, v in st.items()}
+            o = np.lexsort((self.tok["lidx"], self.tok["block"]))
+            self.tok = {k: v[o] for k, v in self.tok.items()}
         pk = {k: [] for k in ("rdu_block", "rdu_lidx", "rdu_ts", "rdu_res", "rdu_lrate", "rdu_vrate", "rdu_lidx_ray",
                               "rdu_vidx_ray", "f_block", "f_lidx", "f_ts", "f_res", "f_user", "f_on", "e_block", "e_lidx",
                               "e_ts", "e_user", "e_cat")}

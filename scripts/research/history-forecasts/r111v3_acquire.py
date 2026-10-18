@@ -524,6 +524,98 @@ def phase_hourly(mk, work):
     print(f"hourly: {len(hours)} hours; rpc {cl.stats}", flush=True)
 
 
+def stable_tokens(work):
+    """Historical stable-debt token address per reserve from the daily metas. An address shared by several reserves
+    on the same day (the v3.2+ getReserveData placeholder) or the zero address is not a stable token of that day."""
+    rs = jload(os.path.join(work, "reserves.json.gz"))
+    gidx = {r["asset"]: i for i, r in enumerate(rs["reserves"])}
+    own = {}
+    md = os.path.join(work, "meta")
+    for n in sorted(os.listdir(md)):
+        if not n.endswith(".json.gz"):
+            continue
+        m = jload(os.path.join(md, n))
+        cnt = {}
+        for r in m["reserves"].values():
+            cnt[r["sDebt"]] = cnt.get(r["sDebt"], 0) + 1
+        for a, r in m["reserves"].items():
+            s = r["sDebt"]
+            if s and int(s, 16) and cnt[s] == 1:
+                own.setdefault(s, set()).add(gidx[a])
+    out = {}
+    for s, rset in own.items():
+        if len(rset) != 1:
+            raise RuntimeError("stable token mapped to two reserves")
+        out[s] = (rset.pop(), 2)
+    return out
+
+
+def phase_stable(mk, work):
+    """Stable-debt token Mint / Burn of every historical stable token (tok-stable/ parts). The tok/ parts mapped stable
+    logs through the end-block address only, which v3.2+ reports as one shared placeholder; their kind-2 rows are
+    ignored when tok-stable/ exists."""
+    m = MARKETS[mk]
+    rs = jload(os.path.join(work, "reserves.json.gz"))
+    tmap = stable_tokens(work)
+    cl = X.Client(m["chain"], interval=0.1)
+    od = os.path.join(work, "tok-stable")
+    os.makedirs(od, exist_ok=True)
+    span = m["span"] * 8
+    starts = list(range(m["start"], rs["end_block"] + 1, span))
+
+    def one(s):
+        p = os.path.join(od, f"{s}.npz")
+        if os.path.exists(p):
+            return
+        lg = cl.logs(sorted(tmap), [[T["SMint"], T["SBurn"]]], s, min(s + span - 1, rs["end_block"]))
+        npsave(p, **compact_token(lg, tmap))
+
+    with ThreadPoolExecutor(4) as ex:
+        list(ex.map(one, starts))
+    n = sum(len(np.load(os.path.join(od, x))["block"]) for x in os.listdir(od))
+    jdump(os.path.join(work, "stable-tokens.json.gz"), {k: v[0] for k, v in tmap.items()})
+    print(f"stable: {len(tmap)} stable tokens, {n} logs; rpc {cl.stats}", flush=True)
+
+
+def phase_debt(mk, work):
+    """Per day anchor: variable-debt totalSupply and the day's own stable-debt totalSupply of each USDC reserve."""
+    m = MARKETS[mk]
+    rs = jload(os.path.join(work, "reserves.json.gz"))
+    tokens = {r["asset"]: r for r in rs["reserves"]}
+    tmap = stable_tokens(work)
+    anchors = jload(os.path.join(work, "anchors.json.gz"))
+    cl = X.Client(m["chain"], interval=0.1, calls=True)
+    out = {}
+    keys = sorted(anchors)
+    for i in range(0, len(keys), 25):
+        chunk = keys[i:i + 25]
+        reqs, meta = [], []
+        for k in chunk:
+            md = jload(os.path.join(work, "meta", f"{k}.json.gz"))
+            calls = []
+            for u in m["usdc"]:
+                calls.append((tokens[u]["vDebt"], X.sel("totalSupply()")))
+                s = md["reserves"].get(u, {}).get("sDebt")
+                own = s if (s and s in tmap and tmap[s][0] == rs["reserves"].index(tokens[u])) else None
+                calls.append((own or tokens[u]["vDebt"], X.sel("totalSupply()") if own else X.sel("decimals()")))
+                meta.append((k, u, bool(own)))
+            reqs.append(("eth_call", [{"to": X.MULTICALL3, "data": X.aggregate3_data(calls)}, hex(anchors[k])]))
+        res = cl.batch(reqs)
+        j = 0
+        for k, raw in zip(chunk, res):
+            dec = X.aggregate3_decode(raw)
+            for q, u in enumerate(m["usdc"]):
+                _, _, own = meta[j]
+                j += 1
+                v = dec[2 * q]
+                sd = dec[2 * q + 1]
+                vv = X.word(v[1]) if v[0] and len(v[1]) == 32 else 0
+                ss = X.word(sd[1]) if own and sd[0] and len(sd[1]) == 32 else 0
+                out.setdefault(k, {})[u] = {"v": str(vv or 0), "s": str(ss or 0)}
+    jdump(os.path.join(work, "usdc-debt.json.gz"), out)
+    print(f"debt: {len(out)} days; rpc {cl.stats}", flush=True)
+
+
 def phase_liq(mk, work):
     m = MARKETS[mk]
     rs = jload(os.path.join(work, "reserves.json.gz"))
@@ -548,7 +640,7 @@ def phase_liq(mk, work):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("phase", choices=["reserves", "logs", "oracle", "meta", "hourly", "liq"])
+    ap.add_argument("phase", choices=["reserves", "logs", "oracle", "meta", "hourly", "liq", "stable", "debt"])
     ap.add_argument("--market", choices=list(MARKETS), required=True)
     ap.add_argument("--work", required=True)
     ap.add_argument("--threads", type=int, default=4)
@@ -557,7 +649,8 @@ def main():
     print(f"{utcnow()} start {a.phase} {a.market}", flush=True)
     {"reserves": lambda: phase_reserves(a.market, a.work), "logs": lambda: phase_logs(a.market, a.work, a.threads),
      "oracle": lambda: phase_oracle(a.market, a.work), "meta": lambda: phase_meta(a.market, a.work),
-     "hourly": lambda: phase_hourly(a.market, a.work), "liq": lambda: phase_liq(a.market, a.work)}[a.phase]()
+     "hourly": lambda: phase_hourly(a.market, a.work), "liq": lambda: phase_liq(a.market, a.work),
+     "stable": lambda: phase_stable(a.market, a.work), "debt": lambda: phase_debt(a.market, a.work)}[a.phase]()
     print(f"{utcnow()} end {a.phase} {a.market}", flush=True)
 
 

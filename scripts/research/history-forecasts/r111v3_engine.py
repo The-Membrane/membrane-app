@@ -359,10 +359,18 @@ class Replay:
         R = inp.R
         started = False
         self.seq_down, self.seq_up_ts, self.sentinel = False, -1e18, {"present": False, "grace": 0}
+        import time as _time
+        _t0 = _time.time()
+        self.cpos, self.dirty, self.C = {}, set(), None
+        self._overlay = overlay
         for n in range(len(ks)):
+            if n % 1_000_000 == 0 and n:
+                print(f"progress events {n:,}/{len(ks):,} day {cur_day} elapsed {_time.time() - _t0:.0f}s", flush=True)
             t_, p_ = ty[n], pos[n]
             if t_ == EV_TOK:
                 u, r = st.apply_tok(inp_t, p_)
+                if u in self.cpos:
+                    self.dirty.add(u)
                 if u in overlay:
                     del overlay[u]
                 if r in self.usdc_set:
@@ -370,9 +378,13 @@ class Replay:
                 continue
             if t_ == EV_FLAG:
                 st.apply_flag(inp_p, p_)
+                if inp_p["f_user"][p_] in self.cpos:
+                    self.dirty.add(int(inp_p["f_user"][p_]))
                 continue
             if t_ == EV_EMODE:
                 st.apply_emode(inp_p, p_)
+                if inp_p["e_user"][p_] in self.cpos:
+                    self.dirty.add(int(inp_p["e_user"][p_]))
                 continue
             if t_ == EV_ORACLE:
                 g = ora["agg"][p_]
@@ -435,6 +447,7 @@ class Replay:
                 continue
             hf = self._hf_vec(users, st, overlay, t, px, Lt, Vt, inv_unit, day, lt_cache)
             cand = users[hf < CAND_HF]
+            self._cache_build(cand, st, day, lt_cache)
             rec["cand_sizes"].append(len(cand))
             hd = dt.datetime.fromtimestamp(h["hour"], dt.timezone.utc).date().isoformat()
             self._eval(cand, st, overlay, t, px, Lt, Vt, inv_unit, day, lt_cache, cost_usd, hd, sim, rec, None)
@@ -471,28 +484,126 @@ class Replay:
         with np.errstate(divide="ignore", invalid="ignore"):
             return np.where(td > 0, num / np.where(td > 0, td, 1), np.inf)
 
+    def _cache_build(self, cand, st, day, lt_cache):
+        """Candidate rows of the hour (state copies), refreshed when a candidate's token, flag or e-mode log arrives."""
+        self.cpos = {int(u): i for i, u in enumerate(cand.tolist())}
+        self.dirty = set()
+        n, R = len(cand), st.SA.shape[1]
+        C = {"users": cand, "SA": st.SA[cand], "SV": st.SV[cand], "SP": st.SP[cand], "SR": st.SR[cand],
+             "ST": st.ST[cand], "FL": st.FL[cand], "LT": np.zeros((n, R)), "LB": np.ones((n, R))}
+        ems = st.EM[cand]
+        for em in np.unique(ems):
+            lt_, lb_ = self._lt(day, lt_cache, em)
+            C["LT"][ems == em] = lt_
+            C["LB"][ems == em] = lb_
+        C["HELD"] = (C["SA"] > 0) | (C["SV"] > 0) | (C["SP"] > 0)
+        C["OA"], C["OV"], C["OS"] = np.zeros((n, R)), np.zeros((n, R)), np.zeros((n, R))
+        for u, i in self.cpos.items():
+            ov = self._overlay.get(u)
+            if ov is not None:
+                C["OA"][i], C["OV"][i], C["OS"][i] = ov
+        self.C = C
+
+    def _cache_refresh(self, st, day, lt_cache):
+        C = self.C
+        for u in self.dirty:
+            i = self.cpos[u]
+            for k in ("SA", "SV", "SP", "SR", "ST", "FL"):
+                C[k][i] = getattr(st, k)[u]
+            lt_, lb_ = self._lt(day, lt_cache, st.EM[u])
+            C["LT"][i], C["LB"][i] = lt_, lb_
+            C["HELD"][i] = (C["SA"][i] > 0) | (C["SV"][i] > 0) | (C["SP"][i] > 0)
+            ov = self._overlay.get(u)
+            if ov is None:
+                C["OA"][i] = 0.0
+                C["OV"][i] = 0.0
+                C["OS"][i] = 0.0
+            else:
+                C["OA"][i], C["OV"][i], C["OS"][i] = ov
+        self.dirty = set()
+
+    def _screen(self, rows, overlay, t, px, Lt, Vt, inv_unit, day, cost_usd, blocked):
+        """Vectorised first call of the R10.1 loop on cached candidate rows (same formulas as liquidate / M_call,
+        margins 1e-6). An account whose first call fails makes no call and changes no state, so skipping it is
+        exact up to float ties."""
+        C = self.C
+        sa = np.maximum(C["SA"][rows] - C["OA"][rows], 0.0)
+        sv = np.maximum(C["SV"][rows] - C["OV"][rows], 0.0)
+        ss = np.maximum(stable_value(C["SP"][rows], C["SR"][rows], C["ST"][rows], t) - C["OS"][rows], 0.0)
+        LT, LB = C["LT"][rows], C["LB"][rows]
+        n = len(rows)
+        coll = sa * (Lt * inv_unit * px)
+        debt = sv * (Vt * inv_unit * px) + ss * (inv_unit * px)
+        td = debt.sum(axis=1)
+        elig = C["FL"][rows] & (LT > 0) & (coll > 0)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            hf = np.where(td > 0, (coll * LT * elig).sum(axis=1) / np.where(td > 0, td, 1), np.inf)
+        ok = (td > 0) & elig.any(axis=1) & (hf < 1.0 + 1e-6)
+        if blocked:
+            ok &= hf < 0.95 + 1e-6
+        if not ok.any():
+            return ok
+        r = np.arange(n)
+        j = np.argmax(debt, axis=1)
+        k = np.argmax(np.where(elig, coll, -1.0), axis=1)
+        dj, ck, lbk, fee = debt[r, j], coll[r, k], LB[r, k], day.fee[k]
+        if day.v33:
+            partial = (ck >= 2000.0) & (dj >= 2000.0) & (hf > 0.95)
+            repay = np.where(partial & (dj > 0.5 * td), 0.5 * td, dj)
+        else:
+            repay = np.where(hf > 0.95, 0.5, 1.0) * dj
+        seized = repay * lbk
+        cap = seized > ck
+        seized = np.where(cap, ck, seized)
+        repay = np.where(cap, seized / lbk, repay)
+        if day.v33:
+            lo = ~cap & (repay < dj) & ((dj - repay < 1000.0) | (ck - seized < 1000.0))
+            r2 = dj
+            s2 = r2 * lbk
+            c2 = s2 > ck
+            s2 = np.where(c2, ck, s2)
+            r2 = np.where(c2, s2 / lbk, r2)
+            repay = np.where(lo, r2, repay)
+            seized = np.where(lo, s2, seized)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            gross = (seized - (seized - seized / lbk) * fee) - repay
+        ok &= (repay > 0) & (gross >= self.rule["dust_usd"] - 1e-6) & (gross - cost_usd >= -1e-6)
+        return ok
+
     def _eval(self, cand, st, overlay, t, px, Lt, Vt, inv_unit, day, lt_cache, cost_usd, d, sim, rec, touched):
+        """Vectorised first-call screen (_screen) before the exact per-account call loop, which recomputes everything."""
         R = len(px)
-        for u in cand.tolist():
-            if touched is not None:
-                held = (st.SA[u] > 0) | (st.SV[u] > 0) | (st.SP[u] > 0)
-                if not any(held[a] for a in touched):
-                    continue
-            rec["evals"] += 1
+        if len(cand) == 0:
+            return
+        if self.dirty:
+            self._cache_refresh(st, day, lt_cache)
+        if touched is not None:
+            rows = np.nonzero(self.C["HELD"][:, list(touched)].any(axis=1))[0]
+        else:
+            rows = np.arange(len(cand))
+        if len(rows) == 0:
+            return
+        cand = self.C["users"][rows]
+        rec["evals"] += len(cand)
+        blocked = bool(self.sentinel.get("present") and
+                       (self.seq_down or t < self.seq_up_ts + float(self.sentinel.get("grace") or 0)))
+        if blocked:
+            rec["sentinel_blocked_evals"] = rec.get("sentinel_blocked_evals", 0) + len(cand)
+        ok = self._screen(rows, overlay, t, px, Lt, Vt, inv_unit, day, cost_usd, blocked)
+        for u in cand[ok].tolist():
             lt, lb = self._lt(day, lt_cache, st.EM[u])
             ov = overlay.get(u)
             fresh = ov is None
             if fresh:
                 ov = (np.zeros(R), np.zeros(R), np.zeros(R))
-            blocked = bool(self.sentinel.get("present") and
-                           (self.seq_down or t < self.seq_up_ts + float(self.sentinel.get("grace") or 0)))
-            if blocked:
-                rec["sentinel_blocked_evals"] = rec.get("sentinel_blocked_evals", 0) + 1
             calls, reason = liquidate(u, st, ov, t, px, Lt, Vt, inv_unit, lt, lb, day, cost_usd,
                                       self.rule["dust_usd"], self.usdc_set, blocked)
             if calls:
                 if fresh:
                     overlay[u] = ov
+                i = self.cpos.get(u)
+                if i is not None:
+                    self.C["OA"][i], self.C["OV"][i], self.C["OS"][i] = ov
                 for repay, j, is_usdc, flags, gross in calls:
                     if is_usdc:
                         sim[d] = sim.get(d, 0.0) + repay

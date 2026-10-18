@@ -41,6 +41,7 @@ import {
   type SpreadNow,
   type Track,
 } from '@/lib/position/costReward'
+import { BASELINE_HORIZONS_D, BASELINE_LABEL, BASELINE_LOOKBACK_D, type Baseline } from '@/lib/position/baselineFan'
 
 import { Headline, Kicker, Mono, Small } from '../primitives'
 import { TYPE, TYPE_PX } from '../typeScale'
@@ -91,6 +92,13 @@ const Defs: React.FC<{ uid: string }> = ({ uid }) => (
     <pattern id={`${uid}-hatch`} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
       <line x1="0" y1="0" x2="0" y2="7" stroke={NEWS.ruleStrong} strokeWidth="1" />
     </pattern>
+    {/* the untested baseline: light halftone, the 50% range a step denser than the 90% */}
+    <pattern id={`${uid}-f90`} width="4" height="4" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.55" fill={NEWS.muted} opacity={0.55} />
+    </pattern>
+    <pattern id={`${uid}-f50`} width="3" height="3" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.65" fill={NEWS.muted} opacity={0.75} />
+    </pattern>
   </defs>
 )
 
@@ -105,10 +113,10 @@ const xOf = (t: Track, f: Frame) => (ts: number) =>
 
 const path = (pts: Array<[number, number]>) => pts.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)},${b.toFixed(1)}`).join('')
 
-/** The forward segment: hatched, labelled, no value and no band. */
-const Pending: React.FC<{ t: Track; f: Frame; uid: string; compact?: boolean }> = ({ t, f, uid, compact }) => {
+/** The forward segment: hatched, labelled, no value and no band. From `fromTs` (default: the last read). */
+const Pending: React.FC<{ t: Track; f: Frame; uid: string; compact?: boolean; fromTs?: number; bottom?: boolean }> = ({ t, f, uid, compact, fromTs, bottom }) => {
   const x = xOf(t, f)
-  const x0 = x(t.to)
+  const x0 = x(fromTs ?? t.to)
   const x1 = x(t.forecastTo)
   const y0 = f.m.top
   const h = f.height - f.m.top - f.m.bottom
@@ -120,7 +128,7 @@ const Pending: React.FC<{ t: Track; f: Frame; uid: string; compact?: boolean }> 
       <line x1={x0} x2={x0} y1={y0} y2={y0 + h} stroke={NEWS.ink} strokeWidth={1} />
       {fits &&
         lines.map((l, i) => (
-          <text key={l} x={x0 + 6} y={y0 + 12 + i * 13} {...LABEL} fill={i === 0 && !compact ? NEWS.ink : NEWS.muted}>
+          <text key={l} x={x0 + 6} y={bottom ? y0 + h - 6 - (lines.length - 1 - i) * 13 : y0 + 12 + i * 13} {...LABEL} fill={i === 0 && !compact ? NEWS.ink : NEWS.muted}>
             {l}
           </text>
         ))}
@@ -386,13 +394,17 @@ const SpreadChart: React.FC<{
   withInc?: number | null
   height?: number
   compact?: boolean
-}> = ({ t, width, uid, withInc = null, height, compact = false }) => {
+  /** The untested baseline (model-only) for the first 7 days of the forward segment; the rest stays hatched. */
+  fan?: Baseline | null
+}> = ({ t, width, uid, withInc = null, height, compact = false, fan = null }) => {
+  const base = fan && fan.ok ? fan : null
   const f0 = frameFor(width)
   const f: Frame = height ? { ...f0, height, m: { ...f0.m, left: compact ? 56 : f0.m.left } } : f0
   const x = xOf(t, f)
   const inc = withInc !== null && withInc !== t.points[t.points.length - 1].spread ? withInc : null
-  const lo = Math.min(0, ...t.points.map((p) => p.spread), inc ?? 0)
-  const hi = Math.max(0, ...t.points.map((p) => p.spread), inc ?? 0)
+  const fanVals = base ? base.steps.flatMap((s) => [s.p05, s.p95]) : []
+  const lo = Math.min(0, ...t.points.map((p) => p.spread), inc ?? 0, ...fanVals)
+  const hi = Math.max(0, ...t.points.map((p) => p.spread), inc ?? 0, ...fanVals)
   const yt = ticks(lo, hi, compact ? 2 : 3)
   const pad = (hi - lo || 1) * 0.08
   const yLo = Math.min(lo, yt[0]) - pad
@@ -401,8 +413,12 @@ const SpreadChart: React.FC<{
   const line = t.points.map((p) => [x(p.ts), y(p.spread)] as [number, number])
   const area = path([[x(t.from), y(0)], ...line, [x(t.to), y(0)]]) + 'Z'
   const last = t.points[t.points.length - 1]
+  const H = BASELINE_HORIZONS_D[BASELINE_HORIZONS_D.length - 1]
+  const xh = (h: number) => x(t.to + h * 86_400)
+  const band = (a: 'p05' | 'p25', b: 'p95' | 'p75') =>
+    base ? path([...base.steps.map((s) => [xh(s.h), y(s[b])] as [number, number]), ...[...base.steps].reverse().map((s) => [xh(s.h), y(s[a])] as [number, number])]) + 'Z' : ''
   return (
-    <svg width={width} height={f.height} role="img" aria-label={`Yield spread (income less interest), dollars per year at today's size and prices, ${dayLabel(t.from)} to ${dayLabel(t.to)}: ${signedUsd(last.spread)} at the last observation${withInc !== null && withInc !== last.spread ? `; ${signedUsd(withInc)} with current incentives` : ''}. Forward ${FORECAST_EXTENT_D} days: model pending.`}>
+    <svg width={width} height={f.height} role="img" aria-label={`Yield spread (income less interest), dollars per year at today's size and prices, ${dayLabel(t.from)} to ${dayLabel(t.to)}: ${signedUsd(last.spread)} at the last observation${withInc !== null && withInc !== last.spread ? `; ${signedUsd(withInc)} with current incentives` : ''}. ${base ? `Next ${H} days: an untested baseline from the last 12 months of moves, model-only, not a forecast; days ${H} to ${FORECAST_EXTENT_D}: model pending.` : `Forward ${FORECAST_EXTENT_D} days: model pending.`}`}>
       <Defs uid={uid} />
       {yt.filter((v) => v !== 0).map((v) => (
         <g key={v}>
@@ -414,13 +430,28 @@ const SpreadChart: React.FC<{
       ))}
       <path d={area} fill={`url(#${uid}-dots)`} />
       <path d={path(line)} fill="none" stroke={NEWS.ink} strokeWidth={2} />
-      <line x1={f.m.left} x2={x(t.to)} y1={y(0)} y2={y(0)} stroke={NEWS.ink} strokeWidth={1} />
+      {base && (
+        // Model-only: the untested baseline, no chance figure (none has a realized-outcome record).
+        <g data-baseline="model-only" clipPath={`url(#${uid}-fc)`}>
+          <clipPath id={`${uid}-fc`}>
+            <rect x={x(t.to)} y={f.m.top} width={xh(H) - x(t.to)} height={f.height - f.m.top - f.m.bottom} />
+          </clipPath>
+          <path d={band('p05', 'p95')} fill={`url(#${uid}-f90)`} />
+          <path d={band('p25', 'p75')} fill={`url(#${uid}-f50)`} />
+          {base.paths.map((p, k) => (
+            <path key={k} d={path(p.map((v, h) => [xh(h), y(v)] as [number, number]))} fill="none" stroke={NEWS.muted} strokeWidth={0.6} opacity={0.8} />
+          ))}
+          <line x1={x(t.to)} x2={xh(H)} y1={y(base.level)} y2={y(base.level)} stroke={NEWS.ink} strokeWidth={1} strokeDasharray="3 2" />
+        </g>
+      )}
+      {/* The $0 line runs through the forward segment: below it, the spread is negative. */}
+      <line x1={f.m.left} x2={x(t.forecastTo)} y1={y(0)} y2={y(0)} stroke={NEWS.ink} strokeWidth={1} />
       <text x={f.m.left - 4} y={y(0) + 4} {...LABEL} textAnchor="end" fill={NEWS.ink}>
         $0
       </text>
       {/* Names the shaded side of $0 (owner: "negative spread"), inside the area it labels. */}
-      <text x={f.m.left + 4} y={y(0) + (last.spread < 0 ? 14 : -6)} {...LABEL} fill={NEWS.ink}>
-        {last.spread < 0 ? 'negative spread' : 'positive spread'}
+      <text x={f.m.left + 4} y={y(0) + (last.spread < 0 ? 14 : -6)} {...LABEL} fill={NEWS.ink} fontWeight={700} data-testid="zero-line-label">
+        {last.spread < 0 ? 'below $0: negative spread' : 'above $0: positive spread'}
       </text>
       <text x={x(t.to) - 6} y={y(last.spread) + (last.spread < 0 ? 15 : -7)} {...LABEL} textAnchor="end" fill={NEWS.ink} fontWeight={700} style={HALO}>
         {signedUsd(last.spread)}/yr
@@ -435,11 +466,61 @@ const SpreadChart: React.FC<{
           </text>
         </g>
       )}
-      <Pending t={t} f={f} uid={uid} />
+      <Pending t={t} f={f} uid={uid} compact={compact} bottom fromTs={base ? t.to + H * 86_400 : undefined} />
       <TimeAxis t={t} f={f} />
     </svg>
   )
 }
+
+/** Under the spread chart: the model-only label and the legend, or why it stays pending. */
+const ForwardNote: React.FC<{ fan: Baseline | null }> = ({ fan }) =>
+  fan && fan.ok ? (
+    <>
+      <Small color={NEWS.ink2} data-testid="baseline-label">
+        {BASELINE_LABEL[0]} · {BASELINE_LABEL[1]}
+      </Small>
+      <Small>
+        — what happened · - - - what we expect (today&apos;s level) · denser dots 50% range · light dots 90% range · thin lines: possible paths · after{' '}
+        {BASELINE_HORIZONS_D[BASELINE_HORIZONS_D.length - 1]}d hatched: model pending (Q33, Q34)
+      </Small>
+    </>
+  ) : (
+    <Small>Forward {FORECAST_EXTENT_D}d hatched: model pending (Q33, Q34){fan && !fan.ok ? ` · no baseline: ${fan.reason}` : ''}</Small>
+  )
+
+/** Design only: the alert store has no spread subject (price, utilization and supply APR only). */
+const SpreadAlertCta: React.FC<{ id: string }> = ({ id }) => (
+  <Box display="grid" gap={SPACING.xs} justifyItems="start">
+    <Button
+      type="button"
+      variant="unstyled"
+      aria-disabled="true"
+      aria-describedby={id}
+      data-design-only=""
+      onClick={(e) => e.preventDefault()}
+      minH="44px"
+      h="auto"
+      px={SPACING.sm}
+      py={SPACING.xs}
+      whiteSpace="normal"
+      textAlign="left"
+      borderRadius={0}
+      border={`1px solid ${NEWS.ink}`}
+      color={NEWS.ink}
+      fontFamily={NEWS_FONT.mono}
+      fontSize={TYPE.body}
+      fontWeight={700}
+      textTransform="none"
+      letterSpacing="normal"
+      cursor="not-allowed"
+      transition={TRANSITIONS.colors}
+      _focusVisible={FOCUS_STYLES.ring}
+    >
+      Alert me if the spread turns negative
+    </Button>
+    <Small id={id}>Design only: alerts cover price, utilization and supply APR; a spread alert is not built yet.</Small>
+  </Box>
+)
 
 /** The incentives ‡ in words: each live campaign, or that the source has none for a leg. */
 const IncentiveWords: React.FC<{ now: SpreadNow }> = ({ now }) => {
@@ -466,7 +547,7 @@ const IncentiveWords: React.FC<{ now: SpreadNow }> = ({ now }) => {
   )
 }
 
-const VariantB: React.FC<{ fx: RateFixture; track: Track }> = ({ fx, track }) => {
+const VariantB: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }> = ({ fx, track, fan }) => {
   const t = windowed(track, '30d')
   const [ref, width] = useWidth<HTMLDivElement>()
   const uid = `crB${useId().replace(/:/g, '')}`
@@ -475,10 +556,12 @@ const VariantB: React.FC<{ fx: RateFixture; track: Track }> = ({ fx, track }) =>
   return (
     <Box display="grid" gap={SPACING.xs} minW={0}>
       <Kicker tone="muted">Yield spread · proposed number †</Kicker>
+      <Headline>Will your spread go negative?</Headline>
       <Small>Income less interest · $ / year at today&apos;s size and prices · 30d · incentives ‡ beside it, not in the line</Small>
       <Box ref={ref} w="100%" minW={0} minH={`${frameFor(width ?? 440).height}px`}>
-        {width !== null && <SpreadChart t={t} width={width} uid={uid} withInc={now.withIncentives} />}
+        {width !== null && <SpreadChart t={t} width={width} uid={uid} withInc={now.withIncentives} fan={fan} />}
       </Box>
+      <ForwardNote fan={fan} />
       <Box display="grid" gridTemplateColumns="minmax(0, 1fr) auto" columnGap={SPACING.sm} borderTop={`1px solid ${NEWS.rule}`} pt={SPACING.xs} data-testid="spread-now">
         <Small color={NEWS.ink2}>Yield spread now</Small>
         <Mono fontWeight={700} textAlign="right">
@@ -500,6 +583,7 @@ const VariantB: React.FC<{ fx: RateFixture; track: Track }> = ({ fx, track }) =>
       <Text fontFamily={NEWS_FONT.display} fontStyle="italic" fontSize={TYPE.body} color={NEWS.ink}>
         Annualized snapshots. Crossing $0 is not a break-even date, and a spread is not profit.
       </Text>
+      <SpreadAlertCta id={`${uid}-alert`} />
       <Small>† A new kind of number: awaits owner ruling 1 (Q34 spec §9).</Small>
     </Box>
   )
@@ -571,7 +655,7 @@ const Fold: React.FC<{ title: string; figure: string; id: string; children: Reac
   )
 }
 
-const VariantC: React.FC<{ fx: RateFixture; track: Track }> = ({ fx, track }) => {
+const VariantC: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }> = ({ fx, track, fan }) => {
   const t = windowed(track, '30d')
   const [ref, width] = useWidth<HTMLDivElement>()
   const uid = `crC${useId().replace(/:/g, '')}`
@@ -610,13 +694,17 @@ const VariantC: React.FC<{ fx: RateFixture; track: Track }> = ({ fx, track }) =>
   return (
     <Box ref={ref} display="grid" gap={SPACING.sm} borderTop={`2px solid ${NEWS.ink}`} pt={SPACING.sm} maxW="420px" minW={0}>
       <Kicker tone="muted">Yield spread · at today&apos;s size</Kicker>
+      <Text as="h3" m={0} fontFamily={NEWS_FONT.display} fontWeight={700} fontSize={TYPE.head} lineHeight={1.2} color={NEWS.ink}>
+        Will your spread go negative?
+      </Text>
       <Box display="flex" justifyContent="space-between" alignItems="baseline" gap={SPACING.sm} flexWrap="wrap" data-testid="compact-spread">
         <Mono>Income less interest, now</Mono>
         <Mono fontWeight={700}>
           {signedUsd(now.base)}/yr{pct !== null ? ` · ${signedPct(pct)}` : ''}
         </Mono>
       </Box>
-      {width !== null && <SpreadChart t={t} width={w} uid={`${uid}-s`} withInc={now.withIncentives} height={120} compact />}
+      {width !== null && <SpreadChart t={t} width={w} uid={`${uid}-s`} withInc={now.withIncentives} height={140} compact fan={fan} />}
+      <ForwardNote fan={fan} />
       <Small>
         {dayLabel(t.from)} – {dayLabel(t.to)} · {n} daily reads · % of net value {usd2(netValue(track))}
       </Small>
@@ -641,18 +729,31 @@ const VariantC: React.FC<{ fx: RateFixture; track: Track }> = ({ fx, track }) =>
       <Small overflowWrap="anywhere">
         ‡ <IncentiveWords now={now} />
       </Small>
-      <Small>Rates at today&apos;s size, $/yr: not totals paid or earned · forward {FORECAST_EXTENT_D}d hatched: model pending (Q33, Q34)</Small>
+      <SpreadAlertCta id={`${uid}-alert`} />
+      <Small>Rates at today&apos;s size, $/yr: not totals paid or earned · forward {FORECAST_EXTENT_D}d hatched: model pending (Q33, Q34){fan && fan.ok ? `, its first ${BASELINE_HORIZONS_D[BASELINE_HORIZONS_D.length - 1]}d the model-only baseline` : ''}</Small>
     </Box>
   )
 }
 
 // ------------------------------------------------------------------ frame
 
-export const CostRewardVariant: React.FC<{ variant: VariantKey; fx: RateFixture; track: Track; wide: boolean }> = ({ variant, fx, track, wide }) =>
-  variant === 'A' ? <TrackerA fx={fx} track={track} wide={wide} /> : variant === 'B' ? <VariantB fx={fx} track={track} /> : <VariantC fx={fx} track={track} />
+export const CostRewardVariant: React.FC<{ variant: VariantKey; fx: RateFixture; track: Track; wide: boolean; fan?: Baseline | null }> = ({
+  variant,
+  fx,
+  track,
+  wide,
+  fan = null,
+}) =>
+  variant === 'A' ? (
+    <TrackerA fx={fx} track={track} wide={wide} />
+  ) : variant === 'B' ? (
+    <VariantB fx={fx} track={track} fan={fan} />
+  ) : (
+    <VariantC fx={fx} track={track} fan={fan} />
+  )
 
-/** What was read, and what each leg is held at. */
-export function sourceLines(fx: RateFixture): string[] {
+/** What was read, and what each leg is held at. `fan`: the spread baseline, when it was built. */
+export function sourceLines(fx: RateFixture, fan: Baseline | null = null, baselineSource: string | null = null): string[] {
   const legs = [...fx.position.collateral, ...fx.position.debt]
     .map((l) => `${fmtAmount(l.amount, 2)} ${l.symbol} at $${fmtAmount(l.priceUsd, l.priceUsd < 10 ? 4 : 2)}`)
     .join(', ')
@@ -662,7 +763,10 @@ export function sourceLines(fx: RateFixture): string[] {
     fx.incentives
       ? `‡ Incentives: ${fx.incentives.source}, fetched ${fmtUtc(Date.parse(fx.incentives.fetchedAt))}; ${fx.incentives.searched} live opportunities listed, matched to a leg by token. Current only: Merkl serves no APR history, so no incentive is drawn over the history or back-filled from a campaign start. Not in either line.`
       : '‡ Incentives were not read for this position. They are never in either line: Merkl serves no APR history.',
-    `Forward ${FORECAST_EXTENT_D} days (the longest Q33 horizon): a forecast, so it waits on Q33's rate model passing and Q34's preregistration. Nothing is drawn there until then.`,
+    `Forward ${FORECAST_EXTENT_D} days (the longest Q33 horizon): a forecast, so it waits on Q33's rate model passing and Q34's preregistration.`,
+    fan && fan.ok
+      ? `† Spread charts (B, C), first ${BASELINE_HORIZONS_D[BASELINE_HORIZONS_D.length - 1]} days: an untested baseline, model-only, not a forecast. Expected = today's spread; ranges and paths from the real 1–7-day moves of the same spread (same legs, same frozen sizes) over the last ${BASELINE_LOOKBACK_D} days, ${fan.days} daily reads (${baselineSource ?? 'archive reads'}, ending at the same block). No chance is given: none has a realized-outcome record. Replaced by Q33 when it passes.`
+      : `Spread charts: no baseline${fan && !fan.ok ? ` (${fan.reason})` : ''}; nothing is drawn forward until Q33.`,
   ]
 }
 

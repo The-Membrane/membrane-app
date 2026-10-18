@@ -32,6 +32,17 @@
 /** Days of history before the capture block. */
 export const RATE_DAYS = 90
 
+/** Days of rate history behind the spread's untested baseline (model-only; lib/position/baselineFan.ts). */
+export const BASELINE_DAYS = 365
+
+/** The baseline's input: the same legs' two rates, one archive read a day, ending at the rate fixture's block. */
+export interface BaselineFixture {
+  capturedAt: string
+  block: number
+  source: string
+  series: Record<string, { block: number; ts: number; borrowApr: number; supplyApr: number }[]>
+}
+
 /** The horizons Q33's preregistration targets (board Q33, "Targets"), in days. */
 export const Q33_HORIZONS_D = [1, 3, 7, 14, 30] as const
 
@@ -179,6 +190,18 @@ export function costRewardTrack(fx: RateFixture): Track {
     to,
     forecastTo: to + FORECAST_EXTENT_D * 86_400,
   }
+}
+
+/**
+ * The yield spread S(t) over the baseline capture: the same legs at the same frozen sizes as
+ * the track, one point a day (the untested baseline's input; never drawn as history).
+ */
+export function baselineSpreadSeries(fx: RateFixture, b: BaselineFixture): { t: number; v: number }[] {
+  if (b.block !== fx.block) throw new Error('baselineSpreadSeries: the baseline does not end at the fixture block')
+  const series: Record<string, RatePoint[]> = Object.fromEntries(
+    Object.entries(b.series).map(([k, ps]) => [k, ps.map((p) => ({ ...p, borrowIndex: '', supplyIndex: '' }))]),
+  )
+  return costRewardTrack({ ...fx, series }).points.map((p) => ({ t: p.ts, v: p.spread }))
 }
 
 /** The history windows the spec offers (§3): 7d, 30d (the default) and all available. */

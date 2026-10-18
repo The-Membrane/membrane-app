@@ -5,7 +5,11 @@ import { describe, expect, it } from 'vitest'
 
 import raw from '@/components/PositionV0/dev/costRewardFixture.json'
 import { VARIANTS } from '@/components/PositionV0/dev/costRewardVariantMeta'
+import { baselineFan } from '@/lib/position/baselineFan'
 import {
+  BASELINE_DAYS,
+  baselineSpreadSeries,
+  type BaselineFixture,
   FORECAST_EXTENT_D,
   RATE_DAYS,
   costRewardTrack,
@@ -182,5 +186,25 @@ describe('the yield spread (round 5)', () => {
     ]
     expect(morphoCampaigns(r, 'supply').map((c) => [c.name, c.apr])).toEqual([['MORPHO rewards', 0.012]])
     expect(morphoCampaigns(r, 'borrow').map((c) => [c.name, c.apr])).toEqual([['WELL rewards', 0.003]])
+  })
+})
+
+describe('the spread baseline (round 6, model-only)', () => {
+  it('is the same series as the history where they overlap, over 12 months, and builds a fan', async () => {
+    const base = (await import('@/components/PositionV0/dev/costRewardBaseline.json')).default as unknown as BaselineFixture
+    const fx = raw as RateFixture
+    const s = baselineSpreadSeries(fx, base)
+    expect(s).toHaveLength(BASELINE_DAYS + 1)
+    const t = costRewardTrack(fx)
+    const tail = s.slice(-t.points.length)
+    tail.forEach((p, i) => expect(p.v).toBeCloseTo(t.points[i].spread, 9))
+    const fan = baselineFan(s, t.points[t.points.length - 1].spread, t.to, 'diff')
+    expect(fan.ok).toBe(true)
+    // The 91-day history alone is not enough: the region would stay model pending.
+    expect(baselineFan(tail, 0, t.to, 'diff')).toMatchObject({ ok: false })
+  })
+  it('refuses a baseline that does not end at the fixture block', () => {
+    const fx = fixture([0.04, 0.05], [0.01, 0.02])
+    expect(() => baselineSpreadSeries(fx, { capturedAt: '', block: 1, source: '', series: {} })).toThrow(/fixture block/)
   })
 })

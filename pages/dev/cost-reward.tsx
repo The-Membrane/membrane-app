@@ -2,7 +2,9 @@
 // History is real: archive reads of one captured position's legs
 // (components/PositionV0/dev/costRewardFixture.json, from
 // scripts/position/capture-slip-fixtures.ts --rates). The forward segment is "model
-// pending" until Q33's rate model passes: its region and extent only. 404 in production;
+// pending" until Q33's rate model passes: its region and extent only; on the spread charts
+// (B, C) its first 7 days show the untested baseline, model-only (costRewardBaseline.json,
+// --baseline: 12 months of the same reads). 404 in production;
 // not linked.
 //
 //   /dev/cost-reward               A, B and C side by side
@@ -25,14 +27,20 @@ import {
   type VariantKey,
 } from '@/components/PositionV0/dev/CostRewardVariants'
 import raw from '@/components/PositionV0/dev/costRewardFixture.json'
+import rawBaseline from '@/components/PositionV0/dev/costRewardBaseline.json'
 import { Headline, Kicker, Mono, Small } from '@/components/PositionV0/primitives'
-import { costRewardTrack, type RateFixture } from '@/lib/position/costReward'
+import { baselineFan } from '@/lib/position/baselineFan'
+import { baselineSpreadSeries, costRewardTrack, type BaselineFixture, type RateFixture } from '@/lib/position/costReward'
 
 export const getServerSideProps: GetServerSideProps = async () =>
   process.env.NODE_ENV === 'production' ? { notFound: true } : { props: {} }
 
 const FX = raw as RateFixture
 const TRACK = costRewardTrack(FX)
+const BASELINE = rawBaseline as BaselineFixture
+// The spread's untested baseline (model-only): today's spread, moved by the real 1–7-day moves
+// of the same spread over the 12 months of archive reads ending at the fixture block.
+const FAN = baselineFan(baselineSpreadSeries(FX, BASELINE), TRACK.points[TRACK.points.length - 1].spread, TRACK.to, 'diff')
 
 const LinkBox: React.FC<{ href: string; active?: boolean; children: React.ReactNode }> = ({ href, active, children }) => (
   <NextLink href={href} passHref legacyBehavior>
@@ -113,12 +121,12 @@ export default function CostReward() {
                 {x.key} · {x.title}
               </Kicker>
               <Small color={NEWS.ink2}>{x.rationale}</Small>
-              <CostRewardVariant variant={x.key as VariantKey} fx={FX} track={TRACK} wide={one !== null} />
+              <CostRewardVariant variant={x.key as VariantKey} fx={FX} track={TRACK} wide={one !== null} fan={FAN} />
             </Box>
           ))}
         </Box>
         <Box display="grid" gap={SPACING.xs} borderTop={`1px solid ${NEWS.rule}`} pt={SPACING.sm}>
-          {sourceLines(FX).map((l) => (
+          {sourceLines(FX, FAN, BASELINE.source).map((l) => (
             <Small key={l} overflowWrap="anywhere">
               {l}
             </Small>

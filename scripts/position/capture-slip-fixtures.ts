@@ -21,6 +21,12 @@
 //   npx tsx scripts/position/capture-slip-fixtures.ts --rates   the rate history only,
 //                                                               for the position already
 //                                                               in slipFixtures.json
+//   npx tsx scripts/position/capture-slip-fixtures.ts --baseline
+//                                                               BASELINE_DAYS of the same
+//                                                               legs' borrow and supply APR,
+//                                                               ending at the rate fixture's
+//                                                               block, for the spread's
+//                                                               untested baseline (model-only)
 //   npx tsx scripts/position/capture-slip-fixtures.ts --incentives
 //                                                               the current incentive
 //                                                               campaigns per leg (Merkl
@@ -69,7 +75,9 @@ import type { ProtocolPosition } from '@/lib/position-sim/types'
 import {
   MERKL_AAVE_TYPES,
   RATE_DAYS,
+  BASELINE_DAYS,
   merklCampaigns,
+  type BaselineFixture,
   type IncentiveRead,
   type MerklOpportunity,
   type RateFixture,
@@ -81,6 +89,7 @@ const DUST_OUT = path.resolve(__dirname, '../../components/PositionV0/dev/dustFi
 const MARKETS = path.resolve(__dirname, '../../public/data/oct10-2025/protocols.json')
 const DUST_LENDER = '0x711a68a82dd80cb0435b281af76b0b80804efab9' as Address
 const RATES_OUT = path.resolve(__dirname, '../../components/PositionV0/dev/costRewardFixture.json')
+const BASELINE_OUT = path.resolve(__dirname, '../../components/PositionV0/dev/costRewardBaseline.json')
 /** Mainnet blocks per day at 12 s slots. Each point records its own block time. */
 const BLOCKS_PER_DAY = 7200n
 const logs = createPublicClient({
@@ -257,6 +266,49 @@ async function captureRates(owner: Address, position: ProtocolPosition): Promise
   }
 }
 
+/**
+ * The spread baseline's input: Pool.getReserveData's two rates for every leg of the rate
+ * fixture, one archive block a day for BASELINE_DAYS days ending at that fixture's block, so
+ * the baseline is the same series as the history, only longer. Rates only (no indexes).
+ */
+async function captureBaseline(fx: RateFixture): Promise<BaselineFixture> {
+  const client = getMainnetClient()
+  if (!fx.source.includes(AAVE_POOL)) throw new Error('baseline: only the Aave V3 pool is read')
+  const at = BigInt(fx.block)
+  const legs = [...fx.position.collateral, ...fx.position.debt].map((l) => l.address.toLowerCase() as Address)
+  const series: BaselineFixture['series'] = Object.fromEntries(legs.map((a) => [a, []]))
+  for (let d = BASELINE_DAYS; d >= 0; d--) {
+    const blockNumber = at - BigInt(d) * BLOCKS_PER_DAY
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const [blk, ...reads] = await Promise.all([
+          client.getBlock({ blockNumber }),
+          ...legs.map((a) => client.readContract({ address: AAVE_POOL, abi: aavePoolAbi, functionName: 'getReserveData', args: [a], blockNumber })),
+        ])
+        reads.forEach((r, i) =>
+          series[legs[i]].push({
+            block: Number(blockNumber),
+            ts: Number(blk.timestamp),
+            borrowApr: Number(r.currentVariableBorrowRate) / RAY,
+            supplyApr: Number(r.currentLiquidityRate) / RAY,
+          }),
+        )
+        break
+      } catch (e) {
+        if (attempt >= 4) throw e
+        await new Promise((ok) => setTimeout(ok, 2000 * 2 ** attempt))
+      }
+    }
+    if (d % 30 === 0) console.log(`baseline: day −${d} block ${blockNumber}`)
+  }
+  return {
+    capturedAt: new Date().toISOString(),
+    block: fx.block,
+    source: `Aave V3 Pool ${AAVE_POOL} getReserveData at one archive block per day (${BLOCKS_PER_DAY} blocks), public rpc`,
+    series,
+  }
+}
+
 const MERKL = 'https://api.merkl.xyz/v4/opportunities'
 
 /**
@@ -396,6 +448,13 @@ async function captureDust(owner: Address) {
 async function main() {
   const d = process.argv.indexOf('--dust')
   if (d >= 0) return captureDust((process.argv[d + 1] as Address | undefined) ?? DUST_LENDER)
+  if (process.argv.includes('--baseline')) {
+    const fx = JSON.parse(readFileSync(RATES_OUT, 'utf8')) as RateFixture
+    const b = await captureBaseline(fx)
+    writeFileSync(BASELINE_OUT, JSON.stringify(b) + '\n')
+    console.log(`wrote ${BASELINE_OUT} · ${Object.values(b.series)[0].length} days × ${Object.keys(b.series).length} legs`)
+    return
+  }
   if (process.argv.includes('--incentives')) {
     const fx = JSON.parse(readFileSync(RATES_OUT, 'utf8')) as RateFixture
     fx.incentives = await captureIncentives(fx)

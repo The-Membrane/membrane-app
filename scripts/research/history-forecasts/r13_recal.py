@@ -341,8 +341,23 @@ def fit_slope(pH, y, cols):
         th += step
         if np.max(np.abs(step)) < 1e-9:
             break
-    c = lg(pH[:, cols]).mean(axis=0)
-    return {"b": float(th[k]), "alpha": th[:k].tolist(), "c": c.tolist(), "n_rows": int(n)}
+    Lm = lg(pH[:, cols])
+    c = Lm.mean(axis=0)
+    # D-R13.1a variant: mean-preserving rotation point, mean(expit(c + b (L - c))) = mean(p) on the fit rows
+    b = float(th[k])
+    cmp_ = []
+    for j in range(k):
+        target = float(np.clip(pH[:, cols[j]], PCLIP, 1 - PCLIP).mean())
+        lo_, hi_ = -30.0, 30.0
+        for _ in range(80):
+            mid = 0.5 * (lo_ + hi_)
+            v = float(expit(mid + b * (Lm[:, j] - mid)).mean())
+            if (v < target) == (b < 1):
+                lo_ = mid
+            else:
+                hi_ = mid
+        cmp_.append(0.5 * (lo_ + hi_))
+    return {"b": b, "alpha": th[:k].tolist(), "c": c.tolist(), "c_mp": cmp_, "n_rows": int(n)}
 
 
 def fit_maps(S, mask):
@@ -351,10 +366,10 @@ def fit_maps(S, mask):
     return {b: fit_slope(pH, y, cols) for b, cols in BANDS.items()}
 
 
-def slope_only(pH, maps):
+def slope_only(pH, maps, cvar="c"):
     pb = np.array(pH, float)
     for b, cols in BANDS.items():
-        c = np.array(maps[b]["c"])[None, :]
+        c = np.array(maps[b][cvar])[None, :]
         pb[:, cols] = expit(c + maps[b]["b"] * (lg(pH[:, cols]) - c))
     return pb
 
@@ -387,8 +402,8 @@ def level_terms(ts, sid, pb, y, T, W, kappa):
     return a
 
 
-def recal(pH, ts, sid, y, T, maps, W, kappa):
-    pb = slope_only(pH, maps)
+def recal(pH, ts, sid, y, T, maps, W, kappa, cvar="c"):
+    pb = slope_only(pH, maps, cvar)
     a = level_terms(ts, sid, pb, y, T, W, kappa)
     p2 = expit(lg(pb) + a)
     p2 = np.minimum.accumulate(p2, axis=1)
@@ -570,41 +585,70 @@ def cmd_dev(a):
         out["maps"][TL[T]] = maps_all
         loo = {"b12": pool_maps("b12"), "b13a": pool_maps("b13a")}
         out["maps_loo"][TL[T]] = loo
+        n_b12 = len(St["b12"]["ts"])
         log(f"  maps {TL[T]}: all b shallow {maps_all['shallow']['b']:.3f} deep {maps_all['deep']['b']:.3f}; "
             f"loo-b12 {loo['b12']['shallow']['b']:.3f}/{loo['b12']['deep']['b']:.3f}; "
             f"loo-b13a {loo['b13a']['shallow']['b']:.3f}/{loo['b13a']['deep']['b']:.3f}")
         # check set = B12 (maps without B12) U B13a (maps without B13a), hourly rows
         C = {k: np.concatenate([St["b12"][k], St["b13a"][k]]) for k in St["b12"]}
-        nb12 = len(St["b12"]["ts"])
-        P = {"fH": C["pH"], "f": C["pf"], "a": C["pa"]}
-        pb_parts = []
-        for nm, sl in (("b12", slice(0, nb12)), ("b13a", slice(nb12, None))):
-            pb_parts.append(slope_only(C["pH"][sl].astype(float), loo[nm]))
-        pb = np.clip(np.minimum.accumulate(np.vstack(pb_parts), axis=1), PCLIP, 1 - PCLIP)
-        P["slope"] = pb.astype(np.float32)
-        for W, kap in MENU:
-            parts = []
-            for nm, sl in (("b12", slice(0, nb12)), ("b13a", slice(nb12, None))):
-                parts.append(recal(C["pH"][sl].astype(float), C["ts"][sl], C["sid"][sl], C["y"][sl], T, loo[nm],
-                                   W, kap)[0].astype(np.float32))
-            P[f"M2_W{W}_k{int(kap)}"] = np.vstack(parts)
+        del St
+        nb12 = n_b12
         score = ~C["q2"] & ~C["tail"]
         setid = np.r_[np.zeros(nb12, np.int8), np.ones(len(C["ts"]) - nb12, np.int8)]
-        for fam, cells in (("shallow", CELLS_SHALLOW), ("deep", CELLS_DEEP)):
-            for TT, k in cells:
-                if TT != T:
-                    continue
-                key = f"{TL[T]} {k}"
-                res = {}
-                for tag, rmask in (("pooled", score), ("b12", score & (setid == 0)), ("b13a", score & (setid == 1))):
-                    rows = np.flatnonzero(rmask)
-                    res[tag] = cell_eval(C, rows, T, k, fam, P, seed=1000 * T + int(-100 * k) + 7 * len(tag))
-                out["cells"][key] = {"family": fam, **res}
-                f0 = res["pooled"]["f"]
-                log(f"  {key} pooled: R fH {f0['fH']['R']:.3f} slope {f0['slope']['R']:.3f} "
-                    + " ".join(f"{m}:{f0[m]['R']:.3f}/{f0[m]['R_top20']:.3f}/{f0[m]['bss_vs_ref']:+.4f}"
-                               for m in P if m.startswith("M2"))
-                    + f"; top fH {f0['fH']['R_top20']:.3f}; pos blocks {res['pooled']['pos_blocks']}")
+        Pall = {}
+        for vi, (cvar, pre) in enumerate((("c", ""), ("c_mp", "mp_"))):
+            P = {"fH": C["pH"], "f": C["pf"], "a": C["pa"]} if vi == 0 else {"fH": C["pH"]}
+            pb_parts = [slope_only(C["pH"][sl].astype(float), loo[nm], cvar)
+                        for nm, sl in (("b12", slice(0, nb12)), ("b13a", slice(nb12, None)))]
+            P[pre + "slope"] = np.clip(np.minimum.accumulate(np.vstack(pb_parts), axis=1), PCLIP,
+                                       1 - PCLIP).astype(np.float32)
+            del pb_parts
+            for W, kap in MENU:
+                parts = [recal(C["pH"][sl].astype(float), C["ts"][sl], C["sid"][sl], C["y"][sl], T, loo[nm], W, kap,
+                               cvar)[0].astype(np.float32)
+                         for nm, sl in (("b12", slice(0, nb12)), ("b13a", slice(nb12, None)))]
+                P[f"{pre}M2_W{W}_k{int(kap)}"] = np.vstack(parts)
+                del parts
+            for fam, cells in (("shallow", CELLS_SHALLOW), ("deep", CELLS_DEEP)):
+                for TT, k in cells:
+                    if TT != T:
+                        continue
+                    key = f"{TL[T]} {k}"
+                    for tag, rmask in (("pooled", score), ("b12", score & (setid == 0)),
+                                       ("b13a", score & (setid == 1))):
+                        rows = np.flatnonzero(rmask)
+                        res = cell_eval(C, rows, T, k, fam, P, seed=1000 * T + int(-100 * k) + 7 * len(tag))
+                        cur = out["cells"].setdefault(key, {"family": fam})
+                        if tag not in cur or vi == 0:
+                            cur[tag] = res
+                        else:
+                            cur[tag]["f"].update({kk: vv for kk, vv in res["f"].items() if kk != "fH"})
+                    f0 = out["cells"][key]["pooled"]["f"]
+                    log(f"  {key} pooled [{cvar}]: R fH {f0['fH']['R']:.3f} slope {f0[pre + 'slope']['R']:.3f} "
+                        + " ".join(f"{m}:{f0[m]['R']:.3f}/{f0[m]['R_top20']:.3f}/{f0[m]['bss_vs_ref']:+.4f}"
+                                   for m in P if "M2" in m)
+                        + f"; top fH {f0['fH']['R_top20']:.3f}; pos blocks "
+                          f"{out['cells'][key]['pooled']['pos_blocks']}")
+            wkid = R12.wk(C["ts"])
+            for fam, cells in (("shallow", CELLS_SHALLOW), ("deep", CELLS_DEEP)):
+                for TT, k in cells:
+                    if TT != T:
+                        continue
+                    col = KIX[k]
+                    for sidx in (0, 1):
+                        m = np.flatnonzero(score & (setid == sidx))
+                        yy = C["y"][m, col].astype(float)
+                        uw, gi = np.unique(wkid[m], return_inverse=True)
+                        for nm in P:
+                            if not ("M2" in nm or (nm == "fH" and vi == 0)):
+                                continue
+                            p = P[nm][m, col].astype(float)
+                            top, _ = quint_masks(p)
+                            kk = f"{TL[T]}|{k}|{sidx}|{nm}"
+                            Pall[kk] = np.vstack([np.bincount(gi, v, len(uw)) for v in (p, yy, p * top, yy * top)])
+                            Pall[f"weeks|{kk}"] = uw
+            del P
+        np.savez_compressed(os.path.join(a.out, f"jsums-{TL[T]}.npz"), **Pall)
         # R13.2 / R13.3 vol errors (check set, hourly, scored rows)
         rows = np.flatnonzero(score)
         out["vol"][TL[T]] = {w: vol_power(C, rows, T, w) for w in ("lsQ", "lsW")}
@@ -614,29 +658,7 @@ def cmd_dev(a):
         log(f"  vol {TL[T]}: fHQ d {out['vol'][TL[T]]['lsQ']['mean_diff']:+.5f} (weeks80 "
             f"{out['vol'][TL[T]]['lsQ']['weeks_to_80']}), fHW d {out['vol'][TL[T]]['lsW']['mean_diff']:+.5f} "
             f"(weeks80 {out['vol'][TL[T]]['lsW']['weeks_to_80']})")
-        # per-week sums for the menu criterion J (bincounts per week only; written to an npz)
-        wkid = R12.wk(C["ts"])
-        Jz = {}
-        for fam, cells in (("shallow", CELLS_SHALLOW), ("deep", CELLS_DEEP)):
-            for TT, k in cells:
-                if TT != T:
-                    continue
-                col = KIX[k]
-                for sidx in (0, 1):
-                    m = np.flatnonzero(score & (setid == sidx))
-                    yy = C["y"][m, col].astype(float)
-                    uw, gi = np.unique(wkid[m], return_inverse=True)
-                    for nm in P:
-                        if not (nm.startswith("M2") or nm == "fH"):
-                            continue
-                        p = P[nm][m, col].astype(float)
-                        top, _ = quint_masks(p)
-                        kk = f"{TL[T]}|{k}|{sidx}|{nm}"
-                        Jz[kk] = np.vstack([np.bincount(gi, v, len(uw)) for v in (p, yy, p * top, yy * top)])
-                        Jz[f"weeks|{kk}"] = uw
-                        del p, top
-        np.savez_compressed(os.path.join(a.out, f"jsums-{TL[T]}.npz"), **Jz)
-        del St, C, P
+        del C
         json.dump(out, open(os.path.join(a.out, "dev-r131-partial.json"), "w"), indent=1, default=float)
     out["finished_utc"] = now_iso()
     json.dump(out, open(os.path.join(a.out, "dev-r131.json"), "w"), indent=1, default=float)
@@ -674,7 +696,8 @@ def cmd_select(a):
             with np.errstate(divide="ignore", invalid="ignore"):
                 tots += np.abs(np.log(bs[:, 0] / bs[:, 1])) + np.abs(np.log(bs[:, 2] / bs[:, 3]))
         J[nm], Js[nm] = tot / len(cellkeys), tots / len(cellkeys)
-    order = [f"M2_W{W}_k{int(k)}" for W, k in sorted(MENU, key=lambda x: (-x[1], -x[0]))]
+    order = [f"{pre}M2_W{W}_k{int(k)}" for pre in ("", "mp_") for W, k in sorted(MENU, key=lambda x: (-x[1], -x[0]))]
+    order = [o for o in order if o in J]
     jmin = min(order, key=lambda n: J[n])
     se = float(np.nanstd(Js[jmin]))
     chosen = next(n for n in order if J[n] <= J[jmin] + se)
@@ -862,7 +885,8 @@ def cmd_power(a):
 def cmd_freeze(a):
     dev = json.load(open(os.path.join(a.dev, "dev-r131.json")))
     sel = json.load(open(os.path.join(a.dev, "select-r131.json")))
-    W, kap = next((W, k) for W, k in MENU if f"M2_W{W}_k{int(k)}" == sel["chosen"])
+    W, kap = next((W, k) for W, k in MENU if sel["chosen"].endswith(f"M2_W{W}_k{int(k)}"))
+    cvar = "c_mp" if sel["chosen"].startswith("mp_") else "c"
     e = {}
     for T in HS:
         ec = R125.e_consts(os.path.join(a.datasets, "history-forecasts/r12/dev-49e1af3a"), T)
@@ -877,7 +901,7 @@ def cmd_freeze(a):
                       "power_b15a_sha256": sha_file(os.path.join(a.out, "power-b15a.json")),
                       "dev_r131_sha256": sha_file(os.path.join(a.dev, "dev-r131.json")),
                       "select_r131_sha256": sha_file(os.path.join(a.dev, "select-r131.json"))},
-           "maps": dev["maps"], "chosen": sel["chosen"], "W_days": W, "kappa": kap, "e_consts": e,
+           "maps": dev["maps"], "chosen": sel["chosen"], "W_days": W, "kappa": kap, "cvar": cvar, "e_consts": e,
            "cells_shallow": CELLS_SHALLOW, "cells_deep": CELLS_DEEP, "seed": SEED, "n_boot": 10000,
            "ni_margin_bss": NI_MARGIN, "dsc_tol": DSC_TOL, "alpha": ALPHA, "min_pos_blocks": 30,
            "level_grid_hours": 6, "pclip": PCLIP}
@@ -909,7 +933,7 @@ def lookahead(spec, T, cfg, cut_frac=0.6):
         r = row_task({"spec": sp, "T": T, "grid": "1h"})["rows"]
         sid = np.zeros(len(r["ts"]), np.int32)
         p2_, _ = recal(r["pH"].astype(float), r["ts"], sid, r["y"], T, cfg["maps"][TL[T]], cfg["W_days"],
-                       cfg["kappa"])
+                       cfg["kappa"], cfg["cvar"])
         m = r["ts"] <= cut_ts - T * STEP * 0     # origins at or before the cut
         res.append((r["ts"][m], p2_[m]))
     same = len(res[0][0]) == len(res[1][0]) and np.array_equal(res[0][0], res[1][0])
@@ -941,7 +965,8 @@ def cmd_run(a):
     for T in hs:
         S, keys = run_rows(specs, T, "1h", a.workers, log, "B15a")
         maps = cfg["maps"][TL[T]]
-        p2, pb = recal(S["pH"].astype(float), S["ts"], S["sid"], S["y"], T, maps, cfg["W_days"], cfg["kappa"])
+        p2, pb = recal(S["pH"].astype(float), S["ts"], S["sid"], S["y"], T, maps, cfg["W_days"], cfg["kappa"],
+                       cfg["cvar"])
         ec = np.array(cfg["e_consts"][TL[T]], float)
         P = {"fH": S["pH"], "M2": p2.astype(np.float32), "slope": pb.astype(np.float32), "f": S["pf"],
              "a": S["pa"], "e": np.tile(ec.astype(np.float32), (len(S["ts"]), 1))}

@@ -49,4 +49,7 @@ def load(path):
         for row in r:
             ts.append(int(row["updatedAt"]))
             ans.append(int(row["answer"]) / 1e8)
-    return np.array(ts), np.array(ans)
+    ts, ans = np.array(ts), np.array(ans)
+    # several rounds can share a timestamp (FluxAggregator era, phase transitions): keep the last per second
+    keep = np.r_[ts[1:] != ts[:-1], True]
+    return ts[keep], ans[keep]

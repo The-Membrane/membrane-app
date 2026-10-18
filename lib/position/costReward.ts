@@ -262,6 +262,22 @@ export const signedPct = (x: number): string =>
 /** "+$1,200" / "−$1,500": usd2 with an explicit sign for a spread. */
 export const signedUsd = (x: number): string => (x > 0 ? `+${usd2(x)}` : usd2(x))
 
+/** "+$1,635" / "−$1,635": the spread to the dollar, for wherever it sits next to its % (round 6). */
+export const signedUsdWhole = (x: number): string => {
+  const r = Math.round(x)
+  return `${r < 0 ? '−' : r > 0 ? '+' : ''}$${Math.abs(r).toLocaleString('en-US')}`
+}
+
+/**
+ * The spread block's question and alert, from the spread now: a negative spread asks whether
+ * it gets back above $0, never whether it will go negative (round 6).
+ */
+export function spreadQuestion(spread: number): { headline: string; cta: string; alertNote: string } {
+  return spread < 0
+    ? { headline: 'Your spread is negative. Will it get back above $0?', cta: 'Alert me if the spread turns positive', alertNote: 'a spread alert' }
+    : { headline: 'Will your spread go negative?', cta: 'Alert me if the spread turns negative', alertNote: 'a spread alert' }
+}
+
 export interface IncentiveLeg {
   symbol: string
   side: 'supply' | 'borrow'

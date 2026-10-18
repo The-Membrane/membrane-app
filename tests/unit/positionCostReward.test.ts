@@ -18,6 +18,8 @@ import {
   netValue,
   signedPct,
   signedUsd,
+  signedUsdWhole,
+  spreadQuestion,
   spreadNow,
   spreadPct,
   usd2,
@@ -206,5 +208,20 @@ describe('the spread baseline (round 6, model-only)', () => {
   it('refuses a baseline that does not end at the fixture block', () => {
     const fx = fixture([0.04, 0.05], [0.01, 0.02])
     expect(() => baselineSpreadSeries(fx, { capturedAt: '', block: 1, source: '', series: {} })).toThrow(/fixture block/)
+  })
+})
+
+describe('round 6: the spread to the dollar, and a question that fits its state', () => {
+  it('shows the dollar figure to the nearest dollar beside its %', () => {
+    expect(signedUsdWhole(-1635.4)).toBe('−$1,635')
+    expect(signedUsdWhole(1234.6)).toBe('+$1,235')
+    expect(signedUsdWhole(0.2)).toBe('$0')
+    // −$1,635 over a $40,250 net value reads −4.06%: the two now agree.
+    expect(signedPct(-1635 / 40_250)).toBe('−4.06%')
+  })
+  it('asks whether a negative spread gets back above $0, not whether it will go negative', () => {
+    expect(spreadQuestion(-1635)).toMatchObject({ headline: 'Your spread is negative. Will it get back above $0?', cta: 'Alert me if the spread turns positive' })
+    expect(spreadQuestion(12)).toMatchObject({ headline: 'Will your spread go negative?', cta: 'Alert me if the spread turns negative' })
+    expect(spreadQuestion(0).headline).toBe('Will your spread go negative?')
   })
 })

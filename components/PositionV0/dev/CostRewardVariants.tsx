@@ -32,6 +32,8 @@ import {
   pct2,
   signedPct,
   signedUsd,
+  signedUsdWhole,
+  spreadQuestion,
   spreadNow,
   spreadPct,
   usd2,
@@ -418,7 +420,7 @@ const SpreadChart: React.FC<{
   const band = (a: 'p05' | 'p25', b: 'p95' | 'p75') =>
     base ? path([...base.steps.map((s) => [xh(s.h), y(s[b])] as [number, number]), ...[...base.steps].reverse().map((s) => [xh(s.h), y(s[a])] as [number, number])]) + 'Z' : ''
   return (
-    <svg width={width} height={f.height} role="img" aria-label={`Yield spread (income less interest), dollars per year at today's size and prices, ${dayLabel(t.from)} to ${dayLabel(t.to)}: ${signedUsd(last.spread)} at the last observation${withInc !== null && withInc !== last.spread ? `; ${signedUsd(withInc)} with current incentives` : ''}. ${base ? `Next ${H} days: an untested baseline from the last 12 months of moves, model-only, not a forecast; days ${H} to ${FORECAST_EXTENT_D}: model pending.` : `Forward ${FORECAST_EXTENT_D} days: model pending.`}`}>
+    <svg width={width} height={f.height} role="img" aria-label={`Yield spread (income less interest), dollars per year at today's size and prices, ${dayLabel(t.from)} to ${dayLabel(t.to)}: ${signedUsdWhole(last.spread)} at the last observation${withInc !== null && withInc !== last.spread ? `; ${signedUsdWhole(withInc)} with current incentives` : ''}. ${base ? `Next ${H} days: an untested baseline from the last 12 months of moves, model-only, not a forecast; days ${H} to ${FORECAST_EXTENT_D}: model pending.` : `Forward ${FORECAST_EXTENT_D} days: model pending.`}`}>
       <Defs uid={uid} />
       {yt.filter((v) => v !== 0).map((v) => (
         <g key={v}>
@@ -454,7 +456,7 @@ const SpreadChart: React.FC<{
         {last.spread < 0 ? 'below $0: negative spread' : 'above $0: positive spread'}
       </text>
       <text x={x(t.to) - 6} y={y(last.spread) + (last.spread < 0 ? 15 : -7)} {...LABEL} textAnchor="end" fill={NEWS.ink} fontWeight={700} style={HALO}>
-        {signedUsd(last.spread)}/yr
+        {signedUsdWhole(last.spread)}/yr
       </text>
       {inc !== null && (
         // Current only (Merkl has no APR history): one ‡ mark at the last read, no line back.
@@ -462,11 +464,23 @@ const SpreadChart: React.FC<{
           <line x1={x(t.to)} x2={x(t.to)} y1={y(last.spread)} y2={y(inc)} stroke={NEWS.ink} strokeDasharray="2 2" />
           <circle cx={x(t.to)} cy={y(inc)} r={3.5} fill={NEWS.paper} stroke={NEWS.ink} strokeWidth={1.5} />
           <text x={x(t.to) - 6} y={y(inc) + (inc < last.spread ? 15 : -7)} {...LABEL} textAnchor="end" fill={NEWS.ink} style={HALO}>
-            {signedUsd(inc)} with ‡
+            {signedUsdWhole(inc)} with ‡
           </text>
         </g>
       )}
       <Pending t={t} f={f} uid={uid} compact={compact} bottom fromTs={base ? t.to + H * 86_400 : undefined} />
+      {/* Today: where the history ends (the fan starts here); the hatch starts at +7d. */}
+      <g data-testid="now-marker">
+        <line x1={x(t.to)} x2={x(t.to)} y1={f.m.top} y2={f.height - f.m.bottom} stroke={NEWS.muted} strokeWidth={1} />
+        <text x={x(t.to)} y={f.m.top - 3} {...LABEL} textAnchor="middle" fill={NEWS.ink}>
+          now
+        </text>
+      </g>
+      {base && (
+        <text x={xh(H)} y={f.m.top - 3} {...LABEL} textAnchor="middle" data-testid="fan-end">
+          +{H}d
+        </text>
+      )}
       <TimeAxis t={t} f={f} />
     </svg>
   )
@@ -489,7 +503,7 @@ const ForwardNote: React.FC<{ fan: Baseline | null }> = ({ fan }) =>
   )
 
 /** Design only: the alert store has no spread subject (price, utilization and supply APR only). */
-const SpreadAlertCta: React.FC<{ id: string }> = ({ id }) => (
+const SpreadAlertCta: React.FC<{ id: string; spread: number }> = ({ id, spread }) => (
   <Box display="grid" gap={SPACING.xs} justifyItems="start">
     <Button
       type="button"
@@ -516,7 +530,7 @@ const SpreadAlertCta: React.FC<{ id: string }> = ({ id }) => (
       transition={TRANSITIONS.colors}
       _focusVisible={FOCUS_STYLES.ring}
     >
-      Alert me if the spread turns negative
+      {spreadQuestion(spread).cta}
     </Button>
     <Small id={id}>Design only: alerts cover price, utilization and supply APR; a spread alert is not built yet.</Small>
   </Box>
@@ -556,7 +570,7 @@ const VariantB: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }
   return (
     <Box display="grid" gap={SPACING.xs} minW={0}>
       <Kicker tone="muted">Yield spread · proposed number †</Kicker>
-      <Headline>Will your spread go negative?</Headline>
+      <Headline>{spreadQuestion(now.base).headline}</Headline>
       <Small>Income less interest · $ / year at today&apos;s size and prices · 30d · incentives ‡ beside it, not in the line</Small>
       <Box ref={ref} w="100%" minW={0} minH={`${frameFor(width ?? 440).height}px`}>
         {width !== null && <SpreadChart t={t} width={width} uid={uid} withInc={now.withIncentives} fan={fan} />}
@@ -565,15 +579,17 @@ const VariantB: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }
       <Box display="grid" gridTemplateColumns="minmax(0, 1fr) auto" columnGap={SPACING.sm} borderTop={`1px solid ${NEWS.rule}`} pt={SPACING.xs} data-testid="spread-now">
         <Small color={NEWS.ink2}>Yield spread now</Small>
         <Mono fontWeight={700} textAlign="right">
-          {signedUsd(now.base)}/yr{pct !== null ? ` · ${signedPct(pct)}` : ''}
+          {pct !== null ? `${signedUsdWhole(now.base)}/yr · ${signedPct(pct)}` : `${signedUsd(now.base)}/yr`}
         </Mono>
         <Small color={NEWS.ink2}>With incentives ‡, now</Small>
         <Mono textAlign="right" data-testid="spread-with-incentives">
           {now.withIncentives === null
             ? 'not read'
             : now.withIncentives === now.base
-              ? `${signedUsd(now.withIncentives)}/yr · no live campaign`
-              : `${signedUsd(now.withIncentives)}/yr${spreadPct(now.withIncentives, track) !== null ? ` · ${signedPct(spreadPct(now.withIncentives, track)!)}` : ''}`}
+              ? `${signedUsdWhole(now.withIncentives)}/yr · no live campaign`
+              : spreadPct(now.withIncentives, track) !== null
+                ? `${signedUsdWhole(now.withIncentives)}/yr · ${signedPct(spreadPct(now.withIncentives, track)!)}`
+                : `${signedUsd(now.withIncentives)}/yr`}
         </Mono>
       </Box>
       <Small overflowWrap="anywhere">
@@ -583,7 +599,7 @@ const VariantB: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }
       <Text fontFamily={NEWS_FONT.display} fontStyle="italic" fontSize={TYPE.body} color={NEWS.ink}>
         Annualized snapshots. Crossing $0 is not a break-even date, and a spread is not profit.
       </Text>
-      <SpreadAlertCta id={`${uid}-alert`} />
+      <SpreadAlertCta id={`${uid}-alert`} spread={now.base} />
       <Small>† A new kind of number: awaits owner ruling 1 (Q34 spec §9).</Small>
     </Box>
   )
@@ -695,12 +711,12 @@ const VariantC: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }
     <Box ref={ref} display="grid" gap={SPACING.sm} borderTop={`2px solid ${NEWS.ink}`} pt={SPACING.sm} maxW="420px" minW={0}>
       <Kicker tone="muted">Yield spread · at today&apos;s size</Kicker>
       <Text as="h3" m={0} fontFamily={NEWS_FONT.display} fontWeight={700} fontSize={TYPE.head} lineHeight={1.2} color={NEWS.ink}>
-        Will your spread go negative?
+        {spreadQuestion(now.base).headline}
       </Text>
       <Box display="flex" justifyContent="space-between" alignItems="baseline" gap={SPACING.sm} flexWrap="wrap" data-testid="compact-spread">
         <Mono>Income less interest, now</Mono>
         <Mono fontWeight={700}>
-          {signedUsd(now.base)}/yr{pct !== null ? ` · ${signedPct(pct)}` : ''}
+          {pct !== null ? `${signedUsdWhole(now.base)}/yr · ${signedPct(pct)}` : `${signedUsd(now.base)}/yr`}
         </Mono>
       </Box>
       {width !== null && <SpreadChart t={t} width={w} uid={`${uid}-s`} withInc={now.withIncentives} height={140} compact fan={fan} />}
@@ -729,7 +745,7 @@ const VariantC: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }
       <Small overflowWrap="anywhere">
         ‡ <IncentiveWords now={now} />
       </Small>
-      <SpreadAlertCta id={`${uid}-alert`} />
+      <SpreadAlertCta id={`${uid}-alert`} spread={now.base} />
       <Small>Rates at today&apos;s size, $/yr: not totals paid or earned · forward {FORECAST_EXTENT_D}d hatched: model pending (Q33, Q34){fan && fan.ok ? `, its first ${BASELINE_HORIZONS_D[BASELINE_HORIZONS_D.length - 1]}d the model-only baseline` : ''}</Small>
     </Box>
   )

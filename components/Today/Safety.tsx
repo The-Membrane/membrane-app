@@ -7,6 +7,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { CuratorFeedCard } from '@/components/CuratorFeed/CuratorFeed'
 import { RadarReport } from '@/components/Radar/Radar'
+import { EXAMPLE_ADDRESS } from '@/components/Radar/radarLogic'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
 
@@ -24,11 +25,13 @@ import {
   type RadarPanel,
 } from './safetyView'
 import { useRecorderSummaries, useVenueAlarms } from './useTodayData'
+import { YourCurators } from './YourCurators'
 
 // THE SAFETY BODY (choppy, or no regime): your position first (paste an address, or use
 // the connected wallet, and Radar reads it, opened in place under the lead), then the
-// open venue alarms, then curator exits. Nothing personal is printed here and no position number is invented. Words and
-// figures come from safetyView.ts. No freeze-vote module: there is no live source.
+// open venue alarms, then your curators this week (YourCurators, curatorsView.ts), then
+// curator exits. No position number is invented. Words and figures come from
+// safetyView.ts. No freeze-vote module: there is no live source.
 
 const noSubscribe = () => () => {}
 const onClient = () => true
@@ -268,6 +271,10 @@ export const Safety = memo(function Safety({ kicker, nowMs, id }: SafetyProps) {
           {panel.open && panel.address && <RadarInline address={panel.address} />}
         </Box>
       </Grid>
+      {/* Your curators this week: the address last entered (open or hidden Radar), else
+          the Radar's own example address, marked "not yours" (demo-first). Prints nothing
+          for an address that holds no curated vault. */}
+      <YourCurators address={panel.address ?? EXAMPLE_ADDRESS} example={!panel.address} nowMs={nowMs} />
       {/* The card draws its own rule and label ("Curator actions") and owns its states. */}
       <Box pt={SPACING.base} pb={SPACING.sm}>
         <CuratorFeedCard />

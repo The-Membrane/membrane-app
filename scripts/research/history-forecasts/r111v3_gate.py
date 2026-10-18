@@ -443,13 +443,274 @@ def cmd_dev(a):
     print(json.dumps({k: res[k] for k in ("v3", "r101_frozen", "engine")}, indent=1, default=float))
 
 
+# ---------------------------------------------------------------------------------------------
+# L1 (Aave V3 Arbitrum USDC debt): counts-only check, freeze, run
+# ---------------------------------------------------------------------------------------------
+ARB_WETH = "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+REF_CORE_DEBT = 530255152.2738921
+Q2 = (dt.date(2026, 4, 1), dt.date(2026, 6, 30))
+READINGS_L1 = {
+    "L1-1": "Subject: LiquidationCall with debt USDC.e or native USDC; USD = debtToCover / 1e6 x that reserve's oracle price "
+            "at the hourly read of the hour holding the block timestamp; UTC day of the block timestamp.",
+    "L1-2": "Gate days 2022-09-01..2026-09-30 minus 2025-10-10/11 (Q28); 2026Q2 reported only (rule 6) and skipped by the "
+            "online calibration.",
+    "L1-3": "Thresholds X in {0.5M, 1M, 2.5M} x (USDC.e + USDC total debt at the day's anchor, USD) / 530,255,152 (D median "
+            "Core USDC debt).",
+    "L1-4": "Sim class = v3 daily simulated USDC-debt repay >= X; E class = real on the previous calendar day >= X; "
+            "probabilities: online class frequency over earlier gate days with the D prior (10 pseudo-days).",
+    "L1-5": "Pass: per threshold H >= 0.60 and J > J_E; pooled Brier DM (NW lag 7, HLN, one-sided) p < 0.05 vs climatology "
+            "and vs E.",
+    "L1-6": "Cost: hour base fee x 686,675 gas x ETH price; priority 0 (FCFS sequencer); no builder payment; L1 data fee and "
+            "Timeboost not modelled; dust minimum $6.43 gross bonus.",
+    "L1-7": "Sentinel: while set, during sequencer downtime and for the grace period after recovery only HF < 0.95 accounts "
+            "are called (sequencer uptime feed AnswerUpdated: 1 down, 0 up).",
+    "L1-8": "Hourly read b_h = the last held pool-event block with timestamp < h; daily anchor = the same rule at 00:00Z.",
+}
+
+
+def l1_days(include_q2=False):
+    out, d = [], L1_FIRST
+    while d <= L1_LAST:
+        s = d.isoformat()
+        if s not in L1_EXCLUDE and (include_q2 or not (Q2[0] <= d <= Q2[1])):
+            out.append(s)
+        d += dt.timedelta(days=1)
+    return out
+
+
+def arb_metas(arb):
+    md = os.path.join(arb, "meta")
+    return {n[:10]: jl(os.path.join(md, n)) for n in sorted(os.listdir(md))}
+
+
+def arb_hours(inp, arb):
+    out = []
+    hd = os.path.join(arb, "hourly")
+    for n in sorted(os.listdir(hd)):
+        h = jl(os.path.join(hd, n))
+        idx = [inp.gidx.get(x) for x in h["assets"]]
+        for r in h["rows"]:
+            px = np.zeros(inp.R)
+            for j, k in enumerate(idx):
+                if k is not None and r["prices"][j]:
+                    px[k] = r["prices"][j] / 1e8
+            out.append({"hour": r["hour"], "block": r["block"], "ts": r["ts"], "prices": px, "base_fee": r["base_fee"]})
+    out.sort(key=lambda x: (x["block"], x["hour"]))
+    return out
+
+
+def arb_scale(metas, inp):
+    sc = {}
+    for d, m in metas.items():
+        usd = 0.0
+        for u in ARB_USDC:
+            if u in m.get("usdc_debt_raw", {}) and u in m["reserves"]:
+                usd += int(m["usdc_debt_raw"][u]) / 1e6 * ((m["reserves"][u]["price"] or 1e8) / 1e8)
+        sc[d] = usd / REF_CORE_DEBT
+    return sc
+
+
+def arb_real(arb, hours, inp):
+    rows = jl(os.path.join(arb, "liq-LOCKED.json.gz"))["rows"]
+    hp = {h["hour"]: h["prices"] for h in hours}
+    real = {}
+    n = 0
+    for r in rows:
+        if r["debt"] not in ARB_USDC:
+            continue
+        d = dt.datetime.fromtimestamp(r["ts"], dt.timezone.utc).date().isoformat()
+        px = hp.get(r["ts"] // 3600 * 3600)
+        p = px[inp.gidx[r["debt"]]] if px is not None and px[inp.gidx[r["debt"]]] > 0 else 1.0
+        real[d] = real.get(d, 0.0) + r["debtToCover"] / 1e6 * p
+        n += 1
+    return real, n
+
+
+def dir_digest(path):
+    h = hashlib.sha256()
+    for name in sorted(os.listdir(path)):
+        h.update(name.encode() + b"\0" + sha256_file(os.path.join(path, name)).encode() + b"\n")
+    return h.hexdigest()
+
+
+def l1_input_digests(arb):
+    out = {k: dir_digest(os.path.join(arb, k)) for k in ("tok", "pool", "oracle", "meta", "hourly")}
+    for f in ("reserves.json.gz", "oracle-walk.json.gz", "liq-LOCKED.json.gz", "anchors.json.gz"):
+        out[f] = sha256_file(os.path.join(arb, f))
+    return out
+
+
+def integrity(arb, inp, metas, seed=111):
+    """Rebuilt scaled balances vs scaledBalanceOf (sampled) and sum of rebuilt USDC scaled debt vs scaledTotalSupply."""
+    import r111v3_rpc as X
+    cl = X.Client("arbitrum", interval=0.1, calls=True)
+    days = sorted(metas)
+    pick_days = [days[int(i)] for i in np.linspace(0, len(days) - 1, 5)]
+    month_days = [d for d in days if d.endswith("-01")]
+    targets = sorted({metas[d]["block"]: d for d in pick_days + month_days}.items())
+    st = E.State(inp)
+    t = inp.tok
+    key = t["block"]
+    o = np.argsort(t["block"] * 1_000_000 + t["lidx"], kind="stable")
+    ptr = 0
+    rng = np.random.default_rng(seed)
+    users_inv = {v: k for k, v in inp.uid.items()}
+    tok_addr = {}
+    for i, r in enumerate(inp.reserves):
+        tok_addr[(i, 0)] = r["aToken"]
+        tok_addr[(i, 1)] = r["vDebt"]
+    pair_err, sum_err = [], []
+    for blk, d in targets:
+        while ptr < len(o) and key[o[ptr]] <= blk:
+            st.apply_tok(t, o[ptr])
+            ptr += 1
+        if d in pick_days:
+            nz = np.argwhere((st.SA > 0.5) | (st.SV > 0.5))
+            sel = nz[rng.choice(len(nz), size=min(60, len(nz)), replace=False)]
+            calls, want = [], []
+            for u, r in sel:
+                kind = 0 if st.SA[u, r] > 0.5 and (st.SV[u, r] <= 0.5 or rng.random() < 0.5) else 1
+                addr = "0x" + users_inv[u].hex()
+                calls.append((tok_addr[(r, kind)], X.sel("scaledBalanceOf(address)") + X.enc_addr(addr)))
+                want.append(st.SA[u, r] if kind == 0 else st.SV[u, r])
+            res = X.aggregate3(cl, calls, blk)
+            for (ok, rr), w in zip(res, want):
+                v = X.word(rr) if ok else None
+                pair_err.append(abs(w / v - 1) if v else (0.0 if w < 1 else 1.0))
+        calls = []
+        for u in ARB_USDC:
+            r = inp.gidx[u]
+            calls.append((tok_addr[(r, 1)], X.sel("scaledTotalSupply()")))
+        res = X.aggregate3(cl, calls, blk)
+        for u, (ok, rr) in zip(ARB_USDC, res):
+            v = X.word(rr) if ok else None
+            if v:
+                sum_err.append(abs(st.SV[:, inp.gidx[u]].sum() / v - 1))
+    pe, se = np.array(pair_err), np.array(sum_err)
+    return {"pairs": int(len(pe)), "pairs_share_within_0p1pct": float(np.mean(pe <= 0.001)),
+            "pairs_err_q99_max": [float(np.quantile(pe, 0.99)), float(pe.max())],
+            "sum_checks": int(len(se)), "sum_share_within_0p1pct": float(np.mean(se <= 0.001)),
+            "sum_err_q99_max": [float(np.quantile(se, 0.99)), float(se.max())],
+            "pass": bool(np.mean(pe <= 0.001) >= 0.99 and np.mean(se <= 0.001) >= 0.99), "rpc": cl.stats}
+
+
+def cmd_counts(a):
+    t0 = utcnow()
+    inp = E.Inputs(a.arb)
+    inp.load_oracle()
+    metas = arb_metas(a.arb)
+    hours = arb_hours(inp, a.arb)
+    rows = jl(os.path.join(a.arb, "liq-LOCKED.json.gz"))["rows"]
+    gd = set(l1_days())
+    usdc_rows = [r for r in rows if r["debt"] in ARB_USDC]
+    ev_days = {dt.datetime.fromtimestamp(r["ts"], dt.timezone.utc).date().isoformat() for r in usdc_rows}
+    res = {"stage": "counts-only (L1)", "reserves": inp.R, "token_logs": int(len(inp.tok["block"])), "accounts": inp.U,
+           "rdu_reserve_hours": int(len(inp.pool["rdu_block"])), "flag_logs": int(len(inp.pool["f_block"])),
+           "emode_logs": int(len(inp.pool["e_block"])), "aggregators": len(inp.aggs),
+           "sequencer_aggregators": len(inp.seq_aggs), "answer_logs": int(len(inp.ora["block"])),
+           "weekly_walks": len(inp.walks), "meta_days": len(metas), "hourly_reads": len(hours),
+           "hourly_reads_with_missing_price": int(sum(1 for h in hours if (h["prices"] == 0).any())),
+           "gate_days": len(gd), "q2_days_reported_only": len(l1_days(True)) - len(gd),
+           "liquidation_logs_all": len(rows), "usdc_debt_events_all": len(usdc_rows),
+           "usdc_debt_events_on_gate_days": sum(1 for r in usdc_rows
+                                                if dt.datetime.fromtimestamp(r["ts"], dt.timezone.utc).date().isoformat() in gd),
+           "gate_days_with_a_usdc_debt_event": len(ev_days & gd),
+           "integrity": integrity(a.arb, inp, metas), "utc_start": t0, "utc_end": utcnow()}
+    os.makedirs(a.out, exist_ok=True)
+    jdump(os.path.join(a.out, "counts-l1.json"), res)
+    print(json.dumps(res, indent=1, default=float))
+
+
+def cmd_freeze(a):
+    sha, dirty = git_sha()
+    if dirty:
+        raise SystemExit("worktree dirty: freeze from a clean committed checkout")
+    os.makedirs(a.out, exist_ok=True)
+    path = os.path.join(a.out, "frozen-r111v3.json")
+    if os.path.exists(path):
+        raise SystemExit("frozen config exists")
+    dev = json.load(open(os.path.join(a.dev, "dev.json")))
+    cfg = {"item": "Q26 R11.1-v3 gate on L1 (membrane-board design/Q26_ROUND11_PREREG.md D-R11.1e, D-R11.1f)",
+           "code_sha": sha, "utc_created": utcnow(), "rule": json.load(open(a.rule)), "priors": dev["priors_for_L1"],
+           "priors_source": "D development run (in-sample), dev.json sha256 " + sha256_file(os.path.join(a.dev, "dev.json")),
+           "thresholds_core": THRESH_CORE, "ref_core_usdc_debt": REF_CORE_DEBT, "prior_pseudo_days": PRIOR_A,
+           "nw_lag": NW_LAG, "secondary_min_usd": SEC_MIN, "dust_day_usd": DUST_DAY, "cand_hf": E.CAND_HF,
+           "gate_days": len(l1_days()), "exclude": sorted(L1_EXCLUDE), "readings": READINGS_L1,
+           "inputs_sha256": l1_input_digests(a.arb)}
+    jdump(path, cfg)
+    print(json.dumps({"frozen": path, "sha256": sha256_file(path), "utc_created": cfg["utc_created"], "code_sha": sha}))
+
+
+def cmd_run(a):
+    t0 = utcnow()
+    path = os.path.join(a.out, "frozen-r111v3.json")
+    cfg = json.load(open(path))
+    sha, dirty = git_sha()
+    if dirty or sha != cfg["code_sha"]:
+        raise SystemExit(f"code {sha} dirty={dirty} != frozen {cfg['code_sha']}")
+    if os.path.exists(os.path.join(a.out, "r111v3-results.json")) or os.path.exists(os.path.join(a.out, "run-started")):
+        raise SystemExit("one run only: results or a started marker exist")
+    if l1_input_digests(a.arb) != cfg["inputs_sha256"]:
+        raise SystemExit("input digests differ from the frozen config")
+    open(os.path.join(a.out, "run-started"), "w").write(t0 + "\n")
+    print(f"run start {t0} frozen sha256 {sha256_file(path)}", flush=True)
+    inp = E.Inputs(a.arb)
+    inp.load_oracle()
+    metas = arb_metas(a.arb)
+    hours = arb_hours(inp, a.arb)
+    first = int(dt.datetime(L1_FIRST.year, L1_FIRST.month, L1_FIRST.day, tzinfo=dt.timezone.utc).timestamp())
+    rp = E.Replay(inp, metas, hours, cfg["rule"], ARB_USDC, first, inp.gidx[ARB_WETH], record=False)
+    sim = rp.run()
+    real_ev, n_ev = arb_real(a.arb, hours, inp)
+    real = {}
+    d = L1_FIRST - dt.timedelta(days=1)
+    while d <= L1_LAST:
+        real[d.isoformat()] = real_ev.get(d.isoformat(), 0.0)
+        d += dt.timedelta(days=1)
+    scale = arb_scale(metas, inp)
+    days = l1_days()
+    cls, pooled = classify(days, sim, real, scale, priors=cfg["priors"])
+    q2 = [x for x in l1_days(True) if x not in set(days)]
+    cls_q2, pooled_q2 = classify(q2, sim, real, scale, priors=cfg["priors"])
+    by_year = {}
+    for y in sorted({x[:4] for x in days}):
+        dy = [x for x in days if x[:4] == y]
+        c, _ = classify(dy, sim, real, scale, priors=cfg["priors"])
+        by_year[y] = {X: {k: v[k] for k in ("positive_days", "H", "F", "J", "J_E")} for X, v in c.items()}
+    res = {"item": cfg["item"], "frozen_sha256": sha256_file(path), "code_sha": sha, "gate_days": len(days),
+           "real_usdc_debt_events": n_ev, "classification": cls, "pooled_dm": pooled, "verdict": verdict(cls, pooled),
+           "secondary": secondary(days, sim, real),
+           "reported_only": {"q2_2026": {"classification": cls_q2, "pooled_dm": pooled_q2},
+                             "by_year": by_year,
+                             "scale_q05_q50_q95": [float(np.quantile([scale[x] for x in days], q)) for q in (0.05, 0.5, 0.95)]},
+           "engine": {"hours": rp.rec["hours"], "evals": rp.rec["evals"],
+                      "cand_median": float(np.median(rp.rec["cand_sizes"])) if rp.rec["cand_sizes"] else 0,
+                      "sentinel_blocked_evals": rp.rec.get("sentinel_blocked_evals", 0)},
+           "utc_start": t0, "utc_end": utcnow()}
+    jdump(os.path.join(a.out, "r111v3-results.json"), res)
+    with open(os.path.join(a.out, "r111v3-daily.csv"), "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["date", "sim_usdc_usd", "real_usdc_usd", "scale", "gate_day", "q2_reported_only"])
+        for x in l1_days(True):
+            w.writerow([x, f"{sim.get(x, 0.0):.2f}", f"{real[x]:.2f}", f"{scale.get(x, 0.0):.6f}", int(x in set(days)),
+                        int(x in set(q2))])
+    for n in os.listdir(a.out):
+        if n.endswith((".json", ".csv")):
+            if ADDR_RE.search(open(os.path.join(a.out, n)).read()):
+                raise SystemExit(f"address pattern in {n}")
+    print(json.dumps({"verdict": res["verdict"], "pooled_dm": pooled,
+                      "classification": {X: {k: v[k] for k in ("positive_days", "H", "F", "J", "J_E", "bss_vs_clim", "bss_vs_E")}
+                                         for X, v in cls.items()},
+                      "utc_start": t0, "utc_end": res["utc_end"]}, indent=1, default=float))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd")
     for k in ("core", "r10work", "diag", "out", "arb", "rule", "dev", "scratch", "calib"):
         ap.add_argument(f"--{k}")
     a = ap.parse_args()
-    {"validate": cmd_validate, "calib": cmd_calib, "dev": cmd_dev}[a.cmd](a)
+    {"validate": cmd_validate, "calib": cmd_calib, "dev": cmd_dev, "counts": cmd_counts, "freeze": cmd_freeze, "run": cmd_run}[a.cmd](a)
 
 
 if __name__ == "__main__":

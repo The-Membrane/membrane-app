@@ -263,7 +263,9 @@ def hd_parse(raw):
     with zipfile.ZipFile(io.BytesIO(raw)) as z:
         name = [n for n in z.namelist() if n.lower().endswith(".csv")][0]
         txt = z.read(name).replace(b" ", b";")
-    a = np.loadtxt(io.BytesIO(txt), delimiter=";", dtype=np.float64, ndmin=2)
+    lines = [ln for ln in txt.splitlines() if ln.count(b";") == 6]       # drop malformed rows (counted)
+    hd_parse.bad = len(txt.splitlines()) - len(lines)
+    a = np.loadtxt(io.BytesIO(b"\n".join(lines)), delimiter=";", dtype=np.float64, ndmin=2)
     d = a[:, 0].astype(np.int64)
     hm = a[:, 1].astype(np.int64)
     days = days_from_civil(d // 10000, (d // 100) % 100, d % 100)
@@ -292,6 +294,7 @@ def hd_one(p, out):
         raw = hd_fetch(p, per)
         man.append({"period": per, "sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)})
         t, o, h, l, c = hd_parse(raw)
+        man[-1]["malformed_rows_dropped"] = int(hd_parse.bad)
         del raw
         for k, v in zip(("t", "o", "h", "l", "c"), (t, o, h, l, c)):
             T[k].append(v)

@@ -231,6 +231,8 @@ def replay(chain: str, work: str, days: dict[int, int], mk: dict):
         if m not in M:
             continue
         u = r[4]
+        if u not in uid:
+            uid[u] = len(uid)
         if kind == "SC":
             coll[(m, u)] = coll.get((m, u), 0) + r[5]
         elif kind == "WC":

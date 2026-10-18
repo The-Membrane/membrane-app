@@ -379,6 +379,10 @@ def replay(meta: dict, work: str, days: dict[int, int], only_days: set | None = 
     for r in iter_logs(work):
         blk, kind = r[0], r[2]
         flush_until(blk)
+        # user index = order of first appearance in the event stream (deterministic across resumed runs)
+        for x in r[3:6]:
+            if isinstance(x, str) and x.startswith("0x") and len(x) == 42 and x not in uid:
+                uid[x] = len(uid)
         if kind in ("aM", "aB", "vM", "vB"):
             ri, u, amt, idx = r[3], r[4], r[5], r[6]
             d = ray_div(abs(amt), idx) * (1 if amt >= 0 else -1)

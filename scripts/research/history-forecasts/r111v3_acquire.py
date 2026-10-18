@@ -482,9 +482,13 @@ def phase_meta(mk, work):
 
 def phase_hourly(mk, work):
     """Prices of every listed reserve at b_h = the last held pool-event block with timestamp < h (state at hour h),
-    and that block's base fee."""
+    and that block's timestamp and base fee. One Multicall3 eth_call per hour over the keyless archive endpoints;
+    block headers in batches from the full nodes."""
     m = MARKETS[mk]
-    cl = X.Client(m["chain"], interval=0.08, calls=True)
+    cl = X.Client(m["chain"], interval=0.04, calls=True)
+    cl.urls = list(X.HOURLY_CALL_ENDPOINTS[m["chain"]])
+    hc = X.Client(m["chain"], interval=0.1)
+    hc.urls = list(X.HEADER_ENDPOINTS[m["chain"]])
     _, b, t = ts_to_block_fn(work)
     h0 = int(dt.datetime.fromisoformat(m["first_day"] + "T00:00:00+00:00").timestamp())
     hours = list(range(h0, m["end_ts"] + 1, 3600))
@@ -492,6 +496,7 @@ def phase_hourly(mk, work):
     os.makedirs(hd, exist_ok=True)
     rs = jload(os.path.join(work, "reserves.json.gz"))
     allassets = [r["asset"] for r in rs["reserves"]]
+    data = X.aggregate3_data([(m["oracle"], X.sel("getAssetPrice(address)") + X.enc_addr(a)) for a in allassets])
     by_day = {}
     for h in hours:
         by_day.setdefault(dt.datetime.fromtimestamp(h, dt.timezone.utc).date().isoformat(), []).append(h)
@@ -500,28 +505,30 @@ def phase_hourly(mk, work):
         p = os.path.join(hd, f"{day}.json.gz")
         if os.path.exists(p):
             return
-        data = X.aggregate3_data([(m["oracle"], X.sel("getAssetPrice(address)") + X.enc_addr(a)) for a in allassets])
-        blks = []
-        for h in by_day[day]:
-            i = int(np.searchsorted(t, h, side="left")) - 1
-            blks.append(int(b[i]))
-        reqs = []
-        for blk in blks:
-            reqs += [("eth_call", [{"to": X.MULTICALL3, "data": data}, hex(blk)]),
-                     ("eth_getBlockByNumber", [hex(blk), False])]
-        res = cl.batch(reqs)
+        blks = [int(b[int(np.searchsorted(t, h, side="left")) - 1]) for h in by_day[day]]
+        heads = hc.batch([("eth_getBlockByNumber", [hex(x), False]) for x in blks])
         rows = []
-        for k, (h, blk) in enumerate(zip(by_day[day], blks)):
-            dec = X.aggregate3_decode(res[2 * k])
-            bo = res[2 * k + 1]
+        for h, blk, bo in zip(by_day[day], blks, heads):
+            dec = None
+            for _ in range(8):
+                raw = cl.request("eth_call", [{"to": X.MULTICALL3, "data": data}, hex(blk)])
+                try:
+                    dec = X.aggregate3_decode(raw)
+                    if len(dec) == len(allassets):
+                        break
+                except Exception:
+                    pass
+                dec = None
+            if dec is None:
+                raise RuntimeError(f"hourly multicall undecodable at {blk}")
             rows.append({"hour": h, "block": blk, "ts": int(bo["timestamp"], 16),
                          "base_fee": int(bo.get("baseFeePerGas") or "0x0", 16),
                          "prices": [X.word(r) if ok and len(r) == 32 else None for ok, r in dec]})
         jdump(p, {"date": day, "assets": allassets, "rows": rows})
 
-    with ThreadPoolExecutor(6) as ex:
+    with ThreadPoolExecutor(8) as ex:
         list(ex.map(one, sorted(by_day)))
-    print(f"hourly: {len(hours)} hours; rpc {cl.stats}", flush=True)
+    print(f"hourly: {len(hours)} hours; rpc calls {cl.stats} headers {hc.stats}", flush=True)
 
 
 def stable_tokens(work):

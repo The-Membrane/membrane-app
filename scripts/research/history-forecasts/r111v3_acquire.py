@@ -629,7 +629,8 @@ def phase_bt(mk, work):
     implementations: older ones emit the unscaled amount, newer ones the scaled amount. Per aToken implementation
     period (proxy Upgraded logs), the first BalanceTransfer is compared with its ERC20 Transfer in the same
     transaction (Transfer > BalanceTransfer value means the value is already scaled). Scaled = value or
-    rayDiv(value, index) accordingly."""
+    rayDiv(value, index) accordingly. The probe log is the first one with index > 1.0002 (at index 1 both readings
+    coincide); the reading whose implied Transfer is closer wins."""
     m = MARKETS[mk]
     rs = jload(os.path.join(work, "reserves.json.gz"))
     end = rs["end_block"]
@@ -662,13 +663,14 @@ def phase_bt(mk, work):
         ps = sorted(set(ps))
         for k, p0 in enumerate(ps):
             p1 = ps[k + 1] if k + 1 < len(ps) else end + 1
-            first = next((x for x in allbt if x[3] == a and p0 <= x[0] < p1), None)
+            first = next((x for x in allbt if x[3] == a and p0 <= x[0] < p1 and x[7] > RAY * 1.0002), None)
             if first is None:
                 continue
             tl = [y for y in cl.logs(a, [TR], first[0], first[0]) if y["transactionHash"] == first[8]
                   and t_addr(y["topics"][1]) == first[4] and t_addr(y["topics"][2]) == first[5]]
             tv = int(tl[0]["data"], 16) if tl else None
-            sem[(a, p0)] = {"start": p0, "end": p1, "scaled": bool(tv is not None and tv > first[6]),
+            scaled = True if tv is None else abs(tv - first[6] * first[7] / RAY) <= abs(tv - first[6])
+            sem[(a, p0)] = {"start": p0, "end": p1, "scaled": bool(scaled),
                             "checked": tv is not None}
     def scaled_flag(a, b):
         for (aa, p0), v in sem.items():

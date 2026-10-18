@@ -3,6 +3,8 @@
 # Model A5 from 2026-10-15: HISTORY_TOUCH_LIVE.md D2 (membrane-board a5ce1bb) moves the pin and adds the A5 inputs.
 # Model A6 from 2026-10-17: HISTORY_TOUCH_LIVE.md D3 (membrane-board f16637c) moves the pin and adds the A6 frozen file.
 # D4 (membrane-board 0fd1020) adds the blind-5 basis file.
+# D8 (2026-10-18, membrane-board 4170235): short horizons 1 h / 3 h / 12 h with (fH), shallow levels, hourly origins
+#    inside the daily issue (--short-fh), scored inside the daily score job. Log only. Cron times unchanged.
 #
 # Moved 2026-10-17 from the private triccs/membrane-datasets to this PUBLIC repo (owner ruling 2026-10-17:
 # free Actions minutes; the data library stays private). Schedules run only from `main`, so THIS FILE LIVES ON
@@ -49,7 +51,7 @@ concurrency:
 
 env:
   APP_REPO: The-Membrane/membrane-app
-  APP_SHA: 01b997081c6e3815d80064fd9cccae2401eb16bc   # membrane-app research/history-forecasts, live/ code (model A6 + displayed rung, LIVE D5)
+  APP_SHA: cd2f4b34e5cf3e3bee6c0dd13c3d1554ac0647f7   # membrane-app research/history-forecasts, live/ code (model A6 + displayed rung + D8 short horizons)
   DATASETS_REPO: triccs/membrane-datasets
   LIVE_DIR: forecasts/q26-touch-live
 
@@ -141,12 +143,14 @@ jobs:
             --basis-final-a6-sha256 328a934d22d00bbba3eed8edc5879701647377d9c5734e4d6a2ef8998f61c7c1 \
             --display-a6 history-forecasts/a6/run-015512cb/display-a6.json \
             --display-a6-sha256 8e9086179ac40da1ec90976c5ba6a551c3893b002f0b7338a097a777a8362e62 \
+            --short-fh \
             >"$out" 2>&1 || rc=$?
           # Public log: status and counts only. The run's own output is withheld and deleted.
           echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \
                "FAILED $(grep -c 'FAILED' "$out" || true), Traceback $(grep -c '^Traceback' "$out" || true)"
           grep -E '^(rounds (ETH|BTC|stETH): (append|bootstrap) \+[0-9]+ \(store [0-9]+\)|binance [A-Z]+: \+[0-9]+ \(store [0-9]+\))$' "$out" || true
           sed -nE 's/^wrote .*; ([0-9]+) rows$/issued: \1 rows/p' "$out"
+          grep -E '^short: [0-9]+ origins, [0-9]+ rows$' "$out" || true
           rm -f "$out"
           exit "$rc"
 
@@ -161,7 +165,7 @@ jobs:
           # Public log: status and counts only. The run's own output is withheld and deleted.
           echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \
                "FAILED $(grep -c 'FAILED' "$out" || true), Traceback $(grep -c '^Traceback' "$out" || true)"
-          grep -E '^(rounds (ETH|BTC|stETH): (append|bootstrap) \+[0-9]+ \(store [0-9]+\)|binance [A-Z]+: \+[0-9]+ \(store [0-9]+\)|scored: [0-9]+ new outcomes \([0-9]+ resolved\), [0-9]+ pending, [0-9]+ outcomes in total from [0-9]+ issue files)$' "$out" || true
+          grep -E '^(rounds (ETH|BTC|stETH): (append|bootstrap) \+[0-9]+ \(store [0-9]+\)|binance [A-Z]+: \+[0-9]+ \(store [0-9]+\)|scored: [0-9]+ new outcomes \([0-9]+ resolved\), [0-9]+ pending, [0-9]+ outcomes in total from [0-9]+ issue files|short scored: [0-9]+ new outcomes \([0-9]+ resolved\), [0-9]+ pending, [0-9]+ outcomes in total)$' "$out" || true
           rm -f "$out"
           exit "$rc"
 

@@ -18,6 +18,8 @@ Phases:
   dev      development on D1 (Aave V2 Ethereum USDC/USDT, grade C after R14.2): M_s, L0, b4t1, b4v4a_t1, market pop;
            two-way (unit x 30-day block) pigeonhole bootstrap, CGM cross-check, concentration, power inputs.
            Writes no address.
+  power    joint power per primary cell from the dev file and a counts file (D-R15.4b rule), plus a grid of
+           count ratios.
 """
 import os
 
@@ -249,18 +251,81 @@ def phase_dev(datasets_dir, d1_dir, out_dir, log):
     return out
 
 
+# ---------------------------------------------------------------------------------------------
+# Power (D-R15.4b rule)
+# ---------------------------------------------------------------------------------------------
+Z_HOLM2 = 1.959963984540054          # one-sided alpha / 2 = 0.025 (Holm over the 2 primary cells, strictest step)
+
+
+def _ncdf(x):
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def project_cell(P, U_r, B_r, C_r, crit=Z_HOLM2):
+    """Joint power for one primary cell at count ratios (target / dev) of thin units U, 30-day blocks B and
+    occupied (unit, block) cells C. Pigeonhole two-way variance of mean d ~ V_u + V_t + 3 V_int (V_u, V_t the pure
+    unit and block components, V_int the unit-block interaction, from the dev CGM sums); each component scales with
+    its own count ratio; the projection is anchored to the dev pigeonhole SD."""
+    c, tw = P["cgm_unit_x_block"], P["twoway_unit_x_block"]
+    vu, vt, vi = c["v_unit"], c["v_block"], c["v_inter"]
+    Vu, Vt = max(vu - vi, 0.0), max(vt - vi, 0.0)
+    base = Vu + Vt + 3.0 * vi
+    f = (Vu / U_r + Vt / B_r + 3.0 * vi / C_r) / base
+    md = -tw["mean_d"]                                   # positive = model better
+    z_dev = md / tw["sd_mean_d_2way"]
+    z = md / (tw["sd_mean_d_2way"] * math.sqrt(f))
+    p_test = _ncdf(z - crit) if md > 0 else 0.0
+    R, sl = P["calib_a"]["R"], P["calib_a"]["sd_lnR_2way"] * math.sqrt(f)
+    p_R = _ncdf((math.log(R_BAND[1]) - math.log(R)) / sl) - _ncdf((math.log(R_BAND[0]) - math.log(R)) / sl)
+    zc = P["concentration"].get("z_mean_d_leave_top_k_2way")
+    p_conc = _ncdf(zc * z / z_dev) if (zc is not None and md > 0) else 0.0
+    return {"U_r": U_r, "B_r": B_r, "C_r": C_r, "var_factor": f, "z_dev": z_dev, "z_proj": z, "p_test": p_test,
+            "p_R_band": p_R, "p_concentration": p_conc, "joint": p_test * p_R * p_conc}
+
+
+def phase_power(dev_json, counts_json, out_path, log):
+    if os.path.exists(out_path):
+        raise SystemExit(f"STOP: {out_path} exists")
+    dev = json.load(open(dev_json))
+    out = {"phase": "power (D-R15.4b rule)", "code": L.code_meta(), "dev_json_sha256": B.sha256_file(dev_json),
+           "crit_z": Z_HOLM2, "cells": {}, "created_utc": L.utcnow()}
+    grid = []
+    for cid, P in dev["primary"].items():
+        dU, dB, dC = P["units"], P["blocks_30d"], P["cells_unit_block"]
+        if counts_json:
+            cnt = json.load(open(counts_json))
+            k = cnt["pooled"]
+            out["counts_json_sha256"] = B.sha256_file(counts_json)
+            out["cells"][cid] = {"dev_counts": {"U": dU, "B": dB, "C": dC},
+                                 "target_counts": {"U": k["thin_units"], "B": k["blocks_30d"], "C": k["cells_unit_block"]},
+                                 **project_cell(P, k["thin_units"] / dU, k["blocks_30d"] / dB,
+                                                k["cells_unit_block"] / dC)}
+        for ur in (1, 2, 4, 8):
+            for cr in (1, 2, 4, 8, 16, 32):
+                grid.append({"cell": cid, **project_cell(P, ur, 53.0 / dB, cr)})
+    out["grid_B_at_53_blocks"] = grid
+    B.write_json(out_path, out, refuse_overwrite=True)
+    log(json.dumps({c: {k: v[k] for k in ("z_proj", "p_test", "p_R_band", "p_concentration", "joint")}
+                    for c, v in out["cells"].items()}))
+    return out
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("phase", choices=["dev"])
+    ap.add_argument("phase", choices=["dev", "power"])
     ap.add_argument("--datasets", default="/home/user/membrane-datasets")
     ap.add_argument("--d1-dir")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--dev-json")
+    ap.add_argument("--counts-json")
     a = ap.parse_args(argv)
 
     def log(m):
         print(f"[{L.utcnow()}] {m}", flush=True)
     if a.phase == "dev":
         phase_dev(a.datasets, a.d1_dir, a.out, log)
+    elif a.phase == "power":
+        phase_power(a.dev_json, a.counts_json, a.out, log)
 
 
 if __name__ == "__main__":

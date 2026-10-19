@@ -245,6 +245,88 @@ def cmd_config(a):
     print("frozen config sha256", sha_file(cfgp))
 
 
+def cmd_powersim(a):
+    """power at the B20a counts by resampling development rows into B20a-shaped sets (D-R13.5c rule 1: the
+    registered statistic on development). Each replicate: S_b dev series drawn without replacement; for each, a
+    contiguous run of rows_b / S_b origins inside 2022-01-01..2026-09-30 (outside 2026Q2); the cell's Brier
+    difference d (cross-fitted models, as in the dev score); two-way pigeonhole bootstrap B 2,000; PASS if
+    max(centred p, percentile p) <= 0.05 / M (Holm worst case) and mean d < 0. Power = share of passing replicates."""
+    from scipy.stats import norm
+    import datetime as _dt
+    counts = json.load(open(os.path.join(a.out, "counts-r162-b20a.json")))["cells"]
+    meta = json.load(open(os.path.join(a.dev, "rows-meta.json")))
+    keys = meta["series"]
+    rng = np.random.default_rng(D.SEED + 7)
+    t_lo = int(_dt.datetime(2022, 1, 1, tzinfo=_dt.timezone.utc).timestamp())
+    M = len(PRIMARY)
+    out = {"schema": "q26-r16.2-powersim/1", "code": D.git_sha(), "M": M, "reps": a.reps, "cells": {}}
+    cache = {}
+    for c in PRIMARY:
+        T, k, m, C = c["T"], c["level"], c["model"], c["comparator"]
+        if T not in cache:
+            Z = np.load(os.path.join(a.dev, f"rows-T{T}.npz"))
+            R = {kk: Z[kk] for kk in Z.files}
+            P = {mm: R[mm].astype(np.float32) for mm in D.ALL_ROW_MODELS}
+            L = len(D.LV[T])
+            lnk = np.log1p(np.array(D.LV[T]))
+
+            def mk_gb(tr, te):
+                clf = D.fit_gb(R, tr, lnk, rng)
+                idx = np.where(te)[0]
+                return np.column_stack([clf.predict_proba(D.gb_design(R, idx, j, lnk))[:, 1] for j in range(L)])
+            P["gb"] = np.minimum.accumulate(D.crossfit(R, T, keys, None, mk_gb), axis=1)
+
+            def mk_st(tr, te):
+                clf = D.fit_stack_llp(R, tr, P, L, rng)
+                ii = np.where(te)[0]
+                return np.column_stack([clf.predict_proba(np.column_stack([D.lg(P[s_][ii, j]) for s_ in D.STACK]))[:, 1]
+                                        for j in range(L)])
+            P["st"] = np.minimum.accumulate(D.crossfit(R, T, keys, None, mk_st), axis=1)
+
+            def mk_lp(tr, te):
+                w = D.fit_lp(R, tr, P, L, rng)
+                ii = np.where(te)[0]
+                return np.column_stack([np.column_stack([P[s_][ii, j] for s_ in D.STACK]) @ w for j in range(L)])
+            P["lp"] = np.minimum.accumulate(D.crossfit(R, T, keys, None, mk_lp), axis=1)
+            cache[T] = (R, P)
+        R, P = cache[T]
+        j = list(D.LV[T]).index(k)
+        y = R["y"][:, j].astype(float)
+        d_all = (P[m][:, j] - y) ** 2 - (P[C][:, j] - y) ** 2
+        ok = (R["ts"] >= t_lo) & ~((R["ts"] + T * 3600 > R12.Q2_START) & (R["ts"] < R12.Q2_END))
+        ck = f"{D.TL[T]} {k}"
+        Sb = counts[ck]["series_with_rows"]
+        per = max(1, counts[ck]["rows"] // Sb)
+        by = {}
+        for sid in np.unique(R["sid"][ok]):
+            idx = np.where(ok & (R["sid"] == sid))[0]
+            if len(idx) >= per:
+                by[int(sid)] = idx
+        elig = np.array(sorted(by))
+        passes, zs = 0, []
+        for r in range(a.reps):
+            ss = rng.choice(elig, Sb, replace=False)
+            parts = []
+            for s_ in ss:
+                idx = by[s_]
+                st0 = rng.integers(0, len(idx) - per + 1)
+                parts.append(idx[st0:st0 + per])
+            ii = np.concatenate(parts)
+            tw = D.TwoWay(R["sid"][ii], (R["ts"][ii] // (28 * DAY)).astype(np.int64), B=2000, seed=int(rng.integers(1e9)))
+            zz = tw.z(d_all[ii])
+            if zz["z"] is None:
+                continue
+            pc = float(norm.cdf(zz["z"]))
+            pp = zz["pct_p"]
+            zs.append(zz["z"])
+            passes += int(zz["mean"] < 0 and max(pc, pp) <= 0.05 / M)
+        out["cells"][f"{m} vs {C} {ck}"] = {"S_b": Sb, "rows_per_series": per, "eligible_dev_series": int(len(elig)),
+                                            "power": passes / a.reps, "median_z": float(np.median(zs)),
+                                            "z_q10_q90": [float(np.quantile(zs, 0.1)), float(np.quantile(zs, 0.9))]}
+        print(json.dumps({f"{m} vs {C} {ck}": out["cells"][f"{m} vs {C} {ck}"]}), flush=True)
+    json.dump(out, open(os.path.join(a.out, "powersim-r162-b20a.json"), "w"), indent=1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -258,10 +340,14 @@ def main():
     s.add_argument("--datasets", required=True)
     s.add_argument("--dev", required=True)
     s.add_argument("--out", required=True)
+    s = sub.add_parser("powersim")
+    s.add_argument("--dev", required=True)
+    s.add_argument("--out", required=True)
+    s.add_argument("--reps", type=int, default=200)
     s = sub.add_parser("config")
     s.add_argument("--out", required=True)
     a = ap.parse_args()
-    {"freeze": cmd_freeze, "counts": cmd_counts, "run": cmd_run, "config": cmd_config}[a.cmd](a)
+    {"freeze": cmd_freeze, "counts": cmd_counts, "run": cmd_run, "config": cmd_config, "powersim": cmd_powersim}[a.cmd](a)
 
 
 if __name__ == "__main__":

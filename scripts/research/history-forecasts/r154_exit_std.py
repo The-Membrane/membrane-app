@@ -195,6 +195,8 @@ def score(rows, PR, test, h, a, b, seed):
     t, y, pa, pb, u, x, r = stack(rows, PR, test, h, a, b)
     out = {"pairs": int(len(y)), "exits": int(y.sum()), "units": int(len(np.unique(u))),
            "units_with_exit": int(len(np.unique(u[y == 1]))), "blocks_30d": int(len(np.unique((t - t.min()) // 30))),
+           "cells_unit_block": int(len(np.unique(u.astype(np.int64) * 100000 + (t - t.min()) // 30))),
+           "unit_days": int(len(np.unique(u.astype(np.int64) * 100000 + t))),
            "twoway_unit_x_block": twoway(t, u, y, pa, pb, seed), "cgm_unit_x_block": cgm(t, u, y, pa, pb),
            "market_x_block_reported": twoway(t, r, y, pa, pb, seed + 1, n_rep=2000),
            "concentration": concentration(u, y, pa, pb, t, seed + 2),

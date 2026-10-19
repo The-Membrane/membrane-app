@@ -21,12 +21,14 @@ Constructions (point forecast = (fH) unless stated):
               bootstrap (clusters x 182-day blocks, 200 replicates) outside the held-out fold, times p
   H_CD  (iv)  hull of CAL and DIS
   H_CP  (iv)  hull of CAL and PU
+These targets concern realised frequencies in finite groups. They cannot validate confidence intervals for
+latent individual event probabilities, even when a model supplies the exact latent probabilities.
 Second target (T2, pooled calibration): per (T, level, tier, bin) the realised frequency of all out-of-fold rows
 against their mean range; counted as bins covered of bins.
 Metrics per (T, level, tier): coverage (share of groups covered, and row-weighted), its block-bootstrap 90% interval,
 median and 90th-percentile width (probability points), share of rows with width < 10 points, share of rows whose range
 excludes the cell's training base rate, and the mean interval score IS = (U - L) + (2/alpha)((L - ybar)+ +
-(ybar - U)+), alpha = 0.10, over groups.
+(ybar - U)+), alpha = 1 - nominal (0.10 for nominal 90%), over groups.
 """
 from __future__ import annotations
 
@@ -44,7 +46,6 @@ sys.path.insert(0, HERE)
 import a6_touch as M6  # noqa: E402
 from r164_score import load_rows, EVAL_T, T_NAME  # noqa: E402
 
-ALPHA = 0.10
 N_SG = 5
 NBIN = 5
 N_BOOT_CALB = 200
@@ -70,7 +71,52 @@ def sg_of(names_by_cluster, major_flag):
     return out
 
 
+def validate_nominal(nominal):
+    """Reject undefined quantile levels and interval-score penalties."""
+    if not np.isfinite(nominal) or not 0 < nominal < 1:
+        raise ValueError("nominal must be finite and strictly between 0 and 1")
+
+
+def interval_score(lower, upper, target, nominal):
+    validate_nominal(nominal)
+    return ((upper - lower) + (2 / (1 - nominal)) *
+            (np.maximum(lower - target, 0) + np.maximum(target - upper, 0)))
+
+
+def clipped_calibration_range(point, lower_ratio, upper_ratio):
+    """Clip both calibrated endpoints; NaNs retain the unavailable-fold marker."""
+    lower = np.clip(point * lower_ratio, 0.0, 1.0)
+    upper = np.clip(point * upper_ratio, 0.0, 1.0)
+    if np.any(np.isfinite(lower) & np.isfinite(upper) & (lower > upper)):
+        raise ValueError("calibration range has reversed endpoints")
+    return lower, upper
+
+
+def realized_group_coverage(realized_frequency, lower, upper):
+    """Coverage of observed group frequency, not a latent individual probability."""
+    return ((realized_frequency >= lower - 1e-12) &
+            (realized_frequency <= upper + 1e-12))
+
+
+def cgm_coverage_variance(coverage, series_group, block):
+    """Two-way CGM variance of mean coverage, clustering intersections across bins.
+
+    Multiple forecast bins can share one (series_group, block) intersection.
+    Sum their normalized residuals before squaring the intersection term.
+    """
+    coverage = np.asarray(coverage, dtype=float)
+    if not len(coverage):
+        raise ValueError("coverage must be nonempty")
+    residual = (coverage - coverage.mean()) / len(coverage)
+    _, sg = np.unique(series_group, return_inverse=True)
+    _, bl = np.unique(block, return_inverse=True)
+    _, intersection = np.unique(np.column_stack((sg, bl)), axis=0, return_inverse=True)
+    return float(sum((np.bincount(ids, weights=residual) ** 2).sum() * sign
+                     for ids, sign in ((sg, 1), (bl, 1), (intersection, -1))))
+
+
 def run(rows_dir, out_json, nominal=0.90, seed=20261642, shuffle_blocks=False, horizons=EVAL_T):
+    validate_nominal(nominal)
     rows, names, clusters = load_rows(rows_dir)
     if shuffle_blocks:
         # instrument check: pseudo-blocks made of random calendar days (same mapping for every series), which keeps
@@ -83,7 +129,8 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642, shuffle_blocks=False, h
     sg = np.array([sgmap[c] for c in rows["cluster"]], np.int16)
     rng = np.random.default_rng(seed)
     qlo, qhi = (1 - nominal) / 2, 1 - (1 - nominal) / 2
-    res = {"nominal": nominal, "cells": []}
+    res = {"nominal": nominal, "target": "realized_group_frequency",
+           "T2_target": "pooled_calibration_frequency", "cells": []}
     has_boot = "boot_q" in rows
     for T in horizons:
         for tier, tmask in (("alts", ~rows["major"]), ("majors", rows["major"])):
@@ -151,10 +198,10 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642, shuffle_blocks=False, h
                         if ok.sum() < 10:
                             continue
                         q1, q2 = wquant(rho[ok], w[ok], [qlo, qhi])
-                        lo["CAL"][hold], hi["CAL"][hold] = p[hold] * q1, np.minimum(1.0, p[hold] * q2)
+                        lo["CAL"][hold], hi["CAL"][hold] = clipped_calibration_range(p[hold], q1, q2)
                         okr = tr & np.isfinite(rhor)
                         q1, q2 = wquant(rhor[okr], w[okr], [qlo, qhi])
-                        lo["CALr"][hold], hi["CALr"][hold] = pr[hold] * q1, np.minimum(1.0, pr[hold] * q2)
+                        lo["CALr"][hold], hi["CALr"][hold] = clipped_calibration_range(pr[hold], q1, q2)
                         keep_c = cl_sg != gg
                         keep_b = np.arange(nb) != bb
                         nc, nbb = int(keep_c.sum()), int(keep_b.sum())
@@ -169,8 +216,8 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642, shuffle_blocks=False, h
                                 rr = numr / denr
                             qb = np.nanquantile(rr, [qlo, qhi], axis=0)          # (2, nbins)
                             hb = b[hold]
-                            lo["CALb"][hold] = p[hold] * qb[0, hb]
-                            hi["CALb"][hold] = np.minimum(1.0, p[hold] * qb[1, hb])
+                            lo["CALb"][hold], hi["CALb"][hold] = clipped_calibration_range(
+                                p[hold], qb[0, hb], qb[1, hb])
                         rows_tr = ~((g == gg) | (bi == bb))
                         base[hold] = y[rows_tr].mean() if rows_tr.any() else np.nan
                 lo["H_CD"], hi["H_CD"] = np.minimum(lo["CAL"], lo["DIS"]), np.maximum(hi["CAL"], hi["DIS"])
@@ -184,15 +231,17 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642, shuffle_blocks=False, h
                         continue
                     L, U = lo[cname], hi[cname]
                     okr_ = np.isfinite(L) & np.isfinite(U)
+                    if np.any(okr_ & ((L < 0) | (U > 1) | (L > U))):
+                        raise ValueError(f"{cname} has invalid probability bounds")
                     sL = np.bincount(gid[okr_], weights=L[okr_], minlength=ng)[occ]
                     sU = np.bincount(gid[okr_], weights=U[okr_], minlength=ng)[occ]
                     cn = np.bincount(gid[okr_], minlength=ng)[occ]
                     okg = cn > 0
                     Lg, Ug = sL[okg] / cn[okg], sU[okg] / cn[okg]
                     yg = ybar[okg]
-                    cov = (yg >= Lg - 1e-12) & (yg <= Ug + 1e-12)
+                    cov = realized_group_coverage(yg, Lg, Ug)
                     wid = (U - L)[okr_]
-                    IS = (Ug - Lg) + (2 / ALPHA) * (np.maximum(Lg - yg, 0) + np.maximum(yg - Ug, 0))
+                    IS = interval_score(Lg, Ug, yg, nominal)
                     # block bootstrap of group coverage
                     gb = g_bl[okg]
                     covb = []
@@ -211,9 +260,7 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642, shuffle_blocks=False, h
                         t2.append(bool(Lb - 1e-12 <= yb <= Ub + 1e-12))
                     # CGM two-way SE of the group coverage (clusters: series group, block)
                     cv = cov.astype(float)
-                    uu = (cv - cv.mean()) / len(cv)
-                    gs_, gb_ = g_sg[okg], g_bl[okg]
-                    v_cgm = (np.bincount(gs_, weights=uu) ** 2).sum() + (np.bincount(gb_, weights=uu) ** 2).sum() - (uu ** 2).sum()
+                    v_cgm = cgm_coverage_variance(cv, g_sg[okg], g_bl[okg])
                     bse = base[okr_]
                     excl = ((bse < L[okr_]) | (bse > U[okr_]))
                     cell["constructions"][cname] = {

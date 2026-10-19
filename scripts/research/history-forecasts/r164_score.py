@@ -183,7 +183,7 @@ def score(rows, models, comps, out_json, n_rep=2000, seed=20261641, sub_steps=No
 
 def step_select(rows, steps, rng):
     """The docstring rule of r164_recursive.py (fixed before any output)."""
-    out = {"rule": "mean Brier over 7 d and 30 d rows (equal weight per horizon), rec mode, every-7th-day subsample; "
+    out = {"rule": "mean Brier over 7 d and 30 d rows (equal weight per horizon), rec mode, origins on days divisible by 14; "
                    "guard median |ln R| <= 12 h + 0.02; switch from 12 h only if two-way z vs 12 h <= -2.0"}
     sc, lnr, dmat = {}, {}, {}
     for s in steps:

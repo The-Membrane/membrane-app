@@ -6,7 +6,7 @@ membrane-board `design/Q26_ROUND16_PREREG.md` section R16.4. Seen data only (row
 Target (operational, outcome-free grouping). An evaluation group G is (horizon T, level, tier, point-forecast bin,
 series group, 182-day block): the forecasts one fifth of the tier's series issued in one half-year whose point forecast
 falls in the same bin. A nominal 90% range "covers" G when the group's realised frequency ybar_G lies inside the
-group's mean range [mean L, mean U]. Bins: deciles of logit p_point per (T, level, tier), computed on forecasts only.
+group's mean range [mean L, mean U]. Bins: quintiles of log p_point per (T, level, tier), computed on forecasts only.
 Series groups: 5, by sha256 of the cluster name (ETH and BTC series cluster by asset). Majors tier = ETH and BTC
 (5 series, 2 clusters, so its series groups are the 2 assets); alts tier = the other 125 series.
 
@@ -17,8 +17,12 @@ Constructions (point forecast = (fH) unless stated):
               quantiles of the training groups' ratio rho_G = sum y / sum p; training groups are every group of the
               same (T, level, tier) outside the held-out series group AND outside the held-out block (two-way CV)
   CALr  (iii) the same with the recursive rec12 forecast as the point
+  CALb  (iii) calibration confidence band: 5%-95% of the training bin ratio sum y / sum p under a pigeonhole two-way
+              bootstrap (clusters x 182-day blocks, 200 replicates) outside the held-out fold, times p
   H_CD  (iv)  hull of CAL and DIS
   H_CP  (iv)  hull of CAL and PU
+Second target (T2, pooled calibration): per (T, level, tier, bin) the realised frequency of all out-of-fold rows
+against their mean range; counted as bins covered of bins.
 Metrics per (T, level, tier): coverage (share of groups covered, and row-weighted), its block-bootstrap 90% interval,
 median and 90th-percentile width (probability points), share of rows with width < 10 points, share of rows whose range
 excludes the cell's training base rate, and the mean interval score IS = (U - L) + (2/alpha)((L - ybar)+ +
@@ -42,9 +46,10 @@ from r164_score import load_rows, EVAL_T, T_NAME  # noqa: E402
 
 ALPHA = 0.10
 N_SG = 5
-NBIN = 10
+NBIN = 5
+N_BOOT_CALB = 200
 DIS_SET = ("a", "f", "fbL", "fH", "rec12")
-CONSTR = ("PU", "DIS", "CAL", "CALr", "H_CD", "H_CP")
+CONSTR = ("PU", "DIS", "CAL", "CALr", "CALb", "H_CD", "H_CP")
 
 
 def wquant(x, w, q):
@@ -118,6 +123,17 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642):
                 rho = np.where(sp[occ] > 0, sy[occ] / np.maximum(sp[occ], 1e-12), np.nan)
                 rhor = np.where(spr[occ] > 0, sy[occ] / np.maximum(spr[occ], 1e-12), np.nan)
                 w = cnt[occ].astype(float)
+                # CALb: two-way bootstrap of the training bin ratio (calibration confidence band)
+                ucl, ci = np.unique(rows["cluster"][m], return_inverse=True)
+                Sx = len(ucl)
+                cl_sg = np.array([sgmap[c] for c in ucl])
+                nbins = len(edges) + 1
+                My = np.zeros((nbins, Sx, nb))
+                Mp = np.zeros((nbins, Sx, nb))
+                np.add.at(My, (b, ci, bi), y)
+                np.add.at(Mp, (b, ci, bi), p)
+                lo["CALb"] = np.full(len(y), np.nan)
+                hi["CALb"] = np.full(len(y), np.nan)
                 for gg in np.unique(g):
                     for bb in range(nb):
                         hold = (g == gg) & (bi == bb)
@@ -132,6 +148,22 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642):
                         okr = tr & np.isfinite(rhor)
                         q1, q2 = wquant(rhor[okr], w[okr], [qlo, qhi])
                         lo["CALr"][hold], hi["CALr"][hold] = pr[hold] * q1, np.minimum(1.0, pr[hold] * q2)
+                        keep_c = cl_sg != gg
+                        keep_b = np.arange(nb) != bb
+                        nc, nbb = int(keep_c.sum()), int(keep_b.sum())
+                        if nc >= 1 and nbb >= 2:
+                            wsx = np.zeros((N_BOOT_CALB, Sx))
+                            wbx = np.zeros((N_BOOT_CALB, nb))
+                            wsx[:, keep_c] = rng.multinomial(nc, np.full(nc, 1.0 / nc), size=N_BOOT_CALB)
+                            wbx[:, keep_b] = rng.multinomial(nbb, np.full(nbb, 1.0 / nbb), size=N_BOOT_CALB)
+                            numr = np.einsum("rs,ksb,rb->rk", wsx, My, wbx, optimize=True)
+                            denr = np.einsum("rs,ksb,rb->rk", wsx, Mp, wbx, optimize=True)
+                            with np.errstate(invalid="ignore", divide="ignore"):
+                                rr = numr / denr
+                            qb = np.nanquantile(rr, [qlo, qhi], axis=0)          # (2, nbins)
+                            hb = b[hold]
+                            lo["CALb"][hold] = p[hold] * qb[0, hb]
+                            hi["CALb"][hold] = np.minimum(1.0, p[hold] * qb[1, hb])
                         rows_tr = ~((g == gg) | (bi == bb))
                         base[hold] = y[rows_tr].mean() if rows_tr.any() else np.nan
                 lo["H_CD"], hi["H_CD"] = np.minimum(lo["CAL"], lo["DIS"]), np.maximum(hi["CAL"], hi["DIS"])
@@ -162,6 +194,14 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642):
                         wts = np.bincount(dr, minlength=nb)[gb]
                         if wts.sum():
                             covb.append(float((cov * wts).sum() / wts.sum()))
+                    # T2 pooled calibration target: per forecast bin, all out-of-fold rows of the cell
+                    t2 = []
+                    for kb in range(len(edges) + 1):
+                        mb_ = okr_ & (b == kb)
+                        if mb_.sum() < 20:
+                            continue
+                        yb, Lb, Ub = y[mb_].mean(), L[mb_].mean(), U[mb_].mean()
+                        t2.append(bool(Lb - 1e-12 <= yb <= Ub + 1e-12))
                     bse = base[okr_]
                     excl = ((bse < L[okr_]) | (bse > U[okr_]))
                     cell["constructions"][cname] = {
@@ -171,6 +211,7 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642):
                         "share_width_lt10pts": float((wid < 0.10).mean()),
                         "share_excludes_base_rate": float(np.nanmean(excl)) if np.isfinite(bse).any() else None,
                         "interval_score_pts": float(IS.mean() * 100), "n_groups": int(okg.sum()),
+                        "T2_bins_covered": int(sum(t2)), "T2_bins": len(t2),
                         "rows_with_range": int(okr_.sum())}
                 res["cells"].append(cell)
                 cc = cell["constructions"]

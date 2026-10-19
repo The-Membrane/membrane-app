@@ -534,7 +534,9 @@ def _R165_touch(ser, te, T, Y):
     return out
 
 
-exec(compile(_src, "row_task_r165", "exec"), globals())
+D._R165_state, D._R165_touch, D.STATE_WIN_H, D.LEV = _R165_state, _R165_touch, STATE_WIN_H, LEV
+exec(compile(_src, "row_task_r165", "exec"), D.__dict__)
+row_task_r165 = D.row_task_r165
 
 
 def run_rows(specs, T, grid, workers, log, label):

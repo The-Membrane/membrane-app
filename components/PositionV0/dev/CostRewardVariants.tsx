@@ -29,6 +29,7 @@ import {
   WINDOWS,
   dayLabel,
   netValue,
+  costRewardTrack,
   pct2,
   signedPct,
   signedUsd,
@@ -388,6 +389,9 @@ const TrackerA: React.FC<{ fx: RateFixture; track: Track; wide: boolean }> = ({ 
 
 // ------------------------------------------------------------------ B: income minus interest
 
+/** The fan's share of the spread chart's plot width when the axis ends at +7d (round 7). */
+const FORWARD_SHARE = 0.3
+
 const SpreadChart: React.FC<{
   t: Track
   width: number
@@ -401,8 +405,17 @@ const SpreadChart: React.FC<{
 }> = ({ t, width, uid, withInc = null, height, compact = false, fan = null }) => {
   const base = fan && fan.ok ? fan : null
   const f0 = frameFor(width)
-  const f: Frame = height ? { ...f0, height, m: { ...f0.m, left: compact ? 56 : f0.m.left } } : f0
-  const x = xOf(t, f)
+  const f1: Frame = height ? { ...f0, height, m: { ...f0.m, left: compact ? 56 : f0.m.left } } : f0
+  // With a baseline, one more axis row under the dates for the "→ 30d model pending" tag.
+  const f: Frame = base ? { ...f1, m: { ...f1.m, bottom: f1.m.bottom + 13 } } : f1
+  const H = BASELINE_HORIZONS_D[BASELINE_HORIZONS_D.length - 1]
+  // With a baseline the axis ends at +7d (owner, round 7: the 7–30d hatch took most of the
+  // width): history and the fan each get their own time scale, the fan FORWARD_SHARE of the
+  // plot; days 7–30 are one short "→ 30d model pending" tag. Without one, the old 30d hatch.
+  const pw = f.width - f.m.left - f.m.right
+  const nowX = base ? f.m.left + (1 - FORWARD_SHARE) * pw : xOf(t, f)(t.to)
+  const x = base ? (ts: number) => f.m.left + ((ts - t.from) / (t.to - t.from || 1)) * (nowX - f.m.left) : xOf(t, f)
+  const xh = (h: number) => (base ? nowX + (h / H) * (f.m.left + pw - nowX) : x(t.to + h * 86_400))
   const inc = withInc !== null && withInc !== t.points[t.points.length - 1].spread ? withInc : null
   const fanVals = base ? base.steps.flatMap((s) => [s.p05, s.p95]) : []
   const lo = Math.min(0, ...t.points.map((p) => p.spread), inc ?? 0, ...fanVals)
@@ -415,8 +428,6 @@ const SpreadChart: React.FC<{
   const line = t.points.map((p) => [x(p.ts), y(p.spread)] as [number, number])
   const area = path([[x(t.from), y(0)], ...line, [x(t.to), y(0)]]) + 'Z'
   const last = t.points[t.points.length - 1]
-  const H = BASELINE_HORIZONS_D[BASELINE_HORIZONS_D.length - 1]
-  const xh = (h: number) => x(t.to + h * 86_400)
   const band = (a: 'p05' | 'p25', b: 'p95' | 'p75') =>
     base ? path([...base.steps.map((s) => [xh(s.h), y(s[b])] as [number, number]), ...[...base.steps].reverse().map((s) => [xh(s.h), y(s[a])] as [number, number])]) + 'Z' : ''
   return (
@@ -447,7 +458,7 @@ const SpreadChart: React.FC<{
         </g>
       )}
       {/* The $0 line runs through the forward segment: below it, the spread is negative. */}
-      <line x1={f.m.left} x2={x(t.forecastTo)} y1={y(0)} y2={y(0)} stroke={NEWS.ink} strokeWidth={1} />
+      <line x1={f.m.left} x2={base ? xh(H) : x(t.forecastTo)} y1={y(0)} y2={y(0)} stroke={NEWS.ink} strokeWidth={1} />
       <text x={f.m.left - 4} y={y(0) + 4} {...LABEL} textAnchor="end" fill={NEWS.ink}>
         $0
       </text>
@@ -468,7 +479,7 @@ const SpreadChart: React.FC<{
           </text>
         </g>
       )}
-      <Pending t={t} f={f} uid={uid} compact={compact} bottom fromTs={base ? t.to + H * 86_400 : undefined} />
+      {!base && <Pending t={t} f={f} uid={uid} compact={compact} bottom />}
       {/* Today: where the history ends (the fan starts here); the hatch starts at +7d. */}
       <g data-testid="now-marker">
         <line x1={x(t.to)} x2={x(t.to)} y1={f.m.top} y2={f.height - f.m.bottom} stroke={NEWS.muted} strokeWidth={1} />
@@ -476,12 +487,24 @@ const SpreadChart: React.FC<{
           now
         </text>
       </g>
-      {base && (
-        <text x={xh(H)} y={f.m.top - 3} {...LABEL} textAnchor="middle" data-testid="fan-end">
-          +{H}d
-        </text>
+      {base ? (
+        <g>
+          <text x={f.m.left + pw} y={f.height - f.m.bottom + 27} {...LABEL} textAnchor="end" data-testid="forward-pending-tag">
+            → {FORECAST_EXTENT_D}d model pending
+          </text>
+          <text x={x(t.from)} y={f.height - f.m.bottom + 14} {...LABEL}>
+            {dayLabel(t.from)}
+          </text>
+          <text x={nowX - 3} y={f.height - f.m.bottom + 14} {...LABEL} textAnchor="end" fill={NEWS.ink}>
+            {dayLabel(t.to)}
+          </text>
+          <text x={xh(H)} y={f.height - f.m.bottom + 14} {...LABEL} textAnchor="end" data-testid="fan-end">
+            +{H}d
+          </text>
+        </g>
+      ) : (
+        <TimeAxis t={t} f={f} />
       )}
-      <TimeAxis t={t} f={f} />
     </svg>
   )
 }
@@ -493,10 +516,7 @@ const ForwardNote: React.FC<{ fan: Baseline | null }> = ({ fan }) =>
       <Small color={NEWS.ink2} data-testid="baseline-label">
         {BASELINE_LABEL[0]} · {BASELINE_LABEL[1]}
       </Small>
-      <Small>
-        — what happened · - - - what we expect (today&apos;s level) · denser dots 50% range · light dots 90% range · thin lines: possible paths · after{' '}
-        {BASELINE_HORIZONS_D[BASELINE_HORIZONS_D.length - 1]}d hatched: model pending (Q33, Q34)
-      </Small>
+      <Small>— measured · - - - today&apos;s level · dots 50% / 90% range · thin lines: possible paths</Small>
     </>
   ) : (
     <Small>Forward {FORECAST_EXTENT_D}d hatched: model pending (Q33, Q34){fan && !fan.ok ? ` · no baseline: ${fan.reason}` : ''}</Small>
@@ -532,7 +552,7 @@ const SpreadAlertCta: React.FC<{ id: string; spread: number }> = ({ id, spread }
     >
       {spreadQuestion(spread).cta}
     </Button>
-    <Small id={id}>Design only: alerts cover price, utilization and supply APR; a spread alert is not built yet.</Small>
+    <Small id={id}>Design only · no spread alert yet</Small>
   </Box>
 )
 
@@ -569,9 +589,9 @@ const VariantB: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }
   const pct = spreadPct(now.base, track)
   return (
     <Box display="grid" gap={SPACING.xs} minW={0}>
-      <Kicker tone="muted">Yield spread · proposed number †</Kicker>
+      <Kicker tone="muted">Yield spread</Kicker>
       <Headline>{spreadQuestion(now.base).headline}</Headline>
-      <Small>Income less interest · $ / year at today&apos;s size and prices · 30d · incentives ‡ beside it, not in the line</Small>
+      <Small>Income less interest · $/yr at today&apos;s size</Small>
       <Box ref={ref} w="100%" minW={0} minH={`${frameFor(width ?? 440).height}px`}>
         {width !== null && <SpreadChart t={t} width={width} uid={uid} withInc={now.withIncentives} fan={fan} />}
       </Box>
@@ -592,15 +612,7 @@ const VariantB: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }
                 : `${signedUsd(now.withIncentives)}/yr`}
         </Mono>
       </Box>
-      <Small overflowWrap="anywhere">
-        ‡ <IncentiveWords now={now} />
-      </Small>
-      <Small>% of net value {usd2(netValue(track))} (collateral less debt, at today&apos;s size and prices).</Small>
-      <Text fontFamily={NEWS_FONT.display} fontStyle="italic" fontSize={TYPE.body} color={NEWS.ink}>
-        Annualized snapshots. Crossing $0 is not a break-even date, and a spread is not profit.
-      </Text>
       <SpreadAlertCta id={`${uid}-alert`} spread={now.base} />
-      <Small>† A new kind of number: awaits owner ruling 1 (Q34 spec §9).</Small>
     </Box>
   )
 }
@@ -678,7 +690,6 @@ const VariantC: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }
   const w = Math.min(width ?? 360, 420)
   const now = spreadNow(track, fx)
   const pct = spreadPct(now.base, track)
-  const n = t.points.length
   const legRow = (l: Track['legs'][number], i: number) => (
     <Box key={l.symbol} display="grid" gap={SPACING.xs}>
       <Box display="flex" justifyContent="space-between" alignItems="baseline" gap={SPACING.sm} flexWrap="wrap">
@@ -719,11 +730,8 @@ const VariantC: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }
           {pct !== null ? `${signedUsdWhole(now.base)}/yr · ${signedPct(pct)}` : `${signedUsd(now.base)}/yr`}
         </Mono>
       </Box>
-      {width !== null && <SpreadChart t={t} width={w} uid={`${uid}-s`} withInc={now.withIncentives} height={140} compact fan={fan} />}
+      {width !== null && <SpreadChart t={t} width={w} uid={`${uid}-s`} withInc={now.withIncentives} height={152} compact fan={fan} />}
       <ForwardNote fan={fan} />
-      <Small>
-        {dayLabel(t.from)} – {dayLabel(t.to)} · {n} daily reads · % of net value {usd2(netValue(track))}
-      </Small>
       <Box borderTop={`1px solid ${NEWS.rule}`}>
         <Fold title="Interest paid" figure={`${usd2(sum(cost))}/yr`} id={`${uid}-cost`}>
           {cost.map(legRow)}
@@ -742,11 +750,7 @@ const VariantC: React.FC<{ fx: RateFixture; track: Track; fan: Baseline | null }
           ))}
         </Fold>
       </Box>
-      <Small overflowWrap="anywhere">
-        ‡ <IncentiveWords now={now} />
-      </Small>
       <SpreadAlertCta id={`${uid}-alert`} spread={now.base} />
-      <Small>Rates at today&apos;s size, $/yr: not totals paid or earned · forward {FORECAST_EXTENT_D}d hatched: model pending (Q33, Q34){fan && fan.ok ? `, its first ${BASELINE_HORIZONS_D[BASELINE_HORIZONS_D.length - 1]}d the model-only baseline` : ''}</Small>
     </Box>
   )
 }

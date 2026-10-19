@@ -29,6 +29,8 @@
  * preregistration targets. No values, no band.
  */
 
+import { fmtAmount, fmtInt, fmtUtc } from './format'
+
 /** Days of history before the capture block. */
 export const RATE_DAYS = 90
 
@@ -409,3 +411,30 @@ export function morphoCampaigns(rewards: readonly MorphoReward[], side: 'supply'
       conditions: null,
     }))
 }
+
+/**
+ * The page's one "Sources" disclosure (owner, round 7: data stamps stay, prose goes): one line
+ * per source, each "what · fetched HH:MM UTC, D Mon YYYY".
+ */
+export function sourceStamps(fx: RateFixture, fan: { ok: true; days: number } | { ok: false } | null, baseline: { source: string; capturedAt: string } | null): string[] {
+  const legs = [...fx.position.collateral, ...fx.position.debt]
+    .map((l) => `${fmtAmount(l.amount, 2)} ${l.symbol} at $${fmtAmount(l.priceUsd, l.priceUsd < 10 ? 4 : 2)}`)
+    .join(', ')
+  const reads = fx.series[Object.keys(fx.series)[0]].length
+  const nv = netValue(costRewardTrack(fx))
+  const out = [
+    `Rates: ${fx.source}, ${reads} reads to block ${fmtInt(fx.block)} · fetched ${fmtUtc(Date.parse(fx.capturedAt))}`,
+    `Sizes and prices, held for every date: ${legs}; net value ${usd2(nv)} (the % base) · fetched ${fmtUtc(Date.parse(fx.capturedAt))}`,
+  ]
+  if (baseline && fan && fan.ok) {
+    out.push(
+      `Baseline, model-only: today's spread + the real 1–7-day moves of ${fan.days} daily reads (12 months, same legs and sizes); ${baseline.source} · fetched ${fmtUtc(Date.parse(baseline.capturedAt))}`,
+    )
+  }
+  if (fx.incentives) {
+    const live = fx.incentives.legs.filter((l) => l.campaigns.length > 0).length
+    out.push(`Incentives ‡ (current only): ${fx.incentives.source}, ${live ? `${live} leg(s) with a live campaign` : 'no live campaign on any leg'} · fetched ${fmtUtc(Date.parse(fx.incentives.fetchedAt))}`)
+  }
+  return out
+}
+

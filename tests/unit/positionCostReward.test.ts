@@ -19,6 +19,7 @@ import {
   signedPct,
   signedUsd,
   signedUsdWhole,
+  sourceStamps,
   spreadQuestion,
   spreadNow,
   spreadPct,
@@ -223,5 +224,16 @@ describe('round 6: the spread to the dollar, and a question that fits its state'
     expect(spreadQuestion(-1635)).toMatchObject({ headline: 'Your spread is negative. Will it get back above $0?', cta: 'Alert me if the spread turns positive' })
     expect(spreadQuestion(12)).toMatchObject({ headline: 'Will your spread go negative?', cta: 'Alert me if the spread turns negative' })
     expect(spreadQuestion(0).headline).toBe('Will your spread go negative?')
+  })
+})
+
+describe('round 7: one Sources line per source, each stamped', () => {
+  it('stamps every line with its fetch time and names the baseline model-only', () => {
+    const fx = raw as RateFixture
+    const lines = sourceStamps(fx, { ok: true, days: 364 }, { source: 'Aave V3 Pool getReserveData', capturedAt: '2026-10-18T19:16:00Z' })
+    expect(lines).toHaveLength(fx.incentives ? 4 : 3)
+    for (const l of lines) expect(l).toMatch(/ · fetched \d\d:\d\d UTC/)
+    expect(lines[2]).toMatch(/^Baseline, model-only: .*364 daily reads/)
+    expect(sourceStamps(fx, { ok: false }, null)).toHaveLength(fx.incentives ? 3 : 2)
   })
 })

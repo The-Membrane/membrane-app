@@ -23,14 +23,13 @@ import { NEWS } from '@/components/NewsEdition/tokens'
 import {
   CostRewardVariant,
   VARIANTS,
-  sourceLines,
   type VariantKey,
 } from '@/components/PositionV0/dev/CostRewardVariants'
 import raw from '@/components/PositionV0/dev/costRewardFixture.json'
 import rawBaseline from '@/components/PositionV0/dev/costRewardBaseline.json'
 import { Headline, Kicker, Mono, Small } from '@/components/PositionV0/primitives'
 import { baselineFan } from '@/lib/position/baselineFan'
-import { baselineSpreadSeries, costRewardTrack, type BaselineFixture, type RateFixture } from '@/lib/position/costReward'
+import { baselineSpreadSeries, costRewardTrack, sourceStamps, type BaselineFixture, type RateFixture } from '@/lib/position/costReward'
 
 export const getServerSideProps: GetServerSideProps = async () =>
   process.env.NODE_ENV === 'production' ? { notFound: true } : { props: {} }
@@ -120,17 +119,22 @@ export default function CostReward() {
               <Kicker>
                 {x.key} · {x.title}
               </Kicker>
-              <Small color={NEWS.ink2}>{x.rationale}</Small>
               <CostRewardVariant variant={x.key as VariantKey} fx={FX} track={TRACK} wide={one !== null} fan={FAN} />
             </Box>
           ))}
         </Box>
-        <Box display="grid" gap={SPACING.xs} borderTop={`1px solid ${NEWS.rule}`} pt={SPACING.sm}>
-          {sourceLines(FX, FAN, BASELINE.source).map((l) => (
-            <Small key={l} overflowWrap="anywhere">
-              {l}
-            </Small>
-          ))}
+        {/* One collapsed "Sources": a line per source with its fetched stamp (round 7: prose goes). */}
+        <Box as="details" borderTop={`1px solid ${NEWS.rule}`} sx={{ '& > summary': { cursor: 'pointer', minHeight: '44px', display: 'flex', alignItems: 'center' } }}>
+          <Box as="summary" _focusVisible={FOCUS_STYLES.ring}>
+            <Mono as="span">Sources</Mono>
+          </Box>
+          <Box as="ul" listStyleType="none" m={0} p={0} display="grid" gap={SPACING.xs} pb={SPACING.sm}>
+            {sourceStamps(FX, FAN, BASELINE).map((l) => (
+              <Small as="li" key={l} overflowWrap="anywhere">
+                {l}
+              </Small>
+            ))}
+          </Box>
         </Box>
       </Box>
     </Box>

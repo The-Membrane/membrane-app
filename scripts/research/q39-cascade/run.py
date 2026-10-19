@@ -754,7 +754,7 @@ def stress():
                                       "lead": F[t]["c"][d], "dlog": _logscore(pc, y) - _logscore(pb, y)})
                 tot = float(sum(c["dlog"] for c in cells))
                 out.append({"case": name, "asset": asset, "origin": t, "cells": cells, "sum_dlog": tot,
-                            "status": "pass" if tot > 0 else ("tie" if tot == 0 else "fail")})
+                            "status": "pass" if tot > 1e-9 else ("tie" if tot >= -1e-9 else "fail")})
     order = {"fail": 0, "tie": 1, "pass": 2}
     out.sort(key=lambda r: (order.get(r["status"], 3), r["case"], r["asset"], r["origin"]))
     save("stress.json", out)

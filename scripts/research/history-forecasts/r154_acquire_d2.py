@@ -197,8 +197,8 @@ def boundary_blocks(chain, days, work, log):
 
     def ts_of(blocks):
         need = [b for b in blocks if bts.get(chain, b) is None]
-        for i in range(0, len(need), 20):
-            chunk = need[i:i + 20]
+        for i in range(0, len(need), 10):
+            chunk = need[i:i + 10]
             res = r.batch([("eth_getBlockByNumber", [hex(b), False]) for b in chunk])
             for b, h in zip(chunk, res):
                 bts.put(chain, b, h["timestamp"])
@@ -206,6 +206,8 @@ def boundary_blocks(chain, days, work, log):
     t_head = ts_of([head])[head]
     t_1 = ts_of([1])[1]
     targets = {d: day_ts(d) for d in days}
+    pre = [d for d in days if targets[d] <= t_1]          # before the chain's first block: no boundary
+    days = [d for d in days if targets[d] > t_1]
     lo = {d: 1 for d in days}
     hi = {d: head for d in days}
     tlo = {d: t_1 for d in days}
@@ -235,8 +237,10 @@ def boundary_blocks(chain, days, work, log):
         if not (tb >= targets[d] > tp and tb > 0 and tp > 0):
             raise SystemExit(f"STOP: {chain} {d}: boundary search failed")
         out[d] = b
+    for d in pre:
+        out[d] = 1
     json.dump(out, open(p, "w"))
-    log(f"{chain}: {len(out)} day boundaries")
+    log(f"{chain}: {len(out)} day boundaries ({len(pre)} before the first block)")
     return out
 
 

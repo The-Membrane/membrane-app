@@ -208,7 +208,10 @@ def xt_hourly(sym, t_from):
         for x in d.get("result") or []:
             t = int(x["t"]) // 1000
             if a <= t < b:
-                rows[t] = (float(x["o"]), float(x["h"]), float(x["l"]), float(x["c"]), float(x["q"]))
+                if any(x.get(f) is None for f in ("o", "h", "l", "c")):
+                    continue                      # null hour (stays null in the grid)
+                rows[t] = (float(x["o"]), float(x["h"]), float(x["l"]), float(x["c"]),
+                           None if x.get("q") is None else float(x["q"]))
         a = b
         _t.sleep(0.15)
     return rows

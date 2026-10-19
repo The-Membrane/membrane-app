@@ -618,7 +618,7 @@ def cmd_counts(a):
     res = {"stage": "counts-only (L1)", "reserves": inp.R, "token_logs": int(len(inp.tok["block"])), "accounts": inp.U,
            "rdu_reserve_hours": int(len(inp.pool["rdu_block"])), "flag_logs": int(len(inp.pool["f_block"])),
            "emode_logs": int(len(inp.pool["e_block"])), "aggregators": len(inp.aggs),
-           "sequencer_aggregators": len(inp.seq_aggs), "answer_logs": int(len(inp.ora["block"])),
+           "sequencer_aggregators": len(inp.seq_aggs), "answer_logs": int(len(inp.ora["ts"])),
            "weekly_walks": len(inp.walks), "meta_days": len(metas), "hourly_reads": len(hours),
            "hourly_reads_with_missing_price": int(sum(1 for h in hours if (h["prices"] == 0).any())),
            "gate_days": len(gd), "q2_days_reported_only": len(l1_days(True)) - len(gd),

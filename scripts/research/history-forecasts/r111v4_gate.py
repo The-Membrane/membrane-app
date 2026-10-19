@@ -500,7 +500,7 @@ def cmd_counts(a):
     evd = [dt.datetime.fromtimestamp(r["ts"], dt.timezone.utc).date().isoformat() for r in ur]
     res = {"stage": f"counts-only ({a.mk})", "reserves": inp.R, "token_logs": int(len(inp.tok["block"])), "accounts": inp.U,
            "rdu_reserve_hours": int(len(inp.pool["rdu_block"])), "flag_logs": int(len(inp.pool["f_block"])),
-           "emode_logs": int(len(inp.pool["e_block"])), "aggregators": len(inp.aggs), "answer_logs": int(len(inp.ora["block"])),
+           "emode_logs": int(len(inp.pool["e_block"])), "aggregators": len(inp.aggs), "answer_logs": int(len(inp.ora["ts"])),
            "weekly_walks": len(inp.walks), "sentinel_present_any": any((w.get("sentinel") or {}).get("present") for w in inp.walks),
            "meta_days": len(metas), "hourly_reads": len(hours),
            "gate_days": len(gd), "q2_days_reported_only": len(mk_days(a.mk, True)) - len(gd),
@@ -571,8 +571,10 @@ def cmd_run(a):
     started = os.path.join(a.out, "run-started")
     if os.path.exists(os.path.join(a.out, "r111v4-results.json")):
         raise SystemExit("one run only: results exist")
-    if os.path.exists(started) and not (a.resume and os.path.exists(ck)):
-        raise SystemExit("one run only: a started marker exists (resume needs --resume and a checkpoint)")
+    if os.path.exists(started) and not a.resume:
+        raise SystemExit("one run only: a started marker exists (continue it with --resume)")
+    # --resume continues from the last checkpoint; without one (killed before the first checkpoint) the same run
+    # starts again from the beginning: nothing was computed to disk or seen
     if a.resume and not os.path.exists(started):
         raise SystemExit("--resume without a started run")
     if G.l1_input_digests(a.work) != cfg["inputs_sha256"]:

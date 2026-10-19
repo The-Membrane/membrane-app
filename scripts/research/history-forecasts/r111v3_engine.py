@@ -127,12 +127,20 @@ class Inputs:
         w = jload(os.path.join(self.work, "oracle-walk.json.gz"))
         self.aggs = w["aggregators"]
         self.walks = w["walks"]
-        bl, li, ts, ag, an = [], [], [], [], []
-        for n in _parts(os.path.join(self.work, "oracle")):
-            z = np.load(os.path.join(self.work, "oracle", n))
-            bl.append(z["block"]); li.append(z["lidx"]); ts.append(z["ts"]); ag.append(z["agg"]); an.append(z["answer"])
-        self.ora = {"block": np.concatenate(bl), "lidx": np.concatenate(li), "ts": np.concatenate(ts),
-                    "agg": np.concatenate(ag), "answer": np.concatenate(an)}
+        # R11.1-v4 memory: preallocated arrays; the stream key (block * 1e6 + log index) is stored instead of block and
+        # log index (the only use of either)
+        od = os.path.join(self.work, "oracle")
+        names = _parts(od)
+        lens = [len(np.load(os.path.join(od, n))["agg"]) for n in names]
+        N = int(sum(lens))
+        key, ts, ag, an = np.empty(N, np.int64), np.empty(N, np.int64), np.empty(N, np.int16), np.empty(N, np.float64)
+        i = 0
+        for n, m_ in zip(names, lens):
+            z = np.load(os.path.join(od, n))
+            key[i:i + m_] = z["block"] * 1_000_000 + z["lidx"]
+            ts[i:i + m_], ag[i:i + m_], an[i:i + m_] = z["ts"], z["agg"], z["answer"]
+            i += m_
+        self.ora = {"key": key, "ts": ts, "agg": ag, "answer": an}
         check_ts({"oracle.ts": self.ora["ts"]})
         # driver aggregators per asset per weekly walk (asset index -> list of aggregator ids)
         aidx = {a: i for i, a in enumerate(self.aggs)}
@@ -191,8 +199,25 @@ class State:
 
 def merged_order(keys_list):
     """keys_list: [(type, keys array)] -> (types, positions) in global key order (ties keep list order).
-    R11.1-v4 memory: one stable argsort of key * 8 + type (the same order as the former lexsort((ty, ks)), which is
-    also stable) and int32 positions; keys are block * 1e6 + log index (< 1e15), so key * 8 + type fits int64."""
+    R11.1-v4 memory: the order of key * 8 + type under a stable sort (the same order as the former lexsort((ty, ks)),
+    which is also stable); int32 positions; keys are block * 1e6 + log index (< 1e15), so key * 8 + type fits int64.
+    When every type's keys are non-decreasing (the normal case), the sort runs in place and a position is the
+    element's running count within its type, which is exactly its index in that type's array."""
+    if all(len(k) < 2 or bool(np.all(np.diff(k) >= 0)) for _, k in keys_list):
+        comb = np.empty(sum(len(k) for _, k in keys_list), dtype=np.int64)
+        i = 0
+        for t, k in keys_list:
+            comb[i:i + len(k)] = np.asarray(k, dtype=np.int64) * 8 + t
+            i += len(k)
+        comb.sort(kind="stable")
+        ty = (comb & 7).astype(np.int8)
+        comb >>= 3
+        pos = np.empty(len(comb), dtype=np.int32)
+        for t, _ in keys_list:
+            m_ = ty == t
+            pos[m_] = np.arange(int(m_.sum()), dtype=np.int32)
+            del m_
+        return comb, ty, pos
     comb = np.concatenate([np.asarray(k, dtype=np.int64) * 8 + t for t, k in keys_list])
     pos = np.concatenate([np.arange(len(k), dtype=np.int32) for _, k in keys_list])
     o = np.argsort(comb, kind="stable")
@@ -351,14 +376,13 @@ class Replay:
         tok_key = inp_t["block"] * 1_000_000 + inp_t["lidx"]
         flag_key = inp_p["f_block"] * 1_000_000 + inp_p["f_lidx"]
         em_key = inp_p["e_block"] * 1_000_000 + inp_p["e_lidx"]
-        ora_key = ora["block"] * 1_000_000 + ora["lidx"]
+        ora_key = ora["key"]
         hour_key = np.array([h["block"] * 1_000_000 + 999_999 for h in self.hours], dtype=np.int64)
         ks, ty, pos = merged_order([(EV_TOK, tok_key), (EV_FLAG, flag_key), (EV_EMODE, em_key), (EV_ORACLE, ora_key),
                                     (EV_HOUR, hour_key)])
         # R11.1-v4 memory: the keys are built; oracle block / log index arrays are not read again
         del tok_key, flag_key, em_key, ora_key, hour_key
-        ora.pop("block", None)
-        ora.pop("lidx", None)
+        ora.pop("key", None)
         import gc
         gc.collect()
         inv_unit = 1.0 / (10.0 ** inp.dec)

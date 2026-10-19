@@ -48,11 +48,13 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from r128_oracle import mean_tick_floor  # noqa: E402  (same Solidity rounding as V3PoolSelector._hopTwapLiq)
+import q26cache  # noqa: E402  (shared Q26 data cache; Q26_ETH_RPC_URL first when set, keyless fallback)
 
 PREREG = {"repo": "triccs/membrane-board", "path": "design/Q26_ROUND12_PREREG.md", "item": "R12.9",
           "deviations": "D-R12.9a.."}
 ORACLE_SRC = {"repo": "triccs/membrane-solidity", "sha": "70f965e4092a29b0959c4ceec0370ca032484f83"}
-RPCS = os.environ.get("R129_RPC", "https://gateway.tenderly.co/public/mainnet,https://rpc.mevblocker.io").split(",")
+RPCS = q26cache.rpc_endpoints("ethereum", os.environ.get(
+    "R129_RPC", "https://gateway.tenderly.co/public/mainnet,https://rpc.mevblocker.io").split(","))
 RPC = RPCS[0]
 UA = "curl/8.5.0"
 
@@ -475,7 +477,7 @@ def cmd_acquire(a):
         res[p + "_tick"] = sub[:, 3].astype(np.int32)
     npz = os.path.join(out, f"ticks-{a.group}.npz")
     np.savez_compressed(npz, **res)
-    man = {"schema": "q26-r129-acquire-v1", "prereg": PREREG, "group": a.group, "rpc": RPCS,
+    man = {"schema": "q26-r129-acquire-v1", "prereg": PREREG, "group": a.group, "rpc": [q26cache.redact(u) for u in RPCS],
            "started_utc": prog["started_utc"], "finished_utc": now_iso(), "blocks": [FACTORY_BLOCK, b_end],
            "pools": len(pools), "pools_with_swaps": n_with, "swap_logs": prog["logs"],
            "swap_blocks": int(len(arr)), "npz": os.path.basename(npz), "npz_sha256": sha256_file(npz),
@@ -487,8 +489,21 @@ def cmd_acquire(a):
 
 
 def acquire_chainlink(a):
-    """AnswerUpdated history of every aggregator phase behind the USDC/USD, USDT/USD and DAI/USD proxies."""
+    """AnswerUpdated history of every aggregator phase behind the USDC/USD, USDT/USD and DAI/USD proxies.
+
+    Logs go through the shared q26cache (aligned 2,000,000-block windows; only windows at least 128 blocks behind
+    the head are stored), unless --no-cache. Output is byte-identical to the uncached fetch (verified 2026-10-19)."""
     res = {"schema": "q26-r129-chainlink-v1", "utc": now_iso(), "feeds": {}}
+    cache = None if getattr(a, "no_cache", False) else q26cache.Cache(log=print)
+    final_block = int(rpc("eth_blockNumber", []), 16) - 128 if cache else None
+
+    def answer_logs(agg, b0, b1):
+        if cache is None:
+            return get_logs([agg], ANSWER_UPDATED, b0, b1, max_span=2_000_000)
+        return q26cache.cached_get_logs(
+            cache, "ethereum", agg, ANSWER_UPDATED, b0, b1,
+            lambda lo, hi: get_logs([agg], ANSWER_UPDATED, lo, hi, max_span=2_000_000),
+            chunk=2_000_000, finalized_block=final_block, source_url=RPCS[0])
     for q, proxy in CHAINLINK_PROXY.items():
         n = int(rpc("eth_call", [{"to": proxy, "data": "0x58303b10"}, "latest"]), 16)      # phaseId()
         rows = []
@@ -497,7 +512,7 @@ def acquire_chainlink(a):
                                           "latest"])[-40:]                               # phaseAggregators(ph)
             if int(agg, 16) == 0:
                 continue
-            logs = get_logs([agg], ANSWER_UPDATED, FACTORY_BLOCK - 2_000_000, a.end_block, max_span=2_000_000)
+            logs = answer_logs(agg, FACTORY_BLOCK - 2_000_000, a.end_block)
             for lg in logs:
                 ans = int(lg["topics"][1], 16)
                 ans = ans - (1 << 256) if ans >= 1 << 255 else ans
@@ -509,6 +524,8 @@ def acquire_chainlink(a):
     p = os.path.join(a.out, "chainlink-r129.json")
     json.dump(res, open(p, "w"))
     print("sha256", sha256_file(p))
+    if cache is not None:
+        print("q26cache", json.dumps(cache.stats))
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -1196,6 +1213,7 @@ def main():
     q.add_argument("--chunk", type=int, default=10000)
     q.add_argument("--max-addr", type=int, default=400)
     q.add_argument("--workers", type=int, default=4)
+    q.add_argument("--no-cache", action="store_true", help="chainlink: bypass the shared q26cache")
     q.set_defaults(fn=cmd_acquire)
     for name, fn in (("dev", cmd_dev), ("counts", cmd_counts)):
         x = sp.add_parser(name)

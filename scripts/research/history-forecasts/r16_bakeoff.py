@@ -22,6 +22,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
 import argparse  # noqa: E402
 import hashlib  # noqa: E402
 import json  # noqa: E402
+import re  # noqa: E402
 import sys  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
 
@@ -58,7 +59,7 @@ def xt_first_month(sym):
     import r125_fh_deep as R125
     try:
         d = json.loads(R125.http_get(XT_K.format(s=sym, i="1M", n=1000)))
-    except Exception:  # noqa: BLE001
+    except (Exception, SystemExit):  # noqa: BLE001
         return None
     r = d.get("result") or []
     if not r:
@@ -109,6 +110,8 @@ def cmd_select_b20(a):
             rec["in_b19"].append(base)
         elif base in b9:
             rec["in_b9"].append(base)
+        elif not re.fullmatch(r"[A-Z0-9]+", base):
+            rec["excluded"][base] = "non-alphanumeric ticker"
         elif R125.excluded(base):
             rec["excluded"][base] = R125.excluded(base)
         else:

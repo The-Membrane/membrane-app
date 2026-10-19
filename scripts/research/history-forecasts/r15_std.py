@@ -308,7 +308,7 @@ def cmd_dev1(a):
     clsn = np.array([m_["cls"] for m_ in meta])
     half = np.array([hashlib.sha256((SALT_R151 + k_).encode()).digest()[0] % 2 for k_ in keys])
     classes = L4().CLASSES
-    FH = np.load(a.fh) if a.fh else None
+    FH = dict(np.load(a.fh)) if a.fh else None          # load every array once (NpzFile re-reads on access)
     out = {"schema": "q26-r151-dev-v1", "prereg": PREREG, "created_utc": t0, "code_sha": git_sha(),
            "rows_sha256": sha_file(a.rows), "meta_sha256": sha_file(a.meta),
            "fh_sha256": sha_file(a.fh) if a.fh else None,
@@ -378,14 +378,16 @@ def cmd_dev1(a):
         if FH is not None:
             T = 24 * hh
             fk = FH[f"T{T}_key"]
+            fph = FH[f"T{T}_pH"]
             lut = {(k_, int(t_) // DAY): i_ for i_, (k_, t_) in enumerate(zip(fk.tolist(), FH[f"T{T}_ts"].tolist()))}
             di = [-0.15, -0.20, -0.25, -0.30, -0.40]
-            for i_ in np.where(D["cls"] == 0)[0]:
-                h_ = lut.get((keys[D["sid"][i_]], int(D["ts"][i_]) // DAY))
-                if h_ is not None:
-                    for j, k in enumerate(R151_LEVELS):
-                        if k in di:
-                            pfh[i_, j] = FH[f"T{T}_pH"][h_, di.index(k)]
+            ci_ = np.where(D["cls"] == 0)[0]
+            hit = np.array([lut.get((keys[s_], int(t_) // DAY), -1)
+                            for s_, t_ in zip(D["sid"][ci_].tolist(), D["ts"][ci_].tolist())], np.int64)
+            okh = hit >= 0
+            for j, k in enumerate(R151_LEVELS):
+                if k in di:
+                    pfh[ci_[okh], j] = fph[hit[okh], di.index(k)]
         PP["fH"] = pfh
         pooled[hh] = (D, PP)
         del R

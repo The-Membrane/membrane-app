@@ -124,7 +124,7 @@ class Rpc:
                 time.sleep(min(30, 1.5 ** k))
         raise RuntimeError(f"{method} failed: {QC.redact(str(err))[:300]}")
 
-    def batch(self, calls, tries=8):
+    def batch(self, calls, tries=14):
         payload = [{"jsonrpc": "2.0", "id": i, "method": m, "params": p} for i, (m, p) in enumerate(calls)]
         err = None
         for k in range(tries):
@@ -143,12 +143,12 @@ class Rpc:
                 return res
             except Exception as e:  # noqa: BLE001
                 err = e
-                time.sleep(min(30, 1.5 ** k))
+                time.sleep(min(60, 2 ** k))
         raise RuntimeError(f"batch failed: {QC.redact(str(err))[:300]}")
 
 
 def state_rpc(chain):
-    return Rpc(QC.rpc_endpoints(chain, KEYLESS_STATE[chain], kind="state"), rps=10.0)
+    return Rpc(QC.rpc_endpoints(chain, KEYLESS_STATE[chain], kind="state"), rps=3.0)
 
 
 def word(h, i):
@@ -197,8 +197,8 @@ def boundary_blocks(chain, days, work, log):
 
     def ts_of(blocks):
         need = [b for b in blocks if bts.get(chain, b) is None]
-        for i in range(0, len(need), 50):
-            chunk = need[i:i + 50]
+        for i in range(0, len(need), 20):
+            chunk = need[i:i + 20]
             res = r.batch([("eth_getBlockByNumber", [hex(b), False]) for b in chunk])
             for b, h in zip(chunk, res):
                 bts.put(chain, b, h["timestamp"])

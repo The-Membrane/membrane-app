@@ -1083,6 +1083,84 @@ def cmd_score(a):
     log("END score")
 
 
+# =============================================================================================
+# power at the B20a upper-bound counts (no B20a byte read): D-R15.0b/c rule, two-way z of mean d
+# =============================================================================================
+def b20_bound(datasets, part="B20a"):
+    """upper bound on B20a series and 4-week blocks from listing months only: every pair is scorable from the first
+    quarter starting >= 365 days after its first month to 2026-09-30, except 2026Q2."""
+    import datetime as _dt
+    sel = json.load(open(os.path.join(datasets, "b20-xt-bingx-prices/selection-b20.json")))
+    end = int(_dt.datetime(2026, 10, 1, tzinfo=_dt.timezone.utc).timestamp())
+    blocks = set()
+    weeks_by_series = []
+    for b in sel[part]:
+        y, mo = map(int, sel["first_month_utc"][b].split("-"))
+        t0 = int(_dt.datetime(y, mo, 1, tzinfo=_dt.timezone.utc).timestamp()) + 365 * DAY
+        qy, qq = (int(_dt.datetime.fromtimestamp(t0, _dt.timezone.utc).year),
+                  (int(_dt.datetime.fromtimestamp(t0, _dt.timezone.utc).month) - 1) // 3 + 1)
+        qq += 1
+        if qq > 4:
+            qy, qq = qy + 1, 1
+        qs = int(_dt.datetime(qy, 3 * (qq - 1) + 1, 1, tzinfo=_dt.timezone.utc).timestamp())
+        ts = np.arange(qs, end, DAY)
+        ts = ts[(ts < R12.Q2_START) | (ts >= R12.Q2_END)]
+        blocks |= set((ts // (28 * DAY)).tolist())
+        weeks_by_series.append(len(np.unique(ts // (7 * DAY))))
+    return {"S": len(sel[part]), "K4w": len(blocks), "series_weeks_total": int(sum(weeks_by_series))}
+
+
+def cmd_power(a):
+    from scipy.stats import norm
+    res = json.load(open(os.path.join(a.out, "dev-r162.json")))
+    meta = json.load(open(os.path.join(a.out, "rows-meta.json")))
+    bd = b20_bound(a.datasets)
+    out = {"schema": "q26-r16.2-power/1", "code": git_sha(), "b20a_upper_bound": bd, "rule":
+           "z_blind = |mean d| / sqrt(V_s * S_dev / S_blind + V_t * K_dev / K_blind + V_int * S_dev K_dev / (S_blind "
+           "K_blind)); V_s, V_t one-way bootstrap variances, V_int = max(V_2w - V_s - V_t, 0); power = Phi(z_blind - "
+           "z_(1 - 0.05 / m)), m primary cells (Holm, worst case); one-sided", "candidates": {}}
+    for tier, tv in res["tiers"].items():
+        C = tv["comparator"]
+        for m in tv["selected"] + [x for x in tv["candidates"] if x not in tv["selected"]][:0]:
+            pass
+        for m in tv["candidates"]:
+            cells = []
+            for ck, cv in res["cells"].items():
+                if not any(ck.startswith(TL[T] + " ") for T in TIERS[tier]):
+                    continue
+                src = cv.get("sim_subset", {}) if m in SIM else cv
+                if m not in src or ("tw_" + C) not in src[m]:
+                    continue
+                t = src[m]["tw_" + C]
+                if t["z"] is None or t["mean"] >= 0:
+                    cells.append({"cell": ck, "z_dev": t["z"], "power1": 0.0, "power2": 0.0})
+                    continue
+                V2, Vs, Vt = t["sd2"] ** 2, t["sd_series"] ** 2, t["sd_block"] ** 2
+                Vi = max(V2 - Vs - Vt, 0.0)
+                Sd, Kd = t["S"], t["K"]
+                Sb, Kb = bd["S"], max(bd["K4w"], 1)
+                Vb = Vs * Sd / Sb + Vt * Kd / Kb + Vi * Sd * Kd / (Sb * Kb)
+                zb = abs(t["mean"]) / math.sqrt(Vb)
+                cells.append({"cell": ck, "z_dev": t["z"], "mean_d": t["mean"], "z_blind": zb,
+                              "power1": float(norm.cdf(zb - norm.ppf(1 - 0.05))),
+                              "power2": float(norm.cdf(zb - norm.ppf(1 - 0.025)))})
+            cells.sort(key=lambda c: -c["power1"])
+            out["candidates"].setdefault(tier, {})[m] = {"selected": m in tv["selected"], "comparator": C,
+                                                          "cells": cells,
+                                                          "best_power_1cell": cells[0]["power1"] if cells else 0.0,
+                                                          "best_power_2cells_joint_any": (
+                                                              1 - (1 - cells[0]["power2"]) * (1 - cells[1]["power2"])
+                                                              if len(cells) > 1 else 0.0)}
+    with open(os.path.join(a.out, "power-r162.json"), "w") as fh:
+        json.dump(out, fh, indent=1, default=float)
+    print(json.dumps(bd))
+    for tier, d in out["candidates"].items():
+        for m, v in sorted(d.items(), key=lambda kv: -kv[1]["best_power_1cell"]):
+            c0 = v["cells"][0] if v["cells"] else {}
+            print(f"{tier:7s} {m:4s} sel {int(v['selected'])} best cell {c0.get('cell')} z_dev {c0.get('z_dev')} "
+                  f"z_blind {c0.get('z_blind')} power1 {v['best_power_1cell']:.3f} power2any {v['best_power_2cells_joint_any']:.3f}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1095,8 +1173,11 @@ def main():
     s.add_argument("--only", default="")
     s = sub.add_parser("score")
     s.add_argument("--out", required=True)
+    s = sub.add_parser("power")
+    s.add_argument("--out", required=True)
+    s.add_argument("--datasets", required=True)
     a = ap.parse_args()
-    {"rows": cmd_rows, "score": cmd_score}[a.cmd](a)
+    {"rows": cmd_rows, "score": cmd_score, "power": cmd_power}[a.cmd](a)
 
 
 if __name__ == "__main__":

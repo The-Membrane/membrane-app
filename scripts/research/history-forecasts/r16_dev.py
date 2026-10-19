@@ -1208,6 +1208,83 @@ def cmd_power(a):
                   f"z_blind {c0.get('z_blind')} power1 {v['best_power_1cell']:.3f} power2any {v['best_power_2cells_joint_any']:.3f}")
 
 
+NN = ("nmlp", "ngru", "ntcn", "ntfm", "nmlp0")
+
+
+def cmd_score_nn(a):
+    """sequence models (r16_nn.py) on their daily-origin subset, against fH / f on the same rows, with the pre-stated
+    selection rule E1-E4 (no gb refit: only the base rows and the nn rows are read)."""
+    out_dir = a.out
+    keys = json.load(open(os.path.join(out_dir, "rows-meta.json")))["series"]
+    res = {"schema": "q26-r16.2-dev-nn/1", "label": "DEVELOPMENT ONLY (seen data)", "code": git_sha(), "cells": {},
+           "tiers": {}}
+    D_tier = {t: {} for t in TIERS}
+    for T in TS:
+        fn = os.path.join(out_dir, f"rows-nn-T{T}.npz")
+        if not os.path.exists(fn):
+            continue
+        Z = np.load(os.path.join(out_dir, f"rows-T{T}.npz"))
+        R = {k_: Z[k_] for k_ in ("sid", "ts", "y", "fH", "f")}
+        Zn = np.load(fn)
+        kc = (Zn["sid"].astype(np.int64) << 32) | Zn["ts"].astype(np.int64)
+        kr = (R["sid"].astype(np.int64) << 32) | R["ts"].astype(np.int64)
+        o = np.argsort(kc)
+        pos = np.clip(np.searchsorted(kc[o], kr), 0, len(kc) - 1)
+        hit = kc[o][pos] == kr
+        P = {"fH": R["fH"].astype(float), "f": R["f"].astype(float)}
+        for nm in NN:
+            v = np.full_like(P["fH"], np.nan)
+            v[hit] = Zn[nm][o][pos[hit]]
+            P[nm] = v
+        mask = np.isfinite(P["nmlp"][:, 0])
+        Rn = {k_: v[mask] for k_, v in R.items()}
+        Pn = {m: v[mask] for m, v in P.items()}
+        tw = TwoWay(Rn["sid"], (Rn["ts"] // (28 * DAY)).astype(np.int64), B=1000)
+        mods = ("fH", "f") + tuple(m for m in NN if np.isfinite(Pn[m]).any())
+        cells = score_cells(Rn, T, Pn, mods, tw, Rn["sid"], print)
+        res["cells"].update(cells)
+        tier = [t for t, Ts in TIERS.items() if T in Ts][0]
+        C = TIER_C[tier]
+        Y = Rn["y"].astype(float)
+        L = Y.shape[1]
+        dd = {m: np.where(np.all(np.isfinite(Pn[m]), axis=1)[:, None], (Pn[m] - Y) ** 2 - (Pn[C] - Y) ** 2,
+                          np.nan).sum(axis=1) / L for m in mods if m not in BASE}
+        dd["_sid"], dd["_ts"] = Rn["sid"], Rn["ts"]
+        D_tier[tier][T] = dd
+        print(R12.now_iso(), TL[T], {m: round(float(np.mean([cells[c][m]["bss_fH"] for c in cells if m in cells[c]])), 4)
+                                    for m in mods}, flush=True)
+    for tier, dct in D_tier.items():
+        if not dct:
+            continue
+        C = TIER_C[tier]
+        sid = np.concatenate([dct[T]["_sid"] for T in dct])
+        ts = np.concatenate([dct[T]["_ts"] for T in dct])
+        blk = (ts // (28 * DAY)).astype(np.int64)
+        tr = {}
+        for m in NN:
+            if not all(m in dct[T] for T in dct):
+                continue
+            d = np.concatenate([dct[T][m] for T in dct])
+            mk = np.isfinite(d)
+            zz = TwoWay(sid[mk], blk[mk], B=1000).z(d[mk])
+            lk = leave_top_k(sid[mk], d[mk])
+            tcells = [c for c in res["cells"] if any(c.startswith(TL[T] + " ") for T in dct)]
+            bss = [res["cells"][c][m]["bss_fH" if C == "fH" else "bss_f"] for c in tcells]
+            lr = [abs(math.log(res["cells"][c][m]["R"])) for c in tcells]
+            lrC = [abs(math.log(res["cells"][c][C]["R"])) for c in tcells]
+            e = (zz["z"] is not None and zz["z"] <= -2.0, min(bss) >= -0.002,
+                 lk["mean_after"] is not None and lk["mean_after"] < 0, np.median(lr) <= np.median(lrC) + 0.02)
+            tr[m] = {"two_way": zz, "leave_top_k": lk, "bss_vs_C_cells": bss, "bss_vs_C_mean": float(np.mean(bss)),
+                     "median_abs_lnR": float(np.median(lr)), "median_abs_lnR_C": float(np.median(lrC)),
+                     "E": [bool(x) for x in e], "eligible": bool(all(e))}
+            print(f"TIER {tier} {m}: bssC {np.mean(bss):+.4f} min {min(bss):+.4f} z {zz['z']} E {[int(x) for x in e]} "
+                  f"gain {lk['series_with_gain']}/{lk['series']} lnR {np.median(lr):.3f}/{np.median(lrC):.3f}", flush=True)
+        res["tiers"][tier] = {"comparator": C, "candidates": tr,
+                              "eligible_ranked": sorted([m for m in tr if tr[m]["eligible"]],
+                                                        key=lambda m: tr[m]["two_way"]["z"])}
+    json.dump(res, open(os.path.join(out_dir, "dev-r162-nn.json"), "w"), indent=1, default=float)
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1220,11 +1297,13 @@ def main():
     s.add_argument("--only", default="")
     s = sub.add_parser("score")
     s.add_argument("--out", required=True)
+    s = sub.add_parser("score-nn")
+    s.add_argument("--out", required=True)
     s = sub.add_parser("power")
     s.add_argument("--out", required=True)
     s.add_argument("--datasets", required=True)
     a = ap.parse_args()
-    {"rows": cmd_rows, "score": cmd_score, "power": cmd_power}[a.cmd](a)
+    {"rows": cmd_rows, "score": cmd_score, "power": cmd_power, "score-nn": cmd_score_nn}[a.cmd](a)
 
 
 if __name__ == "__main__":

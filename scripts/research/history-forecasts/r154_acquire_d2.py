@@ -366,10 +366,12 @@ def load_deltas(work, name):
     return rows
 
 
-def phase_counts(work, out_path, log):
+def phase_counts(work, out_path, log, only=None):
     if os.path.exists(out_path):
         raise SystemExit(f"STOP: {out_path} exists")
     res = phase_resolve(work, log)
+    if only:
+        res = {k: v for k, v in res.items() if k in only}       # smoke test of the code path only
     bounds = phase_bounds(work, log)
     days_all = days_between(D2_START, LAST_BOUNDARY)
     counted = set(days_between(D2_START, COUNT_END_1)) | set(days_between(COUNT_START_2, COUNT_END_2))
@@ -495,7 +497,7 @@ def main(argv=None):
     elif a.phase == "logs":
         phase_logs(a.work, a.reserves.split(","), log)
     else:
-        phase_counts(a.work, a.out, log)
+        phase_counts(a.work, a.out, log, a.reserves.split(",") if a.reserves != ",".join(RESERVES) else None)
 
 
 if __name__ == "__main__":

@@ -254,6 +254,17 @@ def cex_base(symbol):
     return s
 
 
+def instrument_check(key):
+    """q26_instrument rule on a cache Key (CEX price keys only); raises InstrumentExclusionError for a leveraged
+    token. Returns the symbol class (None, 'pegged', 'pegged?', ...) otherwise."""
+    import sys as _sys
+    _here = os.path.dirname(os.path.abspath(__file__))
+    if _here not in _sys.path:
+        _sys.path.insert(0, _here)
+    import q26_instrument as _QI
+    return _QI.instrument_check(key.source, key.symbol, cex_base)
+
+
 def _hash_byte(salt, s):
     return hashlib.sha256((salt + s).encode()).digest()[0]
 
@@ -679,12 +690,17 @@ class Cache:
         return man
 
     def get_or_fetch(self, key, fetch, source_url=None, published_sha256=None, meta=None, owner=None,
-                     blind_set=None, cache_result=True):
+                     blind_set=None, cache_result=True, allow_instrument=False):
         """Cached bytes for ``key``; on a miss call ``fetch()`` (bytes), verify, store and return them.
-        The guard runs before ``fetch`` so a refused key is never fetched through the cache."""
+        The guard runs before ``fetch`` so a refused key is never fetched through the cache.
+        Instrument guard (2026-10-19, design/q26-leveraged-token-audit-2026-10-19.md): a CEX price key whose base is a
+        confirmed leveraged token (q26_instrument.classify_symbol) raises InstrumentExclusionError before the fetch,
+        unless ``allow_instrument=True`` or Q26_ALLOW_INSTRUMENT=1 (a deliberate reference fetch)."""
         data = self.get(key, owner, blind_set)
         if data is not None:
             return data
+        if not allow_instrument and os.environ.get("Q26_ALLOW_INSTRUMENT") != "1":
+            instrument_check(key)
         data = fetch()
         if cache_result:
             self.put(key, data, source_url, published_sha256, meta, owner, blind_set)

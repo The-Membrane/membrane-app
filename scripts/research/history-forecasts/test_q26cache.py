@@ -322,5 +322,49 @@ class TestRedaction(unittest.TestCase):
                     self.assertNotIn(b"Zz9KkQ8xYyW7vVu6TtS5rR4", f.read())
 
 
+
+
+
+# --- instrument guard (design/q26-leveraged-token-audit-2026-10-19.md) ---------------------------------------------
+class TestInstrument(unittest.TestCase):
+    def test_guard_blocks_leveraged_fetch(self):
+        import q26_instrument as QI
+        tmp = tempfile.mkdtemp()
+        c = q.Cache(root=os.path.join(tmp, "c"), guard=make_guard(tmp))
+        calls = []
+        for sym in ("TRBUPUSDT", "INJDOWN-USDT", "BTC3L_USDT", "ETH5S_USDT", "ADA2LUSDT"):
+            with self.assertRaises(QI.InstrumentExclusionError):
+                c.get_or_fetch(q.Key("kucoin", "klines-1m", sym, "2024-01-01"), lambda: calls.append(1) or b"x")
+        self.assertEqual(calls, [])
+        self.assertEqual(c.get_or_fetch(q.Key("kucoin", "klines-1m", "TRBUPUSDT", "2024-01-01"), lambda: b"x",
+                                        allow_instrument=True), b"x")
+        self.assertEqual(c.get_or_fetch(q.Key("kucoin", "klines-1m", "JUPUSDT", "2024-01-01"), lambda: b"y"), b"y")
+
+    def test_classes_and_detectors(self):
+        import numpy as np
+        import q26_instrument as QI
+        self.assertEqual(QI.classify_symbol("TRBUP")[0], QI.LEVERAGED)
+        self.assertEqual(QI.classify_symbol("PYTHDOWN")[0], QI.LEVERAGED)
+        self.assertEqual(QI.classify_symbol("AAVE3S")[0], QI.LEVERAGED)
+        self.assertEqual(QI.classify_symbol("ROUP")[0], QI.LEVERAGED_SUSPECT)
+        self.assertIsNone(QI.classify_symbol("JUP")[0])
+        self.assertIsNone(QI.classify_symbol("FET")[0])
+        self.assertEqual(QI.classify_symbol("CRVUSD")[0], QI.PEGGED)
+        self.assertEqual(QI.classify_symbol("OUSD")[0], QI.PEGGED)
+        flat = np.r_[np.full(24 * 60, 1.0), np.full(24 * 60, 1.001)]
+        self.assertTrue(QI.peg_check(flat)["pegged"])
+        c = np.r_[np.exp(np.cumsum(np.random.default_rng(0).normal(0, 0.01, 500))), np.full(120, np.nan),
+                  np.exp(np.cumsum(np.random.default_rng(1).normal(0, 0.01, 500))) * 1000]
+        j = QI.rebase_jumps(c)
+        self.assertEqual(len(j), 1)
+        self.assertTrue(j[0]["redenomination"])
+        u = np.exp(np.cumsum(np.random.default_rng(2).normal(0, 0.01, 3000)))
+        b = QI.leverage_beta(u ** 3, u, 0, 0)
+        self.assertTrue(b["leveraged"])
+        self.assertLess(abs(b["beta"] - 3), 0.01)
+        self.assertIn("leveraged", QI.exclusion_reason("WLDUP"))
+        self.assertIsNone(QI.exclusion_reason("FET"))
+
+
 if __name__ == "__main__":
     unittest.main()

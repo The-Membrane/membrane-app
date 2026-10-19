@@ -38,9 +38,14 @@ import r16_dev as D  # noqa: E402
 
 DAY = 86400
 ACQ_END = 1790812800          # 2026-10-01T00:00:00Z
-FROZEN_TS = (1, 3, 12, 6, 24, 72)
+FROZEN_TS = (1, 3, 12, 6, 24, 72)   # the frozen pickle covers these; the run uses the PRIMARY horizons
 # primary cells: filled by D-R16.2b (model, comparator, T, level); edited only before the freeze commit
-PRIMARY = []
+PRIMARY = [{"model": "lp", "comparator": "fH", "T": 12, "level": -0.02},
+           {"model": "st", "comparator": "fH", "T": 12, "level": -0.02},
+           {"model": "gH", "comparator": "fH", "T": 24, "level": -0.07},
+           {"model": "lp", "comparator": "fH", "T": 6, "level": -0.03}]
+# PASS per cell (D-R16.2b): Holm over the 4 cells at alpha 0.05 one-sided on max(centred p, percentile p);
+# AND R(model) in 0.8-1.25; AND leave-top-k mean d < 0. CGM two-way z reported beside.
 
 
 def sha_file(p):
@@ -56,7 +61,7 @@ def cmd_freeze(a):
     keys = meta["series"]
     rng = np.random.default_rng(D.SEED)
     frozen, inputs = {}, {}
-    Ts = sorted({c["T"] for c in PRIMARY}) if PRIMARY else FROZEN_TS
+    Ts = FROZEN_TS
     for T in Ts:
         fp = os.path.join(a.dev, f"rows-T{T}.npz")
         inputs[fp] = sha_file(fp)

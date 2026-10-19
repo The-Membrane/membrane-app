@@ -1183,6 +1183,21 @@ def cmd_power(a):
                                                           "best_power_2cells_joint_any": (
                                                               1 - (1 - cells[0]["power2"]) * (1 - cells[1]["power2"])
                                                               if len(cells) > 1 else 0.0)}
+    # registered primary family (D-R16.2b): one cell per selected candidate = its highest-power cell; Holm over the
+    # family (worst-case alpha / M); power also at 0.75 x the development effect (winner's-curse margin)
+    fam = []
+    for tier, d in out["candidates"].items():
+        for m, v in d.items():
+            if v["selected"] and v["cells"] and v["cells"][0].get("z_blind") is not None:
+                fam.append((tier, m, v["cells"][0]))
+    M = max(len(fam), 1)
+    zc = norm.ppf(1 - 0.05 / M)
+    out["primary_family"] = [{"tier": t, "model": m, "cell": c["cell"], "z_dev": c["z_dev"], "z_blind": c["z_blind"],
+                              "power_holm": float(norm.cdf(c["z_blind"] - zc)),
+                              "power_holm_075": float(norm.cdf(0.75 * c["z_blind"] - zc))} for t, m, c in fam]
+    out["primary_M"] = M
+    for r in out["primary_family"]:
+        print("PRIMARY", json.dumps(r))
     with open(os.path.join(a.out, "power-r162.json"), "w") as fh:
         json.dump(out, fh, indent=1, default=float)
     print(json.dumps(bd))

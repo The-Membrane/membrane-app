@@ -89,6 +89,7 @@ DEV_R131 = "history-forecasts/r13/r131-dev-c3f36695/dev-r131.json"
 WB_MARKETS = "https://whitebit.com/api/v4/public/markets"
 CDC_INSTR = "https://api.crypto.com/exchange/v1/public/get-instruments"
 BG_SYMBOLS = "https://api.bitget.com/api/v2/spot/public/symbols"
+B22_DERIV = {"BGSOL"}                                     # Bitget staked SOL (not in the R12.5 DERIV list)
 B22_FIRST_MAX_MS = 1751328000000                           # Bitget openTime before 2025-07-01 (when given)
 CB_PRODUCTS = "https://api.exchange.coinbase.com/products"
 KR_PAIRS = "https://api.kraken.com/0/public/AssetPairs"
@@ -184,6 +185,8 @@ def cmd_select_b22(a):
             rec["excluded"][base] = "non-alphanumeric ticker"
         elif R125.excluded(base):
             rec["excluded"][base] = R125.excluded(base)
+        elif base in B22_DERIV:
+            rec["excluded"][base] = "wrapped/staked derivative"
         elif base in sym:
             rec["excluded"][base] = "duplicate base"
         else:

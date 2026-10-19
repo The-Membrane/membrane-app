@@ -589,7 +589,17 @@ def build_rows(name, T, a, log):
     d131 = json.load(open(os.path.join(a.datasets, DEV_R131))) if name in ("b12", "b13a") else None
     S = run_rows(set_specs(name, a.datasets), T, "1h", a.workers, log, name)
     dr_map, r13 = maps_for(name, T, cfg, d141, d131)
-    P = forecasts(S, T, dr_map, r13, cfg)
+    for k_ in ("pf", "pa"):
+        S.pop(k_, None)
+    # memory: forecasts per chunk of series (the subject level uses only the same series' rows, so this is exact)
+    us = np.unique(S["sid"])
+    P = {m: np.empty((len(S["ts"]), len(LEV))) for m in MODELS}
+    for c0 in range(0, len(us), 40):
+        rr = np.flatnonzero(np.isin(S["sid"], us[c0:c0 + 40]))
+        Pc = forecasts({k_: v[rr] for k_, v in S.items()}, T, dr_map, r13, cfg)
+        for m in MODELS:
+            P[m][rr] = Pc[m]
+        del Pc
     keep = ~S["q2"] & ~S["tail"]
     cols = [D.KIX[k] for k in LEV]
     out = {"ts": S["ts"][keep], "sid": S["sid"][keep].astype(np.int32), "st": S["st"][keep],

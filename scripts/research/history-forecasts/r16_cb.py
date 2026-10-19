@@ -208,9 +208,9 @@ def cmd_rows(a):
         if sp["kind"] == "chain":
             R12.load_series(sp)
             break
-    meta = json.load(open(os.path.join(a.out, "rows-meta.json")))
-    sid_of = {k: j for j, k in enumerate(meta["series"])}
-    specs = [s for s in specs if s["key"] in sid_of]
+    sid_of = {s["key"]: j for j, s in enumerate(specs)}       # own ordering; r16_dev score maps by key
+    json.dump({"series": [s["key"] for s in specs], "code": D.git_sha()},
+              open(os.path.join(a.out, "rows-cb-meta.json"), "w"))
     acc = {T: [] for T in D.TS}
     t0 = time.time()
     with mp.get_context("fork").Pool(a.workers, maxtasksperchild=8) as pool:

@@ -966,7 +966,10 @@ def cmd_score(a):
         fcb = os.path.join(out_dir, f"rows-cb-T{T}.npz")
         if os.path.exists(fcb):                       # Chronos-Bolt rows (r16_cb.py), merged by (series, ts)
             Zc = np.load(fcb)
-            kc = (Zc["sid"].astype(np.int64) << 32) | Zc["ts"].astype(np.int64)
+            cbk = json.load(open(os.path.join(out_dir, "rows-cb-meta.json")))["series"]
+            mapk = {k_: j_ for j_, k_ in enumerate(keys)}
+            cmap = np.array([mapk.get(k_, -1) for k_ in cbk], np.int64)
+            kc = (cmap[Zc["sid"]] << 32) | Zc["ts"].astype(np.int64)
             kr = (R["sid"].astype(np.int64) << 32) | R["ts"].astype(np.int64)
             o = np.argsort(kc)
             pos = np.searchsorted(kc[o], kr)

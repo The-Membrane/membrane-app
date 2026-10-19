@@ -473,9 +473,73 @@ def run_stats(paths, out_json, labels_csv, seed, n_rep, blocks=(91,), h2=True, c
         json.dump(res, f, indent=1)
 
 
+# ---------------------------------------------------------------------------------------------
+# Power (D-R13.5c / D-R15.4b component-wise rule): scale the development two-way variance to a target set
+# ---------------------------------------------------------------------------------------------
+def _phi(x):
+    return 0.5 * (1 + math.erf(x / math.sqrt(2)))
+
+
+def var_factor(vs, vb, vi, boot_var, dev_counts, new_counts):
+    """factor = projected / development pigeonhole variance. V_s ~ 1/S, V_b ~ 1/B, interaction ~ 1/C; the
+    interaction multiplier c is calibrated so that vs + vb + c vi equals the development bootstrap variance."""
+    c = max((boot_var - vs - vb) / vi, 0.0) if vi > 0 else 0.0
+    S0, B0, C0 = dev_counts
+    S1, B1, C1 = new_counts
+    num = vs * S0 / S1 + vb * B0 / B1 + c * vi * C0 / C1
+    return num / (vs + vb + c * vi), c
+
+
+def tost_power(mu, sd, delta=math.log(1.25), z=1.6449):
+    return max(0.0, _phi((delta - abs(mu)) / sd - z) + _phi((delta + abs(mu)) / sd - z) - 1.0)
+
+
+def run_power(dev_json, new_counts_json, out_json, block_days, h1_cells, z_crit_h1):
+    dev = json.load(open(dev_json))
+    newc = json.load(open(new_counts_json))
+    out = {"rule": "z_proj = z_dev / sqrt(factor); factor from V_s, V_b, interaction scaled by S, B, C ratios "
+                   "(interaction multiplier calibrated to the development bootstrap variance)",
+           "block_days": block_days, "z_crit_h1": z_crit_h1, "h1": {}, "h2": {}}
+    for cell in h1_cells:                       # e.g. "7d|f_vs_a"
+        T, comp = cell.split("|")
+        x = [r for r in dev["h1"] if r["T"] == T and r["comparison"] == comp and r["block_days"] == block_days][0]
+        v = x["var_components"]
+        nc = newc[T]
+        f, c = var_factor(v["V_s"], v["V_b"], v["V_int"], v["boot"], (x["S"], x["B"], x["cells_occupied"]),
+                          (nc["S"], nc["B"], nc["C"]))
+        zd = x["z_twoway"]
+        zp = zd / math.sqrt(f)
+        test = _phi(zp - z_crit_h1) if zd > 0 else 0.0
+        conc = _phi(x["leave_top_k"]["z_twoway"] * zp / zd) if zd > 0 else 0.0
+        out["h1"][cell] = {"z_dev": zd, "factor": f, "c_int": c, "z_proj": zp, "test": test, "concentration": conc,
+                           "joint": test * conc, "dev_counts": [x["S"], x["B"], x["cells_occupied"]],
+                           "new_counts": [nc["S"], nc["B"], nc["C"]]}
+    joint = 1.0
+    for x in dev["h2"]:
+        if not x or x["block_days"] != block_days:
+            continue
+        nc = newc["7d"]
+        vs, vb, vi = x["lnR_var_components"]
+        f, c = var_factor(vs, vb, vi, x["lnR_tost"]["sd"] ** 2, (x["S"], x["B"], x["cells_occupied"]),
+                          (nc["S"], nc["B"], nc["C"]))
+        sdR = x["lnR_tost"]["sd"] * math.sqrt(f)
+        sdb = x["ln_slope_tost"]["sd"] * math.sqrt(f)
+        lnb = math.log(x["slope"]) if x["slope"] > 0 else -10
+        pR, pb = tost_power(x["lnR"], sdR), tost_power(lnb, sdb)
+        key = f"{x['asset_map']}/{x['rung']}|{x['class']}"
+        out["h2"][key] = {"lnR": x["lnR"], "sd_lnR_dev": x["lnR_tost"]["sd"], "slope": x["slope"],
+                          "sd_lnslope_dev": x["ln_slope_tost"]["sd"], "factor": f, "power_R": pR, "power_slope": pb,
+                          "joint": pR * pb}
+        joint *= pR * pb
+    out["h2_joint_all_classes"] = joint
+    with open(out_json, "w") as fh:
+        json.dump(out, fh, indent=1)
+    print(json.dumps(out, indent=1))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--phase", required=True, choices=("dev", "ethbtc", "stats"))
+    ap.add_argument("--phase", required=True, choices=("dev", "ethbtc", "stats", "power"))
     ap.add_argument("--datasets", default="/home/user/membrane-datasets")
     ap.add_argument("--out", required=True)
     ap.add_argument("--workers", type=int, default=4)
@@ -487,11 +551,17 @@ def main(argv=None):
     ap.add_argument("--nrep", type=int, default=10000)
     ap.add_argument("--blocks", default="91")
     ap.add_argument("--no-h2", action="store_true")
+    ap.add_argument("--dev-json")
+    ap.add_argument("--counts-json")
+    ap.add_argument("--h1-cells", default="7d|f_vs_a,30d|fH_vs_a")
+    ap.add_argument("--zcrit", type=float, default=1.95996)
     a = ap.parse_args(argv)
     if a.phase == "dev":
         run_dev(a.datasets, a.out, a.workers, a.include.split(","))
     elif a.phase == "ethbtc":
         run_ethbtc(a.datasets, a.out)
+    elif a.phase == "power":
+        run_power(a.dev_json, a.counts_json, a.json, int(a.blocks), a.h1_cells.split(","), a.zcrit)
     elif a.phase == "stats":
         run_stats(a.aggs, a.json, a.labels, a.seed, a.nrep, tuple(int(x) for x in a.blocks.split(",")), not a.no_h2)
 

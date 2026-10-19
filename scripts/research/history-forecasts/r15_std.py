@@ -172,6 +172,291 @@ def cmd_select_b19(a):
     print("sha256", sha_file(p))
 
 
+
+# =============================================================================================
+# shared statistics (D-R14.2c rules): two-way bootstrap, block sums, concentration, power legs
+# =============================================================================================
+def twoway_stats(ts, sid, y, P, cand, comps, T_hours, nb, seed, blocks="crash", top_frac=0.025, top_min=3):
+    """development statistics of candidate `cand` vs each comparator on rows (ts, sid, y). blocks: 'crash' (R12
+    crash-episode blocks, 4-week cap) or 'week' (calendar weeks, Monday 00:00Z)."""
+    import r12_tail as R12
+    import r135_young as Y5
+    if blocks == "crash":
+        bid, G, posb = R12.crash_blocks(ts, sid, y.astype(np.int8), T_hours)
+    else:
+        wk = (np.asarray(ts, np.int64) + 3 * DAY) // (7 * DAY)
+        u, bid = np.unique(wk, return_inverse=True)
+        G = len(u)
+        posb = np.bincount(bid, weights=y, minlength=G) > 0
+    su, si = np.unique(sid, return_inverse=True)
+    S = len(su)
+    e = {"rows": int(len(y)), "pos": int(y.sum()), "series": int(S), "blocks": int(G), "pos_blocks": int(posb.sum()),
+         "R": {}, "brier": {}, "vs": {}}
+    for n_, p in P.items():
+        e["R"][n_] = float(p.sum() / max(y.sum(), 1))
+        e["brier"][n_] = float(np.mean((p - y) ** 2))
+    pL = P[cand]
+    if y.sum() > 0:
+        lr = np.log(np.maximum(Y5.boot_twoway(si, bid, pL, y, S, G, nb, seed), 1e-12))
+        e["se_lnR_two"] = float(np.std(lr))
+    one = np.ones(len(y))
+    k = max(top_min, int(math.ceil(top_frac * S)))
+    for j, c in enumerate(comps):
+        d = (pL - y) ** 2 - (P[c] - y) ** 2
+        sums = np.bincount(bid, weights=d, minlength=G)
+        sp = sums[posb]
+        m_b = float(sp.mean()) if len(sp) else float("nan")
+        s_b = float(sp.std(ddof=1)) if len(sp) > 1 else float("nan")
+        draws = Y5.boot_twoway(si, bid, d, one, S, G, nb, seed + 10 * j + 1, "two")
+        v2 = float(np.var(draws))
+        vb = float(np.var(Y5.boot_twoway(si, bid, d, one, S, G, nb, seed + 10 * j + 2, "block")))
+        gs = np.bincount(si, weights=d, minlength=S)
+        top = np.argsort(gs)[:k]
+        keep = ~np.isin(si, top)
+        sums_lo = np.bincount(bid[keep], weights=d[keep], minlength=G)[posb]
+        md = float(d.mean())
+        e["vs"][c] = {"bss": float(1 - e["brier"][cand] / e["brier"][c]) if e["brier"][c] > 0 else None,
+                      "mean_d": md, "p_two_one_sided": float((1 + np.sum(draws - md <= md)) / (nb + 1)),
+                      "m_b": m_b, "s_b": s_b, "var_two": v2, "var_block": vb,
+                      "deff": float(v2 / vb) if vb > 0 else None, "top_k": k,
+                      "top_share_of_gain": float(gs[top].sum() / gs.sum()) if gs.sum() < 0 else None,
+                      "mean_d_leave_top": float(d[keep].mean()) if keep.any() else None,
+                      "m_b_leave_top": float(sums_lo.mean()) if len(sums_lo) else None,
+                      "series_with_gain": int(np.sum(gs < 0))}
+    return e
+
+
+def power_cell(e, cand, comps, G_new, S_new, z, need_blocks=30, R_band=(0.8, 1.25)):
+    """D-R13.5a power rule generalised: per comparator leg, R band, concentration, blocks; joint = product."""
+    from scipy.stats import norm
+    Gd, Sd = e["pos_blocks"], e["series"]
+    legs = {}
+    for c in comps:
+        v = e["vs"][c]
+        if not (v["m_b"] < 0) or G_new <= 0 or not np.isfinite(v["s_b"]) or v["s_b"] <= 0:
+            legs[c] = {"power_test": 0.0, "power_concentration": 0.0, "deff_new": None, "Gstar_80": None}
+            continue
+        deff = max(1.0, 1.0 + ((v["deff"] or 1.0) - 1.0) * max(1.0, (Sd / max(S_new, 1)) / (Gd / G_new)))
+        pw = float(norm.cdf(math.sqrt(G_new / deff) * abs(v["m_b"]) / v["s_b"] - z))
+        lo = v.get("m_b_leave_top")
+        pc = float(norm.cdf(math.sqrt(G_new / deff) * abs(lo) / v["s_b"])) if (lo is not None and lo < 0) else 0.0
+        legs[c] = {"power_test": pw, "power_concentration": pc, "deff_new": deff,
+                   "Gstar_80": float(((z + 0.8416) * v["s_b"] / v["m_b"]) ** 2 * deff)}
+    R = e["R"][cand]
+    if G_new and e.get("se_lnR_two") and R > 0:
+        se = e["se_lnR_two"] * math.sqrt(Gd / G_new)
+        pR = float(norm.cdf((math.log(R_band[1]) - math.log(R)) / se) - norm.cdf((math.log(R_band[0]) - math.log(R)) / se))
+    else:
+        pR = 0.0
+    pblk = 1.0 if G_new >= need_blocks else 0.0
+    ptest = float(np.prod([l_["power_test"] for l_ in legs.values()]))
+    pconc = min(l_["power_concentration"] for l_ in legs.values()) if legs else 0.0
+    return {"G_new": G_new, "S_new": S_new, "legs": legs, "power_R_band": pR, "R_dev": R, "power_blocks": pblk,
+            "power_all_tests_product": ptest, "power_concentration_min": pconc,
+            "power_joint_PASS": ptest * pR * pconc * pblk}
+
+
+M_UNION = 21                     # R15 rule 5: confirmatory cells of the full registered union (6 + 6 + 9)
+
+
+def z_holm_union():
+    from scipy.stats import norm
+    return float(norm.ppf(1 - 0.05 / M_UNION))
+
+
+# =============================================================================================
+# R15.1 development: deep cells on mature thin-tail rows, pooled all-class library with class tail scale
+# =============================================================================================
+R151_H = (1, 3)
+R151_LEVELS = (-0.10, -0.15, -0.20)
+R151_AGE = 730
+R151_THIN = 10
+R151_MENU = [("lam1", None), ("lamc", None), ("lamc", 1000.0), ("lamc", 250.0), ("lam1", 1000.0), ("lam1", 250.0)]
+SALT_R151 = "Q26-R15.1-dev:"
+SEED_R151 = 2026151
+
+
+def menu_name(dec, tau):
+    return f"{dec}_tau{'inf' if tau is None else int(tau)}"
+
+
+def r151_predict(R, sc, zk, lib_all, lam_c, e_const, E, N):
+    """forecasts on rows sc (one class): every menu entry, (own), (a) is filled by the caller, (e)."""
+    J = zk.shape[1]
+    P = {}
+    F1 = np.stack([L4().wecdf_at(lib_all, zk[sc, j]) for j in range(J)], 1)
+    Fc = np.stack([L4().wecdf_at(lib_all, zk[sc, j] / lam_c) for j in range(J)], 1)
+    for dec, tau in R151_MENU:
+        F = F1 if dec == "lam1" else Fc
+        P[menu_name(dec, tau)] = F if tau is None else (E + tau * F) / (N[:, None] + tau)
+    P["e"] = np.tile(e_const, (len(sc), 1))
+    with np.errstate(all="ignore"):
+        P["own"] = np.where(N[:, None] >= 60, E / np.maximum(N[:, None], 1), np.nan)
+    return P
+
+
+def L4():
+    import r134_library as _L4
+    return _L4
+
+
+def cmd_dev1(a):
+    import r135_young as Y5
+    t0 = now_iso()
+    meta = json.load(open(a.meta))["series"]
+    keys = np.array([m_["key"] for m_ in meta])
+    clsn = np.array([m_["cls"] for m_ in meta])
+    half = np.array([hashlib.sha256((SALT_R151 + k_).encode()).digest()[0] % 2 for k_ in keys])
+    classes = L4().CLASSES
+    FH = np.load(a.fh) if a.fh else None
+    out = {"schema": "q26-r151-dev-v1", "prereg": PREREG, "created_utc": t0, "code_sha": git_sha(),
+           "rows_sha256": sha_file(a.rows), "meta_sha256": sha_file(a.meta),
+           "fh_sha256": sha_file(a.fh) if a.fh else None,
+           "note": "development on SEEN R13.4 dev rows only (r134 dev cad651e9); half split within class; library "
+                   "without the scored half; thin rows = age >= 730 bars and own E(z_k) < 10",
+           "lambda": {}, "cells": {}, "selection": {}, "eth": {}}
+    pooled = {}         # (h) -> dict of arrays over scored thin rows
+    for hh in R151_H:
+        R = Y5.load_rows(a.rows, hh)
+        keep = ~R["q2"]
+        zk = np.stack([np.log(1 + k) / R["s"] for k in R151_LEVELS], 1)
+        Yall = (R["m"][:, None] <= zk).astype(float)
+        cols = {k_: [] for k_ in ("sid", "ts", "cls", "y", "thin", "eth")}
+        Pcols = {}
+        for ci, c in enumerate(classes):
+            for hv in (0, 1):
+                ids = np.where((clsn == c) & (half == hv))[0]
+                if len(ids) == 0:
+                    continue
+                insc = np.isin(R["sid"], ids)
+                libmask = keep & ~insc
+                lib_all = L4().pooled_lib(R, libmask, classes=list(classes))
+                lib_c = L4().pooled_lib(R, libmask, classes=[c])
+                lam = Y5.fit_lambda(lib_c, lib_all) if lib_c is not None else 1.0
+                out["lambda"][f"h{hh}/{c}/half{hv}"] = lam
+                mat_lib = libmask & (R["cls"] == ci) & (R["age"] >= R151_AGE)
+                e_const = Yall[mat_lib].mean(axis=0) if mat_lib.any() else Yall[libmask & (R["cls"] == ci)].mean(0)
+                sc = np.where(insc & keep)[0]
+                if len(sc) == 0:
+                    continue
+                E = np.zeros((len(sc), len(R151_LEVELS)))
+                N = np.zeros(len(sc))
+                pa = np.full((len(sc), len(R151_LEVELS)), np.nan)
+                sids = R["sid"][sc]
+                # own counts use every own resolved row (including 2026Q2-free rows of the series only)
+                for s_ in np.unique(sids):
+                    ii = np.where(sids == s_)[0]
+                    allr = np.where((R["sid"] == s_) & keep)[0]
+                    Eo, No = own_counts_asof_split(R["day"][sc[ii]], R["day"][allr], R["end"][allr],
+                                                   R["m"][allr], zk[sc[ii]])
+                    E[ii], N[ii] = Eo, No
+                    o = np.argsort(R["day"][allr], kind="mergesort")
+                    rr = allr[o]
+                    pa_all = L4().own_freq_asof(R["day"][rr], R["end"][rr], Yall[rr])
+                    pos = {d_: i_ for i_, d_ in enumerate(R["day"][rr].tolist())}
+                    pa[ii] = pa_all[[pos[d_] for d_ in R["day"][sc[ii]].tolist()]]
+                P = r151_predict(R, sc, zk, lib_all, lam, e_const, E, N)
+                P["a"] = pa
+                mature = R["age"][sc] >= R151_AGE
+                ok_own = np.isfinite(P["own"][:, 0]) & np.isfinite(pa[:, 0])
+                base = mature & ok_own
+                cols["sid"].append(R["sid"][sc][base])
+                cols["ts"].append((R["day"][sc][base].astype(np.int64) + 1) * DAY)
+                cols["cls"].append(np.full(int(base.sum()), ci, np.int8))
+                cols["y"].append(Yall[sc][base])
+                cols["thin"].append(E[base] < R151_THIN)
+                cols["eth"].append(keys[R["sid"][sc][base]] == "dev:ETH")
+                for n_, v in P.items():
+                    Pcols.setdefault(n_, []).append(v[base])
+                print(f"{now_iso()} R15.1 dev h{hh} {c} half{hv}: lambda {lam:.2f}, mature scored rows "
+                      f"{int(base.sum())}, thin rows per k {[int((E[base][:, j] < R151_THIN).sum()) for j in range(3)]}",
+                      flush=True)
+        D = {k_: np.concatenate(v) for k_, v in cols.items()}
+        PP = {k_: np.concatenate(v) for k_, v in Pcols.items()}
+        # (fH) for crypto rows where the cached hourly (fH) exists (b12, b9, ETH; reported only)
+        pfh = np.full(PP["e"].shape, np.nan)
+        if FH is not None:
+            T = 24 * hh
+            fk = FH[f"T{T}_key"]
+            lut = {(k_, int(t_) // DAY): i_ for i_, (k_, t_) in enumerate(zip(fk.tolist(), FH[f"T{T}_ts"].tolist()))}
+            di = [-0.15, -0.20, -0.25, -0.30, -0.40]
+            for i_ in np.where(D["cls"] == 0)[0]:
+                h_ = lut.get((keys[D["sid"][i_]], int(D["ts"][i_]) // DAY))
+                if h_ is not None:
+                    for j, k in enumerate(R151_LEVELS):
+                        if k in di:
+                            pfh[i_, j] = FH[f"T{T}_pH"][h_, di.index(k)]
+        PP["fH"] = pfh
+        pooled[hh] = (D, PP)
+        del R
+    # ---------------- per cell statistics on thin rows ----------------
+    menu = [menu_name(d_, t_) for d_, t_ in R151_MENU]
+    comps = ["own", "a", "e"]
+    zU = z_holm_union()
+    sel_rows = {}
+    for hh in R151_H:
+        D, PP = pooled[hh]
+        for j, k in enumerate(R151_LEVELS):
+            thin = D["thin"][:, j]
+            for grp, gm in (("all", np.ones(len(thin), bool)), ("noncrypto", D["cls"] != 0),
+                            ("equity", D["cls"] == classes.index("equity")), ("crypto", D["cls"] == 0)):
+                m_ = thin & gm
+                if m_.sum() < 500 or D["y"][m_, j].sum() < 5:
+                    continue
+                Pc = {n_: np.clip(PP[n_][m_, j], 0, 1) for n_ in menu + comps}
+                y = D["y"][m_, j]
+                st = {}
+                for cand in menu:
+                    st[cand] = twoway_stats(D["ts"][m_], D["sid"][m_], y, Pc, cand, comps, 24 * hh,
+                                            a.nb if (grp == "equity" or cand == menu[0]) else 500,
+                                            SEED_R151 + 100 * hh + 10 * j)
+                out["cells"][f"h{hh}/{k}/{grp}"] = st
+                if grp in ("noncrypto", "crypto"):
+                    for cand in menu:
+                        sel_rows.setdefault(cand, []).append((grp, hh, k, st[cand]["vs"]["own"]["bss"]))
+                print(f"  h{hh} k{k} {grp}: thin rows {int(m_.sum())} pos {int(y.sum())} posblk "
+                      f"{st[menu[0]]['pos_blocks']} S {st[menu[0]]['series']} | " +
+                      " ".join(f"{cand}: R {st[cand]['R'][cand]:.2f} bss own/a/e "
+                               + "/".join(f"{st[cand]['vs'][c]['bss']:+.4f}" for c in comps) for cand in menu[:4]),
+                      flush=True)
+            # ETH (descriptive)
+            me = thin & D["eth"]
+            if me.any():
+                y = D["y"][me, j]
+                out["eth"][f"h{hh}/{k}"] = {"thin_rows": int(me.sum()), "pos": int(y.sum()),
+                                            "R": {n_: float(np.nansum(PP[n_][me, j]) / max(y.sum(), 1))
+                                                  for n_ in menu + comps + ["fH"]},
+                                            "brier": {n_: float(np.nanmean((PP[n_][me, j] - y) ** 2))
+                                                      for n_ in menu + comps + ["fH"]},
+                                            "fH_rows": int(np.isfinite(PP["fH"][me, j]).sum())}
+    # ---------------- registered selection: mean BSS vs (own) over 6 cells x {noncrypto, crypto} ----------------
+    scores = {c_: float(np.mean([r_[3] for r_ in v])) for c_, v in sel_rows.items()}
+    se = {c_: float(np.std([r_[3] for r_ in v], ddof=1) / math.sqrt(len(v))) for c_, v in sel_rows.items()}
+    best = max(scores, key=scores.get)
+    choice = next(c_ for c_ in menu if scores[c_] >= scores[best] - se[best])
+    out["selection"] = {"criterion": "mean BSS vs (own) over 6 cells x {noncrypto, crypto} thin rows",
+                        "scores": scores, "se": se, "best": best, "choice": choice,
+                        "rule": "simplest within one SE of the best (menu order)"}
+    print("selection", json.dumps(out["selection"]), flush=True)
+    out["z_holm_union"] = zU
+    out["utc_end"] = now_iso()
+    write_json(os.path.join(a.out, "dev-r151.json"), out)
+    print("sha256", sha_file(os.path.join(a.out, "dev-r151.json")))
+
+
+def own_counts_asof_split(day_q, day_all, end_all, m_all, zq):
+    """as own_counts_asof, with query origins (day_q, zq) separate from the series' resolved rows."""
+    n = len(day_q)
+    E = np.zeros(zq.shape)
+    N = np.zeros(n)
+    for a0 in range(0, n, 1024):
+        a1 = min(n, a0 + 1024)
+        res = end_all[None, :] < day_q[a0:a1, None]
+        N[a0:a1] = res.sum(axis=1)
+        for kk in range(zq.shape[1]):
+            E[a0:a1, kk] = (res & (m_all[None, :] <= zq[a0:a1, kk][:, None])).sum(axis=1)
+    return E, N
+
 # =============================================================================================
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -179,8 +464,14 @@ def main():
     s = sub.add_parser("select-b19")
     s.add_argument("--datasets", default="/home/user/membrane-datasets")
     s.add_argument("--out", required=True)
+    s = sub.add_parser("dev1")
+    s.add_argument("--rows", default="/home/user/r13work/r134/dev-cad651e9/rows-r134-dev.npz")
+    s.add_argument("--meta", default="/home/user/r13work/r134/dev-cad651e9/meta-r134-dev.json")
+    s.add_argument("--fh", default="/home/user/r13work/r134/fh/fh-r134.npz")
+    s.add_argument("--nb", type=int, default=10000)
+    s.add_argument("--out", required=True)
     a = ap.parse_args()
-    {"select-b19": cmd_select_b19}[a.cmd](a)
+    {"select-b19": cmd_select_b19, "dev1": cmd_dev1}[a.cmd](a)
 
 
 if __name__ == "__main__":

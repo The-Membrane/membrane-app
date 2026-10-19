@@ -26,6 +26,8 @@ Menu fixed here before any output:
   cross-fit 2 series halves (sha256 salt as r16_dev, group % 2) x 2 time halves (split at the tier's median origin
            time); a test cell is predicted by a model trained on the other series half AND the other time half,
            training windows ending >= T_max before / starting after the test half (embargo)
+A model left out with --models stays NaN (not scored) in that tier (used 2026-10-19: ngru, 12 min per fit on the
+shared CPU, runs in the long tier only; the TCN covers the convolutional/recurrent slot in the other tiers).
 Output: rows-nn-T{T}.npz (sid by r16_dev rows-meta order, ts, one array per model), merged by r16_dev score.
 
   python3 r16_nn.py fit --datasets DS --out OUT [--threads 3] [--tiers shallow,mid,long]
@@ -251,6 +253,7 @@ def run_tier(a, tier, SA, keys, log):
     tsplit = float(np.median(R["ts"]))
     th = (R["ts"] >= tsplit).astype(int)
     preds = {m: np.full((n, L), np.nan, np.float32) for m in MODELS}
+    run_models = [m for m in MODELS if m in a.models.split(",")]
     info = {"rows": int(n), "tsplit": int(tsplit), "fits": []}
     for sh in (0, 1):
         for tt in (0, 1):
@@ -268,7 +271,7 @@ def run_tier(a, tier, SA, keys, log):
                 tr = rng.choice(tr, MAX_TRAIN, replace=False)
             if len(va) > 60000:
                 va = rng.choice(va, 60000, replace=False)
-            for m in MODELS:
+            for m in run_models:
                 t0 = time.time()
                 net = make_model(m, len(STATIC) + 2 + nT, L)
                 opt = torch.optim.Adam(net.parameters(), lr=1e-3, weight_decay=1e-4)
@@ -365,6 +368,7 @@ def main():
     s.add_argument("--out", required=True)
     s.add_argument("--threads", type=int, default=3)
     s.add_argument("--tiers", default="shallow,mid,long")
+    s.add_argument("--models", default=",".join(MODELS))
     a = ap.parse_args()
     {"fit": cmd_fit}[a.cmd](a)
 

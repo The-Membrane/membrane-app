@@ -913,6 +913,8 @@ def score_cells(R, T, P, models, tw, sids, log):
             else:
                 mk = None
             pp, yy = (p, y) if mk is None else (p[mk], y[mk])
+            if len(pp) == 0:
+                continue
             b = (pp - yy) ** 2
             pc = np.clip(pp, PCLIP, 1 - PCLIP)
             ls = -(yy * np.log(pc) + (1 - yy) * np.log(1 - pc))

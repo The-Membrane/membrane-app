@@ -827,12 +827,17 @@ def cmd_acquire_b18(a):
         "source": "Poloniex public REST /markets/{symbol}/candles HOUR_1 (free, keyless; no published checksum; "
                   "sha256 of every monthly raw payload recorded); a candle with quantity 0 and a missing hour are null;"
                   " no fill, no filter", "series": {}, "dropped": {}}
-    for j, base in enumerate(sel["B18"]):
-        if base in man["series"] or base in man["dropped"]:
-            continue
+    import concurrent.futures as cf
+
+    def one(base):
         st_ms = max(int(datetime.strptime(sel["tradable_start_utc"][base], "%Y-%m-%d")
                         .replace(tzinfo=timezone.utc).timestamp() * 1000), 1577836800000)
         rows, pages = polo_fetch(cache, sel["symbol"][base], st_ms)
+        return base, rows, pages
+
+    todo = [b for b in sel["B18"] if b not in man["series"] and b not in man["dropped"]]
+    ex = cf.ThreadPoolExecutor(4)
+    for j, (base, rows, pages) in enumerate(ex.map(one, todo)):
         live = {t: v for t, v in rows.items() if v is not None}
         if not live:
             man["dropped"][base] = {"reason": "no traded hour before the acquisition end"}
@@ -852,7 +857,7 @@ def cmd_acquire_b18(a):
                                        "pages": pages}
         if (j + 1) % 10 == 0:
             R112.write_json(mp_, man)
-            print(f"{now_iso()} acquired {j + 1}/{len(sel['B18'])}", flush=True)
+            print(f"{now_iso()} acquired {j + 1}/{len(todo)}", flush=True)
     man["finished_utc"] = now_iso()
     man["status"] = "LOCKED for Q26 R16.5 (design/Q26_ROUND16_PREREG.md R16.5)"
     h = R112.write_json(mp_, man)

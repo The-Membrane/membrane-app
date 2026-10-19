@@ -190,12 +190,16 @@ class State:
 
 
 def merged_order(keys_list):
-    """keys_list: [(type, keys array)] -> (types, positions) in global key order (ties keep list order)."""
-    ks = np.concatenate([k for _, k in keys_list])
-    ty = np.concatenate([np.full(len(k), t, dtype=np.int8) for t, k in keys_list])
-    pos = np.concatenate([np.arange(len(k), dtype=np.int64) for _, k in keys_list])
-    o = np.lexsort((ty, ks))
-    return ks[o], ty[o], pos[o]
+    """keys_list: [(type, keys array)] -> (types, positions) in global key order (ties keep list order).
+    R11.1-v4 memory: one stable argsort of key * 8 + type (the same order as the former lexsort((ty, ks)), which is
+    also stable) and int32 positions; keys are block * 1e6 + log index (< 1e15), so key * 8 + type fits int64."""
+    comb = np.concatenate([np.asarray(k, dtype=np.int64) * 8 + t for t, k in keys_list])
+    pos = np.concatenate([np.arange(len(k), dtype=np.int32) for _, k in keys_list])
+    o = np.argsort(comb, kind="stable")
+    comb = comb[o]
+    pos = pos[o]
+    del o
+    return comb >> 3, (comb & 7).astype(np.int8), pos
 
 
 class Indexes:
@@ -351,6 +355,12 @@ class Replay:
         hour_key = np.array([h["block"] * 1_000_000 + 999_999 for h in self.hours], dtype=np.int64)
         ks, ty, pos = merged_order([(EV_TOK, tok_key), (EV_FLAG, flag_key), (EV_EMODE, em_key), (EV_ORACLE, ora_key),
                                     (EV_HOUR, hour_key)])
+        # R11.1-v4 memory: the keys are built; oracle block / log index arrays are not read again
+        del tok_key, flag_key, em_key, ora_key, hour_key
+        ora.pop("block", None)
+        ora.pop("lidx", None)
+        import gc
+        gc.collect()
         inv_unit = 1.0 / (10.0 ** inp.dec)
         A = np.full(len(inp.aggs), np.nan)        # current answer per aggregator
         A_h = np.full(len(inp.aggs), np.nan)      # answer at the hour read

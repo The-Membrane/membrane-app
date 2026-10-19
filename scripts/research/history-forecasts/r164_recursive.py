@@ -24,7 +24,7 @@ Recursive (fH) ("fR"), per step size s in {1, 3, 6, 12} hours (12 h primary, own
   Vol state = ln sigma_s - 0.5 ln M (short forecast vs monthly level), quintile edges from the training pool.
 
 STEP SELECTION RULE (fixed in this docstring before any development output, owner guidance 2026-10-19):
-  compared on the shared subsample (every 7th day's 00:00Z origin, all 130 series), mode rec only, steps 1/3/6/12 h.
+  compared on the shared subsample (00:00Z origins on days since epoch divisible by 14, all 130 series), mode rec only, steps 1/3/6/12 h.
   Score = mean Brier over the 7 d and 30 d rows (all levels, equal weight per horizon). Calibration guard: the
   step's median |ln R| over the 7 d and 30 d level cells must be <= the 12 h step's + 0.02. The selected step is the
   guard-passing step with the lowest score; 12 h is kept unless another step's two-way (series x 182-day block)
@@ -79,6 +79,8 @@ BOOT_B = 20
 BOOT_BLOCK_H = 720
 BLIND5_COMMIT = "f9389b6"
 DAY = 86400
+MAIN_EVERY = 2          # main-step (12 h) origins: 00:00Z on days divisible by 2 (days since epoch)
+MODES_EVERY = 4         # fix / recb / recc on days divisible by 4
 
 
 # ---------------------------------------------------------------------------------------------
@@ -470,14 +472,15 @@ def run_series(ser, folds, n_paths, steps_main=(12,), steps_sub=(6, 3, 1), sub_e
             if s not in steps_main:
                 oo_s = oo[(day_of % sub_every_days) == 0]
             else:
-                oo_s = oo
+                oo_s = oo[(day_of % MAIN_EVERY) == 0]
             if not len(oo_s):
                 continue
             mdl = StepModel(si, s, f["qs_i"])
             for i0 in oo_s:
-                # main step: every mode on even days, rec only on odd days (compute budget); other steps: rec only
+                # main step: rec every MAIN_EVERY days, all modes every MODES_EVERY days (compute budget, shared
+                # machine); other steps: rec only, every sub_every_days days
                 if s in steps_main:
-                    modes = modes_main if ((ser.base_ts + 3600 * int(i0)) // DAY) % 2 == 0 else ("rec",)
+                    modes = modes_main if ((ser.base_ts + 3600 * int(i0)) // DAY) % MODES_EVERY == 0 else ("rec",)
                 else:
                     modes = ("rec",)
                 res = simulate_fast(mdl, si, int(i0), lnk, n_paths, [SEED, sid, int(i0), s], modes=modes)
@@ -797,7 +800,7 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--paths", type=int, default=1000)
-    ap.add_argument("--sub-every", type=int, default=7)
+    ap.add_argument("--sub-every", type=int, default=14)
     ap.add_argument("--only", nargs="*")
     ap.add_argument("--n-series", type=int, default=12)
     ap.add_argument("--n-orig", type=int, default=60)

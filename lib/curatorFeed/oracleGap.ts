@@ -591,6 +591,22 @@ export const gapText = (gap: number): string => {
   return `${gap < 0 && s !== '0.00' ? MINUS : '+'}${s}%`
 }
 
+/** Past a 100% gap a percentage stops meaning much (">1,000%" says nothing): the figure
+ *  is the multiple, oracle ÷ market (owner, round 7). */
+export const MULTIPLE_ABOVE = 1
+
+/** The multiple, the real number: "2.4×" under 10, else whole and grouped: "12×",
+ *  "99,979,636×". */
+export const multipleText = (ratio: number): string =>
+  Math.round(ratio * 10) / 10 < 10
+    ? `${ratio.toFixed(1)}×`
+    : `${Math.round(ratio).toLocaleString('en-US')}×`
+
+/** A gap as the card states it: the signed % up to 100%, past it "oracle 12× market"
+ *  (oracle ÷ market = 1 + gap, the same prices the gap was taken from). */
+export const gapFigure = (gap: number): string =>
+  gap > MULTIPLE_ABOVE ? `oracle ${multipleText(1 + gap)} market` : gapText(gap)
+
 /** Whole % of the condition, e.g. 0.02 → "2%". */
 export const thresholdText = (c: Pick<I3Constants, 'gap'>): string =>
   `${Number((c.gap * 100).toPrecision(3))}%`

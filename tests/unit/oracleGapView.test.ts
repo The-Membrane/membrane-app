@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   ADDRESS_HINT,
+  bigMultiple,
   bothPricesLine,
   cardNotes,
   cardState,
@@ -393,12 +394,22 @@ describe('both prices past a 100% gap', () => {
   })
   it('> 100%: both prices, spot, the point’s hour, no average', () => {
     expect(bothPricesLine(at(10.943429, { oracleUsd: 0.999796, marketUsd: 0.083711 }))).toBe(
-      'oracle $0.9998 · market $0.083711 · spot at 00:00 UTC, no average',
+      "oracle $0.9998 · market $0.083711 · spot at 00:00 UTC, no average: the market price is 1/12 of the oracle's; the oracle has not followed the market",
     )
-    // A collapsed market price: the figure caps at >1,000%, the line gives the detail.
+    // A collapsed market price: the real multiple, from the prices, not a cap.
     expect(bothPricesLine(at(99979635.4, { oracleUsd: 0.999796, marketUsd: 1e-8 }))).toBe(
-      'oracle $0.9998 · market $0.00000001 · spot at 00:00 UTC, no average',
+      "oracle $0.9998 · market $0.00000001 · spot at 00:00 UTC, no average: the market price is 1/99,979,600 of the oracle's; the oracle has not followed the market",
     )
+  })
+  it('the card figure past 100%: the multiple, the real number, from the gap', () => {
+    // 1 + gap = oracle ÷ market: 0.999796 / 0.083711 = 11.94…
+    expect(bigMultiple(at(10.943429))).toBe('12×')
+    expect(bigMultiple(at(1.4))).toBe('2.4×')
+    expect(bigMultiple(at(99979635.4))).toBe('99,979,636×')
+    // Up to 100% the signed % stays; stale or not measured: no figure.
+    expect(bigMultiple(at(1))).toBeUndefined()
+    expect(bigMultiple(at(-0.6))).toBeUndefined()
+    expect(bigMultiple({ i3: { currentGap: 12, state: 'stale' } })).toBeUndefined()
   })
   it('a missing price is named', () => {
     expect(bothPricesLine(at(2, { oracleUsd: 1 }))).toBe(

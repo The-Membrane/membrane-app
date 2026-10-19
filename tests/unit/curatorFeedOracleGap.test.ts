@@ -6,7 +6,9 @@ import {
   appendGapRun,
   decodeGapFile,
   evaluateI3,
+  gapFigure,
   gapText,
+  multipleText,
   i3Headline,
   i3Points,
   leadDaysText,
@@ -408,6 +410,15 @@ describe('copy built from the record and constants', () => {
     expect(gapText(10)).toBe('+1000.00%')
     expect(gapText(9.9999)).toBe('+999.99%')
     expect(gapText(4.389507)).toBe('+438.95%')
+    // The card's figure: the signed % up to 100%, past it the multiple (oracle ÷ market).
+    expect(gapFigure(0.0231)).toBe('+2.31%')
+    expect(gapFigure(1)).toBe('+100.00%')
+    expect(gapFigure(-0.9)).toBe('−90.00%')
+    expect(gapFigure(10.943429)).toBe('oracle 12× market')
+    expect(gapFigure(99984605.243619)).toBe('oracle 99,984,606× market')
+    expect(gapFigure(1.5)).toBe('oracle 2.5× market')
+    expect(multipleText(9.96)).toBe('10×')
+    expect(multipleText(9.94)).toBe('9.9×')
   })
   it('composes the record rows and caveats from the record only', () => {
     const lines = recordLines(record)

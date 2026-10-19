@@ -40,7 +40,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { durationText, utc } from '@/lib/curatorFeed/format'
 import { gapExposed, gapMark, usdWithBook } from '@/lib/curatorFeed/headlines'
 import {
-  gapText,
+  gapFigure,
   HOLD_SECONDS,
   i3Headline,
   MARKET_HOLD_SECONDS,
@@ -68,6 +68,7 @@ import { useStarred } from './hooks/useStarred'
 import { SignalsSheet, SIGNALS_SHEET_ID } from './SignalsSheet'
 import {
   bothPricesLine,
+  bigMultiple,
   cardNotes,
   cardState,
   cardTag,
@@ -225,7 +226,7 @@ const CardDetails: React.FC<{
     {m.i3.state === 'unobserved' && (
       <Mono size="11px">
         {m.lastRaw
-          ? `DefiLlama confidence ${m.lastRaw.marketConfidence} under ${MIN_PRICE_CONFIDENCE}: raw ${gapText(m.lastRaw.rawGap)}, not counted`
+          ? `DefiLlama confidence ${m.lastRaw.marketConfidence} under ${MIN_PRICE_CONFIDENCE}: raw ${gapFigure(m.lastRaw.rawGap)}, not counted`
           : 'No point this hour: the oracle reverts, or no fresh DefiLlama price.'}
       </Mono>
     )}
@@ -369,6 +370,7 @@ const GapCard = memo(function GapCard({
   const fill = FILL[hatched ? 'neutral' : state.tone]
   const onFill = !!fill.ink
   const prices = bothPricesLine(m)
+  const multiple = bigMultiple(m)
   const notes = hatched ? [] : cardNotes(m, r.constants)
   const frame = tag ? FRAME[tag.style] : undefined
   const line = hatched
@@ -475,9 +477,30 @@ const GapCard = memo(function GapCard({
           fontSize="32px"
           lineHeight="40px"
           color={onFill ? undefined : SEMANTIC_COLORS.textPrimary}
-          title={m.i3.currentGap !== undefined ? 'oracle ÷ DefiLlama − 1, newest point' : undefined}
+          overflowWrap="anywhere"
+          title={
+            multiple
+              ? 'oracle ÷ DefiLlama, newest point'
+              : m.i3.currentGap !== undefined
+                ? 'oracle ÷ DefiLlama − 1, newest point'
+                : undefined
+          }
         >
-          {mark.headline}
+          {multiple ? (
+            // Past a 100% gap: "oracle 12× market", the multiple at figure size.
+            <>
+              <Box as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="13px" fontWeight={400}>
+                oracle{' '}
+              </Box>
+              {multiple}
+              <Box as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="13px" fontWeight={400}>
+                {' '}
+                market
+              </Box>
+            </>
+          ) : (
+            mark.headline
+          )}
         </Text>
       )}
       {/* Past a 100% gap the delta alone misleads: both prices, and how they were taken.

@@ -5,13 +5,14 @@
 // Owner, 2026-10-18: "Curator feed · market signals — N of 4 signals on for this market",
 // rows = signal · now · track record, then the actions. Four rows:
 //   oracle vs market      the collateral-side gap now (I3), record = the T2 retrospective
-//   curator cuts          peer moves on this collateral (feed, 24 h / 7 d), not yet tested
-//   loan token off peg    the loan-side gap now (the f09536f7 split), not yet tested
+//   curator cuts          peer moves on this collateral (feed, 24 h / 7 d), not seen historically
+//   loan token off peg    the loan-side gap now (the f09536f7 split), not seen historically
 //   top depositors leave  withheld: the model failed calibration for the largest holders
 //                         (Q26 B4), so no number is shown
 
 import { durationText, utc } from '@/lib/curatorFeed/format'
 import {
+  gapFigure,
   gapText,
   leadDaysText,
   pegOf,
@@ -49,7 +50,9 @@ export interface Signals {
   headline: string
 }
 
-export const NOT_YET_TESTED = 'Not yet tested'
+/** A signal with no historical record yet (owner, round 7: "not yet tested" read as
+ *  "don't trust this"). */
+export const NOT_YET_TESTED = 'Not seen historically'
 
 /** The withheld depositor forecast (owner, 2026-10-18): Q26 B4 failed calibration for the
  *  largest holders, so no figure is shown. */
@@ -97,7 +100,7 @@ export const i3RecordTest = (r: I3Record): string =>
   `Indicator record, all markets (${r.lane} ${r.test.split(/\s/)[0]}) · retrospective · ${r.verdict} overall, n = ${r.incidentCount} incidents`
 
 /** T2 scored the oracle ABOVE market only: below market the indicator is untested. */
-export const BELOW_UNTESTED = 'Not yet tested (T2 tested oracle above market only)'
+export const BELOW_UNTESTED = 'Not seen historically (T2 covered oracle above market only)'
 
 // ── rows ───────────────────────────────────────────────────────────────────────
 
@@ -143,7 +146,10 @@ function oracleRow(
     ...base,
     ...(below ? { record: BELOW_UNTESTED, recordSub: undefined, recordTitle: undefined } : {}),
     state: s.tone === 'neutral' ? 'off' : 'on',
-    now: s.tone === 'neutral' ? gapText(i3.currentGap) : `${gapText(i3.currentGap)} for ${hours} h`,
+    now:
+      s.tone === 'neutral'
+        ? gapFigure(i3.currentGap)
+        : `${gapFigure(i3.currentGap)} for ${hours} h`,
     nowSub: [
       s.tone === 'neutral' || below
         ? line1

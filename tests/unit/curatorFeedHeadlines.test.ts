@@ -326,7 +326,7 @@ describe('the §07 card mark', () => {
     // The last value is never printed as if it were current.
     expect(
       gapMark(mkt({ state: 'stale', currentGap: 12, lastTs: NOW - 5 * H - 300 }), R).detail,
-    ).toMatch(/^stale · last point >1,000% · 5h 5m old$/)
+    ).toMatch(/^stale · last point oracle [\d,.]+× market · 5h 5m old$/)
     expect(gapMark(mkt({ state: 'stale', lastTs: NOW - 2 * H }), R).detail).toBe(
       'stale · last point 2h old',
     )

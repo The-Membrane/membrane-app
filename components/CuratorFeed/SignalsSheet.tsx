@@ -198,15 +198,6 @@ export const SignalsSheet: React.FC<{
         w="100%"
         maxH={{ base: '92vh', md: '100vh' }}
       >
-        <DrawerCloseButton
-          aria-label="Close market signals"
-          borderRadius={0}
-          w="44px"
-          h="44px"
-          top={SPACING.sm}
-          right={SPACING.sm}
-          _focusVisible={FOCUS_STYLES.ring}
-        />
         {/* The header is Chakra's DrawerHeader, so the dialog is labelled by it. */}
         <DrawerHeader
           px={{ base: SPACING.base, md: SPACING.lg }}
@@ -214,18 +205,33 @@ export const SignalsSheet: React.FC<{
           pb={0}
           fontWeight="normal"
         >
+          {/* The double rule runs full width; the close button sits in the row under it,
+              inset beside the eyebrow (never on the rule), with a 44px target. */}
           <Box
             borderTop="3px double"
             borderColor={SEMANTIC_COLORS.borderStrong}
-            pt={SPACING.sm}
-            pr="44px"
+            pt={SPACING.xs}
+            display="flex"
+            alignItems="flex-start"
+            gap={SPACING.sm}
           >
-            <Text {...LABEL} color={SEMANTIC_COLORS.textSecondary}>
-              Curator feed · market signals
-            </Text>
-            <Mono size="11px" color={SEMANTIC_COLORS.textSecondary}>
-              {title}
-            </Mono>
+            <Box flex="1" minW={0} pt={SPACING.xs}>
+              <Text {...LABEL} color={SEMANTIC_COLORS.textSecondary}>
+                Curator feed · market signals
+              </Text>
+              <Mono size="11px" color={SEMANTIC_COLORS.textSecondary}>
+                {title}
+              </Mono>
+            </Box>
+            <DrawerCloseButton
+              aria-label="Close market signals"
+              position="static"
+              flexShrink={0}
+              borderRadius={0}
+              w="44px"
+              h="44px"
+              _focusVisible={FOCUS_STYLES.ring}
+            />
           </Box>
           {s && (
             <Text

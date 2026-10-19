@@ -14,7 +14,7 @@
  */
 
 import { compact, durationText, short, utc } from './format'
-import { gapText, STALE_HOURS, thresholdText } from './oracleGap'
+import { gapFigure, STALE_HOURS, thresholdText } from './oracleGap'
 import type { ClusterView, FeedRow, OracleGapMarketView, OracleGapResponse } from './service'
 
 export type Mark = '✖' | '▲' | '░'
@@ -253,7 +253,7 @@ export function gapMark(
 ): Line {
   const { i3 } = m
   const line = thresholdText(r.constants)
-  const delta = i3.currentGap !== undefined ? gapText(i3.currentGap) : '░'
+  const delta = i3.currentGap !== undefined ? gapFigure(i3.currentGap) : '░'
   switch (i3.state) {
     case 'fired':
       return {
@@ -276,7 +276,7 @@ export function gapMark(
         mark: '░',
         alarm: false,
         headline: '░',
-        detail: `stale · last point ${i3.currentGap !== undefined ? `${gapText(i3.currentGap)} · ` : ''}${durationText(r.meta.now - (i3.lastTs ?? 0))} old`,
+        detail: `stale · last point ${i3.currentGap !== undefined ? `${gapFigure(i3.currentGap)} · ` : ''}${durationText(r.meta.now - (i3.lastTs ?? 0))} old`,
       }
     case 'unobserved':
       return {

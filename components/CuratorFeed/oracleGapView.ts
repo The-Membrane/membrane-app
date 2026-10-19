@@ -3,6 +3,8 @@
 
 import {
   i3Points,
+  MULTIPLE_ABOVE,
+  multipleText,
   thresholdText,
   type I3Constants,
   type I3State,
@@ -303,8 +305,20 @@ export function sortCards<T extends { market: string; relation?: Relation }>(
 // ── both prices, when the delta stops meaning much ───────────────────────────
 
 /** Above this |gap| (100%) the delta alone misleads: a collapsed market price under an
- *  oracle still at par reads ">1,000%". The card prints both prices beside it. */
-export const BOTH_PRICES_ABOVE = 1
+ *  oracle still at par read ">1,000%". The card's figure is the multiple ("oracle 12×
+ *  market") and the line under it gives both prices and what they mean. */
+export const BOTH_PRICES_ABOVE = MULTIPLE_ABOVE
+
+/** The card's big figure past a 100% gap: the multiple alone ("12×"), set between "oracle"
+ *  and "market" in small print. Undefined otherwise (the signed % stays). */
+export function bigMultiple(m: {
+  i3: { currentGap?: number; state: I3State }
+}): string | undefined {
+  const g = m.i3.currentGap
+  if (g === undefined || g <= MULTIPLE_ABOVE) return undefined
+  if (m.i3.state === 'stale' || m.i3.state === 'unobserved') return undefined
+  return multipleText(1 + g)
+}
 
 /** A USD price at 5 significant digits: $83,357 · $1.0645 · $0.000015853. */
 export const usdPrice = (x: number): string =>
@@ -330,7 +344,11 @@ export function bothPricesLine(m: {
   const ok = (x?: number): x is number => x !== undefined && Number.isFinite(x)
   const oracle = ok(l.oracleUsd) ? `oracle ${usdPrice(l.oracleUsd)}` : 'oracle price missing'
   const market = ok(l.marketUsd) ? `market ${usdPrice(l.marketUsd)}` : 'market price missing'
-  return `${oracle} · ${market} · spot at ${hhmm(l.ts)} UTC, no average`
+  const head = `${oracle} · ${market} · spot at ${hhmm(l.ts)} UTC, no average`
+  // What the two prices mean, in words, from the prices themselves.
+  if (ok(l.oracleUsd) && ok(l.marketUsd) && l.marketUsd > 0 && l.oracleUsd > l.marketUsd)
+    return `${head}: the market price is 1/${multipleText(l.oracleUsd / l.marketUsd).slice(0, -1)} of the oracle's; the oracle has not followed the market`
+  return head
 }
 
 // ── starred markets: per viewer, in this browser ──────────────────────────────

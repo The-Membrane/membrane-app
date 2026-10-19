@@ -793,9 +793,82 @@ def run_known(out, n_series=12, n_hours=52000, n_true=20000, n_paths=2000, n_ori
               {m: (round(v["R_vs_true"] or 0, 3), round(v["mae"], 4)) for m, v in c["models"].items()})
 
 
+def _oracle_series(args):
+    """Engine check with the true scale: same synthetic series and origins as `known`; the step model is replaced by
+    the exact GARCH variance (1 h steps, standardized hourly bars u = bar / sqrt(h), h updated by the GARCH recursion
+    from the simulated return). Isolates the bootstrap/recursion/running-min engine from the HAR step model."""
+    si_, n, n_paths, origins_folds = args
+    p = syn_params()
+    rng = np.random.default_rng([SEED, 11, si_])
+    close, high, low, hh = syn_series(n, rng, p)
+    lc, lh, ll = np.log(close), np.log(high), np.log(low)
+    spot = np.concatenate([[0.0], lc[:-1]])
+    sd = np.sqrt(hh[:n])
+    Uc, Ul = (lc - spot) / sd, (ll - spot) / sd
+    lnk = np.log1p(np.array(A.LEVELS["ETH"], float))
+    out = []
+    for i0, qs in origins_folds:
+        pool = np.arange(1, qs)                     # bars fully observed before the fold start
+        r2 = np.random.default_rng([SEED, 15, si_, i0])
+        h = np.full(n_paths, hh[i0])
+        L = np.zeros(n_paths)
+        rm = np.full(n_paths, np.inf)
+        res = np.zeros((len(EVAL_T), len(lnk)))
+        for t in range(HMAX):
+            j = pool[r2.integers(0, len(pool), n_paths)]
+            sg = np.sqrt(h)
+            rm = np.minimum(rm, L + sg * Ul[j])
+            eps = sg * Uc[j]
+            L = L + eps
+            h = garch_step(h, eps, p)
+            for ti, T in enumerate(EVAL_T):
+                if T == t + 1:
+                    res[ti] = (rm[:, None] <= lnk[None, :]).mean(0)
+        out.append((si_, i0, res))
+    return out
+
+
+def run_known_oracle(out, n_hours=52000, n_paths=4000, workers=2):
+    import pandas as pd
+    df = pd.read_csv(os.path.join(out, "known-rows.csv.gz"))
+    base_ts = A.quarter_start(2018, 1)
+    args = []
+    for si_, d in df.groupby("series"):
+        ors = sorted(d["i0"].unique())
+        of = []
+        for i0 in ors:
+            ts = base_ts + 3600 * int(i0)
+            y, mo = int(A.iso(ts)[:4]), int(A.iso(ts)[5:7])
+            qs = (A.quarter_start(y, (mo - 1) // 3 + 1) - base_ts) // 3600
+            of.append((int(i0), int(qs)))
+        args.append((int(si_), n_hours, n_paths, of))
+    po = {}
+    ctx = mp.get_context("fork")
+    with ctx.Pool(workers) as pool:
+        for r in pool.imap_unordered(_oracle_series, args):
+            for si_, i0, res in r:
+                po[(si_, i0)] = res
+            print("oracle series done", flush=True)
+    df["p_oracle1"] = [po[(int(a), int(b))][EVAL_T.index(int(T)), int(k)]
+                       for a, b, T, k in zip(df["series"], df["i0"], df["T"], df["k"])]
+    df.to_csv(os.path.join(out, "known-rows-oracle.csv.gz"), index=False)
+    res = []
+    for T in EVAL_T:
+        for grp, ks in (("shallow", (0, 1, 2, 3)), ("mid", (4, 5, 6)), ("deep", (7, 8, 9))):
+            d = df[(df["T"] == T) & df["k"].isin(ks)]
+            row = {"T": T, "levels": grp, "mean_true": float(d["p_true"].mean())}
+            for m in ("oracle1", "fH", "rec12", "fix12", "recc12", "rec3", "f", "a"):
+                pm, pt = d[f"p_{m}"].to_numpy(), d["p_true"].to_numpy()
+                row[m] = {"R": float(pm.sum() / pt.sum()), "mae": float(np.abs(pm - pt).mean())}
+            res.append(row)
+            print(T, grp, {m: (round(v["R"], 3), round(v["mae"], 4)) for m, v in row.items() if isinstance(v, dict)})
+    M6.write_json(os.path.join(out, "known-oracle.json"), {"n_paths": n_paths, "cells": res,
+                  "note": "engine with the exact GARCH scale (1 h steps); truth from 20,000 exact-model paths"})
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--phase", required=True, choices=("known", "lookahead", "dev"))
+    ap.add_argument("--phase", required=True, choices=("known", "known-oracle", "lookahead", "dev"))
     ap.add_argument("--datasets", default="/home/user/membrane-datasets")
     ap.add_argument("--out", required=True)
     ap.add_argument("--workers", type=int, default=4)
@@ -808,6 +881,8 @@ def main(argv=None):
     os.makedirs(a.out, exist_ok=True)
     if a.phase == "known":
         run_known(a.out, n_series=a.n_series, n_orig=a.n_orig, workers=a.workers, n_paths=a.paths)
+    elif a.phase == "known-oracle":
+        run_known_oracle(a.out, workers=a.workers)
     elif a.phase == "lookahead":
         run_lookahead(a.datasets, a.out)
     elif a.phase == "dev":

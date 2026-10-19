@@ -449,8 +449,7 @@ def task(spec):
     okD = {k_: np.all(np.isfinite(v), axis=1) for k_, v in D.items()}
     # ---- GARCH fits (yearly refits at fold starts) and filtered one-step variances
     fold_q = [f for f in folds if f["qs_i"] < N1]
-    s2g = np.full(N1, np.nan)
-    s2e = np.full(N1, np.nan)
+    s2g_by, s2e_by = {}, {}
     gpar = {}
     epar = {}
     zres_by = {}
@@ -471,12 +470,15 @@ def task(spec):
         e = fit_arch(win, "EG")
         nfit["gjr" if g else "gjr_fail"] += 1
         nfit["eg" if e else "eg_fail"] += 1
-        seg = r100[a0:qe]                           # filter from a0 through the block
+        b0 = ser.start_i + 1
+        seg = r100[b0:qe]                           # filter the whole history through the block with this fit
         if g:
             s2 = _gjr_filter(seg, g["om"], g["al"], g["ga"], g["be"], g["var"])
-            # s2[k] = variance of bar a0+k  => origin i = a0 + k
-            ii = np.arange(qs, qe)
-            s2g[ii] = s2[ii - a0]
+            # s2[k] = variance of bar b0+k  => origin i = b0 + k (train and test origins use the same fit, as fH)
+            full = np.full(N1, np.nan)
+            full[b0:qe] = s2[:qe - b0]
+            s2g_by[j] = full
+            s2 = s2[a0 - b0:]
             gpar[j] = g
             zz = win / np.sqrt(s2[:len(win)])
             zres_by[j] = zz[np.isfinite(zz)]
@@ -489,8 +491,9 @@ def task(spec):
             wick_by[j] = w if len(w) > 500 else None
         if e:
             se = _eg_filter(seg, e["om"], e["al"], e["ga"], e["be"], e["var"])
-            ii = np.arange(qs, qe)
-            s2e[ii] = se[ii - a0]
+            full = np.full(N1, np.nan)
+            full[b0:qe] = se[:qe - b0]
+            s2e_by[j] = full
             epar[j] = e
         # Markov switching on the daily-sampled 24 h log Parkinson variance before qs (phase of qs)
         di = np.arange(qs - 24, max(ser.start_i, qs - 24 * 730), -24)[::-1]
@@ -563,6 +566,8 @@ def task(spec):
             # GARCH-scale models
             jb = blk_of_fold.get(jf)
             g = gpar.get(jb)
+            s2g = s2g_by.get(jb)
+            s2e = s2e_by.get(jb)
             if g is not None:
                 with np.errstate(invalid="ignore", divide="ignore"):
                     hv = gjr_horizon_var(s2g, g, T)
@@ -828,7 +833,10 @@ def crossfit(R, T, keys, log, make_pred):
             tr = (g != gg) & ((R["ts"] + T * STEP <= lo_[bb]) | (R["ts"] >= hi_[bb]))
             if tr.sum() < 1000:
                 tr = (g != gg) & (b != bb)
-            p = make_pred(tr, te)
+            if tr.sum() < 1000:                   # degenerate (smoke tests only): fall back to fH
+                p = np.asarray(R["fH"][te], float)
+            else:
+                p = make_pred(tr, te)
             if pred is None:
                 pred = np.full((len(R["ts"]),) + p.shape[1:], np.nan, np.float32)
             pred[te] = p
@@ -1040,7 +1048,7 @@ def cmd_score(a):
         log(f"TIER {tier} vs {C}: selected {elig[:2]}; eligible {elig}")
         for m in sorted(tr, key=lambda m: (tr[m]["two_way"]["z"] if tr[m]["two_way"]["z"] is not None else 99)):
             t_ = tr[m]
-            log(f"   {m:4s} bssC {t_['bss_vs_C_mean']:+.4f} min {min(t_['bss_vs_C_cells']):+.4f} z {t_['two_way']['z']:+.2f} "
+            log(f"   {m:4s} bssC {t_['bss_vs_C_mean']:+.4f} min {min(t_['bss_vs_C_cells']):+.4f} z {(t_['two_way']['z'] if t_['two_way']['z'] is not None else float('nan')):+.2f} "
                 f"E {int(t_['E1'])}{int(t_['E2'])}{int(t_['E3'])}{int(t_['E4'])} lnR {t_['median_abs_lnR']:.3f}/{t_['median_abs_lnR_C']:.3f}")
     res["finished_utc"] = R12.now_iso()
     with open(os.path.join(out_dir, "dev-r162.json"), "w") as fh:

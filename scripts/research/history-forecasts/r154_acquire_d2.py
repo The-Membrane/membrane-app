@@ -286,10 +286,10 @@ def fetch_range(rpc, atoken, a, b, span0, span_max, sink, log, tag):
 
 def phase_logs(work, names, log):
     res = phase_resolve(work, log)
-    bounds = phase_bounds(work, log)
     for name in names:
         R = res[name]
         chain = R["chain"]
+        bounds = phase_bounds(work, log, [chain])
         d = os.path.join(work, name)
         os.makedirs(d, exist_ok=True)
         done_p = os.path.join(d, "done.json")

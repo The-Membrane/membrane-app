@@ -189,14 +189,79 @@ def cmd_select_b20(a):
     print("sha256", hashlib.sha256(open(p, "rb").read()).hexdigest())
 
 
+# =============================================================================================
+# B20 outcome-blind builder (XT.com hourly candles -> grid JSON); runs only after a powered run Deviation
+# =============================================================================================
+ACQ_END = int(datetime(2026, 10, 1, tzinfo=timezone.utc).timestamp())
+
+
+def xt_hourly(sym, t_from):
+    import r125_fh_deep as R125
+    import time as _t
+    rows = {}
+    a = t_from
+    while a < ACQ_END:
+        b = min(a + 1000 * 3600, ACQ_END)
+        url = (f"https://sapi.xt.com/v4/public/kline?symbol={sym}&interval=1h&startTime={a * 1000}"
+               f"&endTime={(b - 1) * 1000}&limit=1000")
+        d = json.loads(R125.http_get(url))
+        for x in d.get("result") or []:
+            t = int(x["t"]) // 1000
+            if a <= t < b:
+                rows[t] = (float(x["o"]), float(x["h"]), float(x["l"]), float(x["c"]), float(x["q"]))
+        a = b
+        _t.sleep(0.15)
+    return rows
+
+
+def cmd_acquire_b20(a):
+    """outcome-blind: writes hourly grids only; computes no label, count, forecast or score."""
+    import gzip
+    sel = json.load(open(os.path.join(a.datasets, "b20-xt-bingx-prices/selection-b20.json")))
+    part = a.part
+    outd = os.path.join(a.datasets, "b20-xt-bingx-prices", part)
+    os.makedirs(outd, exist_ok=True)
+    man = {"schema": "q26-r16-b20-acquire-v1", "part": part, "code_sha": git_sha(), "started_utc": now_iso(),
+           "status": "LOCKED: only design/Q26_ROUND16_PREREG.md R16.2 may score it", "series": {}, "skipped": {}}
+    for b in sel[part]:
+        if sel["venue"][b] != "xt":
+            man["skipped"][b] = "BingX: about 1 year of hourly candles, no scorable window"
+            continue
+        y, mo = map(int, sel["first_month_utc"][b].split("-"))
+        t0 = int(datetime(y, mo, 1, tzinfo=timezone.utc).timestamp())
+        rows = xt_hourly(sel["symbol"][b], t0)
+        if not rows:
+            man["skipped"][b] = "no candles"
+            continue
+        st = min(rows)
+        n = (max(rows) - st) // 3600 + 1
+        cols = {c: [None] * n for c in ("open", "high", "low", "close", "volume")}
+        for t, v in rows.items():
+            k = (t - st) // 3600
+            for c, x in zip(("open", "high", "low", "close", "volume"), v):
+                cols[c][k] = x
+        obj = {"asset": b, "source": "xt.com v4 public kline 1h", "startTs": st, "stepSeconds": 3600, "count": n,
+               "columns": cols, "fetchedAt": now_iso()}
+        raw = gzip.compress(json.dumps(obj).encode(), mtime=0)
+        fn = f"xt-{b}-1h.json.gz"
+        open(os.path.join(outd, fn), "wb").write(raw)
+        man["series"][b] = {"file": fn, "sha256": sha256b(raw), "hours": n, "candles": len(rows)}
+        print(f"{now_iso()} {b} {n} h", flush=True)
+    man["finished_utc"] = now_iso()
+    json.dump(man, open(os.path.join(outd, "manifest-acquire.json"), "w"), indent=1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("select-b20")
     s.add_argument("--datasets", required=True)
     s.add_argument("--out", required=True)
+    s = sub.add_parser("acquire-b20")
+    s.add_argument("--datasets", required=True)
+    s.add_argument("--part", default="B20a")
     a = ap.parse_args()
-    {"select-b20": cmd_select_b20}[a.cmd](a)
+    {"select-b20": cmd_select_b20, "acquire-b20": cmd_acquire_b20}[a.cmd](a)
 
 
 if __name__ == "__main__":

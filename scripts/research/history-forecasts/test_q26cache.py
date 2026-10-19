@@ -289,6 +289,19 @@ class TestRedaction(unittest.TestCase):
             self.assertEqual(q.redact(secret), "env:Q26_ETH_RPC_URL")
         self.assertEqual(q.rpc_endpoints("ethereum", ["https://k.example.org"]), ["https://k.example.org"])
 
+    def test_routing_state_vs_logs(self):
+        secret = "https://eth-mainnet.example.com/v2/Zz9KkQ8xYyW7vVu6TtS5rR4"
+        keyless = ["https://keyless.example.org"]
+        with mock.patch.dict(os.environ, {"Q26_ETH_RPC_URL": secret}):
+            self.assertEqual(q.endpoints_for("ethereum", "eth_getLogs", keyless), keyless)
+            for m in ("eth_call", "eth_getBalance", "eth_getBlockByNumber", "eth_blockNumber"):
+                self.assertEqual(q.endpoints_for("ethereum", m, keyless)[0], secret)
+            self.assertEqual(q.rpc_endpoints("ethereum", keyless, kind="logs"), keyless)
+            self.assertEqual(q.provider_log_endpoints("ethereum"), [secret])
+            self.assertEqual(q.endpoints_for("arbitrum", "eth_call", keyless), keyless)   # not enabled
+        with self.assertRaises(ValueError):
+            q.rpc_endpoints("ethereum", keyless, kind="other")
+
     def test_key_like_parts(self):
         self.assertNotIn("Zz9KkQ8xYyW7vVu6TtS5rR4", q.redact("https://x.example.com/v2/Zz9KkQ8xYyW7vVu6TtS5rR4"))
         self.assertNotIn("abc123secretvalue", q.redact("https://x.example.com/rpc?apikey=abc123secretvalue&n=1"))

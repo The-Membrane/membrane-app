@@ -38,8 +38,14 @@ API::
 Size cap: ``Q26_CACHE_MAX_BYTES`` (default 1.5 GiB; the cloud disk has about 6.9 GB free). After each put, the
 least-recently-used entries (blob mtime is touched on every hit) are evicted until the root is under 90% of the cap.
 
-RPC endpoints: ``rpc_endpoints(chain, keyless)`` puts an optional provider URL from the environment first and keeps
-the keyless list as fallback. Variables (comma-separated lists allowed):
+RPC endpoints and routing: ``rpc_endpoints(chain, keyless, kind)`` / ``endpoints_for(chain, method, keyless)``.
+ARCHIVE STATE READS (eth_call such as observe(), getUserAccountData, getReserveNormalized*, balanceOf; eth_getBalance;
+block headers; eth_blockNumber) go to the provider URL from the environment first, keyless endpoints as fallback.
+LOG SCANS (eth_getLogs) stay on the keyless endpoints only: the owner's provider key is a free tier whose
+eth_getLogs is capped at a 10-block range (measured 2026-10-19). ``provider_log_endpoints`` exists only as an explicit
+fallback with windows of at most ``PROVIDER_LOG_MAX_SPAN`` (10) blocks. In the cloud session the key is in a chmod-600
+file in the scratchpad (``source`` it; it sets Q26_ETH_RPC_URL; other chains not enabled yet). Variables
+(comma-separated lists allowed):
 ``Q26_ETH_RPC_URL``, ``Q26_ARB_RPC_URL``, ``Q26_POLYGON_RPC_URL``, ``Q26_BASE_RPC_URL``, ``Q26_OP_RPC_URL``,
 ``Q26_AVAX_RPC_URL``, ``Q26_BSC_RPC_URL``, ``Q26_GNOSIS_RPC_URL``. An environment URL is never printed, logged or
 written: ``redact(url)`` returns ``env:<VAR>`` for it, and replaces any key-like path segment, query value or
@@ -152,16 +158,46 @@ def redact(url):
     return urlunsplit((p.scheme, host, "/".join(segs), urlencode(q, safe="<>"), ""))
 
 
-def rpc_endpoints(chain, keyless):
-    """Endpoint list for ``chain``: the URL(s) in the chain's Q26_*_RPC_URL variable first (if set), then the
-    caller's keyless list. Never print the result directly; use ``redact``."""
-    var = RPC_ENV.get(norm_chain(chain))
-    env = [u.strip() for u in (os.environ.get(var) or "").split(",") if u.strip()] if var else []
+LOG_METHODS = frozenset({"eth_getLogs", "eth_newFilter", "eth_getFilterLogs"})
+
+
+def rpc_endpoints(chain, keyless, kind="state"):
+    """Endpoint list for ``chain`` and request ``kind``.
+
+    kind="state" (eth_call, eth_getBalance, eth_getStorageAt, eth_getBlockByNumber headers, eth_blockNumber):
+        the URL(s) in the chain's Q26_*_RPC_URL variable first (if set), then the caller's keyless list.
+    kind="logs" (eth_getLogs): the keyless list only. The owner's provider key is a free tier whose eth_getLogs is
+        capped at a 10-block range (measured 2026-10-19), so log scans stay on the keyless endpoints; use
+        ``provider_log_endpoints`` only as an explicit fallback with windows of at most 10 blocks.
+    Never print the result directly; use ``redact``."""
+    if kind not in ("state", "logs"):
+        raise ValueError(f"kind must be 'state' or 'logs', not {kind!r}")
+    env = provider_endpoints(chain) if kind == "state" else []
     out = []
     for u in env + list(keyless):
         if u not in out:
             out.append(u)
     return out
+
+
+def provider_endpoints(chain):
+    """The URL(s) in the chain's Q26_*_RPC_URL variable (empty list when unset). Keyed: never print them."""
+    var = RPC_ENV.get(norm_chain(chain))
+    return [u.strip() for u in (os.environ.get(var) or "").split(",") if u.strip()] if var else []
+
+
+PROVIDER_LOG_MAX_SPAN = 10      # free-tier eth_getLogs cap of the owner's provider key (measured 2026-10-19)
+
+
+def provider_log_endpoints(chain):
+    """Fallback only: provider URL(s) for eth_getLogs, to be used with block windows of at most
+    PROVIDER_LOG_MAX_SPAN blocks."""
+    return provider_endpoints(chain)
+
+
+def endpoints_for(chain, method, keyless):
+    """Route one JSON-RPC method: log scans -> keyless only; archive state reads and headers -> provider first."""
+    return rpc_endpoints(chain, keyless, kind="logs" if method in LOG_METHODS else "state")
 
 
 # =====================================================================================================================

@@ -53,8 +53,9 @@ import q26cache  # noqa: E402  (shared Q26 data cache; Q26_ETH_RPC_URL first whe
 PREREG = {"repo": "triccs/membrane-board", "path": "design/Q26_ROUND12_PREREG.md", "item": "R12.9",
           "deviations": "D-R12.9a.."}
 ORACLE_SRC = {"repo": "triccs/membrane-solidity", "sha": "70f965e4092a29b0959c4ceec0370ca032484f83"}
-RPCS = q26cache.rpc_endpoints("ethereum", os.environ.get(
-    "R129_RPC", "https://gateway.tenderly.co/public/mainnet,https://rpc.mevblocker.io").split(","))
+KEYLESS_RPCS = os.environ.get("R129_RPC", "https://gateway.tenderly.co/public/mainnet,https://rpc.mevblocker.io").split(",")
+RPCS = q26cache.rpc_endpoints("ethereum", KEYLESS_RPCS, kind="logs")         # eth_getLogs: keyless only
+STATE_RPCS = q26cache.rpc_endpoints("ethereum", KEYLESS_RPCS, kind="state")  # eth_call/headers: Q26_ETH_RPC_URL first
 RPC = RPCS[0]
 UA = "curl/8.5.0"
 
@@ -146,7 +147,8 @@ def _post(body, timeout=180, url=None):
 def rpc(method, params, tries=12):
     for k in range(tries):
         try:
-            r = _post({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}, url=RPCS[k % len(RPCS)])
+            urls = q26cache.endpoints_for("ethereum", method, KEYLESS_RPCS)
+            r = _post({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}, url=urls[k % len(urls)])
             if "error" in r:
                 raise RuntimeError(json.dumps(r["error"])[:300])
             return r["result"]
@@ -166,7 +168,8 @@ def rpc_batch(calls, chunk=100, tries=10):
         body = [{"jsonrpc": "2.0", "id": j, "method": m, "params": p} for j, (m, p) in enumerate(part)]
         for k in range(tries):
             try:
-                r = _post(body, url=RPCS[k % len(RPCS)])
+                urls = RPCS if any(m in q26cache.LOG_METHODS for m, _ in part) else STATE_RPCS
+                r = _post(body, url=urls[k % len(urls)])
                 if isinstance(r, dict):
                     raise RuntimeError(json.dumps(r)[:300])
                 res = [None] * len(part)
@@ -478,6 +481,7 @@ def cmd_acquire(a):
     npz = os.path.join(out, f"ticks-{a.group}.npz")
     np.savez_compressed(npz, **res)
     man = {"schema": "q26-r129-acquire-v1", "prereg": PREREG, "group": a.group, "rpc": [q26cache.redact(u) for u in RPCS],
+           "state_rpc": [q26cache.redact(u) for u in STATE_RPCS],
            "started_utc": prog["started_utc"], "finished_utc": now_iso(), "blocks": [FACTORY_BLOCK, b_end],
            "pools": len(pools), "pools_with_swaps": n_with, "swap_logs": prog["logs"],
            "swap_blocks": int(len(arr)), "npz": os.path.basename(npz), "npz_sha256": sha256_file(npz),

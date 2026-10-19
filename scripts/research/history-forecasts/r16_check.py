@@ -213,6 +213,25 @@ def c5(out_dir):
     return out
 
 
+def c6(datasets):
+    """sequence-model inputs: the last window entries equal the as-of spot return, 24 h return and bar i-1 range."""
+    import r12_tail as R12
+    import r16_nn as N
+    sp = [s for s in R12.dev_specs(datasets) if s["key"] == "blind5:1INCHUSDT"][0]
+    A = N.series_arrays(sp)
+    ser, _, _ = R12.load_series(sp)
+    i = np.array([20000, 25000, 30000])
+    ts = ser.base_ts + 3600 * i
+    F = {k: np.zeros(3, np.float32) for k in N.STATIC}
+    F["lsH"] = np.log(np.full(3, np.sqrt(8760.0)), dtype=np.float32)
+    H, Dd, S = N.build_batch({0: A}, np.zeros(3, int), ts, F, np.zeros(3, int), 3)
+    sp_ = ser.spot
+    return {"last_hourly_return_ok": bool(np.allclose(H[:, -1, 0], np.log(sp_[i] / sp_[i - 1]), atol=1e-5)),
+            "last_daily_return_ok": bool(np.allclose(Dd[:, -1, 0], np.log(sp_[i] / sp_[i - 24]) / np.sqrt(24), atol=1e-5)),
+            "last_range_is_bar_i_minus_1": bool(np.allclose(H[:, -1, 1], np.log(ser.high[i - 1] / ser.low[i - 1]),
+                                                            atol=1e-5))}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--datasets", required=True)
@@ -229,6 +248,8 @@ def main():
             res["C3_chronos"] = c3(a.datasets, a.out)
         elif c == "c4":
             res["C4_stack_without_gb"] = c4(a.out)
+        elif c == "c6":
+            res["C6_nn_inputs"] = c6(a.datasets)
         elif c == "c5":
             res["C5_gb_long"] = c5(a.out)
         print(json.dumps({k: v for k, v in res.items() if k != "code"}, default=float)[-3000:], flush=True)

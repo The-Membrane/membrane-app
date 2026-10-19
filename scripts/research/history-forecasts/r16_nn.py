@@ -5,6 +5,7 @@ Menu fixed here before any output:
   CHANGED 2026-10-19 before any nn test output was read (CPU contention): windows 48 h / 30 d, at most 60,000
   training rows and 4 epochs, predictions (and scores) at daily origins only; early stopping also scores the
   initial state (seen after two long-tier validation losses only: the residual GRU ended worse than its fH start).
+  Training-row caps per model (CPU): nmlp, nmlp0 60,000; ntcn 30,000; ngru, ntfm 20,000.
   inputs   per row (origin i, horizon T): the last 72 hourly bars [return, ln(high/low), ln(volume / 30-day mean)] and
            the last 60 daily blocks [24 h return, 24 h range ln(max high / min low), 24 h volume ratio]; returns and
            ranges are divided by the row's hourly (fH) scale sigma_H / sqrt(8760) (sqrt(24) larger for daily blocks)
@@ -18,7 +19,7 @@ Menu fixed here before any output:
   models   nmlp  MLP on the flattened windows + static      residual: logit p = logit p_fH + head (head starts at 0)
            ngru  GRU(32) on the hourly and daily windows      residual
            ntcn  3-layer dilated causal 1-D CNN (32 ch)       residual
-           ntfm  2-layer transformer encoder (d 32, 4 heads)  residual
+           ntfm  1-layer transformer encoder (d 16, 2 heads)  residual (was 2 x d 32: over 20 min per fit)
            nmlp0 the MLP without p_fH (direct touch odds; level index as input)
   training one model per tier (rows of every T in the tier pooled); Adam lr 1e-3, weight decay 1e-4, batch 1024,
            dropout 0.1, at most 6 epochs, early stopping (patience 1) on a validation series group inside the
@@ -58,6 +59,7 @@ HW, DW = 48, 30
 STATIC = ("lsH", "lsf", "dm", "wm", "r24", "r168", "r720", "dd720", "rng24", "lvol", "btc_r24", "btc_dm")
 MODELS = ("nmlp", "ngru", "ntcn", "ntfm", "nmlp0")
 MAX_TRAIN = 60000
+CAP = {"nmlp": 60000, "nmlp0": 60000, "ntcn": 30000, "ngru": 20000, "ntfm": 20000}
 SEED = 20261903
 
 
@@ -206,13 +208,13 @@ def make_model(kind, n_static, L):
     class TFM(nn.Module):
         def __init__(self):
             super().__init__()
-            self.ph = nn.Linear(3, 32)
-            self.pd = nn.Linear(3, 32)
-            self.pos = nn.Parameter(torch.zeros(1, HW + DW + 1, 32))
-            self.cls = nn.Parameter(torch.zeros(1, 1, 32))
-            layer = nn.TransformerEncoderLayer(32, 4, 64, dropout=0.1, batch_first=True)
-            self.enc = nn.TransformerEncoder(layer, 2)
-            self.head = Head(32, True)
+            self.ph = nn.Linear(3, 16)
+            self.pd = nn.Linear(3, 16)
+            self.pos = nn.Parameter(torch.zeros(1, HW + DW + 1, 16))
+            self.cls = nn.Parameter(torch.zeros(1, 1, 16))
+            layer = nn.TransformerEncoderLayer(16, 2, 32, dropout=0.1, batch_first=True)
+            self.enc = nn.TransformerEncoder(layer, 1)
+            self.head = Head(16, True)
 
         def forward(self, h, d, s, lf):
             x = torch.cat([self.cls.expand(len(h), -1, -1), self.ph(h), self.pd(d)], dim=1) + self.pos
@@ -269,10 +271,12 @@ def run_tier(a, tier, SA, keys, log):
             tr = tr_all[grp[tr_all] != np.min(grp[tr_all])]
             if len(tr) > MAX_TRAIN:
                 tr = rng.choice(tr, MAX_TRAIN, replace=False)
+            tr_full = tr
             if len(va) > 60000:
                 va = rng.choice(va, 60000, replace=False)
             for m in run_models:
                 t0 = time.time()
+                tr = tr_full[:CAP[m]]
                 net = make_model(m, len(STATIC) + 2 + nT, L)
                 opt = torch.optim.Adam(net.parameters(), lr=1e-3, weight_decay=1e-4)
                 best, best_state, bad, ep_done = np.inf, None, 0, 0

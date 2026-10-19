@@ -963,26 +963,33 @@ def cmd_score(a):
         lnk = np.log1p(np.array(LV[T]))
         P = {m: R[m].astype(np.float32) for m in ALL_ROW_MODELS}
         extra = ()
-        fcb = os.path.join(out_dir, f"rows-cb-T{T}.npz")
-        if os.path.exists(fcb):                       # Chronos-Bolt rows (r16_cb.py), merged by (series, ts)
+        for pref, names in (("cb", ("cb", "cbH")), ("nn", ("nmlp", "ngru", "ntcn", "ntfm", "nmlp0"))):
+          fcb = os.path.join(out_dir, f"rows-{pref}-T{T}.npz")
+          if os.path.exists(fcb):                     # Chronos-Bolt (r16_cb.py) / sequence-model (r16_nn.py) rows
             Zc = np.load(fcb)
-            cbk = json.load(open(os.path.join(out_dir, "rows-cb-meta.json")))["series"]
-            mapk = {k_: j_ for j_, k_ in enumerate(keys)}
-            cmap = np.array([mapk.get(k_, -1) for k_ in cbk], np.int64)
+            if pref == "cb":
+                cbk = json.load(open(os.path.join(out_dir, "rows-cb-meta.json")))["series"]
+                mapk = {k_: j_ for j_, k_ in enumerate(keys)}
+                cmap = np.array([mapk.get(k_, -1) for k_ in cbk], np.int64)
+            else:
+                cmap = np.arange(len(keys), dtype=np.int64)
             kc = (cmap[Zc["sid"]] << 32) | Zc["ts"].astype(np.int64)
             kr = (R["sid"].astype(np.int64) << 32) | R["ts"].astype(np.int64)
             o = np.argsort(kc)
             pos = np.searchsorted(kc[o], kr)
             pos = np.clip(pos, 0, len(kc) - 1)
             hit = kc[o][pos] == kr
-            for nm in ("cb", "cbH"):
+            for nm in names:
                 v = P["fH"].copy()
                 v[hit] = Zc[nm][o][pos[hit]]
+                bad = ~np.all(np.isfinite(v), axis=1)
+                v[bad] = P["fH"][bad]
                 P[nm] = v
-            res.setdefault("cb_merge", {})[TL[T]] = {"rows": int(n), "matched": int(hit.sum()),
-                                                     "fH_equal": float(np.mean(np.isclose(Zc["fH"][o][pos[hit]],
-                                                                                          P["fH"][hit])))}
-            extra = ("cb", "cbH")
+            res.setdefault(pref + "_merge", {})[TL[T]] = {
+                "rows": int(n), "matched": int(hit.sum()),
+                "fH_equal": (float(np.mean(np.isclose(Zc["fH"][o][pos[hit]], P["fH"][hit]))) if "fH" in Zc.files
+                             else None)}
+            extra = extra + tuple(names)
         # cross-fitted gb
         t0 = time.time()
 

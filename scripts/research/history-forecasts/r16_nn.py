@@ -2,6 +2,8 @@
 parent). DEVELOPMENT ONLY (seen data). Recorded in membrane-board design/Q26_ROUND16_PREREG.md D-R16.2a.
 
 Menu fixed here before any output:
+  CHANGED 2026-10-19 before any nn output was read (CPU contention): windows 48 h / 30 d, at most 100,000
+  training rows and 5 epochs, predictions (and scores) at daily origins only.
   inputs   per row (origin i, horizon T): the last 72 hourly bars [return, ln(high/low), ln(volume / 30-day mean)] and
            the last 60 daily blocks [24 h return, 24 h range ln(max high / min low), 24 h volume ratio]; returns and
            ranges are divided by the row's hourly (fH) scale sigma_H / sqrt(8760) (sqrt(24) larger for daily blocks)
@@ -49,10 +51,10 @@ import r16_dev as D  # noqa: E402
 STEP, DAY = 3600, 86400
 TIER_LV = {"shallow": (-0.02, -0.03, -0.05, -0.07, -0.10), "mid": (-0.03, -0.05, -0.07, -0.10, -0.15, -0.20),
            "long": (-0.10, -0.15, -0.20, -0.25, -0.30, -0.40)}
-HW, DW = 72, 60
+HW, DW = 48, 30
 STATIC = ("lsH", "lsf", "dm", "wm", "r24", "r168", "r720", "dd720", "rng24", "lvol", "btc_r24", "btc_dm")
 MODELS = ("nmlp", "ngru", "ntcn", "ntfm", "nmlp0")
-MAX_TRAIN = 240000
+MAX_TRAIN = 100000
 SEED = 20261903
 
 
@@ -251,7 +253,7 @@ def run_tier(a, tier, SA, keys, log):
     info = {"rows": int(n), "tsplit": int(tsplit), "fits": []}
     for sh in (0, 1):
         for tt in (0, 1):
-            te = np.where((half == sh) & (th == tt))[0]
+            te = np.where((half == sh) & (th == tt) & (R["ts"] % DAY == 0))[0]     # daily origins only (CPU)
             if len(te) == 0:
                 continue
             if tt == 0:
@@ -285,7 +287,7 @@ def run_tier(a, tier, SA, keys, log):
                     mk = (y >= 0).float()
                     l_ = torch.nn.functional.binary_cross_entropy_with_logits(o, y.clamp(min=0), reduction="none")
                     return (l_ * mk).sum() / mk.sum()
-                for ep in range(6):
+                for ep in range(5):
                     net.train()
                     for _, h, d, s, lf, y in batches(tr, True):
                         opt.zero_grad()

@@ -234,6 +234,134 @@ def simulate(model: StepModel, si: SeriesInputs, i0, lnk, n_paths, seed, modes=(
 
 
 # ---------------------------------------------------------------------------------------------
+# Compiled simulator (numba); must equal `simulate` exactly on the same random numbers (checked in `lookahead`)
+# ---------------------------------------------------------------------------------------------
+try:
+    import numba as _nb
+except ImportError:          # pragma: no cover
+    _nb = None
+
+MODE_ID = {"rec": 0, "fix": 1, "recb": 2, "recc": 3}
+
+
+def _kernel_py(U, coef, edges, bin_order, bin_starts, lam, hist_v, LX0, Uu, mode, s, Ts, lnk):
+    n_pool = U.shape[0]
+    nst, n_paths = Uu.shape
+    nT, K = Ts.shape[0], lnk.shape[0]
+    hits = np.zeros((nT, K))
+    W = (24, 168, 720)
+    vsim = np.empty(HMAX)
+    sums0 = np.zeros(3)
+    cnts0 = np.zeros(3)
+    for wi in range(3):
+        w = W[wi]
+        for q in range(HISTW - w, HISTW):
+            x = hist_v[q]
+            if x == x:
+                sums0[wi] += x
+                cnts0[wi] += 1.0
+    sums = np.zeros(3)
+    cnts = np.zeros(3)
+    for pth in range(n_paths):
+        for wi in range(3):
+            sums[wi] = sums0[wi]
+            cnts[wi] = cnts0[wi]
+        L = 0.0
+        rmin = 1e300
+        lsig = coef[0] + coef[1] * LX0[0] + coef[2] * LX0[1] + coef[3] * LX0[2]
+        lnM = LX0[2]
+        t = 0
+        for k in range(nst):
+            if k > 0 and mode != 1:
+                lD = math.log(max(ANNUAL * sums[0] / cnts[0], 1e-300))
+                lW = math.log(max(ANNUAL * sums[1] / cnts[1], 1e-300))
+                lnM = math.log(max(ANNUAL * sums[2] / cnts[2], 1e-300))
+                lsig = coef[0] + coef[1] * lD + coef[2] * lW + coef[3] * lnM
+            st = lsig - 0.5 * lnM
+            b = 0
+            for e in range(edges.shape[0]):
+                if edges[e] < st:
+                    b = e + 1
+            u = Uu[k, pth]
+            if mode == 3:
+                a0 = bin_starts[b]
+                nb_ = bin_starts[b + 1] - a0
+                j = int(u * nb_)
+                if j > nb_ - 1:
+                    j = nb_ - 1
+                idx = bin_order[a0 + j]
+            else:
+                idx = int(u * n_pool)
+                if idx > n_pool - 1:
+                    idx = n_pool - 1
+            sc = math.exp(lsig) / SQA
+            if mode == 2:
+                sc = sc * lam[b]
+            for m in range(s):
+                hh = float(U[idx, m, 1]) * sc
+                ll = float(U[idx, m, 2]) * sc
+                lo = L + ll
+                if lo < rmin:
+                    rmin = lo
+                v = (hh - ll) ** 2 * PARK
+                vsim[t] = v
+                for wi in range(3):
+                    w = W[wi]
+                    sums[wi] += v
+                    cnts[wi] += 1.0
+                    q = HISTW + t - w          # position leaving the window
+                    if q >= 0:
+                        if q < HISTW:
+                            x = hist_v[q]
+                            if x == x:
+                                sums[wi] -= x
+                                cnts[wi] -= 1.0
+                        else:
+                            sums[wi] -= vsim[q - HISTW]
+                            cnts[wi] -= 1.0
+                t += 1
+                for ti in range(nT):
+                    if Ts[ti] == t:
+                        for kk in range(K):
+                            if rmin <= lnk[kk]:
+                                hits[ti, kk] += 1.0
+            L = L + float(U[idx, s - 1, 0]) * sc
+    return hits / n_paths
+
+
+_kernel = _nb.njit(cache=True, fastmath=False)(_kernel_py) if _nb is not None else _kernel_py
+
+
+def prep_fast(model: StepModel):
+    if getattr(model, "_fast", None) is None and model.ok:
+        order = np.concatenate(model.bin_idx).astype(np.int64)
+        starts = np.concatenate([[0], np.cumsum([len(ix) for ix in model.bin_idx])]).astype(np.int64)
+        model._fast = (np.ascontiguousarray(model.U), np.asarray(model.coef, float), np.asarray(model.edges, float),
+                       order, starts, np.asarray(model.lam, float))
+    return model._fast
+
+
+def simulate_fast(model: StepModel, si: SeriesInputs, i0, lnk, n_paths, seed, modes=("rec", "fix", "recb", "recc"),
+                  Ts=EVAL_T):
+    """Same contract and random numbers as `simulate`; compiled kernel."""
+    if not (model.ok and si.okX[i0]):
+        return None
+    s = model.s
+    nst = HMAX // s
+    rng = np.random.default_rng(seed)
+    Uu = rng.random((nst, n_paths))
+    lo = i0 - HISTW
+    hv = np.full(HISTW, np.nan)
+    a = max(lo, 0)
+    hv[a - lo:] = si.v[a:i0]
+    U, coef, edges, order, starts, lam = prep_fast(model)
+    LX0 = np.asarray(si.LX[i0], float)
+    Ta = np.asarray(Ts, np.int64)
+    lk = np.asarray(lnk, float)
+    return {m: _kernel(U, coef, edges, order, starts, lam, hv, LX0, Uu, MODE_ID[m], s, Ta, lk) for m in modes}
+
+
+# ---------------------------------------------------------------------------------------------
 # (fH) block-bootstrap refits (parameter-uncertainty range, construction (i))
 # ---------------------------------------------------------------------------------------------
 def fh_boot(P6, qs_i, te, rng, B=BOOT_B):
@@ -338,9 +466,8 @@ def run_series(ser, folds, n_paths, steps_main=(12,), steps_sub=(6, 3, 1), sub_e
         if not len(oo):
             continue
         for s in steps_all:
-            modes = modes_main if s in steps_main else ("rec",)
+            day_of = (ser.base_ts + 3600 * oo) // DAY
             if s not in steps_main:
-                day_of = (ser.base_ts + 3600 * oo) // DAY
                 oo_s = oo[(day_of % sub_every_days) == 0]
             else:
                 oo_s = oo
@@ -348,7 +475,12 @@ def run_series(ser, folds, n_paths, steps_main=(12,), steps_sub=(6, 3, 1), sub_e
                 continue
             mdl = StepModel(si, s, f["qs_i"])
             for i0 in oo_s:
-                res = simulate(mdl, si, int(i0), lnk, n_paths, [SEED, sid, int(i0), s], modes=modes)
+                # main step: every mode on even days, rec only on odd days (compute budget); other steps: rec only
+                if s in steps_main:
+                    modes = modes_main if ((ser.base_ts + 3600 * int(i0)) // DAY) % 2 == 0 else ("rec",)
+                else:
+                    modes = ("rec",)
+                res = simulate_fast(mdl, si, int(i0), lnk, n_paths, [SEED, sid, int(i0), s], modes=modes)
                 if res is None:
                     continue
                 for m, arr in res.items():
@@ -479,15 +611,21 @@ def run_lookahead(datasets, out, n_series=4, n_orig=6):
             l_[i0:] = np.nan
             tr = SeriesInputs(c, h, l_, ser.start_i, steps=(12, 3))
             for s in (12, 3):
-                a = simulate(StepModel(full, s, f["qs_i"]), full, i0, lnk, 400, [9, i0, s])
-                b = simulate(StepModel(tr, s, f["qs_i"]), tr, i0, lnk, 400, [9, i0, s])
+                a = simulate_fast(StepModel(full, s, f["qs_i"]), full, i0, lnk, 400, [9, i0, s])
+                b = simulate_fast(StepModel(tr, s, f["qs_i"]), tr, i0, lnk, 400, [9, i0, s])
+                c_ = simulate(StepModel(full, s, f["qs_i"]), full, i0, lnk, 400, [9, i0, s])
                 same = (a is None and b is None) or all(np.array_equal(a[m], b[m]) for m in a)
-                rep.append({"series": k, "fold": f["name"], "i0": i0, "s": s, "identical": bool(same)})
+                fast_eq = (a is None and c_ is None) or all(np.array_equal(a[m], c_[m]) for m in a)
+                rep.append({"series": k, "fold": f["name"], "i0": i0, "s": s, "identical": bool(same),
+                            "compiled_equals_python": bool(fast_eq), "valid_origin": a is not None})
             # and the bootstrap refit of (fH) at T 168: truncation after qs_i - T must not change it
         print(k, "done", flush=True)
-    res = {"checks": rep, "all_identical": all(r["identical"] for r in rep), "n": len(rep)}
+    res = {"checks": rep, "all_identical": all(r["identical"] for r in rep), "n": len(rep),
+           "all_compiled_equal": all(r["compiled_equals_python"] for r in rep),
+           "n_valid": sum(r["valid_origin"] for r in rep),
+           "note": "each prediction recomputed with every bar at or after the origin set to NaN (close, high, low)"}
     M6.write_json(os.path.join(out, "lookahead.json"), res)
-    print(json.dumps({"all_identical": res["all_identical"], "n": res["n"]}))
+    print(json.dumps({k: res[k] for k in ("all_identical", "all_compiled_equal", "n", "n_valid")}))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -594,7 +732,7 @@ def _known_series(args):
             key = (f["name"], s)
             if key not in models:
                 models[key] = StepModel(si, s, f["qs_i"])
-            r = simulate(models[key], si, i0, lnk, n_paths, [SEED, 14, si_, i0, s],
+            r = simulate_fast(models[key], si, i0, lnk, n_paths, [SEED, 14, si_, i0, s],
                          modes=("rec", "fix", "recc") if s == 12 else ("rec",))
             if r is not None:
                 sims.update({f"{m}{s}": v for m, v in r.items()})

@@ -963,6 +963,7 @@ def cmd_score(a):
         lnk = np.log1p(np.array(LV[T]))
         P = {m: R[m].astype(np.float32) for m in ALL_ROW_MODELS}
         extra = ()
+        nn_names = ()
         for pref, names in (("cb", ("cb", "cbH")), ("nn", ("nmlp", "ngru", "ntcn", "ntfm", "nmlp0"))):
           fcb = os.path.join(out_dir, f"rows-{pref}-T{T}.npz")
           if os.path.exists(fcb):                     # Chronos-Bolt (r16_cb.py) / sequence-model (r16_nn.py) rows
@@ -980,16 +981,22 @@ def cmd_score(a):
             pos = np.clip(pos, 0, len(kc) - 1)
             hit = kc[o][pos] == kr
             for nm in names:
-                v = P["fH"].copy()
-                v[hit] = Zc[nm][o][pos[hit]]
-                bad = ~np.all(np.isfinite(v), axis=1)
-                v[bad] = P["fH"][bad]
+                if pref == "nn":                      # daily-origin subset model: NaN elsewhere (scored on its subset)
+                    v = np.full_like(P["fH"], np.nan)
+                    v[hit] = Zc[nm][o][pos[hit]]
+                else:
+                    v = P["fH"].copy()
+                    v[hit] = Zc[nm][o][pos[hit]]
+                    bad = ~np.all(np.isfinite(v), axis=1)
+                    v[bad] = P["fH"][bad]
                 P[nm] = v
             res.setdefault(pref + "_merge", {})[TL[T]] = {
                 "rows": int(n), "matched": int(hit.sum()),
                 "fH_equal": (float(np.mean(np.isclose(Zc["fH"][o][pos[hit]], P["fH"][hit]))) if "fH" in Zc.files
                              else None)}
-            extra = extra + tuple(names)
+            extra = extra + (tuple(names) if pref == "cb" else ())
+            if pref == "nn":
+                nn_names = tuple(names)
         # cross-fitted gb
         t0 = time.time()
 
@@ -1024,13 +1031,21 @@ def cmd_score(a):
             cs = score_cells(Rs, T, Ps, ("fH", "f") + SIM, tw_s, Rs["sid"], log)
             for ck in cs:
                 cells[ck]["sim_subset"] = cs[ck]
+        nmask = np.isfinite(P[nn_names[0]][:, 0]) if nn_names else np.zeros(n, bool)
+        if nmask.any():
+            Rn = {k_: v[nmask] for k_, v in R.items()}
+            Pn = {m: v[nmask] for m, v in P.items()}
+            tw_n = TwoWay(Rn["sid"], (Rn["ts"] // (28 * DAY)).astype(np.int64), B=1000)
+            cn_ = score_cells(Rn, T, Pn, ("fH", "f", "st", "lp") + nn_names, tw_n, Rn["sid"], log)
+            for ck in cn_:
+                cells[ck]["nn_subset"] = cn_[ck]
         res["cells"].update(cells)
         # tier pooled differences
         tier = [t for t, Ts in TIERS.items() if T in Ts][0]
         C = TIER_C[tier]
         Y = R["y"].astype(float)
         dd = {}
-        for m in allm + SIM:
+        for m in allm + SIM + nn_names:
             pm = P[m].astype(float)
             mk = np.all(np.isfinite(pm), axis=1)
             d = np.where(mk[:, None], (pm - Y) ** 2 - (P[C] - Y) ** 2, np.nan).sum(axis=1) / L
@@ -1063,13 +1078,12 @@ def cmd_score(a):
             zz = TwoWay(sid[mk], blk[mk], B=1000).z(d[mk]) if not mk.all() else tw.z(d)
             lk = leave_top_k(sid[mk], d[mk])
             tcells = [c for c in res["cells"] if any(c.startswith(TL[T] + " ") for T in TIERS[tier])]
-            if m in SIM:
-                bss = [res["cells"][c]["sim_subset"][m]["bss_fH" if C == "fH" else "bss_f"] for c in tcells
-                       if "sim_subset" in res["cells"][c]]
-                lr = [abs(math.log(res["cells"][c]["sim_subset"][m]["R"])) for c in tcells
-                      if "sim_subset" in res["cells"][c]]
-                lrC = [abs(math.log(res["cells"][c]["sim_subset"][C]["R"])) for c in tcells
-                       if "sim_subset" in res["cells"][c]]
+            if m in SIM or m.startswith("n"):
+                sub = "sim_subset" if m in SIM else "nn_subset"
+                bss = [res["cells"][c][sub][m]["bss_fH" if C == "fH" else "bss_f"] for c in tcells
+                       if sub in res["cells"][c]]
+                lr = [abs(math.log(res["cells"][c][sub][m]["R"])) for c in tcells if sub in res["cells"][c]]
+                lrC = [abs(math.log(res["cells"][c][sub][C]["R"])) for c in tcells if sub in res["cells"][c]]
             else:
                 bss = [res["cells"][c][m]["bss_fH" if C == "fH" else "bss_f"] for c in tcells]
                 lr = [abs(math.log(res["cells"][c][m]["R"])) for c in tcells]
@@ -1144,7 +1158,7 @@ def cmd_power(a):
             for ck, cv in res["cells"].items():
                 if not any(ck.startswith(TL[T] + " ") for T in TIERS[tier]):
                     continue
-                src = cv.get("sim_subset", {}) if m in SIM else cv
+                src = cv.get("sim_subset", {}) if m in SIM else (cv.get("nn_subset", {}) if m.startswith("n") else cv)
                 if m not in src or ("tw_" + C) not in src[m]:
                     continue
                 t = src[m]["tw_" + C]

@@ -187,7 +187,7 @@ def twoway_stats(ts, sid, y, P, cand, comps, T_hours, nb, seed, blocks="crash", 
         wk = (np.asarray(ts, np.int64) + 3 * DAY) // (7 * DAY)
         u, bid = np.unique(wk, return_inverse=True)
         G = len(u)
-        posb = np.bincount(bid, weights=y, minlength=G) > 0
+        posb = np.ones(G, bool)          # week blocks: every week with rows (alert weeks; shallow weeks)
     su, si = np.unique(sid, return_inverse=True)
     S = len(su)
     e = {"rows": int(len(y)), "pos": int(y.sum()), "series": int(S), "blocks": int(G), "pos_blocks": int(posb.sum()),
@@ -457,6 +457,247 @@ def own_counts_asof_split(day_q, day_all, end_all, m_all, zq):
             E[a0:a1, kk] = (res & (m_all[None, :] <= zq[a0:a1, kk][:, None])).sum(axis=1)
     return E, N
 
+
+# =============================================================================================
+# R15.3: route-median oracle alert, pooled standardized-gap model of P(cross | alert)
+# =============================================================================================
+R153_T = (1, 3, 6)
+R153_K = (-0.02, -0.03, -0.05)
+R153_FIT_K = (-0.02, -0.03, -0.05, -0.07, -0.10)
+U_EDGES = np.array([-3.0, -2.0, -1.5, -1.0, -0.5])          # bins (-inf,-3], (-3,-2], ..., (-0.5, 0]
+R153_MIN_BIN = 200
+SEED_R153 = 2026153
+B17_DIRS = ("b17-uniswap-alts/dev", "b17-uniswap-alts/b17a", "b17-uniswap-alts/b17b", "b17-uniswap-alts/bridge")
+
+
+def kucoin_constants(results_r127):
+    d = json.load(open(results_r127))
+    out = {}
+    for c in d["cells"]:
+        T = int(str(c["T"]).rstrip("h"))
+        out[(T, round(float(c["level"]), 4))] = float(c["rbit"]["precision"])
+    return out
+
+
+def r153_rows(ctx, seed=20261018, with_labels=True, log=print):
+    """per alert origin (alert at -2%, the superset): asset, t, rep, gap, sigma_1h, rv24, alerts per k, and (with
+    labels) y[T][k] and p_null[T][k] (R12.9 recipe and seeds)."""
+    import r129_alt_oracle as O
+    cols = {k_: [] for k_ in ("asset", "t", "rep", "gap", "sig", "rv")}
+    al = {k: [] for k in O.LEVELS}
+    yy = {(T, k): [] for T in O.HORIZONS_H for k in O.LEVELS}
+    pn = {(T, k): [] for T in O.HORIZONS_H for k in O.LEVELS}
+    diag = []
+    for ai, row in enumerate(ctx.assets()):
+        b = O.build_asset(ctx, row)
+        idx, rep = O.origins_for(ctx, b)
+        if len(idx) == 0:
+            diag.append({"symbol": row["symbol"], "origins": 0, "alerts_m2": 0})
+            continue
+        alerts, y = O.labels_and_alerts(b, idx)
+        sel = alerts[O.LEVELS[0]]
+        ia = idx[sel]
+        diag.append({"symbol": row["symbol"], "origins": int(len(idx)), "alerts_m2": int(sel.sum())})
+        if not sel.any():
+            continue
+        sp = b["spot"]
+        sig = np.full(len(ia), np.nan)
+        rv = np.full(len(ia), np.nan)
+        for a_i, i in enumerate(ia):
+            w = sp[i - 1440: i + 1]
+            d = np.diff(w)
+            d = d[np.isfinite(d)]
+            if len(d) >= 1300:
+                sig[a_i] = math.sqrt(60.0 * float(np.mean(d * d)))
+            hc = sp[i - 60 * np.arange(25)[::-1]]                 # hourly closes t-24h .. t
+            lr = np.diff(hc)
+            lr = lr[np.isfinite(lr)]
+            if len(lr) >= 20:
+                rv[a_i] = math.sqrt(float(np.mean(lr * lr)))
+        cols["asset"].append(np.full(len(ia), row["symbol"], dtype=object))
+        cols["t"].append(ctx.grid[ia])
+        cols["rep"].append(rep[sel])
+        cols["gap"].append(sp[ia] - b["served"][ia])
+        cols["sig"].append(sig)
+        cols["rv"].append(rv)
+        for k in O.LEVELS:
+            al[k].append(alerts[k][sel])
+        if with_labels:
+            pnull = O.null_probs(b, ia, seed + ai)
+            for T in O.HORIZONS_H:
+                for k in O.LEVELS:
+                    yy[(T, k)].append(y[T][k][sel])
+                    pn[(T, k)].append(pnull[T][k])
+        log(f"  {row['symbol']}: origins {len(idx)}, alerts(-2%) {int(sel.sum())}")
+        del b
+    D = {k_: np.concatenate(v) if v else np.zeros(0) for k_, v in cols.items()}
+    D["alert"] = {k: np.concatenate(v) if v else np.zeros(0, bool) for k, v in al.items()}
+    if with_labels:
+        D["y"] = {kk: np.concatenate(v).astype(float) if v else np.zeros(0) for kk, v in yy.items()}
+        D["pnull"] = {kk: np.concatenate(v) if v else np.zeros(0) for kk, v in pn.items()}
+    D["diag"] = diag
+    return D
+
+
+def lgt(p, eps=1e-3):
+    p = np.clip(np.asarray(p, float), eps, 1 - eps)
+    return np.log(p / (1 - p))
+
+
+def irls_logit(X, y, iters=50):
+    b = np.zeros(X.shape[1])
+    for _ in range(iters):
+        eta = X @ b
+        mu = 1 / (1 + np.exp(-eta))
+        w = np.maximum(mu * (1 - mu), 1e-9)
+        z = eta + (y - mu) / w
+        bn = np.linalg.solve(X.T @ (X * w[:, None]), X.T @ (w * z))
+        if np.max(np.abs(bn - b)) < 1e-10:
+            b = bn
+            break
+        b = bn
+    return b
+
+
+def u_of(D, k):
+    return (D["gap"] - math.log1p(k)) / D["sig"]
+
+
+def ubin(u):
+    return np.searchsorted(U_EDGES, u, side="left")
+
+
+def fit_r153(D):
+    """M_rc (a_T, b_T) and M_u (u-bin frequencies with merging) per T, pooled over assets and R153_FIT_K."""
+    out = {"rc": {}, "u": {}}
+    for T in R153_T:
+        X, Y, U = [], [], []
+        for k in R153_FIT_K:
+            m = D["alert"][k] & ~D["rep"] & np.isfinite(D["pnull"][(T, k)]) & np.isfinite(D["sig"])
+            X.append(lgt(D["pnull"][(T, k)][m]))
+            Y.append(D["y"][(T, k)][m])
+            U.append(u_of(D, k)[m])
+        x, yv, u = np.concatenate(X), np.concatenate(Y), np.concatenate(U)
+        b = irls_logit(np.stack([np.ones(len(x)), x], 1), yv)
+        out["rc"][str(T)] = {"a": float(b[0]), "b": float(b[1]), "rows": int(len(x))}
+        bins = ubin(u)
+        nb_ = len(U_EDGES) + 1
+        cnt = np.bincount(bins, minlength=nb_).astype(float)
+        hit = np.bincount(bins, weights=yv, minlength=nb_)
+        # merge sparse bins toward 0 (the last bin): walk from the most negative bin
+        groups, cur = [], []
+        for j in range(nb_):
+            cur.append(j)
+            if cnt[cur].sum() >= R153_MIN_BIN:
+                groups.append(cur)
+                cur = []
+        if cur:
+            if groups:
+                groups[-1] = groups[-1] + cur
+            else:
+                groups = [cur]
+        freq = np.zeros(nb_)
+        for g_ in groups:
+            freq[g_] = hit[g_].sum() / max(cnt[g_].sum(), 1)
+        out["u"][str(T)] = {"freq": freq.tolist(), "groups": groups, "counts": cnt.tolist(), "hits": hit.tolist()}
+    return out
+
+
+def predict_r153(F, D, T, k, m):
+    p_rc = 1 / (1 + np.exp(-(F["rc"][str(T)]["a"] + F["rc"][str(T)]["b"] * lgt(D["pnull"][(T, k)][m]))))
+    p_u = np.asarray(F["u"][str(T)]["freq"])[ubin(u_of(D, k)[m])]
+    return {"M_rc": p_rc, "M_u": p_u}
+
+
+def rcal_probs(lk, D, T, k, m):
+    import r127_alert as A7
+    S = {"gap": D["gap"][m], "rv": D["rv"][m]}
+    j = A7.ALL_K.index(k)
+    p, _ = A7.apply_lookup(lk["tables"][f"{T}h"], S, j, k, lk["rv_edges"])
+    return p
+
+
+def r153_cell_rows(D, F, lk, K, T, k):
+    m = D["alert"][k] & ~D["rep"] & np.isfinite(D["pnull"][(T, k)]) & np.isfinite(D["sig"])
+    P = predict_r153(F, D, T, k, m)
+    P["null"] = D["pnull"][(T, k)][m]
+    P["rcal"] = rcal_probs(lk, D, T, k, m)
+    P["K"] = np.full(int(m.sum()), K[(T, round(k, 4))])
+    return m, P
+
+
+def cmd_dev3(a):
+    import r129_alt_oracle as O
+    t0 = now_iso()
+    sel_dir = os.path.join(a.datasets, "b17-uniswap-alts")
+    dirs = [os.path.join(a.datasets, "b17-uniswap-alts", x) for x in ("dev", "b17a", "bridge")]
+    lk_path = os.path.join(a.datasets, "history-forecasts/r12/r127-run-0c2da9d2/lookup-r127.json")
+    res_path = os.path.join(a.datasets, "history-forecasts/r12/r127-run-0c2da9d2/results-r127.json")
+    lk = json.load(open(lk_path))
+    K = kucoin_constants(res_path)
+    Ds = {}
+    for grp in ("dev", "b17a"):
+        ctx = O.Ctx(sel_dir, dirs, grp)
+        print(f"{now_iso()} R15.3 dev rows {grp}", flush=True)
+        Ds[grp] = r153_rows(ctx)
+        del ctx
+    out = {"schema": "q26-r153-dev-v1", "prereg": PREREG, "created_utc": t0, "code_sha": git_sha(),
+           "inputs": {"lookup_r127_sha256": sha_file(lk_path), "results_r127_sha256": sha_file(res_path),
+                      "ticks_dev_sha256": sha_file(os.path.join(dirs[0], "ticks-dev.npz")),
+                      "ticks_b17a_sha256": sha_file(os.path.join(dirs[1], "ticks-b17a.npz"))},
+           "note": "development on SEEN route-median data only: R12.9 dev split and B17a (grade C); leave-set-out",
+           "diag": {g: Ds[g]["diag"] for g in Ds}, "fits": {}, "cells": {}, "selection": {}}
+    fits = {g: fit_r153(Ds[g]) for g in Ds}
+    out["fits"] = {f"fit_on_{g}": v for g, v in fits.items()}
+    comps = ["null", "rcal", "K"]
+    sel = {"M_rc": [], "M_u": []}
+    for T in R153_T:
+        for k in R153_K:
+            parts = []
+            for fit_g, sc_g in (("dev", "b17a"), ("b17a", "dev")):
+                D = Ds[sc_g]
+                m, P = r153_cell_rows(D, fits[fit_g], lk, K, T, k)
+                parts.append((D["asset"][m], D["t"][m], D["y"][(T, k)][m], P))
+            asset = np.concatenate([p_[0] for p_ in parts])
+            ts = np.concatenate([p_[1] for p_ in parts])
+            y = np.concatenate([p_[2] for p_ in parts])
+            P = {n_: np.concatenate([p_[3][n_] for p_ in parts]) for n_ in parts[0][3]}
+            ua, sid = np.unique(asset.astype(str), return_inverse=True)
+            cell = {}
+            for cand in ("M_rc", "M_u"):
+                cell[cand] = twoway_stats(ts, sid, y, P, cand, comps, T, a.nb, SEED_R153 + 10 * T + int(-k * 100),
+                                          blocks="week")
+                sel[cand].append(cell[cand]["brier"][cand])
+            cell["per_direction"] = [{"scored": sc_g, "rows": int(len(p_[2])), "hit": float(p_[2].mean()) if len(p_[2]) else None,
+                                      "brier": {n_: float(np.mean((p_[3][n_] - p_[2]) ** 2)) for n_ in p_[3]},
+                                      "R": {n_: float(p_[3][n_].sum() / max(p_[2].sum(), 1)) for n_ in p_[3]}}
+                                     for p_, (_, sc_g) in zip(parts, (("dev", "b17a"), ("b17a", "dev")))]
+            out["cells"][f"{T}h/{k}"] = cell
+            print(f"{T}h {k}: alerts {len(y)} weeks {cell['M_rc']['blocks']} hit {y.mean():.3f} | " +
+                  " ".join(f"{c_}: R {cell[c_]['R'][c_]:.3f} bss " + "/".join(
+                      f"{cell[c_]['vs'][x]['bss']:+.4f}" for x in comps) for c_ in ("M_rc", "M_u")) +
+                  f" | R null {cell['M_rc']['R']['null']:.3f} rcal {cell['M_rc']['R']['rcal']:.3f} K {cell['M_rc']['R']['K']:.3f}",
+                  flush=True)
+    sc = {c_: float(np.mean(v)) for c_, v in sel.items()}
+    # one-SE: SE of the mean Brier difference across the 9 cells
+    dlt = np.array(sel["M_u"]) - np.array(sel["M_rc"])
+    se_d = float(np.std(dlt, ddof=1) / math.sqrt(len(dlt)))
+    choice = "M_rc" if sc["M_rc"] <= sc["M_u"] + se_d else "M_u"
+    out["selection"] = {"mean_brier": sc, "se_diff": se_d, "choice": choice,
+                        "rule": "simplest (M_rc, then M_u) within one SE of the best mean Brier over 9 cells"}
+    F_all = fit_r153({"alert": {k: np.concatenate([Ds[g]["alert"][k] for g in Ds]) for k in O.LEVELS},
+                      "rep": np.concatenate([Ds[g]["rep"] for g in Ds]),
+                      "gap": np.concatenate([Ds[g]["gap"] for g in Ds]),
+                      "sig": np.concatenate([Ds[g]["sig"] for g in Ds]),
+                      "y": {kk: np.concatenate([Ds[g]["y"][kk] for g in Ds]) for kk in Ds["dev"]["y"]},
+                      "pnull": {kk: np.concatenate([Ds[g]["pnull"][kk] for g in Ds]) for kk in Ds["dev"]["pnull"]}})
+    out["frozen_fit_both_sets"] = F_all
+    out["z_holm_union"] = z_holm_union()
+    out["utc_end"] = now_iso()
+    print("selection", json.dumps(out["selection"]), flush=True)
+    write_json(os.path.join(a.out, "dev-r153.json"), out)
+    print("sha256", sha_file(os.path.join(a.out, "dev-r153.json")))
+
 # =============================================================================================
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -470,8 +711,12 @@ def main():
     s.add_argument("--fh", default="/home/user/r13work/r134/fh/fh-r134.npz")
     s.add_argument("--nb", type=int, default=10000)
     s.add_argument("--out", required=True)
+    s = sub.add_parser("dev3")
+    s.add_argument("--datasets", default="/home/user/membrane-datasets")
+    s.add_argument("--nb", type=int, default=10000)
+    s.add_argument("--out", required=True)
     a = ap.parse_args()
-    {"select-b19": cmd_select_b19, "dev1": cmd_dev1}[a.cmd](a)
+    {"select-b19": cmd_select_b19, "dev1": cmd_dev1, "dev3": cmd_dev3}[a.cmd](a)
 
 
 if __name__ == "__main__":

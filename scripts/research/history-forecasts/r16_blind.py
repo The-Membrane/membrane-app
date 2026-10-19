@@ -193,8 +193,14 @@ def cmd_run(a):
                     res_rows[T].append(R)
     out = {"schema": "q26-r16.2-blind/1", "created_utc": R12.now_iso(), "code": D.git_sha(),
            "frozen_config_sha256": sha_file(cfgp), "series": keys, "cells": {}}
+    ps = json.load(open(os.path.join(a.out, "powersim-r162-b20a.json")))["cells"]
+    out["powersim"] = ps
     for c in PRIMARY:
         T, k, m, C = c["T"], c["level"], c["model"], c["comparator"]
+        pw = ps[f"{m} vs {C} {D.TL[T]} {k}"]["power"]
+        if pw < 0.80:
+            out["cells"][f"{m} vs {C} {D.TL[T]} {k}"] = {"status": "NOT RUN", "power": pw}
+            continue
         R = {kk: np.concatenate([x[kk] for x in res_rows[T]]) for kk in res_rows[T][0]}
         L = len(D.LV[T])
         lnk = np.log1p(np.array(D.LV[T]))
@@ -227,6 +233,30 @@ def cmd_run(a):
         cell["MCB_DSC_C"] = D.corp(pc, y)
         out["cells"][f"{m} vs {C} {D.TL[T]} {k}"] = cell
         print(json.dumps({kk: v for kk, v in cell.items() if kk != "two_way"}, default=float), flush=True)
+    # Holm over the registered M = len(PRIMARY) cells (a NOT RUN cell counts as p = 1)
+    M = len(PRIMARY)
+    pv = []
+    for ck, cell in out["cells"].items():
+        if cell.get("status") == "NOT RUN" or cell["two_way"]["z"] is None:
+            pv.append((1.0, ck))
+        else:
+            pv.append((max(cell["p_centred"], cell["p_percentile"]), ck))
+    pv.sort()
+    stop = False
+    for r_, (p_, ck) in enumerate(pv):
+        cell = out["cells"][ck]
+        thr = 0.05 / (M - r_)
+        sig = (not stop) and p_ <= thr
+        stop = stop or not sig
+        if cell.get("status") == "NOT RUN":
+            continue
+        cell["holm_threshold"] = thr
+        cell["holm_pass"] = bool(sig)
+        cell["R_gate"] = bool(0.8 <= cell["R_model"] <= 1.25)
+        cell["concentration_gate"] = bool(cell["leave_top_k"]["mean_after"] is not None
+                                          and cell["leave_top_k"]["mean_after"] < 0)
+        cell["verdict"] = "PASS" if (sig and cell["R_gate"] and cell["concentration_gate"]) else "FAIL"
+        print("VERDICT", ck, cell["verdict"], flush=True)
     out["finished_utc"] = R12.now_iso()
     json.dump(out, open(os.path.join(a.out, "blind-r162-b20a.json"), "w"), indent=1, default=float)
 
@@ -239,6 +269,10 @@ def cmd_config(a):
     if sha_file(pk) != cfg["pickle_sha256"]:
         raise SystemExit("STOP: pickle sha256 mismatch")
     cfg["primary"] = PRIMARY
+    psp = os.path.join(a.out, "powersim-r162-b20a.json")
+    cfg["powersim_sha256"] = sha_file(psp)
+    cfg["run_cells"] = [k for k, v in json.load(open(psp))["cells"].items() if v["power"] >= 0.80]
+    cfg["counts_sha256"] = sha_file(os.path.join(a.out, "counts-r162-b20a.json"))
     cfg["config_code"] = D.git_sha()
     cfg["config_utc"] = R12.now_iso()
     json.dump(cfg, open(cfgp, "w"), indent=1)

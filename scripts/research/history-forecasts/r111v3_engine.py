@@ -384,7 +384,38 @@ class Replay:
         _t0 = _time.time()
         self.cpos, self.dirty, self.C = {}, set(), None
         self._overlay = overlay
-        for n in range(len(ks)):
+        # R11.1-v4 (D-R11.1n): resumable checkpoints at hour boundaries (all mutable loop state, one pickle), so a
+        # process kill costs at most the checkpoint interval. Results are unchanged (D: checkpoint + resume in a new
+        # process gives byte-identical outputs).
+        ck_path = getattr(self, "checkpoint", None) or os.environ.get("R111_CHECKPOINT")
+        ck_every = float(os.environ.get("R111_CK_EVERY", "1800"))
+        ck_stop = os.environ.get("R111_CK_STOP_AFTER_FIRST") == "1"
+        start_n, _last_ck = 0, _time.time()
+        if ck_path and os.path.exists(ck_path):
+            import pickle
+            with open(ck_path, "rb") as f:
+                S_ = pickle.load(f)
+            for k in ("SA", "SV", "SP", "SR", "ST", "FL", "EM"):
+                setattr(st, k, S_["st"][k])
+            for k in ("L0", "V0", "lr", "vr", "t0", "ptr"):
+                setattr(idx, k, S_["idx"][k])
+            A, A_h, px, px_h, cand, overlay, usdc_debt = (S_[k] for k in ("A", "A_h", "px", "px_h", "cand", "overlay", "usdc_debt"))
+            cost_usd, cur_day, sim, rec, started = (S_[k] for k in ("cost_usd", "cur_day", "sim", "rec", "started"))
+            self.seq_down, self.seq_up_ts, self.sentinel = S_["seq_down"], S_["seq_up_ts"], S_["sentinel"]
+            self.cpos, self.dirty, self.C = S_["cpos"], S_["dirty"], S_["C"]
+            self._overlay = overlay
+            hh = self.hours[S_["hour_pos"]]
+            md = self.days_sorted[max(bisect.bisect_right(self.days_sorted, cur_day) - 1, 0)]
+            day = self.day_obj(md)
+            lt_cache = {}
+            drivers = inp.drivers_at(hh["block"])
+            asset_of_agg = {}
+            for a, fs in drivers.items():
+                for f in fs:
+                    asset_of_agg.setdefault(f, []).append(a)
+            start_n = S_["n"] + 1
+            print(f"resumed from checkpoint at event {start_n:,} day {cur_day}", flush=True)
+        for n in range(start_n, len(ks)):
             if n % 1_000_000 == 0 and n:
                 print(f"progress events {n:,}/{len(ks):,} day {cur_day} elapsed {_time.time() - _t0:.0f}s", flush=True)
             t_, p_ = ty[n], pos[n]
@@ -472,6 +503,22 @@ class Replay:
             rec["cand_sizes"].append(len(cand))
             hd = dt.datetime.fromtimestamp(h["hour"], dt.timezone.utc).date().isoformat()
             self._eval(cand, st, overlay, t, px, Lt, Vt, inv_unit, day, lt_cache, cost_usd, hd, sim, rec, None)
+            if ck_path and _time.time() - _last_ck >= ck_every:
+                import pickle
+                S_ = {"n": n, "hour_pos": int(p_), "st": {k: getattr(st, k) for k in ("SA", "SV", "SP", "SR", "ST", "FL", "EM")},
+                      "idx": {k: getattr(idx, k) for k in ("L0", "V0", "lr", "vr", "t0", "ptr")},
+                      "A": A, "A_h": A_h, "px": px, "px_h": px_h, "cand": cand, "overlay": overlay, "usdc_debt": usdc_debt,
+                      "cost_usd": cost_usd, "cur_day": cur_day, "sim": sim, "rec": rec, "started": started,
+                      "seq_down": self.seq_down, "seq_up_ts": self.seq_up_ts, "sentinel": self.sentinel,
+                      "cpos": self.cpos, "dirty": self.dirty, "C": self.C}
+                with open(ck_path + ".tmp", "wb") as f:
+                    pickle.dump(S_, f, protocol=pickle.HIGHEST_PROTOCOL)
+                os.replace(ck_path + ".tmp", ck_path)
+                del S_
+                _last_ck = _time.time()
+                print(f"checkpoint at event {n:,} day {cur_day} elapsed {_last_ck - _t0:.0f}s", flush=True)
+                if ck_stop:
+                    raise SystemExit("stopped after the first checkpoint (test)")
         self.sim, self.rec = sim, rec
         return sim
 

@@ -564,12 +564,26 @@ def cmd_run(a):
     sha, dirty = G.git_sha()
     if dirty or sha != cfg["code_sha"]:
         raise SystemExit(f"code {sha} dirty={dirty} != frozen {cfg['code_sha']}")
-    if os.path.exists(os.path.join(a.out, "r111v4-results.json")) or os.path.exists(os.path.join(a.out, "run-started")):
-        raise SystemExit("one run only: results or a started marker exist")
+    if not a.scratch:
+        raise SystemExit("--scratch (checkpoint directory, never published) is required")
+    os.makedirs(a.scratch, exist_ok=True)
+    ck = os.path.join(a.scratch, f"ckpt-r111v4-{a.mk}.pkl")
+    started = os.path.join(a.out, "run-started")
+    if os.path.exists(os.path.join(a.out, "r111v4-results.json")):
+        raise SystemExit("one run only: results exist")
+    if os.path.exists(started) and not (a.resume and os.path.exists(ck)):
+        raise SystemExit("one run only: a started marker exists (resume needs --resume and a checkpoint)")
+    if a.resume and not os.path.exists(started):
+        raise SystemExit("--resume without a started run")
     if G.l1_input_digests(a.work) != cfg["inputs_sha256"]:
         raise SystemExit("input digests differ from the frozen config")
-    open(os.path.join(a.out, "run-started"), "w").write(t0 + "\n")
-    print(f"run start {t0} frozen sha256 {G.sha256_file(path)}", flush=True)
+    if a.resume:
+        open(started, "a").write(f"resume {t0}\n")
+        print(f"run resume {t0} frozen sha256 {G.sha256_file(path)}", flush=True)
+    else:
+        open(started, "w").write(t0 + "\n")
+        print(f"run start {t0} frozen sha256 {G.sha256_file(path)}", flush=True)
+    t0 = open(started).read().split("\n")[0].strip()
     m = MK[a.mk]
     inp = E.Inputs(a.work)
     inp.load_oracle()
@@ -577,6 +591,7 @@ def cmd_run(a):
     hours = G.arb_hours(inp, a.work)
     first = int(dt.datetime.combine(m["first"], dt.time(), dt.timezone.utc).timestamp())
     rp = E.Replay(inp, metas, hours, cfg["rule"], m["usdc"], first, inp.gidx[m["gas"]], record=False)
+    rp.checkpoint = ck
     sim = rp.run()
     days = mk_days(a.mk)
     debt = debt_usd(a.mk, a.work, metas)
@@ -656,6 +671,7 @@ def main():
     ap.add_argument("cmd")
     for k in ("mk", "work", "out", "rule", "dev", "dcomp", "integrity", "scratch", "r10work"):
         ap.add_argument(f"--{k}")
+    ap.add_argument("--resume", action="store_true")
     a = ap.parse_args()
     {"dcomp": cmd_dcomp, "integrity": cmd_integrity, "counts": cmd_counts, "freeze": cmd_freeze, "run": cmd_run}[a.cmd](a)
 

@@ -35,7 +35,11 @@ export const CUT_KINDS: ReadonlySet<ActionKind> = new Set<ActionKind>([
 export const isCut = (a: Pick<FeedAction, 'kind'>): boolean => CUT_KINDS.has(a.kind)
 
 /** The vault protocols whose shares an address can hold (Aave is not a curated vault). */
-export const CURATED: ReadonlySet<Protocol> = new Set<Protocol>(['morpho-v1', 'morpho-v2', 'euler-earn'])
+export const CURATED: ReadonlySet<Protocol> = new Set<Protocol>([
+  'morpho-v1',
+  'morpho-v2',
+  'euler-earn',
+])
 
 /** Every curated vault the feed knows: the addresses the holder read checks. */
 export function curatedVaults(feed: Pick<FeedFile, 'entities'>): string[] {
@@ -66,7 +70,7 @@ export interface HolderVault {
   /** Cuts first, then the most recently touched. */
   targets: HolderTarget[]
   /** Vault-wide changes that are not cuts (timelock, roles, adapters, adapter cap
-   *  raises): no market of their own. Drawn as one hollow square. */
+   *  raises): no market of their own. Drawn as one bar. */
   vaultWide: number
   /** Distinct vault-level targets cut (an adapter cap cut, a write-off): filled squares. */
   vaultWideCuts: number
@@ -113,7 +117,9 @@ export function buildHolderView(
 ): HolderView | null {
   const e = feed.entities
   const held = new Set(
-    heldVaults.map((v) => v.toLowerCase()).filter((v) => e.vaults[v] && CURATED.has(e.vaults[v].protocol)),
+    heldVaults
+      .map((v) => v.toLowerCase())
+      .filter((v) => e.vaults[v] && CURATED.has(e.vaults[v].protocol)),
   )
   if (held.size === 0) return null
   const to = feed.meta.toTs
@@ -158,7 +164,10 @@ export function buildHolderView(
       curatorName: curatorLabel(e, vault),
       protocol: e.vaults[vault].protocol,
       targets: [...targets.values()]
-        .sort((x, y) => Number(y.cut) - Number(x.cut) || y.last - x.last || x.target.localeCompare(y.target))
+        .sort(
+          (x, y) =>
+            Number(y.cut) - Number(x.cut) || y.last - x.last || x.target.localeCompare(y.target),
+        )
         .map(({ last: _last, ...t }) => t),
       vaultWide,
       vaultWideCuts: vaultWideCut.size,
@@ -220,7 +229,9 @@ export function aboveDust(p: HoldingProbe): boolean {
 }
 
 /** One chunk of a batched read: rejected outright (an RPC error), or per-call results. */
-export type ChunkResult<T> = { ok: false } | { ok: true; calls: ({ ok: true; value: T } | { ok: false })[] }
+export type ChunkResult<T> =
+  | { ok: false }
+  | { ok: true; calls: ({ ok: true; value: T } | { ok: false })[] }
 
 export interface ReadVerdict {
   ok: boolean

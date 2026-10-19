@@ -10,8 +10,9 @@
 //   no curated vault held      nothing at all (not an empty box)
 //   held, nothing this week    "No changes by your curators this week"
 //   held, changes              "N changes by the curators of the vaults you hold · M were cuts",
-//                              a dot strip per held vault (one dot per market touched,
-//                              filled = cut), the latest three with dates
+//                              a mark strip per held vault (one mark per market touched:
+//                              a filled circle = cut, a diamond = any other change), the
+//                              latest three with dates
 // The week is the seven days ending at the feed's newest collected block, and the
 // credit says so; holdings are read on chain at request time and the credit says when.
 
@@ -43,13 +44,15 @@ export const CURATORS_COPY = {
   /** In the credit when the window is dated. */
   readNow: 'holdings read now; changes from that window',
   unavailable: 'Your curators: reading unavailable',
-  cta: "Alert me when a curator cuts a market I'm in",
-  /** The alert flow on this branch routes venue alarms only; curator cuts have no delivery
-   *  path yet, so the CTA is drawn but not live. */
+  /** "Changes the composition", not "cuts": a cut removes the market from the vault, not
+   *  the reader from the market (owner feedback, PR #107). */
+  cta: "Alert me when a curator changes the composition of a market I'm in",
+  /** The alert flow on this branch routes venue alarms only; curator changes have no
+   *  delivery path yet, so the CTA is drawn but not live. */
   ctaPending: 'Not live yet: curator alerts have no delivery route.',
   legendCut: 'cut (market · vault-level)',
-  legendChange: 'other change',
-  legendVault: 'vault setting',
+  legendChange: 'other market change (add, raise)',
+  legendVault: 'vault setting changed',
   latest: 'Latest',
 } as const
 
@@ -87,7 +90,8 @@ export const MAX_DOTS = 24
 
 export interface DotView {
   key: string
-  /** Filled (a cut) or hollow (any other change to that market). */
+  /** A cut (filled circle) or any other change to that market (a diamond: a different
+   *  shape, not a hollow cut, so the two read apart without colour). */
   cut: boolean
   /** "weETH/WETH (94.5% LLTV) · cut · 1 change": the dot's accessible name and tooltip. */
   label: string
@@ -100,7 +104,8 @@ export interface VaultRowView {
   dots: DotView[]
   /** Dots beyond MAX_DOTS. */
   more: number
-  /** Vault-wide settings changed that are not cuts: drawn as one hollow square. */
+  /** Vault-wide settings changed that are not cuts: drawn as one bar (not a
+   *  hollow square, which would read as a vault-level cut toggled off). */
   vaultWide: number
   /** Distinct vault-level cuts (an adapter cap cut, a write-off): one filled square each. */
   vaultWideCuts: number
@@ -152,7 +157,8 @@ export function curatorsView(input: {
     if (markets > 0) parts.push(plural(markets, 'market', 'markets'))
     if (x.cuts > 0) parts.push(plural(x.cuts, 'cut', 'cuts'))
     const settings = x.vaultWide + x.vaultWideCuts
-    if (x.vaultWideCuts > 0 || x.vaultWide > 0) parts.push(plural(settings, 'vault setting', 'vault settings'))
+    if (x.vaultWideCuts > 0 || x.vaultWide > 0)
+      parts.push(plural(settings, 'vault setting', 'vault settings'))
     return {
       key: x.vault,
       vaultName: x.vaultName,

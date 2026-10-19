@@ -20,6 +20,10 @@ import { shortAddr } from './safetyView'
 const ETHERSCAN = 'https://etherscan.io'
 const DOT = '12px'
 const SQUARE = '10px'
+/** Rotated 45°, an 8px square spans ~11px: the same footprint as the cut dot. */
+const DIAMOND = '8px'
+const BAR_W = '12px'
+const BAR_H = '4px'
 
 async function getHolder(address: string): Promise<HolderResponse> {
   const r = await fetch(`/api/curator-feed/holder?address=${address}`)
@@ -28,39 +32,68 @@ async function getHolder(address: string): Promise<HolderResponse> {
   return body as HolderResponse
 }
 
-function Dot({ cut, label }: { cut: boolean; label: string }) {
+// Marks. Cuts are filled danger shapes (a circle per market, a square per vault-level
+// target). Every other change takes a different SHAPE in teal (a diamond per market, a
+// bar for vault settings), never a hollow cut, so each kind reads apart without colour.
+function CutDot() {
   return (
     <Box
       as="span"
-      role="img"
-      aria-label={label}
-      title={label}
       display="inline-block"
       flex="none"
       w={DOT}
       h={DOT}
       borderRadius="50%"
-      border={`1.5px solid ${cut ? NEWS.danger : NEWS.ink}`}
-      bg={cut ? NEWS.danger : 'transparent'}
+      bg={NEWS.danger}
     />
+  )
+}
+
+function ChangeDiamond() {
+  return (
+    <Box
+      as="span"
+      display="inline-flex"
+      alignItems="center"
+      justifyContent="center"
+      flex="none"
+      w={DOT}
+      h={DOT}
+    >
+      <Box
+        as="span"
+        display="block"
+        w={DIAMOND}
+        h={DIAMOND}
+        bg={NEWS.info}
+        transform="rotate(45deg)"
+      />
+    </Box>
+  )
+}
+
+function CutSquare() {
+  return <Box as="span" display="inline-block" flex="none" w={SQUARE} h={SQUARE} bg={NEWS.danger} />
+}
+
+function SettingBar() {
+  return <Box as="span" display="inline-block" flex="none" w={BAR_W} h={BAR_H} bg={NEWS.info} />
+}
+
+function Dot({ cut, label }: { cut: boolean; label: string }) {
+  return (
+    <Box as="span" role="img" aria-label={label} title={label} display="inline-flex" flex="none">
+      {cut ? <CutDot /> : <ChangeDiamond />}
+    </Box>
   )
 }
 
 function VaultSquare({ n, cut }: { n: number; cut?: boolean }) {
   const label = cut ? 'vault-level cut' : `${n} vault setting${n === 1 ? '' : 's'} changed`
   return (
-    <Box
-      as="span"
-      role="img"
-      aria-label={label}
-      title={label}
-      display="inline-block"
-      flex="none"
-      w={SQUARE}
-      h={SQUARE}
-      border={`1.5px solid ${cut ? NEWS.danger : NEWS.ink2}`}
-      bg={cut ? NEWS.danger : 'transparent'}
-    />
+    <Box as="span" role="img" aria-label={label} title={label} display="inline-flex" flex="none">
+      {cut ? <CutSquare /> : <SettingBar />}
+    </Box>
   )
 }
 
@@ -74,41 +107,85 @@ function Legend() {
     </Flex>
   )
   return (
-    <Flex as="ul" aria-label="Legend" columnGap={SPACING.base} rowGap={SPACING.xs} wrap="wrap" pt={SPACING.sm}>
+    <Flex
+      as="ul"
+      aria-label="Legend"
+      columnGap={SPACING.base}
+      rowGap={SPACING.xs}
+      wrap="wrap"
+      pt={SPACING.sm}
+    >
       {item(
         <Flex as="span" aria-hidden="true" align="center" columnGap={SPACING.xs}>
-          <Box as="span" w={DOT} h={DOT} borderRadius="50%" bg={NEWS.danger} />
-          <Box as="span" w={SQUARE} h={SQUARE} bg={NEWS.danger} />
+          <CutDot />
+          <CutSquare />
         </Flex>,
         CURATORS_COPY.legendCut,
       )}
       {item(
-        <Box as="span" aria-hidden="true" w={DOT} h={DOT} borderRadius="50%" border={`1.5px solid ${NEWS.ink}`} />,
+        <Flex as="span" aria-hidden="true">
+          <ChangeDiamond />
+        </Flex>,
         CURATORS_COPY.legendChange,
       )}
-      {item(<Box as="span" aria-hidden="true" w={SQUARE} h={SQUARE} border={`1.5px solid ${NEWS.ink2}`} />, CURATORS_COPY.legendVault)}
+      {item(
+        <Flex as="span" aria-hidden="true">
+          <SettingBar />
+        </Flex>,
+        CURATORS_COPY.legendVault,
+      )}
     </Flex>
   )
 }
 
 function VaultRow({ r }: { r: VaultRowView }) {
   return (
-    <Box as="li" listStyleType="none" borderBottom={`1px solid ${NEWS.rule}`} py={SPACING.sm} minW={0}>
+    <Box
+      as="li"
+      listStyleType="none"
+      borderBottom={`1px solid ${NEWS.rule}`}
+      py={SPACING.sm}
+      minW={0}
+    >
       <Flex justify="space-between" align="baseline" columnGap={SPACING.sm} wrap="wrap">
-        <Text fontFamily={NEWS_FONT.mono} fontSize="13px" lineHeight="20px" color={NEWS.ink} fontWeight={TYPOGRAPHY.bold}>
+        <Text
+          fontFamily={NEWS_FONT.mono}
+          fontSize="13px"
+          lineHeight="20px"
+          color={NEWS.ink}
+          fontWeight={TYPOGRAPHY.bold}
+        >
           {r.vaultName}{' '}
-          <Text as="span" fontWeight={TYPOGRAPHY.normal} fontSize={TYPOGRAPHY.label} color={NEWS.muted}>
+          <Text
+            as="span"
+            fontWeight={TYPOGRAPHY.normal}
+            fontSize={TYPOGRAPHY.label}
+            color={NEWS.muted}
+          >
             {r.curatorName}
           </Text>
         </Text>
         <Credit>{r.summary}</Credit>
       </Flex>
-      <Flex align="center" columnGap={SPACING.sm} rowGap={SPACING.sm} wrap="wrap" pt={SPACING.xs} minH="20px">
+      <Flex
+        align="center"
+        columnGap={SPACING.sm}
+        rowGap={SPACING.sm}
+        wrap="wrap"
+        pt={SPACING.xs}
+        minH="20px"
+      >
         {r.dots.map((d) => (
           <Dot key={d.key} cut={d.cut} label={d.label} />
         ))}
         {r.more > 0 && (
-          <Text as="span" fontFamily={NEWS_FONT.mono} fontSize={TYPOGRAPHY.label} color={NEWS.muted} sx={TABULAR}>
+          <Text
+            as="span"
+            fontFamily={NEWS_FONT.mono}
+            fontSize={TYPOGRAPHY.label}
+            color={NEWS.muted}
+            sx={TABULAR}
+          >
             +{r.more}
           </Text>
         )}
@@ -139,7 +216,12 @@ function LatestRow({ l }: { l: LatestRowView }) {
           tx ↗
         </Link>
       </Flex>
-      <Text fontFamily={NEWS_FONT.mono} fontSize="13px" lineHeight="20px" color={l.cut ? NEWS.danger : NEWS.ink}>
+      <Text
+        fontFamily={NEWS_FONT.mono}
+        fontSize="13px"
+        lineHeight="20px"
+        color={l.cut ? NEWS.danger : NEWS.ink}
+      >
         {l.cut && (
           <Box as="span" aria-hidden="true" mr="0.3em">
             ✖
@@ -219,7 +301,11 @@ export const YourCurators = memo(function YourCurators({
 
   return (
     <Module label={CURATORS_COPY.kicker}>
-      <Box data-module="your-curators" data-module-state={v.state} data-example={example ? 'true' : undefined}>
+      <Box
+        data-module="your-curators"
+        data-module-state={v.state}
+        data-example={example ? 'true' : undefined}
+      >
         {head}
         <Headline slot={false}>{v.headline}</Headline>
         {v.state === 'changes' && (

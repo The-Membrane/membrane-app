@@ -38,6 +38,21 @@ HEADER_ENDPOINTS = {"arbitrum": ["https://arb1.arbitrum.io/rpc", "https://arbitr
                     "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"]}
 MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11"
 
+# R11.1-v4 (D-R11.1m): an owner-provided free-tier key may be set in the environment (never written to code, logs or
+# outputs). When set, it serves state reads (eth_call, headers) first; log scans stay on keyless endpoints (the free
+# tier caps eth_getLogs at 10 blocks). Keyless endpoints remain as fallbacks.
+import os as _os
+KEYED_URLS = set()
+_KEYED = {"polygon": "Q26_POLYGON_RPC_URL", "optimism": "Q26_OP_RPC_URL", "arbitrum": "Q26_ARB_RPC_URL",
+          "ethereum": "Q26_ETH_RPC_URL"}
+for _ch, _var in _KEYED.items():
+    _u = _os.environ.get(_var)
+    if _u:
+        KEYED_URLS.add(_u)
+        for _tbl in (CALL_ENDPOINTS, HOURLY_CALL_ENDPOINTS, HEADER_ENDPOINTS):
+            if _ch in _tbl:
+                _tbl[_ch] = [_u] + list(_tbl[_ch])
+
 
 class RpcError(Exception):
     pass
@@ -78,7 +93,8 @@ class Client:
         for k in range(tries):
             with self.lock:
                 self.i += 1
-                url = self.urls[self.i % len(self.urls)]
+                # a keyed endpoint at the head of the list takes every first try; retries rotate over the rest
+                url = self.urls[0] if (k == 0 and self.urls[0] in KEYED_URLS) else self.urls[self.i % len(self.urls)]
             self._pace()
             try:
                 body = self._post(url, payload)

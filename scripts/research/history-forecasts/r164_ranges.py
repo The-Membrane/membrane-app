@@ -70,15 +70,22 @@ def sg_of(names_by_cluster, major_flag):
     return out
 
 
-def run(rows_dir, out_json, nominal=0.90, seed=20261642):
+def run(rows_dir, out_json, nominal=0.90, seed=20261642, shuffle_blocks=False, horizons=EVAL_T):
     rows, names, clusters = load_rows(rows_dir)
+    if shuffle_blocks:
+        # instrument check: pseudo-blocks made of random calendar days (same mapping for every series), which keeps
+        # the cross-sectional dependence and destroys calendar contiguity; CAL should then cover at about nominal
+        ub = np.unique(rows["block182"])
+        ud, inv = np.unique(rows["day"], return_inverse=True)
+        rmap = np.random.default_rng(seed + 1).integers(0, len(ub), len(ud))
+        rows["block182"] = rmap[inv].astype(np.int32)
     sgmap = sg_of(clusters, None)
     sg = np.array([sgmap[c] for c in rows["cluster"]], np.int16)
     rng = np.random.default_rng(seed)
     qlo, qhi = (1 - nominal) / 2, 1 - (1 - nominal) / 2
     res = {"nominal": nominal, "cells": []}
     has_boot = "boot_q" in rows
-    for T in EVAL_T:
+    for T in horizons:
         for tier, tmask in (("alts", ~rows["major"]), ("majors", rows["major"])):
             for k in range(10):
                 m = (rows["T_h"] == T) & (rows["k_i"] == k) & tmask
@@ -232,8 +239,13 @@ def main(argv=None):
     ap.add_argument("--rows", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--nominal", type=float, default=0.90)
+    ap.add_argument("--shuffle-blocks", action="store_true")
+    ap.add_argument("--horizons", default="24,72,168,720")
     a = ap.parse_args(argv)
-    run(a.rows, os.path.join(a.out, f"ranges-{int(a.nominal * 100)}.json"), a.nominal)
+    hz = tuple(int(x) for x in a.horizons.split(","))
+    tag = "-shuffled" if a.shuffle_blocks else ""
+    run(a.rows, os.path.join(a.out, f"ranges-{int(a.nominal * 100)}{tag}.json"), a.nominal, shuffle_blocks=a.shuffle_blocks,
+        horizons=hz)
 
 
 if __name__ == "__main__":

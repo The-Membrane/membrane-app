@@ -25,12 +25,15 @@ ENDPOINTS = {
 CALL_ENDPOINTS = {
     "ethereum": ["https://mainnet.gateway.tenderly.co", "https://eth.drpc.org", "https://rpc.mevblocker.io"],
     "arbitrum": ["https://arbitrum.gateway.tenderly.co", "https://gateway.tenderly.co/public/arbitrum"],
-    "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"],
+    # the Tenderly gateway misses state at some blocks (e.g. 45,638,983: getStateObject error); drpc and quiknode serve them
+    "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon",
+                "https://polygon.drpc.org", "https://rpc-mainnet.matic.quiknode.pro"],
 }
 # hourly reads spread over more keyless archive endpoints (no batch on nodies); block headers from the full nodes
 HOURLY_CALL_ENDPOINTS = {"arbitrum": ["https://arbitrum.gateway.tenderly.co", "https://gateway.tenderly.co/public/arbitrum",
                                       "https://arbitrum-one.public.blastapi.io", "https://arb-pokt.nodies.app"],
-                         "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"]}
+                         "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon",
+                                     "https://polygon.drpc.org", "https://rpc-mainnet.matic.quiknode.pro"]}
 HEADER_ENDPOINTS = {"arbitrum": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one.publicnode.com"],
                     "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"]}
 MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11"

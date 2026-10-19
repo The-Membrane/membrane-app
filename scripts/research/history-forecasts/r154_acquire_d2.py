@@ -240,11 +240,13 @@ def boundary_blocks(chain, days, work, log):
     return out
 
 
-def phase_bounds(work, log):
+def phase_bounds(work, log, chains=None):
     res = phase_resolve(work, log)
     days = days_between(D2_START, LAST_BOUNDARY)
     out = {}
     for chain in sorted({v["chain"] for v in res.values()}):
+        if chains and chain not in chains:
+            continue
         out[chain] = boundary_blocks(chain, days, work, log)
     return out
 
@@ -476,6 +478,7 @@ def main(argv=None):
     ap.add_argument("--work", required=True)
     ap.add_argument("--reserves", default=",".join(RESERVES))
     ap.add_argument("--out")
+    ap.add_argument("--chains")
     a = ap.parse_args(argv)
     os.makedirs(a.work, exist_ok=True)
 
@@ -484,7 +487,7 @@ def main(argv=None):
     if a.phase == "resolve":
         phase_resolve(a.work, log)
     elif a.phase == "bounds":
-        phase_bounds(a.work, log)
+        phase_bounds(a.work, log, a.chains.split(",") if a.chains else None)
     elif a.phase == "logs":
         phase_logs(a.work, a.reserves.split(","), log)
     else:

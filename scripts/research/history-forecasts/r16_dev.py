@@ -923,6 +923,13 @@ def score_cells(R, T, P, models, tw, sids, log):
                        "bss_fH": float(1 - b.mean() / bHm.mean()), "bss_f": float(1 - b.mean() / bfm.mean()),
                        "R": float(pp.sum() / max(yy.sum(), 1)),
                        "R_top20": float(pp[top].sum() / max(yy[top].sum(), 1)), "MCB": mcb, "DSC": dsc}
+            if tw is not None and m not in ("fH", "f"):
+                for cn, bc in (("fH", bHm), ("f", bfm)):
+                    d = b - bc
+                    if mk is None:
+                        cell[m]["tw_" + cn] = tw.z(d)
+                    else:
+                        cell[m]["tw_" + cn] = TwoWay(sids[mk], blk[mk], B=1000).z(d)
         out[f"{TL[T]} {k}"] = cell
     return out
 
@@ -953,6 +960,24 @@ def cmd_score(a):
         L = len(LV[T])
         lnk = np.log1p(np.array(LV[T]))
         P = {m: R[m].astype(np.float32) for m in ALL_ROW_MODELS}
+        extra = ()
+        fcb = os.path.join(out_dir, f"rows-cb-T{T}.npz")
+        if os.path.exists(fcb):                       # Chronos-Bolt rows (r16_cb.py), merged by (series, ts)
+            Zc = np.load(fcb)
+            kc = (Zc["sid"].astype(np.int64) << 32) | Zc["ts"].astype(np.int64)
+            kr = (R["sid"].astype(np.int64) << 32) | R["ts"].astype(np.int64)
+            o = np.argsort(kc)
+            pos = np.searchsorted(kc[o], kr)
+            pos = np.clip(pos, 0, len(kc) - 1)
+            hit = kc[o][pos] == kr
+            for nm in ("cb", "cbH"):
+                v = P["fH"].copy()
+                v[hit] = Zc[nm][o][pos[hit]]
+                P[nm] = v
+            res.setdefault("cb_merge", {})[TL[T]] = {"rows": int(n), "matched": int(hit.sum()),
+                                                     "fH_equal": float(np.mean(np.isclose(Zc["fH"][o][pos[hit]],
+                                                                                          P["fH"][hit])))}
+            extra = ("cb", "cbH")
         # cross-fitted gb
         t0 = time.time()
 
@@ -975,14 +1000,16 @@ def cmd_score(a):
             idx = np.where(te)[0]
             return np.column_stack([np.column_stack([P[m][idx, j] for m in STACK]) @ w for j in range(L)])
         P["lp"] = np.minimum.accumulate(crossfit(R, T, keys, log, mk_lp), axis=1)
-        allm = BASE + SCALE_MODELS + ("ms", "gb", "st", "lp")
-        cells = score_cells(R, T, P, allm, None, R["sid"], log)
+        allm = BASE + SCALE_MODELS + ("ms", "gb", "st", "lp") + extra
+        tw_T = TwoWay(R["sid"], (R["ts"] // (28 * DAY)).astype(np.int64), B=1000)
+        cells = score_cells(R, T, P, allm, tw_T, R["sid"], log)
         # simulation models on their daily-origin subset (paired with fH / f on the same rows)
         smask = np.isfinite(P["gS"][:, 0]) & np.isfinite(P["gE"][:, 0])
         if smask.any():
             Rs = {k_: v[smask] for k_, v in R.items()}
             Ps = {m: v[smask] for m, v in P.items()}
-            cs = score_cells(Rs, T, Ps, ("fH", "f") + SIM, None, Rs["sid"], log)
+            tw_s = TwoWay(Rs["sid"], (Rs["ts"] // (28 * DAY)).astype(np.int64), B=1000)
+            cs = score_cells(Rs, T, Ps, ("fH", "f") + SIM, tw_s, Rs["sid"], log)
             for ck in cs:
                 cells[ck]["sim_subset"] = cs[ck]
         res["cells"].update(cells)

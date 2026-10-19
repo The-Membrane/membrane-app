@@ -202,6 +202,11 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642):
                             continue
                         yb, Lb, Ub = y[mb_].mean(), L[mb_].mean(), U[mb_].mean()
                         t2.append(bool(Lb - 1e-12 <= yb <= Ub + 1e-12))
+                    # CGM two-way SE of the group coverage (clusters: series group, block)
+                    cv = cov.astype(float)
+                    uu = (cv - cv.mean()) / len(cv)
+                    gs_, gb_ = g_sg[okg], g_bl[okg]
+                    v_cgm = (np.bincount(gs_, weights=uu) ** 2).sum() + (np.bincount(gb_, weights=uu) ** 2).sum() - (uu ** 2).sum()
                     bse = base[okr_]
                     excl = ((bse < L[okr_]) | (bse > U[okr_]))
                     cell["constructions"][cname] = {
@@ -212,6 +217,7 @@ def run(rows_dir, out_json, nominal=0.90, seed=20261642):
                         "share_excludes_base_rate": float(np.nanmean(excl)) if np.isfinite(bse).any() else None,
                         "interval_score_pts": float(IS.mean() * 100), "n_groups": int(okg.sum()),
                         "T2_bins_covered": int(sum(t2)), "T2_bins": len(t2),
+                        "coverage_se_cgm": float(math.sqrt(v_cgm)) if v_cgm > 0 else None,
                         "rows_with_range": int(okr_.sum())}
                 res["cells"].append(cell)
                 cc = cell["constructions"]

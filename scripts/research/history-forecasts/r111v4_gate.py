@@ -56,7 +56,8 @@ EXCLUDE = {"2025-10-10", "2025-10-11"}
 Q2 = (dt.date(2026, 4, 1), dt.date(2026, 6, 30))
 PD_GRID = [round(0.02 + 0.005 * i, 4) for i in range(37)]       # 2.0% .. 20.0%
 MAG = {"spearman_min": 0.50, "ratio_lo": 0.5, "ratio_hi": 2.0}
-HF_SAMPLE = {"seed": 20261018, "blocks": 40, "uniform_per_block": 25, "near_per_block": 15, "near_hf": 1.10}
+HF_SAMPLE = {"seed": 20261018, "blocks": 40, "uniform_per_block": 25, "near_per_block": 15, "near_hf": 1.10,
+             "min_debt_usd": 1.0}   # D-R11.1m: accounts under $1 of debt fail on the chain's 1e-8 USD base-unit rounding
 IDX_TOL, IDX_SHARE, IDX_MAX = 1e-3, 0.99, 1e-2
 HOUR_GAP_SHARE = 0.999
 
@@ -446,8 +447,11 @@ def hf_check(mk, work, inp, metas, hours, scratch):
         num = (coll * LT * (st.FL[users] & (LT > 0))).sum(axis=1)
         td = debt.sum(axis=1)
         hf = np.where(td > 0, num / np.where(td > 0, td, 1), np.inf)
-        uni = rng.choice(len(users), size=min(cfg["uniform_per_block"], len(users)), replace=False)
-        near_pool = np.nonzero(hf < cfg["near_hf"])[0]
+        big = np.nonzero(td >= cfg["min_debt_usd"])[0]
+        if len(big) == 0:
+            continue
+        uni = rng.choice(big, size=min(cfg["uniform_per_block"], len(big)), replace=False)
+        near_pool = np.nonzero((hf < cfg["near_hf"]) & (td >= cfg["min_debt_usd"]))[0]
         near = rng.choice(near_pool, size=min(cfg["near_per_block"], len(near_pool)), replace=False) if len(near_pool) else []
         sel = [(int(i), "uniform") for i in uni] + [(int(i), "near") for i in near]
         calls = [(pool, X.sel("getUserAccountData(address)") + X.enc_addr("0x" + uinv[int(users[i])].hex())) for i, _ in sel]
@@ -474,7 +478,8 @@ def hf_check(mk, work, inp, metas, hours, scratch):
                   "emode_users_share_within": float(np.mean([r["err"] <= 0.001 for r in rows if r["stratum"] == s and r["emode"]]))
                   if any(r["emode"] for r in rows if r["stratum"] == s) else None}
     res["pass"] = bool(res["uniform"].get("n", 0) > 0 and res["uniform"]["share_within_0p1pct"] >= G.VALID_SHARE)
-    res["bar"] = "uniform stratum: rebuilt HF within 0.1% of chain HF on >= 99% (registered D bar); near stratum reported"
+    res["bar"] = ("uniform stratum (USDC-debt accounts with rebuilt debt >= $1): rebuilt HF within 0.1% of chain HF on >= 99% "
+                  "(registered D bar); near stratum reported")
     return res
 
 

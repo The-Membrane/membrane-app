@@ -261,7 +261,11 @@ def cmd_powersim(a):
     M = len(PRIMARY)
     out = {"schema": "q26-r16.2-powersim/1", "code": D.git_sha(), "M": M, "reps": a.reps, "cells": {}}
     cache = {}
-    for c in PRIMARY:
+    sel = [c for c in PRIMARY if not a.cells or f'{c["model"]}:{c["T"]}:{c["level"]}' in a.cells.split(",")]
+    prev = os.path.join(a.out, "powersim-r162-b20a.json")
+    if a.cells and os.path.exists(prev):
+        out["cells"].update(json.load(open(prev))["cells"])
+    for c in sel:
         T, k, m, C = c["T"], c["level"], c["model"], c["comparator"]
         if T not in cache:
             Z = np.load(os.path.join(a.dev, f"rows-T{T}.npz"))
@@ -344,6 +348,7 @@ def main():
     s.add_argument("--dev", required=True)
     s.add_argument("--out", required=True)
     s.add_argument("--reps", type=int, default=200)
+    s.add_argument("--cells", default="", help="model:T:level list (rerun after an OOM kill; others kept)")
     s = sub.add_parser("config")
     s.add_argument("--out", required=True)
     a = ap.parse_args()

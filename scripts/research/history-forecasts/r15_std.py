@@ -890,6 +890,58 @@ def cmd_dev2(a):
     write_json(os.path.join(a.out, "dev-r152.json"), out)
     print("sha256", sha_file(os.path.join(a.out, "dev-r152.json")))
 
+
+# =============================================================================================
+# power at counts or at a stated upper bound of the counts (R15 rule 4)
+# =============================================================================================
+def cmd_power(a):
+    dev = json.load(open(a.dev))
+    zU = z_holm_union()
+    out = {"schema": "q26-r15-power-v1", "prereg": PREREG, "created_utc": now_iso(), "code_sha": git_sha(),
+           "item": a.item, "dev_sha256": sha_file(a.dev), "z_holm_union": zU, "M_union": M_UNION,
+           "basis": a.basis, "cells": {}}
+    if a.item == "R15.1":
+        cand = dev["selection"]["choice"]
+        comps = ["own", "a", "e"]
+        keys = [k_ for k_ in dev["cells"] if k_.endswith("/" + a.group)]
+        scale = float(a.scale)
+        for k_ in keys:
+            e = dev["cells"][k_][cand]
+            for lab, sc in (("projected", scale), ("bound_x2", 2.0 * max(scale, 1.0))):
+                Gn = int(round(e["pos_blocks"] * sc))
+                Sn = int(round(e["series"] * scale)) if lab == "projected" else int(round(e["series"] * 2 * max(scale, 1)))
+                out["cells"].setdefault(k_, {})[lab] = power_cell(e, cand, comps, Gn, Sn, zU)
+            out["cells"][k_]["candidate"] = cand
+    elif a.item == "R15.3":
+        cand = dev["selection"]["choice"]
+        comps = ["null", "rcal", "K"]
+        for k_, c in dev["cells"].items():
+            e = c[cand]
+            out["cells"][k_] = {"candidate": cand,
+                                "bound": power_cell(e, cand, comps, int(a.G), int(a.S), zU)}
+    elif a.item == "R15.2":
+        cand = dev["selection"]["choice"]
+        comps = ["R13.1"]
+        for k_, c in dev["cells"].items():
+            if k_ not in [f"{T}h/{k}" for T, k in R152_CELLS]:
+                continue
+            e = c[cand]
+            out["cells"][k_] = {"candidate": cand,
+                                "bound": power_cell(e, cand, comps, int(a.G), int(a.S), zU, R_band=(0.8, 1.25))}
+    js = [max(v_["power_joint_PASS"] for kk, v_ in c.items() if isinstance(v_, dict)) for c in out["cells"].values()]
+    out["max_joint_power"] = max(js) if js else 0.0
+    out["run"] = bool(out["max_joint_power"] >= 0.80)
+    write_json(a.out, out)
+    for k_, c in out["cells"].items():
+        for lab, v_ in c.items():
+            if isinstance(v_, dict):
+                print(k_, lab, "G", v_["G_new"], "S", v_["S_new"], "legs",
+                      {cc: (round(l_["power_test"], 3), round(l_["power_concentration"], 3),
+                            None if l_["Gstar_80"] is None else int(l_["Gstar_80"])) for cc, l_ in v_["legs"].items()},
+                      "R", round(v_["power_R_band"], 3), "joint", round(v_["power_joint_PASS"], 4))
+    print("max joint power", out["max_joint_power"], "run", out["run"])
+    print("sha256", sha_file(a.out))
+
 # =============================================================================================
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -915,8 +967,17 @@ def main():
     s.add_argument("--limit", type=int, default=0)
     s.add_argument("--nb", type=int, default=2000)
     s.add_argument("--out", required=True)
+    s = sub.add_parser("power")
+    s.add_argument("--item", required=True, choices=["R15.1", "R15.2", "R15.3"])
+    s.add_argument("--dev", required=True)
+    s.add_argument("--group", default="equity")
+    s.add_argument("--scale", default="1.0")
+    s.add_argument("--G", default="0")
+    s.add_argument("--S", default="0")
+    s.add_argument("--basis", required=True)
+    s.add_argument("--out", required=True)
     a = ap.parse_args()
-    {"select-b19": cmd_select_b19, "dev1": cmd_dev1, "dev3": cmd_dev3, "dev2": cmd_dev2}[a.cmd](a)
+    {"select-b19": cmd_select_b19, "dev1": cmd_dev1, "dev3": cmd_dev3, "dev2": cmd_dev2, "power": cmd_power}[a.cmd](a)
 
 
 if __name__ == "__main__":

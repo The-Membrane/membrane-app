@@ -700,6 +700,196 @@ def cmd_dev3(a):
     write_json(os.path.join(a.out, "dev-r153.json"), out)
     print("sha256", sha_file(os.path.join(a.out, "dev-r153.json")))
 
+
+# =============================================================================================
+# R15.2: shallow cells, pooled shape of the (fH) standardized minimum + the frozen R13.1 map vs the R13.1 map
+# =============================================================================================
+R152_CELLS = [(1, -0.02), (1, -0.03), (3, -0.02), (3, -0.03), (3, -0.05), (12, -0.05)]
+R152_REPORTED = [(12, -0.02), (12, -0.03)]
+R152_T = (1, 3, 12)
+R152_NCOL = 3                                   # levels -2%, -3%, -5% (the first three; running minimum is exact)
+R152_TAUS = (None, 20000.0, 5000.0)             # simplicity order: infinity first
+SEED_R152 = 2026152
+
+
+def r152_task(a):
+    """one series: mode 'lib' -> in-fold standardized minima z on the 6-hourly grid (2026Q2 windows and tails out);
+    mode 'check' -> hourly rows: ts, y, (fH), (f), N_own and the thresholds of the first R152_NCOL levels."""
+    import a2_touch as M2
+    import a6_touch as A6
+    import r12_tail as R12
+    import r13_recal as R13
+    spec, T, mode = a["spec"], a["T"], a["mode"]
+    try:
+        ser, folds, caps = R13.load_any(spec)
+    except Exception as e:  # noqa: BLE001
+        return {"key": spec["key"], "err": repr(e)}
+    P6 = A6.Prep6(ser, T, with_fbL=False)
+    P, n = P6.P, P6.n
+    ts_all = ser.base_ts + R12.STEP * np.arange(n)
+    i_all = np.arange(n)
+    out = {k_: [] for k_ in ("z", "ts", "y", "pH", "pf", "thr", "N", "q2", "tail")}
+    for f in folds:
+        qs, qe = f["qs_i"], min(f["qe_i"], n)
+        lim = qs - T
+        tr = i_all <= lim
+        cH, _ = P6.har_coef(qs)
+        sH = P6.sigma_H(cH)
+        zH, vH = P6.z_of(sH)
+        te = np.arange(qs, qe)
+        te = te[P.lab_ok[te] & (ts_all[te] + T * R12.STEP <= caps["full"])]
+        if mode == "lib":
+            te = te[ts_all[te] % (6 * R12.STEP) == 0]
+            q2 = (ts_all[te] + T * R12.STEP > R12.Q2_START) & (ts_all[te] < R12.Q2_END)
+            tail = ts_all[te] + T * R12.STEP > caps["primary"]
+            zz = zH[te]
+            ok = np.isfinite(zz) & ~q2 & ~tail
+            out["z"].append(zz[ok].astype(np.float32))
+            continue
+        if len(te) == 0:
+            continue
+        thr = P.thresholds(sH[te])[:, :R152_NCOL]
+        pH = M2.fhs_predict(zH[vH & tr], P.thresholds(sH[te]))[:, :R152_NCOL]
+        pf = M2.fhs_predict(P.z[1.0][P.valid[1.0] & tr], P.thresholds(ser.sigma[te]))[:, :R152_NCOL]
+        keep = np.all(np.isfinite(pf), axis=1)
+        te, thr, pH, pf = te[keep], thr[keep], pH[keep], pf[keep]
+        if len(te) == 0:
+            continue
+        ts = ts_all[te]
+        out["ts"].append(ts)
+        out["y"].append(P.Y[te][:, :R152_NCOL].astype(np.int8))
+        out["pH"].append(pH.astype(np.float32))
+        out["pf"].append(pf.astype(np.float32))
+        out["thr"].append(thr.astype(np.float32))
+        out["N"].append(np.full(len(te), int((vH & tr).sum()), np.int64))
+        out["q2"].append((ts + T * R12.STEP > R12.Q2_START) & (ts < R12.Q2_END))
+        out["tail"].append(ts + T * R12.STEP > caps["primary"])
+    rows = {k_: np.concatenate(v) for k_, v in out.items() if v}
+    return {"key": spec["key"], "rows": rows}
+
+
+def r152_collect(specs, T, mode, workers, label):
+    import multiprocessing as mp
+    res = []
+    t0 = time.time()
+    with mp.get_context("fork").Pool(workers, maxtasksperchild=8) as pool:
+        for j, r in enumerate(pool.imap(r152_task, [{"spec": s_, "T": T, "mode": mode} for s_ in specs], chunksize=1)):
+            if "err" in r:
+                print(f"  load error {r['key']}: {r['err']}", flush=True)
+                continue
+            res.append(r)
+            if (j + 1) % 100 == 0 or j + 1 == len(specs):
+                print(f"{now_iso()}  {label} T{T} {mode}: {j + 1}/{len(specs)} ({time.time() - t0:.0f}s)", flush=True)
+    return res
+
+
+def r131_shallow(p, ts, sid, y, T, maps_T, W=90, kappa=50.0):
+    """the frozen R13.1 map (c_mp, band 'shallow') on the first R152_NCOL levels, level term on the base's own
+    resolved 6-hourly rows (R13.1 level_terms), running minimum, clip."""
+    import r13_recal as R13
+    from scipy.special import expit
+    mp_ = maps_T["shallow"]
+    c = np.array(mp_["c_mp"])[:R152_NCOL][None, :]
+    b = float(mp_["b"])
+    pb = expit(c + b * (R13.lg(p) - c))
+    a_ = R13.level_terms(ts, sid, pb, y, T, W, kappa)
+    p2 = expit(R13.lg(pb) + a_)
+    p2 = np.minimum.accumulate(p2, axis=1)
+    return np.clip(p2, R13.PCLIP, 1 - R13.PCLIP)
+
+
+def cmd_dev2(a):
+    import r12_tail as R12
+    import r13_recal as R13
+    t0 = now_iso()
+    cfg = json.load(open(a.r131))
+    out = {"schema": "q26-r152-dev-v1", "prereg": PREREG, "created_utc": t0, "code_sha": git_sha(),
+           "r131_frozen_sha256": sha_file(a.r131),
+           "note": "development on SEEN data only: library from the R12 development pool and B9 (6-hourly, in-fold "
+                   "sigma_H); check sets B12 and B13a hourly; the frozen whole-pool R13.1 maps for both arms",
+           "library": {}, "cells": {}, "selection": {}}
+    lib_specs = R12.dev_specs(a.datasets) + R13.b9_specs(a.datasets, os.path.join(a.out, "acq_r12"))
+    chk = {"b12": R13.b12_specs(a.datasets), "b13a": R13.b13a_specs(a.datasets)}
+    if a.limit:
+        lib_specs = lib_specs[:a.limit]
+        chk = {k_: v[:a.limit] for k_, v in chk.items()}
+    sel = {t_: [] for t_ in R152_TAUS}
+    names = {t_: f"M152_tau{'inf' if t_ is None else int(t_)}" for t_ in R152_TAUS}
+    for T in R152_T:
+        L = r152_collect(lib_specs, T, "lib", a.workers, "library")
+        zs = np.sort(np.concatenate([r["rows"]["z"] for r in L if "z" in r["rows"]]).astype(np.float64))
+        out["library"][f"{T}h"] = {"rows": int(len(zs)), "series": len(L),
+                                   "quantiles": {str(q): float(np.quantile(zs, q)) for q in (0.001, 0.01, 0.05, 0.5)}}
+        del L
+        cols = {k_: [] for k_ in ("ts", "sid", "y", "pH", "pf", "thr", "N", "set")}
+        off = 0
+        for si_, (nm, specs) in enumerate(chk.items()):
+            res = r152_collect(specs, T, "check", a.workers, nm)
+            for r in res:
+                rw = r["rows"]
+                if "ts" not in rw:
+                    continue
+                m = ~rw["q2"] & ~rw["tail"]
+                for k_ in ("ts", "y", "pH", "pf", "thr", "N"):
+                    cols[k_].append(rw[k_][m])
+                cols["sid"].append(np.full(int(m.sum()), off, np.int64))
+                cols["set"].append(np.full(int(m.sum()), si_, np.int8))
+                off += 1
+            del res
+        C = {k_: np.concatenate(v) for k_, v in cols.items()}
+        del cols
+        ppool = (np.searchsorted(zs, C["thr"].astype(np.float64), side="right") / len(zs))
+        pH = C["pH"].astype(np.float64)
+        fb = ~np.all(np.isfinite(pH), axis=1)                   # (fH) undefined -> (f), as the R12 recipe
+        pH[fb] = C["pf"][fb]
+        ppool[fb | ~np.all(np.isfinite(ppool), axis=1)] = pH[fb | ~np.all(np.isfinite(ppool), axis=1)]
+        y = C["y"].astype(float)
+        maps_T = cfg["maps"][f"{T}h"]
+        P = {"R13.1": r131_shallow(np.clip(pH, 1e-4, 1 - 1e-4), C["ts"], C["sid"], y, T, maps_T), "fH": pH}
+        Nn = C["N"].astype(float)[:, None]
+        for t_ in R152_TAUS:
+            base = ppool if t_ is None else (Nn * pH + t_ * ppool) / (Nn + t_)
+            base = np.minimum.accumulate(base, axis=1)
+            P[names[t_]] = r131_shallow(np.clip(base, 1e-4, 1 - 1e-4), C["ts"], C["sid"], y, T, maps_T)
+            P[names[t_] + "_base"] = base
+        P["pool_raw"] = ppool
+        for (TT, k) in R152_CELLS + R152_REPORTED:
+            if TT != T:
+                continue
+            j = [-0.02, -0.03, -0.05].index(k)
+            Pc = {n_: np.clip(v[:, j], 0, 1) for n_, v in P.items()}
+            cell = {}
+            for t_ in R152_TAUS:
+                cell[names[t_]] = twoway_stats(C["ts"], C["sid"], y[:, j], Pc, names[t_], ["R13.1", "fH"], T,
+                                               a.nb if t_ is None else 500, SEED_R152 + 100 * T + j, blocks="week")
+                if (TT, k) in R152_CELLS:
+                    sel[t_].append(cell[names[t_]]["vs"]["R13.1"]["mean_d"])
+            per_set = {}
+            for si_, nm in enumerate(chk):
+                mm = C["set"] == si_
+                yy = y[mm, j]
+                per_set[nm] = {"rows": int(mm.sum()), "R": {n_: float(Pc[n_][mm].sum() / max(yy.sum(), 1)) for n_ in Pc},
+                               "brier": {n_: float(np.mean((Pc[n_][mm] - yy) ** 2)) for n_ in Pc}}
+            cell["per_set"] = per_set
+            out["cells"][f"{T}h/{k}"] = cell
+            c0 = cell[names[None]]
+            print(f"{T}h {k}: rows {c0['rows']} weeks {c0['blocks']} | R R13.1 {c0['R']['R13.1']:.3f} fH {c0['R']['fH']:.3f} "
+                  + " ".join(f"{names[t_]}: R {cell[names[t_]]['R'][names[t_]]:.3f} bss vs R13.1 "
+                             f"{cell[names[t_]]['vs']['R13.1']['bss']:+.5f}" for t_ in R152_TAUS)
+                  + f" | pool_raw R {c0['R']['pool_raw']:.3f}", flush=True)
+        del C, P, ppool, pH, y
+    mean = {names[t_]: float(np.mean(v)) for t_, v in sel.items()}
+    best = min(mean, key=mean.get)
+    se_ = {names[t_]: float(np.std(v, ddof=1) / math.sqrt(len(v))) for t_, v in sel.items()}
+    choice = next(names[t_] for t_ in R152_TAUS if mean[names[t_]] <= mean[best] + se_[best])
+    out["selection"] = {"criterion": "mean over the 6 cells of the Brier difference M152 - R13.1 (check sets)",
+                        "mean_d": mean, "se": se_, "best": best, "choice": choice}
+    out["z_holm_union"] = z_holm_union()
+    out["utc_end"] = now_iso()
+    print("selection", json.dumps(out["selection"]), flush=True)
+    write_json(os.path.join(a.out, "dev-r152.json"), out)
+    print("sha256", sha_file(os.path.join(a.out, "dev-r152.json")))
+
 # =============================================================================================
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -717,8 +907,16 @@ def main():
     s.add_argument("--datasets", default="/home/user/membrane-datasets")
     s.add_argument("--nb", type=int, default=10000)
     s.add_argument("--out", required=True)
+    s = sub.add_parser("dev2")
+    s.add_argument("--datasets", default="/home/user/membrane-datasets")
+    s.add_argument("--r131", default="/home/user/membrane-datasets/history-forecasts/r13/r131-run-e7550b81/"
+                                     "frozen-r131-config.json")
+    s.add_argument("--workers", type=int, default=3)
+    s.add_argument("--limit", type=int, default=0)
+    s.add_argument("--nb", type=int, default=2000)
+    s.add_argument("--out", required=True)
     a = ap.parse_args()
-    {"select-b19": cmd_select_b19, "dev1": cmd_dev1, "dev3": cmd_dev3}[a.cmd](a)
+    {"select-b19": cmd_select_b19, "dev1": cmd_dev1, "dev3": cmd_dev3, "dev2": cmd_dev2}[a.cmd](a)
 
 
 if __name__ == "__main__":

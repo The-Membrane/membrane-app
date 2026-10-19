@@ -61,7 +61,7 @@ construction; apparent coverage improvement alone does not settle the target or 
 
 Owned source: `scripts/research/history-forecasts/r164_ranges.py`.
 Synthetic checks: `scripts/research/history-forecasts/test_r164_ranges.py`.
-No empirical model construction or reserved-data input was changed.
+No forecasting-model fit or reserved-data input was changed.
 
 - CGM intersection correction: sum normalized residuals by `(series_group, block)` across forecast bins
   before squaring/subtracting the intersection component. Duplicate observations within the same
@@ -159,3 +159,18 @@ commands/results as they are recovered, without rewriting recovered claims into 
   Its width leg is a deterministic indicator of the development median, not simulated joint-gate power.
 - `r164_ranges.py`: bounds are averaged over rows with available ranges, whereas outcomes use the whole group.
   Current constructions generally supply complete groups; partial availability is not explicitly enforced.
+
+## Verified development replay
+
+The corrected scorer completed all 80 cells. On identical published float16 inputs, all 140 one-day
+coverage and median-width readings are unchanged. CGM standard errors change. This preserves NOT RUN
+under the existing power calculation, without validating its separate assumptions.
+
+Primary CAL coverage remains `.939633` at 1d −15% and `.905263` at 3d −25%. Corrected CGM SE is `.016614`
+and `.022071`; median width is `3.4714` and `5.1897` probability points. Existing power legs remain
+`.140523` and `.175770`, product `.0246997`.
+
+Artifacts: membrane-datasets `7c8c33e`, branch `codex/r164-instrument-review`,
+`history-forecasts/r16/r164-review-20261019/`. This includes the corrected replay, unmodified one-day
+same-input baseline, a bounded synthetic runtime check, provenance and checksums.
+The one-series/four-origin synthetic run is not the published aggregate experiment.

@@ -2,8 +2,9 @@
 parent). DEVELOPMENT ONLY (seen data). Recorded in membrane-board design/Q26_ROUND16_PREREG.md D-R16.2a.
 
 Menu fixed here before any output:
-  CHANGED 2026-10-19 before any nn output was read (CPU contention): windows 48 h / 30 d, at most 100,000
-  training rows and 5 epochs, predictions (and scores) at daily origins only.
+  CHANGED 2026-10-19 before any nn test output was read (CPU contention): windows 48 h / 30 d, at most 60,000
+  training rows and 4 epochs, predictions (and scores) at daily origins only; early stopping also scores the
+  initial state (seen after two long-tier validation losses only: the residual GRU ended worse than its fH start).
   inputs   per row (origin i, horizon T): the last 72 hourly bars [return, ln(high/low), ln(volume / 30-day mean)] and
            the last 60 daily blocks [24 h return, 24 h range ln(max high / min low), 24 h volume ratio]; returns and
            ranges are divided by the row's hourly (fH) scale sigma_H / sqrt(8760) (sqrt(24) larger for daily blocks)
@@ -54,7 +55,7 @@ TIER_LV = {"shallow": (-0.02, -0.03, -0.05, -0.07, -0.10), "mid": (-0.03, -0.05,
 HW, DW = 48, 30
 STATIC = ("lsH", "lsf", "dm", "wm", "r24", "r168", "r720", "dd720", "rng24", "lvol", "btc_r24", "btc_dm")
 MODELS = ("nmlp", "ngru", "ntcn", "ntfm", "nmlp0")
-MAX_TRAIN = 100000
+MAX_TRAIN = 60000
 SEED = 20261903
 
 
@@ -287,9 +288,9 @@ def run_tier(a, tier, SA, keys, log):
                     mk = (y >= 0).float()
                     l_ = torch.nn.functional.binary_cross_entropy_with_logits(o, y.clamp(min=0), reduction="none")
                     return (l_ * mk).sum() / mk.sum()
-                for ep in range(5):
+                for ep in range(-1, 4):                  # ep -1 = the initial state (residual models start at fH)
                     net.train()
-                    for _, h, d, s, lf, y in batches(tr, True):
+                    for _, h, d, s, lf, y in (batches(tr, True) if ep >= 0 else ()):
                         opt.zero_grad()
                         loss = loss_of(net(h, d, s, lf), y)
                         loss.backward()

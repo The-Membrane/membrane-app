@@ -229,13 +229,14 @@ def project_z(leg, S_dev, G_dev, S_new, G_new):
     return z, {"z_A": zA, "z_B": zB, "z_cr1": zc, "deff_new": deff_new}
 
 
-def power_at(dev_cell, S_new, G_new, cand="reg2"):
+def power_at(dev_cell, S_new, G_new, cand="reg2", shrink=1.0):
     from scipy.stats import norm
     S_dev, G_dev = dev_cell["series"], dev_cell["pos_blocks"]
     legs, ptest, pconc = {}, 1.0, 1.0
     for c in COMPS:
         lg = dev_cell["legs"][f"{cand}_vs_{c}"]
         z, info = project_z(lg, S_dev, G_dev, S_new, G_new)
+        z *= shrink                     # sensitivity only: effect shrunk to `shrink` x the development effect
         pw = float(norm.cdf(z - Z_CRIT)) if z > 0 else 0.0
         lt = lg["leave_top_frac"]["mean_d"]
         pc = float(norm.cdf(z * lt / lg["mean_d"])) if (z > 0 and lt < 0) else 0.0
@@ -269,6 +270,8 @@ def cmd_power(a):
         for cand in ("reg2", "L_all"):
             for hh in (H_PRIMARY, H_REPORTED):
                 ent[f"{cand}/h{hh}"] = power_at(dev["cells"][f"h{hh}/{K}"], S_, G_, cand)
+        for sh in (0.75, 0.5):
+            ent[f"reg2/h{H_PRIMARY}/shrink{sh}"] = power_at(dev["cells"][f"h{H_PRIMARY}/{K}"], S_, G_, "reg2", sh)
         if span is not None:
             ent["span_years"] = span
             ent["span_ok"] = bool(span >= SPAN_YEARS)

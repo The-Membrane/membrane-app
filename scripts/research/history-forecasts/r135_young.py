@@ -34,8 +34,11 @@ Bar rules (fixed in D-R13.5a before any B14b byte)
      An origin needs a traded day t (C_t = last trade of day t).
   B5 window low over t+1..t+h = the minimum traded price over the traded days in the window (a NULL day adds no
      price; it is not a zero and not a gap that voids the window). The window is valid only if day t+h is on or
-     before the pair's last acquired day and at least one day in the window traded. This equals the kline
-     convention (flat no-trade bars at the last price never set a new minimum), checked in verify-bars.
+     before the pair's last acquired day and at least one day in the window traded. Touch labels 1[low <= C_t (1+k)]
+     for k < 0 equal the kline convention exactly: a flat no-trade bar carries either C_t (never a touch for k < 0)
+     or an in-window traded price (already counted). The raw window low differs from the flat-filled one only when
+     no in-window trade is below C_t (flat low = C_t, m = 0 there vs m > 0 here), which no k < 0 label or z < 0 ECDF
+     value can see. Checked in verify-bars.
 
 No address, key or secret is read or written. Raw vendor files are not republished; manifests carry sha256 values.
 """
@@ -318,14 +321,24 @@ def cmd_verify_bars(a):
                     grid = np.arange(a0, b0, HOUR)
                     pos = {int(t): i for i, t in enumerate(H["t"])}
                     lm = np.array([H["l"][pos[t]] if t in pos else np.nan for t in grid.tolist()])
+                    cm = np.array([H["c"][pos[t]] if t in pos else np.nan for t in grid.tolist()])
                     lr = np.array([rh.get(int(t), (np.nan,) * 5)[2] for t in grid])
                     hl = {}
                     for T in (24, 72, 120, 240):
                         w1 = window_low(lm, np.isfinite(lm), T)
                         w2 = window_low(lr, np.isfinite(lr), T)
-                        okb = np.isfinite(w1) & np.isfinite(w2)
-                        hl[f"T{T}h"] = {"windows": int(okb.sum()), "identical": int(np.sum(w1[okb] == w2[okb])),
-                                        "null_hours": int(np.isnan(lm).sum())}
+                        # origins with a traded close (B4), as in the daily design
+                        okb = np.isfinite(w1) & np.isfinite(w2) & np.isfinite(cm)
+                        below = okb & (w2 < cm)
+                        lab = {}
+                        for k in (-0.02, -0.05, -0.10, -0.15, -0.20, -0.25, -0.30, -0.40):
+                            y1 = w1[okb] <= cm[okb] * (1 + k)
+                            y2 = w2[okb] <= cm[okb] * (1 + k)
+                            lab[str(k)] = {"pos": int(y2.sum()), "identical": int(np.sum(y1 == y2))}
+                        hl[f"T{T}h"] = {"windows": int(okb.sum()), "low_identical": int(np.sum(w1[okb] == w2[okb])),
+                                        "windows_rest_low_below_close": int(below.sum()),
+                                        "low_identical_when_below_close": int(np.sum(w1[below] == w2[below])),
+                                        "labels": lab, "null_hours": int(np.isnan(lm).sum())}
                     out["label_identity_hourly"] = out.get("label_identity_hourly", {})
                     out["label_identity_hourly"][p] = hl
             print(f"{now_iso()} {p} {m}: trades {len(tr)} dropped {dropped}", flush=True)
@@ -349,7 +362,7 @@ def cmd_verify_bars(a):
         for hh in H_ALL:
             mine = window_low(G["l"], G["valid"], hh)
             ref = window_low(rl, np.isfinite(rl), hh)          # REST prints a flat bar for every day
-            okb = np.isfinite(mine) & np.isfinite(ref)
+            okb = np.isfinite(mine) & np.isfinite(ref) & G["valid"]
             res[f"h{hh}"] = {"windows": int(okb.sum()), "identical": int(np.sum(mine[okb] == ref[okb])),
                              "null_days": int((~G["valid"]).sum())}
         out["label_identity"][p] = res
@@ -372,11 +385,20 @@ def cmd_verify_bars(a):
             tot["traded_but_zero"] += v["traded_but_rest_zero"]
     print(json.dumps(tot))
     li = [(k, h, v["windows"], v["identical"]) for k, x in out["label_identity"].items() for h, v in x.items()]
-    lh = [(k, h, v["windows"], v["identical"], v["null_hours"]) for k, x in out.get("label_identity_hourly", {}).items()
-          for h, v in x.items()]
-    print("label identity daily: windows", sum(x[2] for x in li), "identical", sum(x[3] for x in li))
-    print("label identity hourly: windows", sum(x[2] for x in lh), "identical", sum(x[3] for x in lh),
-          "null hours", sum(x[4] for x in lh) // 4)
+    lh = list(out.get("label_identity_hourly", {}).values())
+    print("window low identity daily (traded origins): windows", sum(x[2] for x in li), "identical", sum(x[3] for x in li))
+    vs = [v for x in lh for v in x.values()]
+    print("hourly: windows", sum(v["windows"] for v in vs), "low identical", sum(v["low_identical"] for v in vs),
+          "| REST low below close", sum(v["windows_rest_low_below_close"] for v in vs), "identical there",
+          sum(v["low_identical_when_below_close"] for v in vs), "| null hours", sum(x["T24h"]["null_hours"] for x in lh))
+    labs = {}
+    for v in vs:
+        for k, q in v["labels"].items():
+            labs.setdefault(k, [0, 0, 0])
+            labs[k][0] += v["windows"]
+            labs[k][1] += q["identical"]
+            labs[k][2] += q["pos"]
+    print("hourly touch-label identity (windows, identical, positives) per level:", json.dumps(labs))
     print(f"sha256 {L4.sha256_file(a.out)}")
 
 

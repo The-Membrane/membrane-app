@@ -439,6 +439,10 @@ class BlindGuard:
                                split_list("eligible", "Q26-R13-B15:", 1))
         m["B18"] = venue_list({"poloniex"}, "b18-poloniex-prices/selection-b18.json",
                               lambda s: {cex_base(x) for x in s.get("B18", [])})
+        m["B19a"] = venue_list({"lbank"}, "b19-lbank-prices/selection-b19.json",
+                               lambda s: {cex_base(x) for x in s.get("B19a", [])})
+        m["B19b"] = venue_list({"lbank"}, "b19-lbank-prices/selection-b19.json",
+                               lambda s: {cex_base(x) for x in s.get("B19b", [])})
         p3b = "history-forecasts/r13/r134-reserve/selection-p3b.json"
         for sid, field in (("P3b-a", "P3b_a"), ("P3b-b", "P3b_b"), ("P3c", "P3c")):
             m[sid] = venue_list({"binance"}, p3b, lambda s, fld=field: {cex_base(x) for x in s.get(fld, [])})

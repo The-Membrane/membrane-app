@@ -120,6 +120,12 @@ interface SeriesChartProps {
 
 const TONE = { ink: NEWS.ink, muted: NEWS.muted } as const
 const M = { left: 46, right: 10, top: 20, bottom: 28 }
+/**
+ * The forward region's share of the plot width (owner, round 7: the fan was too cramped at
+ * 7 of 37 days). History and the forward 7 days are each on their own time scale; the
+ * axis names both ends ("−30d", "now", "+7d").
+ */
+const FORWARD_SHARE = 0.36
 
 const SeriesChart: React.FC<SeriesChartProps> = (props) => {
   const [boxRef, width] = useWidth<HTMLDivElement>()
@@ -155,8 +161,7 @@ const SeriesSvg: React.FC<SeriesChartProps & { width: number; height: number; ui
   const pw = width - M.left - M.right
   const ph = height - M.top - M.bottom
   const floorY = M.top + ph
-  const span = HISTORY_DAYS + FORECAST_DAYS
-  const nowX = M.left + (HISTORY_DAYS / span) * pw
+  const nowX = M.left + (1 - FORWARD_SHARE) * pw
   const t0 = nowS - HISTORY_DAYS * 86_400
   const shown = lines.map((l) => ({ ...l, points: l.points.filter((p) => p.t >= t0 - 3_600 && p.t <= nowS + 3_600) }))
   const vals = [...shown.flatMap((l) => l.points.map((p) => p.v)), ...(now !== null ? [now] : []), ...(refLine ? [refLine.v] : [])]
@@ -171,7 +176,7 @@ const SeriesSvg: React.FC<SeriesChartProps & { width: number; height: number; ui
     lo = -m
     hi = m
   }
-  const x = (t: number) => M.left + ((t - t0) / (span * 86_400)) * pw
+  const x = (t: number) => M.left + ((t - t0) / (HISTORY_DAYS * 86_400)) * (nowX - M.left)
   const y = (v: number) => M.top + ph * (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo))
   /** Unclamped, for the clipped baseline. */
   const yr = (v: number) => M.top + ph * (1 - (v - lo) / (hi - lo))
@@ -427,7 +432,7 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
     },
     isVault
       ? { k: 'The vault would pay you', v: `${fmtAmount(m.vault?.maxWithdraw ?? 0, amountDp(m.vault?.maxWithdraw ?? 0))} ${v.symbol}`, note: 'its maxWithdraw, on-chain' }
-      : { k: 'Borrowed', v: `${(m.utilization * 100).toFixed(1)}%`, note: 'borrowed ÷ supplied', danger: m.utilization >= PAPER_UTILIZATION },
+      : { k: 'Venue utilization', v: `${(m.utilization * 100).toFixed(1)}%`, note: 'share of supplied cash lent out', danger: m.utilization >= PAPER_UTILIZATION },
     ...(yieldNow ? [{ k: 'Venue yield', v: yieldNow.text, note: v.paper ? `${yieldNow.note}, a paper rate (see What it pays)` : yieldNow.note }] : []),
     { k: 'Your supply', v: fmtUsd(v.suppliedUsd), note: `${fmtAmount(v.supplied, amountDp(v.supplied))} ${v.symbol}${onPaper}` },
   ]
@@ -584,7 +589,7 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
       ) : (
         <SeriesChart
           label={`Utilization: ${(m.utilization * 100).toFixed(1)}% now; the next ${FORECAST_DAYS} days: model pending (${PENDING_MODEL.rate}).`}
-          caption="utilization (borrowed ÷ supplied)"
+          caption="venue utilization: share of supplied cash lent out"
           lines={[{ points: report?.utilization ?? [], tone: 'ink' }]}
           now={m.utilization}
           yMax={1}

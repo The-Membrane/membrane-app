@@ -11,7 +11,7 @@ import { fmtAmount, fmtUsd, fmtUtc } from '@/lib/position/format'
 import { priceDecimals } from '@/lib/position/liquidation'
 
 import { Kicker, Mono, Section, Small } from './primitives'
-import { CAPS, TYPE } from './typeScale'
+import { CAPS, TYPE, BODY_MD } from './typeScale'
 import { partialDiscovery, type PositionView, type ReadStatusItem } from './viewModel'
 
 const pct = (x: number, d = 1) => (Number.isFinite(x) ? `${(x * 100).toFixed(d)}%` : '∞')
@@ -19,7 +19,7 @@ const amountDecimals = (amount: number) => (amount >= 1000 ? 2 : amount >= 1 ? 4
 
 const CELL = {
   fontFamily: NEWS_FONT.mono,
-  fontSize: { base: TYPE.label, md: TYPE.body },
+  fontSize: { base: TYPE.label, md: BODY_MD },
   py: '6px',
   px: '6px',
 } as const

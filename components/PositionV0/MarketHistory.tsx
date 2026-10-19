@@ -27,10 +27,10 @@ import { STALE_HATCH } from './forecastMarks'
 import { TimeToTouchChart, type TimeChartState } from './TimeToTouchChart'
 import { TouchGridChart, type GridChartState } from './TouchGridChart'
 import { Credit, Headline, Kicker, Section, Small, StaleTag } from './primitives'
-import { CAPS, TYPE } from './typeScale'
+import { CAPS, TYPE, BODY_MD } from './typeScale'
 import { MARKET_LEVELS, forecastFooter } from './viewModel'
 
-const CELL = { fontFamily: NEWS_FONT.mono, fontSize: { base: TYPE.label, md: TYPE.body }, py: '5px', px: '4px', textAlign: 'right' as const }
+const CELL = { fontFamily: NEWS_FONT.mono, fontSize: { base: TYPE.label, md: BODY_MD }, py: '5px', px: '4px', textAlign: 'right' as const }
 const HEAD = { ...CELL, ...CAPS, fontSize: TYPE.label, fontWeight: 700, color: NEWS.muted }
 
 /** "4 of 5" checks held, or "no checks". */

@@ -226,6 +226,20 @@ def cmd_run(a):
     json.dump(out, open(os.path.join(a.out, "blind-r162-b20a.json"), "w"), indent=1, default=float)
 
 
+def cmd_config(a):
+    """rewrite the frozen config with the registered PRIMARY cells (the pickle is unchanged; its sha256 is checked)."""
+    cfgp = os.path.join(a.out, "frozen-r162.json")
+    cfg = json.load(open(cfgp))
+    pk = os.path.join(a.out, "frozen-r162.pkl")
+    if sha_file(pk) != cfg["pickle_sha256"]:
+        raise SystemExit("STOP: pickle sha256 mismatch")
+    cfg["primary"] = PRIMARY
+    cfg["config_code"] = D.git_sha()
+    cfg["config_utc"] = R12.now_iso()
+    json.dump(cfg, open(cfgp, "w"), indent=1)
+    print("frozen config sha256", sha_file(cfgp))
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -239,8 +253,10 @@ def main():
     s.add_argument("--datasets", required=True)
     s.add_argument("--dev", required=True)
     s.add_argument("--out", required=True)
+    s = sub.add_parser("config")
+    s.add_argument("--out", required=True)
     a = ap.parse_args()
-    {"freeze": cmd_freeze, "counts": cmd_counts, "run": cmd_run}[a.cmd](a)
+    {"freeze": cmd_freeze, "counts": cmd_counts, "run": cmd_run, "config": cmd_config}[a.cmd](a)
 
 
 if __name__ == "__main__":

@@ -1096,7 +1096,10 @@ def b20_bound(datasets, part="B20a"):
     end = int(_dt.datetime(2026, 10, 1, tzinfo=_dt.timezone.utc).timestamp())
     blocks = set()
     weeks_by_series = []
+    excl = [b for b in sel[part] if sel.get("venue", {}).get(b) == "bingx"]
     for b in sel[part]:
+        if b in excl:      # BingX serves about 1 year of hourly candles (probed on BTC-USDT): no scorable window
+            continue
         y, mo = map(int, sel["first_month_utc"][b].split("-"))
         t0 = int(_dt.datetime(y, mo, 1, tzinfo=_dt.timezone.utc).timestamp()) + 365 * DAY
         qy, qq = (int(_dt.datetime.fromtimestamp(t0, _dt.timezone.utc).year),
@@ -1109,7 +1112,8 @@ def b20_bound(datasets, part="B20a"):
         ts = ts[(ts < R12.Q2_START) | (ts >= R12.Q2_END)]
         blocks |= set((ts // (28 * DAY)).tolist())
         weeks_by_series.append(len(np.unique(ts // (7 * DAY))))
-    return {"S": len(sel[part]), "K4w": len(blocks), "series_weeks_total": int(sum(weeks_by_series))}
+    return {"S": len(sel[part]) - len(excl), "S_listed": len(sel[part]), "bingx_unscorable": excl,
+            "K4w": len(blocks), "series_weeks_total": int(sum(weeks_by_series))}
 
 
 def cmd_power(a):

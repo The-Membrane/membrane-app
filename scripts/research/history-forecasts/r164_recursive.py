@@ -91,7 +91,7 @@ def raw_blocks(close, high, low, s):
     out = np.full((n + 1, s, 3), np.nan, np.float32)
     with np.errstate(invalid="ignore", divide="ignore"):
         lc, lh, ll = np.log(close), np.log(high), np.log(low)
-    j = np.arange(1, n - s + 2)          # origins with spot close[j-1] and bars up to j+s-1 <= n-1
+    j = np.arange(1, n - s + 1)          # origins with spot close[j-1] and bars up to j+s-1 <= n-1
     for m in range(s):
         out[j, m, 0] = lc[j + m] - lc[j - 1]
         out[j, m, 1] = lh[j + m] - lc[j - 1]

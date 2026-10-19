@@ -115,6 +115,104 @@ def c3(datasets, out_dir):
     return {"days": int(n), "mse_chronos_1d": e_cb / max(n, 1), "mse_persistence_1d": e_nv / max(n, 1)}
 
 
+def load_P(out_dir, T):
+    Z = np.load(os.path.join(out_dir, f"rows-T{T}.npz"))
+    R = {k: Z[k] for k in Z.files}
+    P = {m: R[m].astype(np.float32) for m in D.ALL_ROW_MODELS}
+    return R, P
+
+
+def c4(out_dir):
+    meta = json.load(open(os.path.join(out_dir, "rows-meta.json")))
+    keys = meta["series"]
+    rng = np.random.default_rng(D.SEED)
+    stack_nogb = tuple(m for m in D.STACK if m != "gb")
+    out = {}
+    for tier in ("shallow", "mid"):
+        ds, sids, tss = {"st": [], "lp": [], "st_nogb": [], "lp_nogb": [], "gb": []}, [], []
+        for T in D.TIERS[tier]:
+            R, P = load_P(out_dir, T)
+            L = len(D.LV[T])
+            lnk = np.log1p(np.array(D.LV[T]))
+
+            def mk_gb(tr, te):
+                clf = D.fit_gb(R, tr, lnk, rng)
+                idx = np.where(te)[0]
+                return np.column_stack([clf.predict_proba(D.gb_design(R, idx, j, lnk))[:, 1] for j in range(L)])
+            P["gb"] = np.minimum.accumulate(D.crossfit(R, T, keys, None, mk_gb), axis=1)
+            for nm, stk in (("st", D.STACK), ("st_nogb", stack_nogb)):
+                def mk_st(tr, te, stk=stk):
+                    from sklearn.linear_model import LogisticRegression
+                    idx = np.where(tr)[0]
+                    per = max(1, 400000 // L)
+                    if len(idx) > per:
+                        idx = rng.choice(idx, per, replace=False)
+                    X = np.vstack([np.column_stack([D.lg(P[m][idx, j]) for m in stk]) for j in range(L)])
+                    y = np.concatenate([R["y"][idx, j] for j in range(L)])
+                    clf = LogisticRegression(C=100.0, max_iter=500).fit(X, y)
+                    ii = np.where(te)[0]
+                    return np.column_stack([clf.predict_proba(np.column_stack([D.lg(P[m][ii, j]) for m in stk]))[:, 1]
+                                            for j in range(L)])
+                P[nm] = np.minimum.accumulate(D.crossfit(R, T, keys, None, mk_st), axis=1)
+            for nm, stk in (("lp", D.STACK), ("lp_nogb", stack_nogb)):
+                def mk_lp(tr, te, stk=stk):
+                    from scipy.optimize import nnls
+                    idx = np.where(tr)[0]
+                    per = max(1, 400000 // L)
+                    if len(idx) > per:
+                        idx = rng.choice(idx, per, replace=False)
+                    X = np.vstack([np.column_stack([P[m][idx, j] for m in stk]) for j in range(L)])
+                    y = np.concatenate([R["y"][idx, j] for j in range(L)]).astype(float)
+                    w, _ = nnls(X, y)
+                    w = w / w.sum()
+                    ii = np.where(te)[0]
+                    return np.column_stack([np.column_stack([P[m][ii, j] for m in stk]) @ w for j in range(L)])
+                P[nm] = np.minimum.accumulate(D.crossfit(R, T, keys, None, mk_lp), axis=1)
+            Y = R["y"].astype(float)
+            for nm in ds:
+                ds[nm].append((((P[nm] - Y) ** 2) - ((P["fH"] - Y) ** 2)).sum(1) / L)
+            sids.append(R["sid"])
+            tss.append(R["ts"])
+            out.setdefault("bss_vs_fH", {})[D.TL[T]] = {
+                nm: float(1 - ((P[nm] - Y) ** 2).sum() / ((P["fH"] - Y) ** 2).sum()) for nm in ds}
+            print(D.TL[T], out["bss_vs_fH"][D.TL[T]], flush=True)
+        sid = np.concatenate(sids)
+        blk = (np.concatenate(tss) // (28 * DAY)).astype(np.int64)
+        tw = D.TwoWay(sid, blk, B=1000)
+        out[tier] = {nm: tw.z(np.concatenate(v)) for nm, v in ds.items()}
+        print(tier, {nm: round(v["z"], 2) for nm, v in out[tier].items()}, flush=True)
+    return out
+
+
+def c5(out_dir):
+    meta = json.load(open(os.path.join(out_dir, "rows-meta.json")))
+    keys = meta["series"]
+    rng = np.random.default_rng(D.SEED)
+    out = {}
+    for T in (168, 720):
+        R, P = load_P(out_dir, T)
+        L = len(D.LV[T])
+        lnk = np.log1p(np.array(D.LV[T]))
+        Y = R["y"].astype(float)
+        clf = D.fit_gb(R, np.ones(len(Y), bool), lnk, rng)
+        pin = np.column_stack([clf.predict_proba(D.gb_design(R, np.arange(len(Y)), j, lnk))[:, 1] for j in range(L)])
+        sizes = []
+
+        def mk_gb(tr, te):
+            sizes.append(int(tr.sum()))
+            c = D.fit_gb(R, tr, lnk, rng)
+            idx = np.where(te)[0]
+            return np.column_stack([c.predict_proba(D.gb_design(R, idx, j, lnk))[:, 1] for j in range(L)])
+        pcf = D.crossfit(R, T, keys, None, mk_gb)
+        bH = ((P["fH"] - Y) ** 2).sum()
+        bf = ((P["f"] - Y) ** 2).sum()
+        out[D.TL[T]] = {"bss_vs_f_insample": float(1 - ((pin - Y) ** 2).sum() / bf),
+                        "bss_vs_f_crossfit": float(1 - ((pcf - Y) ** 2).sum() / bf),
+                        "bss_fH_vs_f": float(1 - bH / bf), "train_sizes": sizes, "rows": int(len(Y))}
+        print(D.TL[T], out[D.TL[T]], flush=True)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--datasets", required=True)
@@ -129,6 +227,10 @@ def main():
             res["C2_garch_scale"] = c2(a.out)
         elif c == "c3":
             res["C3_chronos"] = c3(a.datasets, a.out)
+        elif c == "c4":
+            res["C4_stack_without_gb"] = c4(a.out)
+        elif c == "c5":
+            res["C5_gb_long"] = c5(a.out)
         print(json.dumps({k: v for k, v in res.items() if k != "code"}, default=float)[-3000:], flush=True)
     json.dump(res, open(os.path.join(a.out, f"check-r162-{a.only.replace(',', '-')}.json"), "w"), indent=1,
               default=float)

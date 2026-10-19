@@ -5,7 +5,7 @@ membrane-board design/Q26_ROUND16_PREREG.md section "R16.2" (Deviations D-R16.2*
 worked better, let's try new ones".
 
 Subcommands
-  select-b20   XT.com venue-unique USDT pairs (listing data and monthly-candle open times only; prices are discarded in
+  select-b20   XT.com and BingX venue-unique USDT pairs (listing data and monthly-candle open times only; prices are discarded in
                code). Split by sha256('Q26-R16-B20:' + base): first byte even -> B20a (confirm), odd -> B20b (reserve).
   rows         development rows (seen data only; see r16_dev.py).
   score        development scoring and the pre-stated selection rule (see r16_dev.py).
@@ -32,6 +32,7 @@ sys.path.insert(0, HERE)
 PREREG = {"repo": "triccs/membrane-board", "path": "design/Q26_ROUND16_PREREG.md", "item": "R16.2",
           "deviations": "D-R16.2*"}
 XT_SYMBOLS = "https://sapi.xt.com/v4/public/symbol"
+BX_SYMBOLS = "https://open-api.bingx.com/openApi/spot/v1/common/symbols"
 XT_K = "https://sapi.xt.com/v4/public/kline?symbol={s}&interval={i}&limit={n}"
 B20_FIRST_MAX = int(datetime(2025, 7, 1, tzinfo=timezone.utc).timestamp())
 SALT_B20 = "Q26-R16-B20:"
@@ -128,6 +129,37 @@ def cmd_select_b20(a):
             rec["late"].append(base)
         else:
             rec["kept"].append(base)
+    # venue 2: BingX spot USDT pairs (status 1 = online; listing time = timeOnline; no candle read)
+    rawb = R125.http_get(BX_SYMBOLS)
+    bsy = json.loads(rawb)["data"]["symbols"]
+    rec_b = {"bingx_usdt_pairs": 0, "not_online": [], "taken_by_xt": [], "used_elsewhere": [], "excluded": {},
+             "late": [], "kept": []}
+    used = set(kc) | set(b12) | set(b14) | set(b15) | set(b17) | set(b18) | set(b19) | set(b9)
+    xt_bases = set(cand) | set(rec["late"]) | set(rec["not_online"])
+    venue = {b: "xt" for b in rec["kept"]}
+    for s in sorted(bsy, key=lambda x: x["symbol"]):
+        if not s["symbol"].endswith("-USDT"):
+            continue
+        rec_b["bingx_usdt_pairs"] += 1
+        base = s["symbol"][:-5].upper()
+        if s.get("status") != 1:
+            rec_b["not_online"].append(base)
+        elif base in xt_bases:
+            rec_b["taken_by_xt"].append(base)
+        elif R125.on_binance(base, bn) or base in used:
+            rec_b["used_elsewhere"].append(base)
+        elif not re.fullmatch(r"[A-Z0-9]+", base):
+            rec_b["excluded"][base] = "non-alphanumeric ticker"
+        elif R125.excluded(base):
+            rec_b["excluded"][base] = R125.excluded(base)
+        elif int(s.get("timeOnline") or 0) // 1000 >= B20_FIRST_MAX or not s.get("timeOnline"):
+            rec_b["late"].append(base)
+        else:
+            rec_b["kept"].append(base)
+            first[base] = int(s["timeOnline"]) // 1000
+            cand[base] = s["symbol"]
+            venue[base] = "bingx"
+    rec["kept"] = sorted(set(rec["kept"]) | set(rec_b["kept"]))
     elig = sorted(rec["kept"])
     split = {b: ("B20a" if hashlib.sha256((SALT_B20 + b).encode()).digest()[0] % 2 == 0 else "B20b") for b in elig}
     out = {"schema": "q26-r16-b20-selection-v1", "created_utc": now_iso(), "code_sha": git_sha(), "prereg": PREREG,
@@ -140,17 +172,20 @@ def cmd_select_b20(a):
            "eligible_first_month_before_utc": "2025-07-01T00:00:00Z", "salt": SALT_B20, "eligible": elig,
            "B20a": sorted(b for b in elig if split[b] == "B20a"), "B20b": sorted(b for b in elig if split[b] == "B20b"),
            "first_month_utc": {b: datetime.fromtimestamp(first[b], timezone.utc).strftime("%Y-%m") for b in elig},
-           "symbol": {b: cand[b] for b in elig}, **rec}
+           "symbol": {b: cand[b] for b in elig}, "venue": {b: venue[b] for b in elig},
+           "bingx_symbols_sha256": sha256b(rawb), "bingx": rec_b, **rec}
     os.makedirs(a.out, exist_ok=True)
     p = os.path.join(a.out, "selection-b20.json")
     json.dump(out, open(p, "w"), indent=1)
     print(json.dumps({k: (len(v) if isinstance(v, (list, dict)) else v) for k, v in out.items()
-                      if k not in ("first_month_utc", "symbol")}, indent=1))
+                      if k not in ("first_month_utc", "symbol", "venue", "bingx")}, indent=1))
     for part in ("B20a", "B20b"):
         yrs = {}
         for b in out[part]:
             yrs[out["first_month_utc"][b][:4]] = yrs.get(out["first_month_utc"][b][:4], 0) + 1
         print(part, len(out[part]), dict(sorted(yrs.items())))
+    print("bingx", {k: (len(v) if isinstance(v, (list, dict)) else v) for k, v in rec_b.items()})
+    print("venues", {v: sum(1 for b in elig if venue[b] == v) for v in ("xt", "bingx")})
     print("sha256", hashlib.sha256(open(p, "rb").read()).hexdigest())
 
 

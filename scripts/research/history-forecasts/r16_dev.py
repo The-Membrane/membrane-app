@@ -30,7 +30,8 @@ Models (FHS = empirical CDF of the series' own standardized training minima z = 
        regime-mixture FHS, p = pi_hi * F_hi + (1 - pi_hi) * F_lo, F_r the fH-standardized training ECDF of regime r,
        pi_hi the filtered high-regime probability propagated over the horizon (average over the window)
   gS   GJR-GARCH skew-t PARAMETRIC simulation to the touch (hourly steps, simulated close path plus a bootstrapped
-       standardized intrahour wick), daily origins only; N 1000 paths for T <= 72 h, 300 for 7 d / 30 d
+       standardized intrahour wick), daily origins only; N 1000 paths for T <= 72 h; 7 d / 30 d: N 200 at every
+       3rd daily origin (CPU budget; changed 2026-10-19 before any full-run output was read)
   gE   conditional EVT (McNeil-Frey): GJR filter, empirical standardized residuals with GPD tails beyond q05 / q95,
        simulated to the touch as gS
   gb   direct touch classifier: sklearn HistGradientBoosting (log loss), one model per T over the tier levels,
@@ -111,7 +112,7 @@ SIM = ("gS", "gE")
 ALL_ROW_MODELS = BASE + SCALE_MODELS + ("ms",) + SIM
 FEATS = ("lsH", "lsf", "lsg", "lssh", "dm", "wm", "r24", "r168", "r720", "dd720", "rng24", "lvol", "dow", "hour",
          "age", "btc_r24", "btc_dm")
-SIM_H_SHORT, SIM_N_SHORT, SIM_N_LONG = 72, 1000, 300
+SIM_H_SHORT, SIM_N_SHORT, SIM_N_LONG = 72, 1000, 200
 GARCH_WIN = 8760
 PCLIP = 1e-4
 SEED = 20261902
@@ -613,7 +614,8 @@ def task(spec):
                     res["ms"] = pm
             # simulation to the touch at daily origins
             if g is not None and (jb in wick_by) and wick_by[jb] is not None:
-                dmask = (ts_all[te] % DAY == 0) & np.isfinite(s2g[te])
+                sim_step = DAY if T <= SIM_H_SHORT else 3 * DAY       # long horizons: every 3rd day (CPU budget)
+                dmask = (ts_all[te] % sim_step == 0) & np.isfinite(s2g[te])
                 if dmask.any():
                     key_ = ("sim", jb, jf, T)
                     res["_dmask"] = dmask

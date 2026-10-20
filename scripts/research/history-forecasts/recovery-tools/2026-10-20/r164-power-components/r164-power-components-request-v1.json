@@ -1,0 +1,121 @@
+{
+  "MC_diagnostic": "abs(rate-p_ref)<=6*sqrt(p_ref*(1-p_ref)/N)+1/N, diagnostic only, no performance gate",
+  "N_worlds_per_case": 200000,
+  "analytic_agreement_tolerance": 1e-09,
+  "artifacts": {
+    "README": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/README-R164-POWER-COMPONENTS.md",
+      "sha256": "19182d535b49f61889ae1d33ed9120892747461c66982083898f0081ff52fc45",
+      "size": 3343
+    },
+    "implementation": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/audit_r164_power_components.py",
+      "sha256": "937d1f8b2c6479bafb3962b52cffb28644d07708c2748dd17e8a883b4db10031",
+      "size": 11755
+    },
+    "original": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r164_power.py",
+      "sha256": "77f8f69fbd673867f2db29b30091ea523d1ee3889d8d9d67337fa54671d73098",
+      "size": 4023
+    },
+    "runtime_proof": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/fresh-runtime-proof-v2/manifest.json",
+      "sha256": "b0111f8eb81243ee27e6514b7bf13c32135c2ef50a214e5d7d1d031800931852",
+      "size": 2318
+    },
+    "tests": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/test_audit_r164_power_components.py",
+      "sha256": "27a22ea4de4b77a55d9695f053cf4fb12ec54d49e3c18e5a43a1148b058da6fe",
+      "size": 4893
+    }
+  },
+  "case_count": 99,
+  "coverage_null_classification": {
+    "alternative_interior": [
+      0.9
+    ],
+    "empty_TOST_control": [
+      0.9,
+      0.04
+    ],
+    "null_boundary": [
+      0.85,
+      0.95
+    ],
+    "null_outside": [
+      0.84,
+      0.96
+    ]
+  },
+  "execution_status": "Full200000worlds/case benchmark NOT RUN; parent review/independent tests/fresh refutation and monitored CLI required.",
+  "grid": {
+    "correlations": [
+      -0.8,
+      0.0,
+      0.8
+    ],
+    "coverage_SEs": [
+      0.01,
+      0.02
+    ],
+    "coverage_means": [
+      0.84,
+      0.85,
+      0.9,
+      0.95,
+      0.96
+    ],
+    "empty_control": [
+      0.9,
+      0.04
+    ],
+    "log_width_SD": 0.2,
+    "width_medians": [
+      8.0,
+      10.0,
+      12.0
+    ]
+  },
+  "label": "CODEX CONTINUATION",
+  "limitations": "KNOWN-LAW mathematical component validation, not original empirical R16.4 variance decomposition, forecast skill, market power or reserve evidence. C_hat is an unbounded Gaussian summary proxy, not literal finite Bernoulli coverage. Width_hat is a lognormal summary proxy. Null/alternative labels refer only to coverage-equivalence mean, not a separately registered width hypothesis. Pointwise independent-world binomial intervals and discrepancy diagnostics are not simultaneous across cases; no cross-case independence is assumed. Actual original code is preserved: header width-bootstrap/90th-percentile and CGM branches are absent. No model, gate, score, market input, labels, predictions or reserve changes.",
+  "nominal": 0.9,
+  "part_a": {
+    "a_series": [
+      -0.03,
+      -0.01,
+      0.01,
+      0.03
+    ],
+    "b_blocks": [
+      -0.002,
+      0.0,
+      0.002
+    ],
+    "b_ratio": 1.0,
+    "band": null,
+    "draw_tuples": 6912,
+    "mean": -0.01,
+    "variance": "population variance of exact resampling law, ddof0"
+  },
+  "pointwise_CI": "Clopper-Pearson95%, independent worlds within each case, not simultaneous or cross-case independence",
+  "policy": {
+    "disk_reserve_bytes": 2000000000,
+    "output_bytes": 2000000,
+    "rss_bytes": 1000000000,
+    "wall_seconds": 180
+  },
+  "purpose": "Known-law summary component validation of unchanged original R16.4 power instrument, no forecasting revision or empirical market power claim",
+  "runtime": {
+    "executable": "/Users/EBmic/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "machine": "arm64",
+    "numpy": "2.5.4",
+    "platform": "macOS-14.6.1-arm64-arm-64bit",
+    "prefix": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime",
+    "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+    "scipy": "1.18.1"
+  },
+  "schema": "codex-r164-known-law-components-v1",
+  "seed": 20261020,
+  "tolerance": 0.05,
+  "z": 1.6449
+}

@@ -1,0 +1,125 @@
+{
+  "schema": "codex-r16-shallow-feature-census-request-v1",
+  "label": "CODEX CONTINUATION",
+  "purpose": "Factual original-feature quality census; no refitting, score changes, new data or causal verdict",
+  "artifacts": {
+    "scope": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/fit-scope-v2.json",
+      "size": 204347,
+      "sha256": "807f6d2a283ac7af9f72a7b3ea2eb251a42414efce09fe16ebd957f56f60ef30"
+    },
+    "independent_fit": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-fit-independent-v2.json",
+      "size": 468491,
+      "sha256": "a677bb1a34d0280f5984a183e613512503579968f91d2d030051f4281d080052"
+    },
+    "descriptive": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-neural-descriptive-v2.json",
+      "size": 652550,
+      "sha256": "4d97868a55511e536d98dabd1e6ab6370b363c0003341c39cd62a7fc3f4f7703"
+    },
+    "implementation": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/audit_shallow_feature_quality.py",
+      "size": 22608,
+      "sha256": "0a27d167e2e263f2b2808c76a5224de8cf50ec3cd2fed8c0575cbb2f9c9e94ae"
+    },
+    "synthetic_tests": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/test_audit_shallow_feature_quality.py",
+      "size": 9972,
+      "sha256": "69ba0d56bfdafa44e129d302111b2a45e74c3ee58a8443ed1673532a54b4a4b3"
+    }
+  },
+  "source_dir": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts",
+  "output_path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-shallow-feature-quality-v1.json",
+  "policy": {
+    "rss_bytes": 2500000000,
+    "disk_reserve_bytes": 2000000000,
+    "wall_seconds": 1800,
+    "batch_rows": 1024,
+    "output_bytes": 5000000
+  },
+  "support": {
+    "models": [
+      "nmlp",
+      "ngru",
+      "ntcn",
+      "ntfm",
+      "nmlp0"
+    ],
+    "cells": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "roles": [
+      "train",
+      "validation",
+      "test"
+    ],
+    "horizons": [
+      1,
+      3,
+      12
+    ],
+    "HW": 48,
+    "DW": 30,
+    "static": [
+      "lsH",
+      "lsf",
+      "dm",
+      "wm",
+      "r24",
+      "r168",
+      "r720",
+      "dd720",
+      "rng24",
+      "lvol",
+      "btc_r24",
+      "btc_dm"
+    ],
+    "gap_features": 2,
+    "horizon_onehot": 3
+  },
+  "expected_strata": 180,
+  "expected_raw_pins": 282,
+  "expected_merged_pins": 5,
+  "expected_fits": 20,
+  "expected_recorded_epochs": [
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4
+  ],
+  "execution": "Parent reviews and independently tests/refutes source, then runs under an external process RSS/wall monitor; helper checks high-water RSS/wall/free disk at admission/series/batch boundaries. Aggregate-only output; no feature archives or duplicated input NPZ.",
+  "counter_schema": "Exact integer counts per field: denominator, rows, invalid, fallback, strictly_clipped_low, strictly_clipped_high, equal_low_boundary, equal_high_boundary, rows_affected. Element fraction=count/denominator; affected-row fraction=rows_affected/rows; undefined denominator zero=null. Original masks before fill/clip, never sanitized zero or exact boundary as inferred missingness.",
+  "limitations": "Role observations are reused across models and cells, not independent samples; unique membership support rather than repeated epoch passes. No historical run is included in this request."
+}

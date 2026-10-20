@@ -1,0 +1,203 @@
+{
+  "schema": "codex-r16-shallow-feature-error-strata-request-v2",
+  "label": "CODEX CONTINUATION",
+  "status": "Fixed before any historical row-outcome audit; synthetic-only implementation until parent review/refutation.",
+  "purpose": "Posthoc descriptive existing held-out-development error contrasts by six fixed feature flags; not causal intervention, fresh validation or model selection.",
+  "artifacts": {
+    "scope": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/fit-scope-v2.json",
+      "size": 204347,
+      "sha256": "807f6d2a283ac7af9f72a7b3ea2eb251a42414efce09fe16ebd957f56f60ef30"
+    },
+    "independent_fit": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-fit-independent-v2.json",
+      "size": 468491,
+      "sha256": "a677bb1a34d0280f5984a183e613512503579968f91d2d030051f4281d080052"
+    },
+    "descriptive": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-neural-descriptive-v2.json",
+      "size": 652550,
+      "sha256": "4d97868a55511e536d98dabd1e6ab6370b363c0003341c39cd62a7fc3f4f7703"
+    },
+    "census": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-shallow-feature-quality-v3.json",
+      "size": 2271151,
+      "sha256": "36d2c8cd3ab1e835235838f7cd7b2a9111871ce8e60f9c211558a0c2b9ede9c9"
+    },
+    "census_acceptance": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-feature-quality-acceptance-v3.json",
+      "size": 3128,
+      "sha256": "7d0fb0ff8cac431921c863823b2f04f8bfa07e414f318c960f0ee6364f607b29"
+    },
+    "census_request": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/shallow-feature-quality-request-v3.json",
+      "size": 6725,
+      "sha256": "ecf552fc9eaa4e9138ffc31802d8db67d5ecc8dc815ae8febbf2fc63a076d19f"
+    },
+    "feature_helper": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/audit_shallow_feature_quality.py",
+      "size": 26807,
+      "sha256": "5755376aae4aadd0fc01c89ac68fe5761ede4b58ec3e26bdf96ba6cef796f7d7"
+    },
+    "implementation": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/audit_shallow_feature_error_strata.py",
+      "size": 18318,
+      "sha256": "2a8503b27e41e534f1f2ee6c474596b4f556b23841cc910f7a069e059019bb49"
+    },
+    "synthetic_tests": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/test_audit_shallow_feature_error_strata.py",
+      "size": 6710,
+      "sha256": "5115695946785a1263b7895d5b94dae68c21d0ab176a08d3a80a026900f9d7bb"
+    },
+    "score_output": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/fit-run-v2/dev-r162-nn.json",
+      "size": 64272,
+      "sha256": "f9d45e151d1ee6ce38949db32f6d651f390c19b8b2f210a5b33968c1a082c112"
+    }
+  },
+  "output_path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-shallow-feature-error-strata-v2.json",
+  "policy": {
+    "rss_bytes": 2500000000,
+    "disk_reserve_bytes": 2000000000,
+    "wall_seconds": 1800,
+    "batch_rows": 1024,
+    "output_bytes": 5000000
+  },
+  "flags": [
+    "hourly_range_outside_clip10",
+    "daily_range_outside_clip10",
+    "HAR_scale_fallback",
+    "static_lvol_nonfinite",
+    "hourly_return_window_nonfinite",
+    "volume_loader_returned_none"
+  ],
+  "flag_definitions": {
+    "hourly_range_outside_clip10": "Any original float32 normalized hourly range before clipping strictly below -10 or above +10; exact boundaries excluded.",
+    "daily_range_outside_clip10": "Any original float32 normalized daily-block range before clipping strictly below -10 or above +10; exact boundaries excluded.",
+    "HAR_scale_fallback": "Original HAR hourly scale fallback: exp(float32 lsH)/sqrt(8760) nonfinite or nonpositive; original fallback is 0.02.",
+    "static_lvol_nonfinite": "Original static lvol after original float32 cast is nonfinite before nan_to_num and clipping.",
+    "hourly_return_window_nonfinite": "Any nonfinite original raw hourly return in the clipped-index hourly window, before nan_to_num.",
+    "volume_loader_returned_none": "Unchanged original D.load_volume returned None; includes non-grid, missing column or swallowed parse/read exception, not true volume-source absence."
+  },
+  "counter_reconciliation": {
+    "hourly_range_outside_clip10": [
+      "hourly.normalized_before_clip10.range",
+      "rows_affected"
+    ],
+    "daily_range_outside_clip10": [
+      "daily.normalized_before_clip10.range",
+      "rows_affected"
+    ],
+    "HAR_scale_fallback": [
+      "scale.hourly_HAR",
+      "fallback"
+    ],
+    "static_lvol_nonfinite": [
+      "static.lvol",
+      "invalid"
+    ],
+    "hourly_return_window_nonfinite": [
+      "hourly.return_raw",
+      "rows_affected"
+    ],
+    "volume_loader_returned_none": [
+      "hourly.volume_loader_returned_none",
+      "rows_affected"
+    ]
+  },
+  "support": {
+    "models": [
+      "nmlp",
+      "ngru",
+      "ntcn",
+      "ntfm",
+      "nmlp0"
+    ],
+    "cells": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "horizons": [
+      1,
+      3,
+      12
+    ],
+    "barriers": {
+      "1": [
+        -0.02,
+        -0.03,
+        -0.05
+      ],
+      "3": [
+        -0.02,
+        -0.03,
+        -0.05,
+        -0.07
+      ],
+      "12": [
+        -0.02,
+        -0.03,
+        -0.05,
+        -0.07,
+        -0.1
+      ]
+    },
+    "flag_values": [
+      false,
+      true
+    ],
+    "origins": "exact original daily origins only",
+    "expected_model_cell_horizon_reconciliations": 60,
+    "expected_flag_reconciliations": 360
+  },
+  "expected_slices": 2880,
+  "metrics": [
+    "n",
+    "positive_count",
+    "observed_rate",
+    "predicted_mean",
+    "fH_mean",
+    "brier_model",
+    "brier_fH",
+    "brier_difference",
+    "BSS",
+    "model_calibration_ratio",
+    "fH_calibration_ratio"
+  ],
+  "metric_definitions": "Stored probabilities without clipping/rounding. Brier_difference=model minus fH; BSS=1-model_Brier/fH_Brier only when fH_Brier>0, otherwise null. Calibration=predicted_mean/observed_rate, null zero positives. Zero-support slices retained with n=0, positives=0 and null metrics. All360 original accepted census flag totals must match before metrics are calculated.",
+  "access_protocol": "Distinct new protocol authorizes existing binary daily outcomes/fH/allfive predictions. Authenticate old evidence and frozen helpers; admit only exact authenticated prediction archives during RAM preload; then unchanged accepted Q.guard denies prediction file loads except exact streamed hash-only integrity rechecks. Original merged input NPZ archives remain admitted for feature reconstruction and contain Y/fH, so this is not column-level outcome isolation. Actual metrics code uses admitted preloaded Y/fH/prediction columns. No prior guard weakening, new data/labels/fits or per-row archives.",
+  "execution": "Parent reads actual source, independently runs synthetic tests and obtains separate refutation before historical execution. Parent external RSS/wall monitor required; helper checks resource boundaries. Aggregate compact JSON only <=5MB.",
+  "limitations": "Flags overlap and all models/flags reuse observations; contrast does not establish harm or causation. Retrospective seen-development support with future-peer training in early-time cells, not fresh forward/blind evidence. No p-values, new gates, rankings, tuning, clipping changes or model-selection/promotion claims.",
+  "preserved_unexecuted_v1": {
+    "request": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/shallow-feature-error-strata-request-v1.json",
+      "size": 7532,
+      "sha256": "5d004fa82c4bbcb90e8b6deeea54413ec0d9eea62062959a2db8cee7d9b6ebbc"
+    },
+    "implementation": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/audit_shallow_feature_error_strata.pre-review-v1.py",
+      "size": 17951,
+      "sha256": "2186921eed04c45f6677a0e136b66298715afc0a4f9cbf1cae12b044ea8818a9"
+    },
+    "synthetic_tests": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/test_audit_shallow_feature_error_strata.pre-review-v1.py",
+      "size": 6710,
+      "sha256": "5115695946785a1263b7895d5b94dae68c21d0ab176a08d3a80a026900f9d7bb"
+    },
+    "status": "Unexecuted review draft; access-boundary wording corrected without changing feature flags or metric arithmetic. No historical run occurred."
+  }
+}

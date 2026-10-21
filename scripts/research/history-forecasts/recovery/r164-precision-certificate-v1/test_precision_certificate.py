@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 from interval_arithmetic import Interval as I
 from precision_certificate import (replicate_boxes, certified_sd, cgm_certificate, bootstrap_certificate,
-                                   z_domain,widen,authenticate,pin,exact_counts,TARGETS,DOMAINS,run,
+                                   z_domain,widen,authenticate,pin,check_pin,exact_counts,TARGETS,DOMAINS,run,
                                    validate_draw_identity,validate_half_geometry,validate_disjoint_bands,validate_reconstruction_layout,EXPECTED_DRAWS)
 
 
@@ -24,6 +24,19 @@ def exact_cgm(values,mn):
 
 
 class CertificateTests(unittest.TestCase):
+    def test_absolute_symlink_pin_preserves_lexical_identity(self):
+        with tempfile.TemporaryDirectory() as t:
+            target=Path(t)/'binary';target.write_bytes(b'qualified binary')
+            link=Path(t)/'venv-python';link.symlink_to(target)
+            expected=pin(target);expected['path']=str(link)
+            self.assertEqual(pin(link),expected)
+            observed=check_pin(expected)
+            self.assertEqual(observed,{'recorded_path':str(link),'resolved_target':str(target.resolve())})
+            self.assertNotEqual(observed['recorded_path'],observed['resolved_target'])
+            target.write_bytes(b'changed binary')
+            with self.assertRaisesRegex(ValueError,'changed artifact'):check_pin(expected)
+            with self.assertRaisesRegex(ValueError,'absolute recorded'):check_pin(dict(expected,path='relative'))
+
     def test_fixed_target_mapping(self):
         self.assertEqual(TARGETS,[('T24_G0',0,0),('T720_G0',12,0),('T720_G0',12,5),('T168_G3',11,0)])
         self.assertEqual(len(DOMAINS),2)

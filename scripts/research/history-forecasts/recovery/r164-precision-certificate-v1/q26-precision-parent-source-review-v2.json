@@ -1,0 +1,48 @@
+{
+  "status": "parent_actual_source_review_passed",
+  "scientific_payload_opened": false,
+  "scientific_source": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r164-precision-certificate-v1/precision_certificate.py",
+    "size": 19773,
+    "sha256": "9405bfd5fd493ce8cf9645bb9955a833e15e40d0bf11b99fa3ef8ca155dc4619"
+  },
+  "scientific_tests": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r164-precision-certificate-v1/test_precision_certificate.py",
+    "size": 10245,
+    "sha256": "d873b8a91f2324c54b91c7dde70e2585ec91406f9247cb4693584e4d49dc1a07"
+  },
+  "parent_combined_scientific_tests_passed": 33,
+  "parent_outer_tests_passed": 13,
+  "outer_guard": {
+    "path": "/private/tmp/q26-precision-parent-run.py",
+    "size": 5956,
+    "sha256": "7ee3c374a2263a177e338c037705a3a7fd59abf6bd800c2adc9fa075bd015ad3"
+  },
+  "outer_tests": {
+    "path": "/private/tmp/test_q26_precision_parent_run.py",
+    "size": 8555,
+    "sha256": "c886cde84681ca0778a5af8de9450c019f76dff01bec6e679b687efb38a479db"
+  },
+  "independent_driver_review": {
+    "path": "/private/tmp/q26-precision-driver-review.md",
+    "size": 5021,
+    "sha256": "55140d9d981095c85f866706179d9c8ba65f018ee6a5a392384021b8cef30df4"
+  },
+  "independent_output_verifier": {
+    "path": "/private/tmp/q26-precision-output-verifier.py",
+    "size": 13532,
+    "sha256": "993117209226edcbd9b45ef11af1acb5a2cd779ad5afbdb4bb3836dfaa096a4f"
+  },
+  "output_verifier_parent_actual_source_read": true,
+  "output_verifier_parent_synthetic_selfcheck_passed": true,
+  "prior_refusal": {
+    "path": "/private/tmp/q26-precision-prelaunch-refusal.json",
+    "size": 2546,
+    "sha256": "9fa36568334c3ea4227857fe7db2c99c5dd43bde814fdfe8d14e3b02d48d746e"
+  },
+  "prior_wall_charged_seconds": 1,
+  "original_wall_budget_seconds": 120,
+  "fresh_wall_available_seconds": 119,
+  "meaning": "Prospective operational continuation with unchanged scientific method. No data yet opened or result asserted. Prior request preserved. All actual-data execution requires this closure and new frozen request.",
+  "fresh_prior_wall_review_passed": true
+}

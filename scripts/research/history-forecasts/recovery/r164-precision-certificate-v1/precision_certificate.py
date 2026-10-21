@@ -35,14 +35,19 @@ def need(ok, message):
 
 
 def pin(path):
-    p=Path(path).resolve();h=hashlib.sha256()
+    # Preserve the admitted absolute lexical path, including an interpreter symlink.
+    # Content identity follows that path. Resolved interpreter identity is checked
+    # separately by the inherited runtime() contract.
+    p=Path(path).absolute();h=hashlib.sha256()
     with p.open('rb') as f:
         for b in iter(lambda:f.read(1048576),b''):h.update(b)
     return dict(path=str(p),size=p.stat().st_size,sha256=h.hexdigest())
 
 
 def check_pin(p):
+    need(Path(p['path']).is_absolute(),'artifact pin must use an absolute recorded path')
     need(pin(p['path'])==p,'changed artifact pin: '+p['path'])
+    return {'recorded_path':p['path'],'resolved_target':str(Path(p['path']).resolve())}
 
 
 def as_record(x):return {'lo':float(x.lo),'hi':float(x.hi)}

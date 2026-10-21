@@ -14,6 +14,18 @@ WRAPPER = Path('/private/tmp/q26-precision-parent-run.py')
 PIN = '61d511a2763795e9154ba1b1c79521e37b7b3b5665a7f538f5a125431302c501'  # old rejected revision, documentation only
 
 class GuardTests(unittest.TestCase):
+    def test_authenticated_symlink_path_preserved_and_content_hashed(self):
+        with tempfile.TemporaryDirectory(dir='/private/tmp') as t:
+            target=Path(t)/'python-real';target.write_bytes(b'pinned interpreter bytes')
+            link=Path(t)/'python-link';link.symlink_to(target)
+            spec=importlib.util.spec_from_file_location('symlink_guard',WRAPPER)
+            g=importlib.util.module_from_spec(spec);spec.loader.exec_module(g)
+            result=g.pin(link)
+            self.assertEqual(result,dict(path=str(link),size=24,sha256=hashlib.sha256(target.read_bytes()).hexdigest()))
+            target.write_bytes(b'changed interpreter bytes')
+            self.assertNotEqual(g.pin(link),result)
+            with self.assertRaises(ValueError):g.pin(Path('relative-python'))
+
     def setUp(self):
         spec = importlib.util.spec_from_file_location('precision_guard_test_subject', WRAPPER)
         self.g = importlib.util.module_from_spec(spec)
@@ -124,6 +136,41 @@ class GuardTests(unittest.TestCase):
         # Third request hash occurs inside Popen argument evaluation after the last deadline check.
         error, receipt = self.invoke(pin_delay_call=3)
         self.assertEqual(self.started, 0, 'child launched after the 120s budget expired during the final request hash')
+
+    def set_prior_charge(self, value):
+        request = json.loads(self.request.read_text())
+        request['prior_wall_charged_seconds'] = value
+        self.request.write_text(json.dumps(request))
+
+    def test_prior_charge_included_in_receipt_elapsed(self):
+        self.set_prior_charge(1)
+        error, receipt = self.invoke()
+        self.assertIsNone(error)
+        self.assertAlmostEqual(receipt['outer_elapsed_seconds'], 1.2)
+        self.assertEqual(receipt['prior_wall_charged_seconds'], 1)
+
+    def test_prior_charge_reduces_available_wall(self):
+        self.set_prior_charge(1)
+        error, receipt = self.invoke(child_seconds=118.2)
+        self.assertIsInstance(error, SystemExit)
+        self.assertFalse(receipt['execution_complete'])
+        self.assertAlmostEqual(receipt['outer_elapsed_seconds'], 119.2)
+
+    def test_exhausted_prior_refuses_before_child(self):
+        self.set_prior_charge(120)
+        error, receipt = self.invoke()
+        self.assertIsInstance(error, TimeoutError)
+        self.assertEqual(self.started, 0)
+        self.assertIsNone(receipt)
+
+    def test_invalid_prior_charge_refuses_before_child(self):
+        for value in (-1, float('nan'), float('inf'), True, '1', 10**400):
+            with self.subTest(value=value):
+                self.set_prior_charge(value)
+                error, receipt = self.invoke()
+                self.assertIsInstance(error, ValueError)
+                self.assertEqual(self.started, 0)
+                self.assertIsNone(receipt)
 
 if __name__ == '__main__':
     print('wrapper SHA256', hashlib.sha256(WRAPPER.read_bytes()).hexdigest())

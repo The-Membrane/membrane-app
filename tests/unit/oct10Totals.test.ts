@@ -1,6 +1,6 @@
 // THE ANTI-DRIFT GATE for the Oct-10 stakes line.
 //
-// OCT10_TOTALS is hard-coded so the hero never waits on a 2,350-row fetch. That is only
+// OCT10_TOTALS is hard-coded so the hero never waits on a 2,347-row fetch. That is only
 // safe if the constant cannot silently diverge from the evidence file it claims to
 // summarise — so every field is re-derived here from the JSON itself, to the dollar.
 
@@ -47,7 +47,7 @@ describe('OCT10_TOTALS', () => {
 describe('OCT10_STAKES_LINE', () => {
   it('states the size, the date and the count, and nothing else', () => {
     expect(OCT10_STAKES_LINE).toBe(
-      '$144M of loans liquidated on Aave · 10 Oct 2025 · 2,350 accounts',
+      '$144M of loans liquidated on Aave · 10 Oct 2025 · 2,347 accounts',
     )
   })
 })

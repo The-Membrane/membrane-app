@@ -1,0 +1,125 @@
+{
+  "status": "DRAFT_NOT_EXECUTED",
+  "scientific_benchmark_byte_identity": true,
+  "prior_source_pins": [
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/benchmark.py",
+      "size": 9303,
+      "sha256": "d068ff08dc8ffd37b8785f14dda3aaaa8c8da4cd9003a3ba2ec88b187100975c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/test_benchmark.py",
+      "size": 2684,
+      "sha256": "c2ff999022d9bf13c370cb1881487f53a900e678c645e4695a56b8ba9fd3fb10"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/outer_guard.py",
+      "size": 7303,
+      "sha256": "1d65c1196bf1ed383b31d55e66df0054861f045c3926d486ebd1071ed3b83506"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/test_outer_guard.py",
+      "size": 2890,
+      "sha256": "22e58e88364769ea38afb7306f2db00ef90a8727ccf2bbd740450085b517f2e3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/DESIGN.md",
+      "size": 6828,
+      "sha256": "1ae8d8286e1cc85eba5d73b89b0b8c03fae8f497f021a7cb7770cf8926687e6a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-r17-runtime/bin/python",
+      "size": 18058560,
+      "sha256": "037855106cd54d93abad568c82f87e6419d41df05d116b2a183e57be76ee06d9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-r17-runtime/lib/python3.12/site-packages/approved_recovery_dependencies.pth",
+      "size": 97,
+      "sha256": "777ecb6e289e604d40469de4bf15e50e7bcd1745d9f946f792b1f625e4fa59af"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-r17-runtime/lib/python3.12/site-packages/xgboost-3.4.1.dist-info/METADATA",
+      "size": 1960,
+      "sha256": "a2191abd817e5472b14a082327ae0d75e4b9b01f090b42b367d9e5805e38a744"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-r17-runtime/lib/python3.12/site-packages/xgboost/lib/libxgboost.dylib",
+      "size": 8252720,
+      "sha256": "5aef338ede7b84ae7d3405a306614de1d326ccaad033a2f14242aedd421359bc"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy-2.5.4.dist-info/METADATA",
+      "size": 6635,
+      "sha256": "e2b909d6a37d76c2bc130f528d7fed0c517322bce16dc7846b6a6df30e200403"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy-1.18.1.dist-info/METADATA",
+      "size": 62356,
+      "sha256": "1adfbde8be136cbf348b889c51028e7e1824cdb90d29a26d8e81501948864fae"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/torch/lib/libomp.dylib",
+      "size": 856096,
+      "sha256": "6256bee09e93c28d71c65711cc69224d69994c6965648b628b70a22772fe98d4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/_core/_multiarray_umath.cpython-312-darwin.so",
+      "size": 3996184,
+      "sha256": "af36cbbb39b27651a8b9f7dfa491775016f331a58e8d116eb6b4cfd5e22efb77"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_fblas.cpython-312-darwin.so",
+      "size": 553920,
+      "sha256": "6502e4e093d03932479317d45bfea018ef0999bc5c4bd46687253322c13e9448"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-operational-continuation-v3/train_models.py",
+      "size": 30345,
+      "sha256": "0e2a3d54c33a1ad98d1cc09ab2d87dfe7c6612d58a7301b7cd31b4a484b25ff6"
+    }
+  ],
+  "predecessor": {
+    "request": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/request.parent-admitted.json",
+      "size": 4982,
+      "sha256": "8a723e5f66e8fb85999cc9c9cfa89c05cd4b7742c809bf4db888df94f9be24c5"
+    },
+    "receipt": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/outer-parent-admitted/receipt.json",
+      "size": 508,
+      "sha256": "f80ccb7d48a6706f9f4295235c4116c9c641a47d4dd3a6a5116f9c70b8b98833"
+    }
+  },
+  "files": [
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/operational-v2/benchmark.py",
+      "size": 9303,
+      "sha256": "d068ff08dc8ffd37b8785f14dda3aaaa8c8da4cd9003a3ba2ec88b187100975c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/operational-v2/outer_guard.py",
+      "size": 10341,
+      "sha256": "14743937e666b84fc7955f2e1689cd51ae20046a079984be91ce22e4e8fedb4a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/operational-v2/test_outer_guard_v2.py",
+      "size": 4676,
+      "sha256": "be52ef04eea0e4a4ae7ea7fa5eae5827c6421b99efdeec7b47a322e5de4cbc7e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/operational-v2/DESIGN.md",
+      "size": 3010,
+      "sha256": "bbb1511ad1d6f8ff39b905b460b4ccef6745eda1afb40d55b958d46ac3bcdbcd"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/operational-v2/request.DRAFT.json",
+      "size": 7026,
+      "sha256": "1da3148ea6087249179d4c897ff25578d704a17094ba3a7f7b3f65188cefa0c6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-execution-benchmark-v1/operational-v2/guard-delta.patch",
+      "size": 8238,
+      "sha256": "9b36a540b67e8b667ba7b7116bad00ecc6b820304d3fbe465c39dc04bd449925"
+    }
+  ]
+}

@@ -1,0 +1,2064 @@
+{
+  "schema": "r17-conditional-depth-protocol-v1",
+  "status": "PARENT_FROZEN_ANALYZE",
+  "python": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/bin/python",
+  "python_version": "3.12.14",
+  "numpy_version": "2.5.4",
+  "pins": {
+    "admission": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/parent-staged-input-admission.v1.json",
+      "size": 4365,
+      "sha256": "a341861ec3644807f8efa3a489bfa9c40a2365f0defe542a514910705030a5ea"
+    },
+    "manifest": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/staged-inputs-v1/manifest.json",
+      "sha256": "1c299e5d9300a10921fbf64d81b8954c5fc9791fa9b5dee1c6a6b9bc529cb143",
+      "size": 975990
+    },
+    "monitor": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/build-v1.monitor.json",
+      "sha256": "8b4fc782db5bdd414f77999c3a1541ff6fa2fab2fc1c96685785ad181756b17c",
+      "size": 175581
+    },
+    "build_launch": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/build-launch.v1.json",
+      "size": 174442,
+      "sha256": "046fa0e6f41d9c0edd0f71e687655604e556adf5494505daa788dc50a50b85ab"
+    },
+    "staging_request": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/staging-request.v1.json",
+      "size": 9196,
+      "sha256": "5aaafa0eeb4a8b10a718f3fa5b24e9ac6f473fc9c85183eaba7af0a4405878d9"
+    },
+    "identity_audit": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/identity-audit.json",
+      "size": 106051,
+      "sha256": "14fdbd726c974746bb5d7cb669c153725853d25b1cf0bbf9bca6230b7ad5496c"
+    },
+    "source": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/conditional_depth.py",
+      "size": 16660,
+      "sha256": "1c5373dcd5ba032e1f9ad0e597bdda467ef30590b292b621101c129ee7c63fcc"
+    },
+    "tests": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/test_conditional_depth.py",
+      "size": 9275,
+      "sha256": "134f31aec71d6ea9fd90aea81b76651670c5201d8a3f8bc9f9d5437dea00ba06"
+    },
+    "design": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/DESIGN.DRAFT.md",
+      "size": 15111,
+      "sha256": "55b1efeff2b4aae0f58b7324182bbfd43e014103ccc5d34d802adf8113b2bd99"
+    },
+    "reference_result": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-operational-continuation-v3/model-results-v3/result.json",
+      "size": 7428945,
+      "sha256": "10cbd54ed7904ee3775a1a48f2e7e1590cdf72a1096bcc18b5151cc8f4d38c83"
+    },
+    "reference_audit": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-operational-continuation-v3/parent-model-audit.v3.json",
+      "size": 12751,
+      "sha256": "d8243deb29667bb5fb58937038a44ee3b4f82899cb1cc03dcc6bb036c6fef113"
+    },
+    "reference_monitor": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-operational-continuation-v3/train-v3.monitor.json",
+      "size": 142903,
+      "sha256": "4a2a5d9110a0e7bf2c21beed941bb09dc73f456d7cb64950b8bc5d13fca550f7"
+    }
+  },
+  "closure_pins": [
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a2_touch.py",
+      "size": 101006,
+      "sha256": "0a3d892e08cfbaaf07719ae4c22e59f880382b802defa93545c998217f01e3ce"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a3_touch.py",
+      "size": 75865,
+      "sha256": "f719a3202738c4c301e13ad892f4406de4c0adc532b219359301aa50d8e205f7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a4_touch.py",
+      "size": 65464,
+      "sha256": "e83e470defa168ed683e5ad1353d1b5e19cf24b7d875f69e881a3444ca93e925"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a5_touch.py",
+      "size": 67529,
+      "sha256": "cc6b265ebe673e86909f79d217cf241f79a2552fadc9ed752942c9a4c0c7e0b6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a6_touch.py",
+      "size": 133980,
+      "sha256": "6da8e4f719ef164128cdceccfd6ba9dc347d3fa75e6e4e585bcd27eb0e36ed45"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a_touch.py",
+      "size": 98754,
+      "sha256": "6d914066dbaff96ee55c4cf722679cdf6e242be920c9228c553fe344553b43d7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r105_recal.py",
+      "size": 21226,
+      "sha256": "e9a62f88b08f135422395eac079ddbec552714348b55ab160c037a861080568d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r112_combine.py",
+      "size": 43850,
+      "sha256": "e958e0fc047a2ffe612e31fd98bdf8b3f11646b86e19ef4aef8218de6ac36f81"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r113_controller.py",
+      "size": 39999,
+      "sha256": "121fd557d459d984c51b0c2e22580215fee3162820cd0fddfa0a45eab43f9be2"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r125_fh_deep.py",
+      "size": 38466,
+      "sha256": "e1d0a5659dc2e4b7c8098d6a14ce490bbb76886dec2e505ccad7849a207f6d62"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r12_tail.py",
+      "size": 96945,
+      "sha256": "318624b63c8ae312fdb1bc2f3c34458c57d7641c708041e02a70543f4df5bd22"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_dev.py",
+      "size": 62743,
+      "sha256": "702cedb98c7cfcfe77985c5f75073ec2a6f09a9a3e9dd97747328e42018ae29f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_nn.py",
+      "size": 17786,
+      "sha256": "637915e982b961029dcd5b3b69dc6903564f2482fbfd604d2330c88e1cf68f20"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_shallow_merge_runner.py",
+      "size": 17523,
+      "sha256": "dd1ee42ce2922855b25eef165e73ee019b54010fd8952e4d0a40821c5fc5278b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_shallow_nn_monitor.py",
+      "size": 6877,
+      "sha256": "426e5069dd72ef9fef0e9c8d7755c7df6456231f9859634c349eea4bb105a644"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_shallow_nn_observer.py",
+      "size": 6519,
+      "sha256": "343ca8fcb62eb863d1c12b5cebf5600df23867400a476387ceab1937ec935283"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_shallow_nn_protocol.py",
+      "size": 24118,
+      "sha256": "05ec3ea7b82d7bd3f3104c2cf14ae28d9fc91fa791ea5910755780aac488248d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_shallow_nn_runner.py",
+      "size": 8077,
+      "sha256": "2e8e4d75ae49ab56b1be244063948a8de8bf91be4542ac07ec38c09769e3b727"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_shallow_projected_generation.py",
+      "size": 11892,
+      "sha256": "88e207cc0c133fe2e08823cabe9442a66b6ca4d54e75b43da517be979476031f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_shallow_projection.py",
+      "size": 5987,
+      "sha256": "4f5fd156a29afe7c0eb6ee3a01259a73c8bbd89fcd1877a2412c2f3c3cff98d3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_shallow_projection_parity.py",
+      "size": 16266,
+      "sha256": "f1dd883e4c46c057e30e117bc74c8b20753f93218debebb203c19bc804aae78d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_shallow_reconstruction.py",
+      "size": 9521,
+      "sha256": "43918254c52c0c9da662d2f309c80d987dbe1d21629434a78d71836418358ff6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_shallow_reconstruction_runner.py",
+      "size": 14051,
+      "sha256": "25f176482fb1958d9f1e5bc4157e81bc892468f07067db67f059944cef4e418c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/test_r16_shallow_merge_runner.py",
+      "size": 11119,
+      "sha256": "c085eed1ffa67bc8c25d4b7a34232f7d535874d40b8a0b5eb9ab22beb2feebe5"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/test_r16_shallow_nn_observer.py",
+      "size": 26486,
+      "sha256": "783d002694b56d8782437739b93ab752dbe5ca81b7694e6bf88ad993e5a2dc48"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/test_r16_shallow_projected_generation.py",
+      "size": 10318,
+      "sha256": "37953af0a0385d0c7d068cc005a2550b6ae7920eab23f503e605504b6f7923df"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/test_r16_shallow_projection.py",
+      "size": 6441,
+      "sha256": "df5ba03c6643ca960046e1f86df87fefe56290b158b0e1101b8c4d30e6ad53fb"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/test_r16_shallow_projection_parity.py",
+      "size": 10602,
+      "sha256": "3126bb34f2e0eec6e7286b6fbbdb2f1db1df1f1abd063b160666546dbcd660a0"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/test_r16_shallow_reconstruction.py",
+      "size": 6320,
+      "sha256": "e8f4ff48bf64b834145bfc80b9d79011c313d189419e7055a070087c8a348b73"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/test_r16_shallow_reconstruction_runner.py",
+      "size": 8624,
+      "sha256": "c94b67107b4c7254cba1363dbd3cf2944d8bc9258fe5c59ff95c840f2aa7d5e9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/fit-scope-v2.json",
+      "size": 204347,
+      "sha256": "807f6d2a283ac7af9f72a7b3ea2eb251a42414efce09fe16ebd957f56f60ef30"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/fresh-runtime-proof-v2/manifest.json",
+      "size": 2318,
+      "sha256": "b0111f8eb81243ee27e6514b7bf13c32135c2ef50a214e5d7d1d031800931852"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parity-scope-v2.json",
+      "size": 109871,
+      "sha256": "1ebd125014a50bc133839dd3daea359a42509690097f407189f3a4d70a2af09a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/BUILD_DESIGN.md",
+      "size": 5227,
+      "sha256": "250f33e440675dd727766d56939dc340ad01bea260f1e79698ff722a2c6fdce1"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/build_inputs.py",
+      "size": 17441,
+      "sha256": "6086f3369dc4264b4e06987163a1389c90a19ed08b51db9213c892ec63928793"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/monitor.py",
+      "size": 10155,
+      "sha256": "6e1211c2f993faed96c14fc1f4bfe036e21b464c14983b8864a9f5ed90c12048"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/test_build_inputs.py",
+      "size": 8798,
+      "sha256": "327f4e99eea818ea55f93cc13588c1b3ef017b4678fc7f9597296c71a0715915"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/bin/python",
+      "size": 18058560,
+      "sha256": "037855106cd54d93abad568c82f87e6419d41df05d116b2a183e57be76ee06d9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/arch-8.0.0.dist-info/RECORD",
+      "size": 20275,
+      "sha256": "5e7143ce1fb88e7cfa696812261668a6ec66157d60c9fc2392c903104d86c7c8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/arch/bootstrap/_samplers.cpython-312-darwin.so",
+      "size": 202368,
+      "sha256": "acdafb24649a1af9f0e99d82e524d87acaa18cce9f0065895ee5646603cd8fe6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/arch/univariate/recursions.cpython-312-darwin.so",
+      "size": 426464,
+      "sha256": "12c4493005bf2e32e8af7c7d505f84f9cff4d38241b4f72310e7821945db172e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/cloudpickle-3.1.2.dist-info/RECORD",
+      "size": 927,
+      "sha256": "42b8177f1837f5741f3c35809f4fd01404c95200dd126909bf9eb8a91b85a47a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/filelock-4.2.4.dist-info/RECORD",
+      "size": 3576,
+      "sha256": "dd7b8a7a6b9d06db3e1decc37f869b6ca144317e653f12f23349567d16f11250"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/formulaic-1.2.2.dist-info/RECORD",
+      "size": 9204,
+      "sha256": "55d8695c2720d1c400f5d83b7bc6ba52d3e0933a1bedaa3e0120dbc0537736b3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/fsspec-2026.9.0.dist-info/RECORD",
+      "size": 8547,
+      "sha256": "22f8addee02d2fc2e3004ec7a3062501b3b26bbb3e8f9314679a6a00f8cc2790"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/interface_meta-2.0.1.dist-info/RECORD",
+      "size": 2063,
+      "sha256": "19de7ac4c0f4ac8732801165417509bb018daa823a764d9d9ede8c1cb52a03e0"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/jinja2-3.1.6.dist-info/RECORD",
+      "size": 3706,
+      "sha256": "da15deb8d05491bab5298a2eefddb92f0672127b29eb017f771010798716639f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/joblib-1.6.0.dist-info/RECORD",
+      "size": 18624,
+      "sha256": "0133c1469a51389e3e3c34c7bce149ca01429c6ce2bc320dac3ac2ea8cda19f7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/llvmlite-0.50.0.dist-info/RECORD",
+      "size": 6078,
+      "sha256": "6452ab0230ace44a9e56203543cf182181c523c4188ff5d41d0b439ffd755bcf"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/llvmlite/binding/libllvmlite.dylib",
+      "size": 129871888,
+      "sha256": "0dbd1ffab43f10f8ca3e27d10739bcab902d0bfddcb2c3762e1ea37dc5d85a5e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/markupsafe-3.0.4.dist-info/RECORD",
+      "size": 1197,
+      "sha256": "0919a957805e6f6afb50b67e47451484a2bc8b588cd26c12bbb58c978d7e20b3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/markupsafe/_speedups.cpython-312-darwin.so",
+      "size": 50656,
+      "sha256": "c5dff96c03976c47aa7d1cae3a73b4c57099259b49305c9486735ee9f7022304"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/mpmath-1.3.0.dist-info/RECORD",
+      "size": 12773,
+      "sha256": "631ffb63282ac4c1792216f2b0f26f6fd4f3ae58410436a6a7118eeaf62b951a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/narwhals-2.27.1.dist-info/RECORD",
+      "size": 23520,
+      "sha256": "04dc1e6708213fa00f96f19ebaf4ac1bf1a52e3bfeea55b0b4ba4c28b719577f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/networkx-3.7.dist-info/RECORD",
+      "size": 103101,
+      "sha256": "cd2546457cc339d8d411f543993957dc5078c6b3595d6ed4ee14123e9e6687a8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba-0.68.0.dist-info/RECORD",
+      "size": 118310,
+      "sha256": "400810e0c595cfee4835810e7f08b648d680854f8b1481d900650cf610df9a0a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/_devicearray.cpython-312-darwin.so",
+      "size": 50720,
+      "sha256": "5b84a498e30cd300c3bbbe20f1d121dd53ffbc244a7eb8289180ddd988016ed9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/_dispatcher.cpython-312-darwin.so",
+      "size": 79312,
+      "sha256": "4d1360782e517ab02f260b0f09a4407539160c1180628c1337515de3cc2bc3af"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/_dynfunc.cpython-312-darwin.so",
+      "size": 52656,
+      "sha256": "f3a6ee53d1559c4fb5dc0b30cd96c970196670e55d87c4c07a9881bf6103baf4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/_helperlib.cpython-312-darwin.so",
+      "size": 267632,
+      "sha256": "0c7cfa627ad0bcd335ff6ec432e5514b188d9f7bedae360aee930fa39b50f568"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/core/runtime/_nrt_python.cpython-312-darwin.so",
+      "size": 57200,
+      "sha256": "2c7e0dcb775fcaf7d7b223fdbe0839a7abb70a23409a363b1124590be469d112"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/core/typeconv/_typeconv.cpython-312-darwin.so",
+      "size": 54624,
+      "sha256": "4f7d0609ed78c442a9e973ea5ccd79a224e09aeeb5d2696349ebb1bd8eba4614"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/cuda/cudadrv/_extras.cpython-312-darwin.so",
+      "size": 50480,
+      "sha256": "d511d1f19a7901fd8462631c55a88d9646c802abadd39825b4cc681712f514b9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/experimental/jitclass/_box.cpython-312-darwin.so",
+      "size": 51144,
+      "sha256": "17501623983952302291e8f4db15b68d253fa179b516b330aa6f26cb6f470450"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/mviewbuf.cpython-312-darwin.so",
+      "size": 51792,
+      "sha256": "d0ba01c0b851a964247576b80aefa588c844fa261c5960de9d2c7c590ec4a15d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/np/ufunc/_internal.cpython-312-darwin.so",
+      "size": 54480,
+      "sha256": "88f3b4d2ce348169bc07ea82afc68c4c9a48a395f7c0d4c94d7394e856301b5c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/np/ufunc/_num_threads.cpython-312-darwin.so",
+      "size": 50416,
+      "sha256": "79e7029dcdf0547035ff342af5cd3c60cdc45f983d249128191b0f554752bd79"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/np/ufunc/omppool.cpython-312-darwin.so",
+      "size": 74272,
+      "sha256": "a8059b212de107ece998f1360b77b1eeeaa5977dd7281e891086f849546ca0e2"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numba/np/ufunc/workqueue.cpython-312-darwin.so",
+      "size": 74560,
+      "sha256": "51984c716f3869ef331199a022306be1e6541225bf8953891815edf4cadf2851"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy-2.5.4.dist-info/RECORD",
+      "size": 111090,
+      "sha256": "66912380fc0a1160f469fccc46a88c490dce0be9fd1b46d4e4ef584976cd92ed"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/_core/_multiarray_tests.cpython-312-darwin.so",
+      "size": 121192,
+      "sha256": "083ab89907471d9d6af7337ae44f6acbde5e5e23ef173394dc6251c925fc08ba"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/_core/_multiarray_umath.cpython-312-darwin.so",
+      "size": 3996184,
+      "sha256": "af36cbbb39b27651a8b9f7dfa491775016f331a58e8d116eb6b4cfd5e22efb77"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/_core/_operand_flag_tests.cpython-312-darwin.so",
+      "size": 51240,
+      "sha256": "e910e6642301f2f28a986d819a3249d5d1013b2ee6ce4e5e9a95082ecc4d3627"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/_core/_rational_tests.cpython-312-darwin.so",
+      "size": 73352,
+      "sha256": "73d0f8c90654dd97fa2b0ed6c45882eb8fe83a8c4256e38bfc31713e5e07841b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/_core/_simd.cpython-312-darwin.so",
+      "size": 339640,
+      "sha256": "e78efa667e9cd2d0f319968a7feae06adf7f0945efde8bbcad3bd0f75e199541"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/_core/_struct_ufunc_tests.cpython-312-darwin.so",
+      "size": 51480,
+      "sha256": "24218eec682f48246b450903e270be19eca1c6c2d828235ddef29949f2cc8950"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/_core/_umath_tests.cpython-312-darwin.so",
+      "size": 71904,
+      "sha256": "1c55454c29a1a5f500fc22cf095e862b0af0f17e14c2a1fbe7140832c21a0d66"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/fft/_pocketfft_umath.cpython-312-darwin.so",
+      "size": 329912,
+      "sha256": "51add49e0b523ae7b20a10a879a77e0998afb795d6d233ef8936f0a58ce4e36f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/linalg/_umath_linalg.cpython-312-darwin.so",
+      "size": 154880,
+      "sha256": "aa8f5a2f363ad911eddb849e3ed82ba017bd2fec5b8dde28a330e2873f501fb8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/linalg/lapack_lite.cpython-312-darwin.so",
+      "size": 53008,
+      "sha256": "a7895a9c0d4afdf3fbbdc2456e016590aa0fbd8d7e203079debee39bd0269b5c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/random/_bounded_integers.cpython-312-darwin.so",
+      "size": 298024,
+      "sha256": "1215997585debe5651a77a52563dc32508e67414ef35761c49afa150ce1f8e1f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/random/_common.cpython-312-darwin.so",
+      "size": 250656,
+      "sha256": "884ecb8d16bbb1572816a89fff6b2b5722bb8210273ff744ec0db5c0496de5fd"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/random/_generator.cpython-312-darwin.so",
+      "size": 690960,
+      "sha256": "87a6dfcf15b6107936915f76e1a52b00d68f2e539169aee194af7a3e5bbacc1b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/random/_mt19937.cpython-312-darwin.so",
+      "size": 133520,
+      "sha256": "9779d38f6e586d845f2ee652959f3edf1acb44fbeff6f4ee16ec7fb58f23dd6d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/random/_pcg64.cpython-312-darwin.so",
+      "size": 152544,
+      "sha256": "39fbdcf07c23901f4ae0b6ab3be3e05829a83495819a69cda8ddbd11d06ff136"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/random/_philox.cpython-312-darwin.so",
+      "size": 133792,
+      "sha256": "5a74868b1a98c3d0a776cf275c88959871376bab0ff15ef0d882229ddd5a2a56"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/random/_sfc64.cpython-312-darwin.so",
+      "size": 98256,
+      "sha256": "6bb290611b7fa2304d28f3c8ddb0156f435ead1aa0f5a997ddfe4e8a6762c200"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/random/bit_generator.cpython-312-darwin.so",
+      "size": 226640,
+      "sha256": "88bbb27d3f58e12c9be2ff6af6eff4e409599a3e6cece3b4144d4aa8878b149b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/numpy/random/mtrand.cpython-312-darwin.so",
+      "size": 580912,
+      "sha256": "0e52c63a090850119f67a570ae2fd094861fcff3a0bad00cbf3a0c86faa82510"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/packaging-26.3.dist-info/RECORD",
+      "size": 3670,
+      "sha256": "fd59b791119d91d0602060c81541e41118992995c6a0070e411a5ea3c6b1ebb2"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas-3.0.6.dist-info/RECORD",
+      "size": 244742,
+      "sha256": "a9c4f4d02e0fde1b8da3d153d7095ceb801e995514c403788c9b1c1fe721aecc"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/_cyutility.cpython-312-darwin.so",
+      "size": 204672,
+      "sha256": "2d6cc910f815b1b25ee01186a87f69fb2c73700c1d67f37c078c46c0819343d3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/algos.cpython-312-darwin.so",
+      "size": 1628264,
+      "sha256": "d9bb1105299a717cdd14d11b8b48c12f68058974637d46c7b36a6ccc08e6d5e7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/arrays.cpython-312-darwin.so",
+      "size": 120656,
+      "sha256": "f24307935d751c4fa614c38650a52d8e6a12101e8ed66438c86cb9e5d74f1141"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/byteswap.cpython-312-darwin.so",
+      "size": 75488,
+      "sha256": "2c2e81448043e1bc7822d7e7a6144162d2dad4ce3323d7cf0e6481313486d93e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/groupby.cpython-312-darwin.so",
+      "size": 2034656,
+      "sha256": "79d65c13b8f6bfd04dda08e3c1bf3f545b6389a38a808117d2de0275cb49f110"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/hashing.cpython-312-darwin.so",
+      "size": 95296,
+      "sha256": "c63fbd6ec8837ebd2bf55e4e35681afcdbc25ae7db3fdf68211bfcf2dac6b3d1"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/hashtable.cpython-312-darwin.so",
+      "size": 1899632,
+      "sha256": "3a8749de2a26fa4d593ca7c9c0518877831993d51cabaacd7ac2acfc565f66af"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/index.cpython-312-darwin.so",
+      "size": 718680,
+      "sha256": "bd51e08d000aa77b2e0797a98440836e90cb39841a81ac9027060a49bcab1351"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/indexing.cpython-312-darwin.so",
+      "size": 78240,
+      "sha256": "0e4ccdf04e2c066bc6062cbb443edfc63b0d191013d1ccd3f883fb6e53929af9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/internals.cpython-312-darwin.so",
+      "size": 285344,
+      "sha256": "4ca1cd714dd8a99127e9b2946414062331e96e0821de0617c9c6003ecfd3617f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/interval.cpython-312-darwin.so",
+      "size": 1070640,
+      "sha256": "46586261f8b997d26913af890027fd92535e24f1b5f6b2ac51c29d015122116e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/join.cpython-312-darwin.so",
+      "size": 1003000,
+      "sha256": "79bd1cfc4287183d2f235f6f448dee98438993e77c232f2f3596797051a7db90"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/json.cpython-312-darwin.so",
+      "size": 93832,
+      "sha256": "49a0848878d8824c2b271563c80c4a3db34072f97f5f30b99658cb521c71d92a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/lib.cpython-312-darwin.so",
+      "size": 591192,
+      "sha256": "b73fd3457808fe8dd0cb59a4c6916d2a1ba3f7461713d7cd50e97189801101f0"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/missing.cpython-312-darwin.so",
+      "size": 198672,
+      "sha256": "a9e1e8d0744c61ca0a80e4957ebfd7bf669fba1ce0c8eb01ca75e6e498c64b70"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/ops.cpython-312-darwin.so",
+      "size": 132120,
+      "sha256": "4c8883101530b0b20871c65aa9c3d53ba464830dfcbbb613bf7818a15139ad7d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/ops_dispatch.cpython-312-darwin.so",
+      "size": 75328,
+      "sha256": "d42d312a2bc3a84b49fdc59d5d7ed7fefc599f9e5e614a11ef3ccd7db09ab0ca"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/pandas_datetime.cpython-312-darwin.so",
+      "size": 70184,
+      "sha256": "b1558cbd0227172b3f28739371961a92b0af91ccf1079dcf1bba623da02f833a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/pandas_parser.cpython-312-darwin.so",
+      "size": 70448,
+      "sha256": "9c88cb23ddfbeb56a88e1d576ad2d54dae6dffe5996842b8d2ad75be7001d127"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/parsers.cpython-312-darwin.so",
+      "size": 408224,
+      "sha256": "70c30a9170c9dd66b7306dbd1bb0b8c4a828bdbeb8ff4afe45efc4fb7db06ca7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/properties.cpython-312-darwin.so",
+      "size": 98000,
+      "sha256": "9044e6081770e25f603b468c1a991cc05b22ca1ed5fdf4d4ffadbae817974bde"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/reshape.cpython-312-darwin.so",
+      "size": 153040,
+      "sha256": "7637b01fd63a0f82acf7c70ddb4524fe399ad6cac6406f75414ee73ae8f6b311"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/sas.cpython-312-darwin.so",
+      "size": 138824,
+      "sha256": "868e4069b0c40f0e7483d7a8daa423a4298bc21d96cd958abb6bb1b4dfda2910"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/sparse.cpython-312-darwin.so",
+      "size": 775440,
+      "sha256": "ca1a2cd3d58215a5fda9513bddcf962fdb6ea6f9153ff6f2a84c3cc071f6e958"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/testing.cpython-312-darwin.so",
+      "size": 115616,
+      "sha256": "1349910a04f3124d3662802efe6325cf7f3dfbd2a25f90cc7cea56c762b768db"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslib.cpython-312-darwin.so",
+      "size": 152984,
+      "sha256": "3a591bbac2ad18eb90434fbc76fc4a3a5e7c2b4589ccf4a0dc61a3c6a3d6a6ed"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/base.cpython-312-darwin.so",
+      "size": 75976,
+      "sha256": "d9096ad1dbe582197c0d1821ebc65a7985489d9f88273459d7d5e397e5a5be2d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/ccalendar.cpython-312-darwin.so",
+      "size": 96000,
+      "sha256": "e7989019821565311fc1a1dea52e6e793df4aac70fb0eed044209df2ee89eb44"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/conversion.cpython-312-darwin.so",
+      "size": 175856,
+      "sha256": "1fec349e22afcdbfcb5c89bcc924ad93c38f4c91a2cf0a34d9fbad4c569478b1"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/dtypes.cpython-312-darwin.so",
+      "size": 159936,
+      "sha256": "ca2f39e05747f114a8a0107d113f7dfd34ae2e44b19b4549e72bfa58cbf2ce73"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/fields.cpython-312-darwin.so",
+      "size": 199120,
+      "sha256": "6be8f35c5c17adb9b08c7fe235fdc6f4e0f907eb27dd358ef446e8d11986f43f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/nattype.cpython-312-darwin.so",
+      "size": 227856,
+      "sha256": "0fdf6eb2b593132d52d7d5bf87aa00aa0e2f36e718b7c37e2600d64323f519de"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/np_datetime.cpython-312-darwin.so",
+      "size": 140688,
+      "sha256": "583f8a249cbac1cd9e1dfb9a9ba93440b68a8dc952424644efedb0d10035c0d9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/offsets.cpython-312-darwin.so",
+      "size": 1045168,
+      "sha256": "be010b6bfefbfd67e4450c0e5359c0159957172adbbd6e8014213bc4c30accd1"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/parsing.cpython-312-darwin.so",
+      "size": 248480,
+      "sha256": "3fba7f7df29e9e3e86dfb0ed2736e4ddb55b1a7862f4e7f0049c8a6db7df9b81"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/period.cpython-312-darwin.so",
+      "size": 367264,
+      "sha256": "6c66e68877da0d5669327129cdf480048f8c36cc7cb12fee4780a634783d055a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/strptime.cpython-312-darwin.so",
+      "size": 215600,
+      "sha256": "8978a17dc72b7ebdd9c813b22595185002ffb783c36f4d2267ce7230ee9d6d26"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/timedeltas.cpython-312-darwin.so",
+      "size": 475824,
+      "sha256": "6d2259f2013ea6eb934a7a53c50e03fcbe5eea6e117b1537493f389a1f7ba007"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/timestamps.cpython-312-darwin.so",
+      "size": 495440,
+      "sha256": "61042f066534e9381a637d6d6279a18e4803b25cc52dc421a06a2684f1792530"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/timezones.cpython-312-darwin.so",
+      "size": 174560,
+      "sha256": "76cc537d35b3bda9ee43e0635db45f7a6455287b4b5c9406dbd093fea6b5c1d4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/tzconversion.cpython-312-darwin.so",
+      "size": 176080,
+      "sha256": "6ed7aa4e795ca1bc5fd0e4fa36edf37c8a391b2ea036f5eca170d40489b5eae9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/tslibs/vectorized.cpython-312-darwin.so",
+      "size": 117456,
+      "sha256": "288001d4e4bc83fcdab5316c767df25b35c6e05134ac26344dd8aa51d8713b3c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/window/aggregations.cpython-312-darwin.so",
+      "size": 404784,
+      "sha256": "07cf0f94b1a3b55574aacca4927b52fdcd8821fb5eba10ce2e3f849c276dd3cb"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/window/indexers.cpython-312-darwin.so",
+      "size": 202160,
+      "sha256": "7898a64e6fd86bc3df0cc5f8803cef9451dd28a278bad1c6490930a318228dbd"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pandas/_libs/writers.cpython-312-darwin.so",
+      "size": 116080,
+      "sha256": "c565c6c81d9b6f5e61539b950337828923609aa8cc903e615e5c4fa17cc7dbb3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/patsy-1.0.3.dist-info/RECORD",
+      "size": 4329,
+      "sha256": "af45e842d8acf174fc143d7e42e4218e7d3276ed91cccfbab6e964fd2ec4bc36"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/pip-25.0.1.dist-info/RECORD",
+      "size": 65716,
+      "sha256": "f379a6058bac5505c90de7df8165308edd9b941a28a318c3f02e45613819a913"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/python_dateutil-2.9.0.post0.dist-info/RECORD",
+      "size": 3227,
+      "sha256": "244ea30267733198717f5d8fa2ca6e0e5f3cfdcc66d78a552ecdf819f296a014"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scikit_learn-1.9.1.dist-info/RECORD",
+      "size": 146892,
+      "sha256": "d98f19d26d109fdb15f5fe1f8de08c34ace00ef3eb3068c683b12156068deda0"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy-1.18.1.dist-info/RECORD",
+      "size": 199848,
+      "sha256": "c638a1ce10e23254f783dd5cfc8009094769bfcab7856d64f177c98819bbb96a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/.dylibs/libgcc_s.1.1.dylib",
+      "size": 183040,
+      "sha256": "76ef5f8847dbf656bc2b2cb91f8a08f47589259151e809b11fb30334485503a9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/.dylibs/libgfortran.5.dylib",
+      "size": 1901520,
+      "sha256": "309aa581ea231790ecd99932f5be4b77e99e3fb820d2b127ab8ec3993160095f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/.dylibs/libquadmath.0.dylib",
+      "size": 363936,
+      "sha256": "240cd8c9bc65a7f61f8f0c69db2699eb1fdb7f5dc226ebfce01559f9a33ade6d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/_cyutility.cpython-312-darwin.so",
+      "size": 170096,
+      "sha256": "c48927d1c3b75d3715df4470cbd4c12f0d49d5f9dd3ff375248927048d3498c8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/_lib/_ccallback_c.cpython-312-darwin.so",
+      "size": 115072,
+      "sha256": "3495ad924881f2ad827ba0d74a91f9184c6696a16fce71e4d265b929ff54df96"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/_lib/_fpumode.cpython-312-darwin.so",
+      "size": 50240,
+      "sha256": "7402df5e1a2197acbf6fc8b7558d72e30b9116fdb7aa204f2ac9278fa90cc56f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/_lib/_test_ccallback.cpython-312-darwin.so",
+      "size": 53080,
+      "sha256": "d459b377de85187cb09df2b02af86e896f186628ba946a864895d3a5468215ad"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/_lib/_test_deprecation_call.cpython-312-darwin.so",
+      "size": 75888,
+      "sha256": "167fd48a00d90af0f579a2c5b36f2b9124bdf312e3968eeb3a3132d51200932f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/_lib/_test_deprecation_def.cpython-312-darwin.so",
+      "size": 55096,
+      "sha256": "90aef02368898a3e4f1d7b61fecd3a6c2d8125886e2bcef924a5064d68fe2436"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/_lib/_uarray/_uarray.cpython-312-darwin.so",
+      "size": 120656,
+      "sha256": "9047dbd782d4d3a95c337a45951ebfa14dfc115ae14b366b028fe067b8549961"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/_lib/messagestream.cpython-312-darwin.so",
+      "size": 97376,
+      "sha256": "51c9ff6f33fa4671f8094247ce16d1a961fdf37bab28642dd3e0535110813400"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/cluster/hierarchy/_hierarchy.cpython-312-darwin.so",
+      "size": 238752,
+      "sha256": "4a57fe6ef2f4e16b8dbd5f55eb3e7f0ab6df093a6603f2ae329dabb646f6c7d8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/cluster/hierarchy/_optimal_leaf_ordering.cpython-312-darwin.so",
+      "size": 152784,
+      "sha256": "b04c19bd6d5ca1a614239c33f1f727dd9c1b7f0506460ecd486b03b7e30b79c9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/cluster/vq/_vq.cpython-312-darwin.so",
+      "size": 128936,
+      "sha256": "7ebfbd7a6ab8fa0dea9a2d7bf309cfbcfccb9e876227f70166407abb01ab4724"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/fft/_duccfft/pyduccfft.cpython-312-darwin.so",
+      "size": 1374688,
+      "sha256": "1d38cbdec88af07005a72f70b295ef85e9bdacc0f035f3e44cd8ce4b67263cdb"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/fftpack/convolve.cpython-312-darwin.so",
+      "size": 114960,
+      "sha256": "da0844f732ff40768fc36d9f9d0db5c023d7ca092d1a6706123490ca4b198bb4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/integrate/_dop.cpython-312-darwin.so",
+      "size": 85368,
+      "sha256": "72c4e031e1c563439c57afd57393b3a07a2e623255a2e224019b58ea44d784a6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/integrate/_odepack.cpython-312-darwin.so",
+      "size": 86512,
+      "sha256": "c449592a4819ec6e38077cd0317eb4ef895384c34970af3c2dd5e9afc872defa"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/integrate/_quadpack.cpython-312-darwin.so",
+      "size": 104240,
+      "sha256": "7858f1e79afc97eb2004eae6bffc73c7a3c11671216d22d5037123f5ffe2b414"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/integrate/_test_multivariate.cpython-312-darwin.so",
+      "size": 50744,
+      "sha256": "8afd6032c31c8f54b566f80888e22a1a75921f919878cb46e6bcdeefddf7b7d9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/integrate/_vode.cpython-312-darwin.so",
+      "size": 120536,
+      "sha256": "731f47738d8da5d86181d4a1f8389bda96be23c789cc9fb753b27dc797d62c87"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/interpolate/_dierckx.cpython-312-darwin.so",
+      "size": 109392,
+      "sha256": "094e7392d78cea32d8fb6ba94e26a45f8c3f788af3c5c31bdf629be6cec5fbe6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/interpolate/_fitpack.cpython-312-darwin.so",
+      "size": 236080,
+      "sha256": "da383717421eea2dd08541449e651ad667f660ac75e68fb3320dd4436f477434"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/interpolate/_interpnd.cpython-312-darwin.so",
+      "size": 221920,
+      "sha256": "3a3867ba342d277ddf8da8430295d9821787bdd5792a3e221c612548fb18f968"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/interpolate/_ppoly.cpython-312-darwin.so",
+      "size": 200944,
+      "sha256": "c8139dcb012c867067a514fa2ca0f264459aad6f43e0a5e77f72201bf483b50d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/interpolate/_rbfinterp_pythran.cpython-312-darwin.so",
+      "size": 304120,
+      "sha256": "a95e09931139a11c910f8844f81cfdf971df0d57c53cc18fbcdd15dd755a431e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/interpolate/_rgi_cython.cpython-312-darwin.so",
+      "size": 116912,
+      "sha256": "713f34d6a7984ab50e1c4c608c0ec804889e03b144740d7133ce114d5997405b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/io/_fast_matrix_market/_fmm_core.cpython-312-darwin.so",
+      "size": 2178496,
+      "sha256": "6cf17722e80f93a95b1ef571d04a82a440187b11f188fb33a40676d1474de9b4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/io/matlab/_mio5_utils.cpython-312-darwin.so",
+      "size": 206656,
+      "sha256": "a4f4fadb35a77aa6ff3d0848933c9063f5070d2b6e11c6829bc8685778c87b14"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/io/matlab/_mio_utils.cpython-312-darwin.so",
+      "size": 94992,
+      "sha256": "ebc11d51d7d5c99e45b1f0cf8fd1155c12108e326fb33d3bb7b769b093d50275"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/io/matlab/_streams.cpython-312-darwin.so",
+      "size": 133408,
+      "sha256": "ab594111cf87c55ff4dcc9c8a48a1fc0d1d5501165999d9781528813b1b3fc68"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_batched_linalg.cpython-312-darwin.so",
+      "size": 263112,
+      "sha256": "f343ce939a78ac27ed272569e3a52756e01ccdbaaf7b118c1fd37c0850b2e0d0"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_cythonized_array_utils.cpython-312-darwin.so",
+      "size": 206192,
+      "sha256": "c506ebb3d3353437e81a7ea769ef387faaddda6d2fef6560d25952b9176e58ac"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_decomp_interpolative.cpython-312-darwin.so",
+      "size": 551608,
+      "sha256": "3f87c958e79023b933a42f33110aa1408b8a8e75dd76d578f4898fb2340defdc"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_decomp_update.cpython-312-darwin.so",
+      "size": 250232,
+      "sha256": "d1ea68338dc2dff4056f9c661f7ee2fb913a6479173639f177d7ffeb975806ea"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_fblas.cpython-312-darwin.so",
+      "size": 553920,
+      "sha256": "6502e4e093d03932479317d45bfea018ef0999bc5c4bd46687253322c13e9448"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_flapack.cpython-312-darwin.so",
+      "size": 1887888,
+      "sha256": "430d25bffa6a2d20794bd36289064101af7d58b77a5a9d3ce561df60329eff7b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_internal_matfuncs.cpython-312-darwin.so",
+      "size": 122616,
+      "sha256": "3fb1cf17a2ade6a5f2964ed94f74dab63afe0b69c38ec7b9221118cb05790ddc"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_linalg_pythran.cpython-312-darwin.so",
+      "size": 145992,
+      "sha256": "6a70990106c015360f7eb78309e9b5a135c9ae301fc7fa04828b19948abb6bc5"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_matfuncs_sqrtm_triu.cpython-312-darwin.so",
+      "size": 115816,
+      "sha256": "bab23faa3dadfbf9c824ef4c881970b7a2763518441444f277238f71bd30a002"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/_solve_toeplitz.cpython-312-darwin.so",
+      "size": 132552,
+      "sha256": "a886584cdde82f9c9b8b65506f05428880b6324a68457d564e76e02dad203fe8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/cython_blas.cpython-312-darwin.so",
+      "size": 149040,
+      "sha256": "6656ce3f6cd5ab1244b41b680854a18670a7e45828560cb715024f64eb915bb8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/linalg/cython_lapack.cpython-312-darwin.so",
+      "size": 373888,
+      "sha256": "66c2350107d731ce312499b03e065d5b4d8fa7005f792866770fc66a392c313f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/ndimage/_ctest.cpython-312-darwin.so",
+      "size": 51200,
+      "sha256": "fd7ba01631b021fe76c3a0566f3de4a5f0d265571bb3515c25a2e2e57d224a32"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/ndimage/_cytest.cpython-312-darwin.so",
+      "size": 96816,
+      "sha256": "35e1dcc2fc3a3f8575f271e6b2dd53a0b4fa5802b61d0e882a564d41c956d9a2"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/ndimage/_nd_image.cpython-312-darwin.so",
+      "size": 156128,
+      "sha256": "e6b5ecf24ffe8b3bcac97c6c12eab10cf8e94019c2e92a2a0093d57489e44f65"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/ndimage/_ni_label.cpython-312-darwin.so",
+      "size": 189136,
+      "sha256": "1441ae26438bc3ee2bed0c61a8fc91e42a7b790afb2a218782886010d9cd80e8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/ndimage/_rank_filter_1d.cpython-312-darwin.so",
+      "size": 52536,
+      "sha256": "5dea8cfe0d83943cdd25362a8ca5c144a46d3160bd2d18a7f2ff280739875ae0"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/odr/__odrpack.cpython-312-darwin.so",
+      "size": 240656,
+      "sha256": "eea05ea0bf1c74a3ab859a6ed582baafaa91727e88844432f7c57ca8d352d330"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_bglu_dense.cpython-312-darwin.so",
+      "size": 172624,
+      "sha256": "7d14b39b46639462bd7137c4e942e215a3dc0368a14085a686ac93eb4b5b7092"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_direct.cpython-312-darwin.so",
+      "size": 69456,
+      "sha256": "74d47eaafd6e4c2341674f88214e6943f4a8a21772f1d8cf244956a77058c419"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_group_columns.cpython-312-darwin.so",
+      "size": 95656,
+      "sha256": "362f28ad7e39f3c7207221cd1fcc9ba5f342f7e4993ccaee7781018924c38b8c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_highspy/_core.cpython-312-darwin.so",
+      "size": 5312552,
+      "sha256": "83964acedc1180ffb9cdab9b45bf5c2dba9dcf388cfbaf83bb325b0a9dc82fb0"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_highspy/_highs_options.cpython-312-darwin.so",
+      "size": 406024,
+      "sha256": "d804f80e2780cb1f52f568e63a05a57a6beba48c791667b1526d2b23111fedaa"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_lbfgsb.cpython-312-darwin.so",
+      "size": 68288,
+      "sha256": "24a8a24d2fa62c723161f800a86662f15300acbf35b16b3d3749047896b552f9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_lsap.cpython-312-darwin.so",
+      "size": 54232,
+      "sha256": "7733b54e306c7f5512b81c6a52519dfdf3469e6eda6a55affe7bb11430085f74"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_lsq/givens_elimination.cpython-312-darwin.so",
+      "size": 78824,
+      "sha256": "8f1240a454a49bd7a99976b76d617db1d6a97d87a4f295c648a93140422585f7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_minpack.cpython-312-darwin.so",
+      "size": 103392,
+      "sha256": "80425cb08edfeb4851e905eaa12eea6b2daa739b306ae4a3ac1711c95318067a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_moduleTNC.cpython-312-darwin.so",
+      "size": 146432,
+      "sha256": "a2774cfe0545caac44389e8619e11b11bdb9d916e0929169b5795f17b8f249c1"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_pava_pybind.cpython-312-darwin.so",
+      "size": 226304,
+      "sha256": "f42f7b1fcad7a7b0a5f8927e0af3ec065229b79ad0603266c677e772f0288969"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_slsqplib.cpython-312-darwin.so",
+      "size": 70112,
+      "sha256": "89a69a2839997f291abbd03bae7dfbdf71ba11995d4675cc501ddfb3c648a771"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_trlib/_trlib.cpython-312-darwin.so",
+      "size": 183552,
+      "sha256": "d0dd10d19d1a36f3feebf0a2d8ca8dd2262f44d74fd5db5692a18219b6859c0c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/_zeros.cpython-312-darwin.so",
+      "size": 51488,
+      "sha256": "9e293a938b43eb7b4ad4a194c1d8df3fc491df464397df93d5e852ea5961cb32"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/optimize/cython_optimize/_zeros.cpython-312-darwin.so",
+      "size": 115184,
+      "sha256": "0f289317770fb71afc34a5a5a9ef78e78115b32d46ef3b1655a3275e76b9a385"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/signal/_max_len_seq_inner.cpython-312-darwin.so",
+      "size": 76104,
+      "sha256": "58d6a07d534999bff2ab6fb79a8e59a7818a730a5008169a25d2ef5c2be959a3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/signal/_peak_finding_utils.cpython-312-darwin.so",
+      "size": 131944,
+      "sha256": "f1c879f266f7893034f022124f69ae41e5397abf6151bb3cf69f243b54fc777c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/signal/_sigtools.cpython-312-darwin.so",
+      "size": 123248,
+      "sha256": "ef178698287fc0ff2cd4ded9308aba9b34cd50abc426efc18eee9bae4d693099"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/signal/_sosfilt.cpython-312-darwin.so",
+      "size": 115216,
+      "sha256": "24b924b997b2cdf58ab67a508795aac22e8f6439a313e36f780a3ac2624509c1"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/signal/_spline.cpython-312-darwin.so",
+      "size": 69696,
+      "sha256": "53635f1ff5cc1c191898681d92a03c4e7a48f3dfe98aad771782d25fd75c7147"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/signal/_upfirdn_apply.cpython-312-darwin.so",
+      "size": 185640,
+      "sha256": "7473575ea92fecd7a2e3bb92155bbdb78ad92ceb79de45c04279a2c6f9d8fbc6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/_csparsetools.cpython-312-darwin.so",
+      "size": 388400,
+      "sha256": "0e944ca7fc2141e371baac9775845fa7a0ea473cdd7acf8aac635b03a8bf6746"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/_sparsetools.cpython-312-darwin.so",
+      "size": 3662624,
+      "sha256": "077b33d61dc1a677cb56bb4835572623986f7f0a1c0d35d6eaf85fc0df5dade2"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/csgraph/_flow.cpython-312-darwin.so",
+      "size": 166696,
+      "sha256": "08661ba1bfeb7c5b71ee189617152f3cd9724c20a4868cfa546ed922af8d62ee"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/csgraph/_matching.cpython-312-darwin.so",
+      "size": 165696,
+      "sha256": "15f78e1f7a9387816e24353fa6af16858f20e4340d9d920b7600901459e0712c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/csgraph/_min_spanning_tree.cpython-312-darwin.so",
+      "size": 114952,
+      "sha256": "875042dfb3e93a84f3bde8bfd65fbfbd917191691971206067598bc1a8fa0c11"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/csgraph/_reordering.cpython-312-darwin.so",
+      "size": 150656,
+      "sha256": "2b517693aaaebf37965a57cecac87e0db783ee52c5507e3e1e5b4508affe7a51"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/csgraph/_shortest_path.cpython-312-darwin.so",
+      "size": 347208,
+      "sha256": "8f4085fd2186bc33b6be281733e8fb5245459a3972359b9892aafceea3b72078"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/csgraph/_tools.cpython-312-darwin.so",
+      "size": 165392,
+      "sha256": "02005754ec402765999ae4466a7b8cd80f0faccabb4d389d65941b81f33f7d7c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/csgraph/_traversal.cpython-312-darwin.so",
+      "size": 293376,
+      "sha256": "b4e7126a2c3ba555a5a50ebf86c436d5c0544c19d657f2ba3dc2c10cf73375c4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/linalg/_dsolve/_superlu.cpython-312-darwin.so",
+      "size": 279072,
+      "sha256": "dc5797bee155da521013ae2621cfc6537886a8be3243dd788d31dbfe271e30c6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/linalg/_eigen/arpack/_arpacklib.cpython-312-darwin.so",
+      "size": 176800,
+      "sha256": "f8981e4e514d32d62dd635d980d6f84661254ec720ed670fbda83239a17512b3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/sparse/linalg/_propack.cpython-312-darwin.so",
+      "size": 139200,
+      "sha256": "4da33c45714432e639cfaf725e9a0e463f8a756bc87b94846d5b1f3d671d094b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/spatial/_ckdtree.cpython-312-darwin.so",
+      "size": 533632,
+      "sha256": "9302bfa863405a8dc0a817d576bb4a0ed6d0c460c4c1ce903463dd343af56563"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/spatial/_distance_pybind.cpython-312-darwin.so",
+      "size": 562632,
+      "sha256": "53e72cb821c61d61edc3624ee701423b1a115fe5b2ae6d761e732078c2cefba8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/spatial/_distance_wrap.cpython-312-darwin.so",
+      "size": 104376,
+      "sha256": "9d0f38bd8075a6782c62ec2301c0ab850fff412892d3fcfc5b7cf8a14a824410"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/spatial/_hausdorff.cpython-312-darwin.so",
+      "size": 97648,
+      "sha256": "9882f3084c0c8752cc596bd5882398bd31f0d53d0c9a9710e922e1897bc96313"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/spatial/_qhull.cpython-312-darwin.so",
+      "size": 721680,
+      "sha256": "da32b9a670f98b404049e28015c7dff4ce748ef0ee25ad789342906d5d3b1600"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/spatial/_voronoi.cpython-312-darwin.so",
+      "size": 97328,
+      "sha256": "870c16b551c8a066c634c99ff2042afd4301fe151cf78346976c9e006ca49905"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/spatial/transform/_rigid_transform_cy.cpython-312-darwin.so",
+      "size": 218616,
+      "sha256": "eb062daa4abf7e4dad280781785e5eb943f059753fd55979fd1654b12d88e63a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/spatial/transform/_rotation_cy.cpython-312-darwin.so",
+      "size": 409184,
+      "sha256": "5a5913d8c8700fc7b96951b14f1c65a9d946a9c368589bf47052839873f04bba"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/special/_comb.cpython-312-darwin.so",
+      "size": 78120,
+      "sha256": "5d99a20baf57660f7c3ac5c57db51bc8ed139cff380b578bb8f6ae73f58cf8ab"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/special/_ellip_harm_2.cpython-312-darwin.so",
+      "size": 113472,
+      "sha256": "6998b9aa6b5133b08c53d5595b706d7e809c1c6c1b92626f604c0ecddc2216da"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/special/_gufuncs.cpython-312-darwin.so",
+      "size": 632896,
+      "sha256": "c6656783e3049fe4abfcd81c13a903517e4be0e43f14fdaaa99d43d232ea3b2d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/special/_specfun.cpython-312-darwin.so",
+      "size": 184656,
+      "sha256": "500d21e44a4c226258bd898ad1dbdfca3174ae2c35383a22a976094a0c4561ec"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/special/_special_ufuncs.cpython-312-darwin.so",
+      "size": 1131816,
+      "sha256": "651f24f15864d5a3e14ac9c8eafb697154fcd46aa3ef539da3746a67bcc3bbc3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/special/_test_internal.cpython-312-darwin.so",
+      "size": 97416,
+      "sha256": "9219e7c9e669e5607abce8d001aad06f540ab714a7a8c2e0c2025f8c6c99c041"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/special/_ufuncs.cpython-312-darwin.so",
+      "size": 686048,
+      "sha256": "a0889d5c82454d79d4cd4cc8a589a62a382d667da8e2b030e637f58708bd340c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/special/_ufuncs_cxx.cpython-312-darwin.so",
+      "size": 1504352,
+      "sha256": "eb2112f8a8dd431d07e44b3e7bd5e8d9652278271d17d5fb7841cdd68dcdd27f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/special/cython_special.cpython-312-darwin.so",
+      "size": 1696856,
+      "sha256": "0c0d6e920fee7bb8968442b50a27f546e3e087c7e4122b6cfe86d7fe5fc733f8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/stats/_ansari_swilk_statistics.cpython-312-darwin.so",
+      "size": 114272,
+      "sha256": "adec9f596fc5ab40cd18c805dd30721ceae4feeae3440b08e38bf835480763f6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/stats/_biasedurn.cpython-312-darwin.so",
+      "size": 157712,
+      "sha256": "e62705b640b283bc74b0cc78a8d19132e712cdc245ecee795a42d53cf56ddf4a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/stats/_levy_stable/levyst.cpython-312-darwin.so",
+      "size": 78992,
+      "sha256": "707a83df6dd93d96ebba2e3c1274cedf8da78628078b9fabd70751ab39d91fea"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/stats/_qmc_cy.cpython-312-darwin.so",
+      "size": 123264,
+      "sha256": "382403aa52b3cd69415e68cdf364a211d6071527856ceee198fb4e15b5387beb"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/stats/_qmvnt_cy.cpython-312-darwin.so",
+      "size": 132384,
+      "sha256": "79e9a893f928c1fb9305841680aaf1f673deaa0f0f3b5484277b453e5828db9a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/stats/_rcont/rcont.cpython-312-darwin.so",
+      "size": 113736,
+      "sha256": "c340036ec9b76d64143e563b5aa071637221bab0416b1df9bcc48aadb2642049"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/stats/_sobol.cpython-312-darwin.so",
+      "size": 168320,
+      "sha256": "426dbc8990840ad5bf1cc0658c67fc0167518e924ccb78db00d550860ef017f7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/stats/_stats.cpython-312-darwin.so",
+      "size": 391248,
+      "sha256": "9f058c77fda23a33d9df51b42c805526f49d6248667725c804e786b60497ffeb"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/stats/_stats_pythran.cpython-312-darwin.so",
+      "size": 149640,
+      "sha256": "3445197046b1f7870012c6cc38188fb8d085d76024a2aafe4d97e4c67c89fa42"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/scipy/stats/_unuran/unuran_wrapper.cpython-312-darwin.so",
+      "size": 539128,
+      "sha256": "b6603dae7e3c12168c120fe78bfc9f04fbc2647bcb77ac3ccb729e1c244b084a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/setuptools-84.2.0.dist-info/RECORD",
+      "size": 49633,
+      "sha256": "6cbd66a237b9eac5ebc1660482074c74788b05c75a5b197fe4e67805bae4653e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/six-1.17.0.dist-info/RECORD",
+      "size": 646,
+      "sha256": "9f1c0d6da86acfde698b1a0a31931cba957b2896a49bce80c4b0e3cac9d03aef"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/.dylibs/libomp.dylib",
+      "size": 678720,
+      "sha256": "7fe04d06d824817d39e4c99ec44e837fd6b5f0f75f2cc3e77a384c298f3f1709"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/__check_build/_check_build.cpython-312-darwin.so",
+      "size": 74592,
+      "sha256": "63b55d7ca53a563b2f93225d002b069c801b91ea3cca39126dc74c3403016095"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/_cyutility.cpython-312-darwin.so",
+      "size": 169984,
+      "sha256": "781f49d2a1ae4564b1c53719993183af0a08f2e18c331678bcbc3c0d1dc0765b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/_isotonic.cpython-312-darwin.so",
+      "size": 131920,
+      "sha256": "3b64c4f9532ed1a554a36a05349109bcee6bb6d514695792448ac18048abc06e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/_loss/_loss.cpython-312-darwin.so",
+      "size": 1515936,
+      "sha256": "48b493fc279d6955e19164e14afe9f50953149658fed9bf597c6565bcfc99836"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/cluster/_dbscan_inner.cpython-312-darwin.so",
+      "size": 81776,
+      "sha256": "ebde649505f7842c4a9c251d2d6c20e12fa608f4698f29c6d04a564dd6eb5276"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/cluster/_hdbscan/_linkage.cpython-312-darwin.so",
+      "size": 115360,
+      "sha256": "7c4a1a4d1a009a45ae46383bebc93dc4273556abef735ed6eca6c5b9b9d6d8e2"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/cluster/_hdbscan/_reachability.cpython-312-darwin.so",
+      "size": 184928,
+      "sha256": "f3b84602986e99f6e8feec934223329de7da4a5b938d6b513b9278ff3563b7a0"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/cluster/_hdbscan/_tree.cpython-312-darwin.so",
+      "size": 220264,
+      "sha256": "41f24a24f4397e9b2b1433a44a4c154639e514c2544d96c8e767ebfe56f0b49d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/cluster/_hierarchical_fast.cpython-312-darwin.so",
+      "size": 173416,
+      "sha256": "c5db091b2b1e3c13bd3df2326850b2ef7b64730dbc4b1f576797ba0e42babd50"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/cluster/_k_means_common.cpython-312-darwin.so",
+      "size": 271936,
+      "sha256": "793cb26715cc85762eb460e29cce45a4a40584ddcaba761bfd69adafd080f3cf"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/cluster/_k_means_elkan.cpython-312-darwin.so",
+      "size": 285184,
+      "sha256": "bd43d856ca52e6ba5aff7aeea6d7f77f5fa6cbdcf7797cc3e7e6be0d855fadf5"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/cluster/_k_means_lloyd.cpython-312-darwin.so",
+      "size": 201520,
+      "sha256": "865e1791855baec7f4a8233cc5792a13a04efcdb4daef57d986c10fe22f3203f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/cluster/_k_means_minibatch.cpython-312-darwin.so",
+      "size": 150528,
+      "sha256": "876b1e1cbaa8b4c14ac5e7760c492a0af84b81b082caefb6c43c317bf2d12459"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/datasets/_svmlight_format_fast.cpython-312-darwin.so",
+      "size": 345576,
+      "sha256": "485e668a3207cc24d88f4ec4664913437878e05d31f06464f6e8c2a445040bb0"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/decomposition/_cdnmf_fast.cpython-312-darwin.so",
+      "size": 97328,
+      "sha256": "06398159eb12626453578de36a4dc6292f7b99743b185030d79d6f73462e794d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/decomposition/_online_lda_fast.cpython-312-darwin.so",
+      "size": 132328,
+      "sha256": "0c3e49a7f52f98a39f92958d083e540908a2987b64cb7af511f1c6e09b0a12d7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/ensemble/_gradient_boosting.cpython-312-darwin.so",
+      "size": 114840,
+      "sha256": "4bf36ed2b4b1602a9d4650ead9ec7c146374eb2b2340e7a38445a4bc774f211d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/_binning.cpython-312-darwin.so",
+      "size": 96896,
+      "sha256": "c353beddfa338da2e2d76f30481bda60e50549577d0da06d5cc321ae3615c006"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/_gradient_boosting.cpython-312-darwin.so",
+      "size": 114128,
+      "sha256": "cec20bf1f6d5e19562edf6291acdcc16bae1cc924660173b1f53d1dcecd7b10c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/_predictor.cpython-312-darwin.so",
+      "size": 116352,
+      "sha256": "6fffe2794c2a23b7ebe17cc8b4cf4e2bd9111b5e15db82ecc3c487da5817c121"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/common.cpython-312-darwin.so",
+      "size": 73936,
+      "sha256": "53a6f8db0308b4fb309f1831c158c16a5d36b4edd027b946b2e0789352261fb8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/histogram.cpython-312-darwin.so",
+      "size": 173328,
+      "sha256": "0b337be0f43185d7117df67f58feffbb61b75eb5987f6d52f985c0d8a1add1d5"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-312-darwin.so",
+      "size": 207696,
+      "sha256": "4d709e33cbb590eb2258eae45bb18f3bf585eb488753963a2ca8ae9a2a13aafe"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/feature_extraction/_hashing_fast.cpython-312-darwin.so",
+      "size": 100976,
+      "sha256": "ee8a4e36c3e1968ab66441cb34101d39680e2e136e7c59efef61b80916166565"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/linear_model/_cd_fast.cpython-312-darwin.so",
+      "size": 351264,
+      "sha256": "c5d97a9850b0ec272c2d4820271ae6dab5c4acee304381eb941942c132eff1a2"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/linear_model/_sag_fast.cpython-312-darwin.so",
+      "size": 130368,
+      "sha256": "9f13e39226b9096c037b44cc7439405a1f66922149bc841c31695e6ca0ed6add"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/linear_model/_sgd_fast.cpython-312-darwin.so",
+      "size": 186752,
+      "sha256": "b93bc30e59bf2ac4909e196800cc2c36f90e3ef139ffcbd123bae461b41f6d68"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/manifold/_barnes_hut_tsne.cpython-312-darwin.so",
+      "size": 133184,
+      "sha256": "5ce8cc10faeb8f5dae2a0ac5f2cedf2e20512f5de9a7b28bcbfe6600f4c89c3b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/manifold/_utils.cpython-312-darwin.so",
+      "size": 96192,
+      "sha256": "48c97110bf240f1b49875fd23a593f1dd68fb5190fc818cea4384678a84f803f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/metrics/_dist_metrics.cpython-312-darwin.so",
+      "size": 461456,
+      "sha256": "2028b4a701b20fbffa8d7439fe076e65b903544a8386486b6c0df37cf4cd6369"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_argkmin.cpython-312-darwin.so",
+      "size": 216704,
+      "sha256": "b9c6ff161a1bbb0e9628a9fc4586a9b1e5b2f7530d15462eef97be1017eb154e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_argkmin_classmode.cpython-312-darwin.so",
+      "size": 156896,
+      "sha256": "b28ad8f0fdb6ff891ad082d234b85bce1555eac6c5e4b6244d615096dfa8c5e6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_base.cpython-312-darwin.so",
+      "size": 200448,
+      "sha256": "208d7dfd16f81846d0d456fa277c9b97e1dcc2eb58d265d84b8762c3975692ee"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_datasets_pair.cpython-312-darwin.so",
+      "size": 275592,
+      "sha256": "90ff4fef04033e6eb68f846a654a34eb0595bdd1ea9253a3f344d93237f8acbf"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_middle_term_computer.cpython-312-darwin.so",
+      "size": 296424,
+      "sha256": "1edb43731d2fcb244e3fbf622471d04bcff1f5c62c3dec35e0bf732669ac9d83"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_radius_neighbors.cpython-312-darwin.so",
+      "size": 243376,
+      "sha256": "df2a938929c71588d14245f3bfee3ff8deea2881680cacb8746295855c1cfdb9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_radius_neighbors_classmode.cpython-312-darwin.so",
+      "size": 174768,
+      "sha256": "489ac9e307a9745c86ea059f77a1d374d20b628b99dfb8784a62b62cf4e42436"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/metrics/_pairwise_fast.cpython-312-darwin.so",
+      "size": 150512,
+      "sha256": "65930592230cc6c13298a3b760afaa2d98c56142750116e42282b101b8df1924"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/metrics/cluster/_expected_mutual_info_fast.cpython-312-darwin.so",
+      "size": 97536,
+      "sha256": "ccbd0ec645490c268581d4e4019e5fe373628a579edb5d55822e5a4446bdd367"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/neighbors/_ball_tree.cpython-312-darwin.so",
+      "size": 449200,
+      "sha256": "443e39841bd0ac3c2302ff2d79955e811418056cd1f601c425806c0fd7c550e2"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/neighbors/_kd_tree.cpython-312-darwin.so",
+      "size": 481264,
+      "sha256": "986a6f6bdf1788ecb63767432c018769d11a851dce5d14de6701357825b58b91"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/neighbors/_partition_nodes.cpython-312-darwin.so",
+      "size": 56744,
+      "sha256": "0d51fe8ef9610e8606d6df00caaaed9fc1c0c57aa63af9b229214faca434a958"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/neighbors/_quad_tree.cpython-312-darwin.so",
+      "size": 155712,
+      "sha256": "231315fc5b1a705c8b9881f76226b0d7d3b19d3258be6d40a1dca8318899d524"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/preprocessing/_csr_polynomial_expansion.cpython-312-darwin.so",
+      "size": 236160,
+      "sha256": "167090349bc6cf3f88bdc574b154f8043b8fbfdedc218885cb4c4be54d923790"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/preprocessing/_target_encoder_fast.cpython-312-darwin.so",
+      "size": 306728,
+      "sha256": "7bfcf41e1b562d0005b1a974885929c049b3704d2792fbbbd923d5bb13e33979"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/svm/_liblinear.cpython-312-darwin.so",
+      "size": 153840,
+      "sha256": "8b46d5406b03050389559e6dc5e0d1d6ae0307d6153371f8103a7b6ccc10fba4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/svm/_libsvm.cpython-312-darwin.so",
+      "size": 331104,
+      "sha256": "ad6602eef465341cc0d5ffb8ade61fc2f3da70c522908475783812b498103e3e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/svm/_libsvm_sparse.cpython-312-darwin.so",
+      "size": 295656,
+      "sha256": "7bb0b8eb101d18222d2728b1db5a14d2f8dca48df58a28e9079e1b42386a645b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/svm/_newrand.cpython-312-darwin.so",
+      "size": 77232,
+      "sha256": "21185d44f27b5dfeec3e1bc0c910281bf4d233430a71e2885ff61eb6d824f07c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/tree/_criterion.cpython-312-darwin.so",
+      "size": 189024,
+      "sha256": "7194256ac376c92cc3af38f43a3ddc69ef85160d998d3b1e9a3ecd67ca162af7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/tree/_partitioner.cpython-312-darwin.so",
+      "size": 152624,
+      "sha256": "621c95055ea556ac7440fb915924d0a1b597359a51b7c52e941ba1c0d13dd2e1"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/tree/_splitter.cpython-312-darwin.so",
+      "size": 134096,
+      "sha256": "f7f95edb6ff7578040f332a9fbd9f76f99e004c96c782268ecbbb37571d9f4bb"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/tree/_tree.cpython-312-darwin.so",
+      "size": 356168,
+      "sha256": "e8aee68a3078e68f6df59caee09065b539f24f31f52fe6d135534e0fb89efac8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/tree/_utils.cpython-312-darwin.so",
+      "size": 115968,
+      "sha256": "18c8918888a9e67b924e553321d47e718b353e3d9aa1929b710ba0b2f2b516a9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_bitset.cpython-312-darwin.so",
+      "size": 79040,
+      "sha256": "987d0e8fd186f861f3a00c6857d9180b4974f1e8caa82bb58eaa080774d96e6e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_cython_blas.cpython-312-darwin.so",
+      "size": 202896,
+      "sha256": "3c553a603c9249bfc27ce0c56cd0898609430f46284ea97d605c745e451c902d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_fast_dict.cpython-312-darwin.so",
+      "size": 141200,
+      "sha256": "164de09931b6cb783216ae283420ac331a8e435890091f4dabac71c6a942840e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_heap.cpython-312-darwin.so",
+      "size": 53864,
+      "sha256": "bba3e112913d5a22bccc080a6b37ec5915e8b38128a1ecf4c643d18d2a6d76f6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_isfinite.cpython-312-darwin.so",
+      "size": 98240,
+      "sha256": "38dc9c71df52a0122eec35fd291d1c940ebccfd7fc6e87212c952ea0d6905369"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_openmp_helpers.cpython-312-darwin.so",
+      "size": 112928,
+      "sha256": "032344afcebdb3a6d13b74e8eec92d357c0b5b99c2adcbf1623da6a0b263a04f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_random.cpython-312-darwin.so",
+      "size": 168384,
+      "sha256": "6a458f02bd9feb962add3a6399ed3a56594cfc97179e8bea4e902170fa73981a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_seq_dataset.cpython-312-darwin.so",
+      "size": 170000,
+      "sha256": "74c5b1ce2635dfa163944a4b0d782b223459dfbf7dead1890c0c9ad41ccabb3b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_sorting.cpython-312-darwin.so",
+      "size": 97904,
+      "sha256": "32d8a8627ce06c10e4632616a5b013d91d098dc2136b430ee66c5b50f4eb062d"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_typedefs.cpython-312-darwin.so",
+      "size": 117616,
+      "sha256": "0d64ef754e23d1613fe70f37f79c92e5ea1c95af126de130d56a2a7aa89ac7ff"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_vector_sentinel.cpython-312-darwin.so",
+      "size": 142184,
+      "sha256": "bbb6ba0e8cab01066580b1ef1939bc72dc533772c037ea9ecc77612dfa9c7abc"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/_weight_vector.cpython-312-darwin.so",
+      "size": 94808,
+      "sha256": "7a828c9416512be2990438405ffd9724ff63ff96a5fecc90adc812f7c60c0955"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/arrayfuncs.cpython-312-darwin.so",
+      "size": 132352,
+      "sha256": "ff4ca378e2912571f6566dd7be0eb0cbf2140e0f9e1db25d6ce46b3b1f481756"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/murmurhash.cpython-312-darwin.so",
+      "size": 114976,
+      "sha256": "99cc26b044c3ac277556ab48aae5bc35aa0e8ae7d5b9bd4feafc0b5b7608e435"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sklearn/utils/sparsefuncs_fast.cpython-312-darwin.so",
+      "size": 553992,
+      "sha256": "f44eecdae487db5eecebd6547a2f06c95db5ad00fefd5c07d21ff4ce5435fdc3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels-0.15.0.dist-info/RECORD",
+      "size": 235494,
+      "sha256": "e4614ffa9c465980fe650c5b6bd9ac1941870177cacec3022bfc7a4074a9f6d5"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/nonparametric/_smoothers_lowess.cpython-312-darwin.so",
+      "size": 261800,
+      "sha256": "23f84795526378e54fe8721ca3365be780d390235a81ff6eba6f6765ee667a90"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/nonparametric/linbin.cpython-312-darwin.so",
+      "size": 98208,
+      "sha256": "87b04f11ba6f1b42e3f46181e6434bf0d6e1143c01054f83ec7942f8ac0d08c3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/robust/_qn.cpython-312-darwin.so",
+      "size": 241528,
+      "sha256": "0ec3ceb37fab9860a2ceb710ccfe0da4c18760e0cae4ef60319a685b0c2bc2d9"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/_innovations.cpython-312-darwin.so",
+      "size": 223424,
+      "sha256": "f22341366bd3cfe27606520fe18f5dfb84c609a3e81a6afa3a22fe7db55bcec4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/exponential_smoothing/_ets_smooth.cpython-312-darwin.so",
+      "size": 437216,
+      "sha256": "50f2b5fe9b06abf9a3bdf8bd81561c04bb9d679e9d201d2ab46617aea1b88ad5"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/holtwinters/_exponential_smoothers.cpython-312-darwin.so",
+      "size": 338128,
+      "sha256": "6d8f58d3152a4a66d91b7c0403070472e82447d945592fbdda7aa5f6be5d09fc"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/innovations/_arma_innovations.cpython-312-darwin.so",
+      "size": 409928,
+      "sha256": "985247c63bb12ad11b20e1913fb4892003d4e22738afea3baf7935a411af0b50"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/regime_switching/_hamilton_filter.cpython-312-darwin.so",
+      "size": 241528,
+      "sha256": "3a334e20230e19bcc99966afb1e7e158f1b4da80a68fe091b779dc8f17eaa7cc"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/regime_switching/_kim_smoother.cpython-312-darwin.so",
+      "size": 240784,
+      "sha256": "befbd45abb57d0fcae1509121ff0c287c768c366ff20b129476cdf84dd55595e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_cfa_simulation_smoother.cpython-312-darwin.so",
+      "size": 531248,
+      "sha256": "1915c12de01f83225018824ef38b4895fc43f7ff3f5705ff051918277f08c594"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_filters/_conventional.cpython-312-darwin.so",
+      "size": 217824,
+      "sha256": "359d38aeac9a844ffc115ebdd8146fae5f8377fb3216e3c210c681dec9955dc0"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_filters/_inversions.cpython-312-darwin.so",
+      "size": 242032,
+      "sha256": "66876c6e41461ae8c2109149175f87f31959621b62ab37f286a6242d25d94f21"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_filters/_univariate.cpython-312-darwin.so",
+      "size": 237808,
+      "sha256": "a85be80eb8036358f943719f0920052bfc52ebddf574f3b81319f037bf11477a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_filters/_univariate_diffuse.cpython-312-darwin.so",
+      "size": 206552,
+      "sha256": "55d88bb13b49cdec140a5d97db8ae564247f805e42cabbcabc44acaa959db403"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_initialization.cpython-312-darwin.so",
+      "size": 353432,
+      "sha256": "1f1ab3e4af43dc50a9a6b8817aec188415e903904cbf0978f86d9cac2ca2530c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_kalman_filter.cpython-312-darwin.so",
+      "size": 1012152,
+      "sha256": "5ff1b4e405d3404e46ae2acaf2e815c90d134d64ab5facfe25b130deb6882910"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_kalman_smoother.cpython-312-darwin.so",
+      "size": 624264,
+      "sha256": "99f61500f47f165367f8a2447a49bf07faefbcef679414bf9d89ca2843b17542"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_representation.cpython-312-darwin.so",
+      "size": 939576,
+      "sha256": "1c7135329085f1adc81b17dfb32855b6adf115b4994550ebdf2fc433ec4d0d07"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_simulation_smoother.cpython-312-darwin.so",
+      "size": 717880,
+      "sha256": "92b5de7f6ef1e692a09822256ab35fab0bffd6ee74ad31ebe3ee716d4030b118"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_smoothers/_alternative.cpython-312-darwin.so",
+      "size": 210464,
+      "sha256": "d9712f3debb3e88f6cb0d03f7006cfc64a619e7b1ca718be529712fd91573f8e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_smoothers/_classical.cpython-312-darwin.so",
+      "size": 209024,
+      "sha256": "46d1f46a8e75e36a51fa5de08a192bd39dd82704b9e43e8f3a1d8a557643806b"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_smoothers/_conventional.cpython-312-darwin.so",
+      "size": 209520,
+      "sha256": "560d424d89f482abc1e246fa4840c270bb0770c341bcf72224acb463f57e79b4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_smoothers/_univariate.cpython-312-darwin.so",
+      "size": 210752,
+      "sha256": "e9ed6aa579923c8f079176b5850847e461641f4e4695ce9e37cd1648358b017f"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_smoothers/_univariate_diffuse.cpython-312-darwin.so",
+      "size": 248968,
+      "sha256": "d49f91cd0b4acb0ffb3031fa030a17c17c503690a03f78e6c91079832aa5db4c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/statespace/_tools.cpython-312-darwin.so",
+      "size": 661488,
+      "sha256": "d1a773d944bc00993dd1576e23fe91524664d00401ed0afdd84102d51a46f8fd"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/statsmodels/tsa/stl/_stl.cpython-312-darwin.so",
+      "size": 280520,
+      "sha256": "7e1cb7d0b45b5090a494dffd64fc9c0c880de431e41c7de03f77b428af599fa2"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/sympy-1.14.0.dist-info/RECORD",
+      "size": 245673,
+      "sha256": "dd18e96e0e6562cb5a08cb6f44f1c3d7dee10b8cebf7d9232b7964ca2eaedb06"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/threadpoolctl-3.7.0.dist-info/RECORD",
+      "size": 640,
+      "sha256": "ca75b398669b2f7c13e97e6f1bb224b4f73e516e35341a27a4f81aac6eb1fb34"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/torch-2.14.1.dist-info/RECORD",
+      "size": 1551149,
+      "sha256": "f8c93d8886a6df4aaaecfeb88e941f8e41e43ab00bf4d27274bb6157db92f04a"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/torch/_C.cpython-312-darwin.so",
+      "size": 67760,
+      "sha256": "b5b5b86566d6e00ee22b73c51e6c243bd894ffbf06f12c58d0bab0549b1840ac"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/torch/lib/libc10.dylib",
+      "size": 1121632,
+      "sha256": "332fdb431f20a9690f38be0768cab415584480c2ce31744153347778f85a04d8"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/torch/lib/libomp.dylib",
+      "size": 856096,
+      "sha256": "6256bee09e93c28d71c65711cc69224d69994c6965648b628b70a22772fe98d4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/torch/lib/libshm.dylib",
+      "size": 82016,
+      "sha256": "cb3ae9606a65cae6cc2f3a661a75a6b03ee1821badc24e99fa51253cb3244d4e"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/torch/lib/libtorch.dylib",
+      "size": 34800,
+      "sha256": "a0e3303b427f2c9b1f34ba729d2ea3d3e821b9cfeb30ec490cc60e6c5c4bfe21"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/torch/lib/libtorch_cpu.dylib",
+      "size": 386016816,
+      "sha256": "886a21732227bea91a64dcc355bdea98808fab5014a84891de2fe3a081744079"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/torch/lib/libtorch_global_deps.dylib",
+      "size": 16760,
+      "sha256": "183fab80a5ba3e8d577a53b9979e5b1345fe560948de350d75f5879b03ad8247"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/torch/lib/libtorch_python.dylib",
+      "size": 31036048,
+      "sha256": "50f79f7f37dd26a7e6438d349538ece1244bc5478dd65bef2ea5c6c63aa86709"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/typing_extensions-4.16.0.dist-info/RECORD",
+      "size": 679,
+      "sha256": "9861cb1104df8ec0ce0e5de06999ed8540a156766893cf404a41e9adb275afff"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/wrapt-2.5.1.dist-info/RECORD",
+      "size": 2532,
+      "sha256": "71d0d51dd8e4f0661e0c6c8084752f27fce852f8d31877a400a2dab8ce5bea34"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime/lib/python3.12/site-packages/wrapt/_wrappers.cpython-312-darwin.so",
+      "size": 123216,
+      "sha256": "6e736b2830dc697ae639e91cb4446088b040d7b0ff94bff3211a7768bf9ae709"
+    }
+  ],
+  "inputs": {
+    "6": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/staged-inputs-v1/horizon-6.npz",
+      "sha256": "3b7afa64671912324f9789b5cce7f29addeaa5e335b357bbad6c4c9fdde261cc",
+      "size": 3839651
+    },
+    "12": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/staged-inputs-v1/horizon-12.npz",
+      "sha256": "a62c8756709081b96bc42f08810bc292d41faf0d93fc9449a0c78ca28dac6698",
+      "size": 4032363
+    },
+    "24": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/staged-inputs-v1/horizon-24.npz",
+      "sha256": "f76c380279288689704a78caaf7c1be696fb0682493f0fe68be40abf587fe2dc",
+      "size": 4212839
+    },
+    "72": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/staged-inputs-v1/horizon-72.npz",
+      "sha256": "da632026b5dfa73e5a704acbbd58f2b53f101c8b0e1919a99cc0f97bc8858a20",
+      "size": 4430713
+    },
+    "168": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-event-pilot-v1/staged-inputs-v1/horizon-168.npz",
+      "sha256": "dac105c2d6b832b3a15a22194af7839a49d2b5bfa673a797a672176a8f96a6e4",
+      "size": 4540686
+    }
+  },
+  "sids": [
+    2,
+    7,
+    49,
+    54,
+    57,
+    64,
+    67,
+    70,
+    75,
+    80,
+    85,
+    97,
+    113,
+    116,
+    130,
+    142,
+    150,
+    153,
+    158,
+    173,
+    198,
+    217,
+    237,
+    248
+  ],
+  "horizons": [
+    6,
+    12,
+    24,
+    72,
+    168
+  ],
+  "barriers": [
+    -0.4,
+    -0.2,
+    -0.1,
+    -0.05,
+    -0.02
+  ],
+  "axes": [
+    "issued_log_sigma",
+    "downside_imbalance_D",
+    "jump_share_D"
+  ],
+  "cut_training_years": [
+    2022,
+    2023
+  ],
+  "evaluation_years": [
+    2024,
+    2025
+  ],
+  "median_policy": "linear quantile .5, low<=cut/high>cut/unavailable; no joint state products; feature-only cuts then separately parent-frozen artifact",
+  "normalization": "effective fallback?lsf:lsH, exp(float32 storedlogscale)*sqrt(H/8760), finitepositivefinitequotient;HARsensitivity own matchedrows",
+  "resampling": {
+    "draws": 500,
+    "seed": 2026106000,
+    "unit": "year\u00d7epochaligned28dayglobalcalendarblock;splityearboundary",
+    "weighted_quantile": "NumPylinear quantile equivalent to explicit integer row duplication",
+    "scope": "matched-effective rows, separately recorded pointestimate/n;conditional resampling sensitivity notvalidatedCI"
+  },
+  "policy": {
+    "wall_seconds": 116,
+    "rss_bytes": 1000000000,
+    "disk_reserve_bytes": 2147483648,
+    "output_bytes": 10000000
+  },
+  "proposed_outputs": {
+    "cuts": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/cuts-v1",
+    "analyze": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/analysis-v2"
+  },
+  "admission": "Parent must separately freeze CUTS request/source after tests/refutation. Actual cutartifact must be pinned/reviewed before ANALYZE admitted. No arrays/stages run during drafting.",
+  "interpretation": "Already-seen retrospective development audit; no latenttruth, causalmechanism, calibratedCI, newfit/reserve/promotion authorization.",
+  "parent_frozen_cuts_pin": {
+    "path": "cuts-v1/result.json",
+    "size": 6030,
+    "sha256": "15119684a77a93e62da694ae0392c5c6922d5ecf821984796d61995872499ce4"
+  },
+  "parent_admission": "Parentreadactualdelta,18syntheticsPASS,frozenhistoricalcuts unchanged. Onlyscored-labelfloatconversionrepairslogloss;all20statisticalhelpersASTunchanged. Failedv1charged4seconds;116remain. No scientifictuning/newfit.",
+  "execution_source_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/conditional_depth_v2.py",
+    "size": 18926,
+    "sha256": "1bfd3d85f035b4e32e2b1d01edf4ba881595ce1e588615c380c60d96e277881e"
+  },
+  "execution_tests_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/test_conditional_depth_v2.py",
+    "size": 12538,
+    "sha256": "4f31cc193b8a11b30b459be3d03a6c93f621c3f401b7e3012188ded3bfe89918"
+  },
+  "operational_amendment": {
+    "reason": "uint8 unary negation wrapped positive labels to255 in boundedlogloss;cast scoredlabels tofloat before loss. No predictions, cuts, state groups,draws or historical tolerance changes.",
+    "failed_v1_evidence": [
+      {
+        "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/analyze.request.parent.json",
+        "size": 108205,
+        "sha256": "793103aefe8f7537e0fe16bc290ab183a28b6bc8ab2ab706845e1378af231f1d"
+      },
+      {
+        "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/analysis-v1.outer-receipt.json",
+        "size": 2420,
+        "sha256": "af1b9afc8da8dde499ef61cde4aa92857c0474076af63f035f26cf48f8649588"
+      },
+      {
+        "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/analysis-v1/failure.json",
+        "size": 313,
+        "sha256": "c8a88645638bef6bb8e703af581cb77dc0a16178134a788bdb2fc6c94c39cc78"
+      },
+      {
+        "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/analysis-v1/resource-receipt.json",
+        "size": 475,
+        "sha256": "5544f74d4623d16aee191684768d718182f316fa7692efa1ff53a220846fe928"
+      },
+      {
+        "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/analysis-v1.stderr.txt",
+        "size": 1271,
+        "sha256": "88df8044f3411aaf3bc74c53555410a97d43bccbed9155453b6c120dcaa5a054"
+      }
+    ],
+    "budget": {
+      "original_analysis_seconds": 120,
+      "charged_failed_seconds": 4,
+      "remaining_seconds": 116,
+      "old_outer_elapsed_seconds": 3.162363292001828,
+      "continuation_not_independent_repeat": true
+    },
+    "historical_cut_closure": "r.pins intentionally unchanged;execution_source_pin/execution_tests_pin liveoutsidepins, explicitly checked byv2authenticate. No cut recomputation.",
+    "unchanged_ast_sha256": {
+      "cut_table": "6b4dffad786888463fa5560c5812d3fe1002ac08cbd70dff9679760468dc1519",
+      "axes": "8f4e34304e2ef2dd8d76b3f5f102ea0f2c7a44b7111b4f047fe602b7e3969735",
+      "effective": "cd3e2b49b03b64ca7fd7318e094a9d82a0764edd0b398525f855354fbf9d2931",
+      "views": "be5bd9c020f4808737bbca2fcf949821169ff44ed1002a2901fa37a40b27d099",
+      "draw_plan": "990a5bfa29b96fdcffc4ce6cddcb099978477175fed465621c566f8679ed1567",
+      "weighted_quantile": "bbaf266f2573a57bf5c92224c0de4279603ea680e50e9719ec1cee1227cf7b11",
+      "normalize": "b0ff31218c7eae1028c5a58c414a7cb2c0989ba495dd298c8ac3787d88922239",
+      "bootstrap": "c1c19ec11d8bc56b0b187bc7eeb0548f71b1d1b91214587032fc3fa222953dc8",
+      "reconcile": "64d1a717c0a8962505f94dfb6af51febef5c33f14480908a3ffef03670614875",
+      "HORIZONS": "9992b5a494da99b100f3323c3c53b5af520fda412d476ef74521a11668db2f0a",
+      "BARRIERS": "bf8b166763828366df96b5e31676305b6fe0e791ea574e3207b7bc67c05f4397",
+      "Q": "b20765b16ce9e7bfd62eafd0b5ee284b921bf079ae490e30221bd1a10d1f0e93",
+      "EPS": "7f3a25bd83dbd2bac888450e5ca2eb1833e7ffa08733ee25e86e28a7e1669d63",
+      "TRAIN0": "8f6c9b57016820a16db4b4dc3b72c90a7960c5ddd0dc00540ec8f36e88357672",
+      "EVAL0": "c669539c249433ad589391163bd3634b7732707a69269651e6708b9f4365f85c",
+      "YEAR25": "02a6797c8676a4a6a9925f418a4488c8e6efa6942fba8f01acf0acfeaf74039c",
+      "END": "a1af1b71a42645153947c4f36be560bc2602ed55607416d9e43f127c0bacb25d",
+      "CUT_KEYS": "7f65ad3a58348dff2ee720c2b65775807b0ca7931d4241c0f07feddc3c18f83e",
+      "LABEL_KEYS": "f145e0c26702089c3cee2583eb1116958acdcbd30cf114098151d2663bab1a92",
+      "AXES": "5dc74013d6cdaccd59c88bc8ebad0cd2bd32994c491c2c466a1118667a92369f"
+    },
+    "status": "Source/tests/request preparation only; no execution or automatic restart."
+  }
+}

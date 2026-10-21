@@ -1,0 +1,48 @@
+{
+  "status": "parent_actual_source_and_tests_reviewed",
+  "source": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-horizon-coherence-v1/horizon_coherence.py",
+    "size": 22223,
+    "sha256": "0b5c0dd6496dd18a72cb0eed497b5e136723f948961206358c387e885a1f6060"
+  },
+  "tests": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-horizon-coherence-v1/test_horizon_coherence.py",
+    "size": 12980,
+    "sha256": "c61a17a2aa798b98e2e31389935fdc2c79f377fc836f47a344b629fdc7863810"
+  },
+  "parent_synthetic_tests_passed": 13,
+  "parent_outer_tests_passed": 20,
+  "parent_independent_kernel_checks": {
+    "pav_vectors": 3350,
+    "nested_loss_checks": 20100,
+    "passed": true
+  },
+  "independent_source_review": {
+    "path": "/private/tmp/q26-horizon-runner-review.md",
+    "size": 5244,
+    "sha256": "0ce0b8fb1bbf0678401783e9f6069f66c368f5385fc04983347a575b3903772f"
+  },
+  "independent_kernel_review": {
+    "path": "/private/tmp/q26-horizon-kernel-review.md",
+    "size": 2989,
+    "sha256": "28e1703aa2e200d4241d5871a598e9718e1f17faab09da36ef6782c00d96920b"
+  },
+  "outer_guard": {
+    "path": "/private/tmp/q26-horizon-parent-run.py",
+    "size": 7064,
+    "sha256": "d4d83e0c9e7f730c4256c5685ffb1566ec56d1c193d924f1269e7cff45ef12b7"
+  },
+  "outer_tests": {
+    "path": "/private/tmp/test_q26_horizon_parent_run.py",
+    "size": 11745,
+    "sha256": "090b467cbdd42576e77c179fe3d0c0ab0f0ffa5f54e03e85678dea9d3017ac7d"
+  },
+  "replay_contract": {
+    "path": "/private/tmp/q26-horizon-replay-contract.md",
+    "size": 11721,
+    "sha256": "dee4eae7ac6c5e0628c9ffc36bd2e780d566c568db6d9a76c7453f7426836125"
+  },
+  "prior_prototype_defect": "Parent found int64 SID assertion incompatible with pinned producer int32 SID before payload. Corrected and tested with actual producer dtypes.",
+  "guard_repair": "Atomic pending-result rename/unlink race avoided by single lstat with vanished-entry skip; symlinks refused. Tested before payload.",
+  "meaning": "Parent source/admission review, not scientific result. One bounded deterministic replay/projection on spent development data. Other contamination and market-validation holds remain."
+}

@@ -28,16 +28,11 @@ const HEAD = {
 export interface DeploymentSectionProps {
   /** null when no address has been read — there is nothing to have scanned. */
   detection: VenueDetection | null
-  /** The recall/fast rates actually in force, which the user may have edited. */
+  /** The recall rate actually in force, which the user may have edited. */
   recallRate: number
-  fastRate: number
 }
 
-export const DeploymentSection: React.FC<DeploymentSectionProps> = ({
-  detection,
-  recallRate,
-  fastRate,
-}) => {
+export const DeploymentSection: React.FC<DeploymentSectionProps> = ({ detection, recallRate }) => {
   if (!detection) return null
 
   // Nothing detected is already said in one line by the deployment control; a second
@@ -77,14 +72,14 @@ export const DeploymentSection: React.FC<DeploymentSectionProps> = ({
           </Text>
         </Box>
         <Box display="grid" gap="2px">
-          <Text {...HEAD}>recall / fast in force</Text>
+          <Text {...HEAD}>recall rate in force</Text>
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
             fontSize="clamp(18px, 2.6vw, 24px)"
             {...tabular}
             color={SEMANTIC_COLORS.warning}
           >
-            {pct(recallRate)} / {pct(fastRate)}
+            {pct(recallRate)}
           </Text>
         </Box>
       </Box>
@@ -93,20 +88,13 @@ export const DeploymentSection: React.FC<DeploymentSectionProps> = ({
         <Box as="table" w="100%" minW="560px" style={{ borderCollapse: 'collapse' }}>
           <Box as="thead">
             <Box as="tr">
-              {[
-                'venue',
-                'balance',
-                'value',
-                'default recall',
-                'default fast',
-                'how the exit works',
-              ].map((h, i) => (
+              {['venue', 'balance', 'value', 'default recall', 'how the exit works'].map((h, i) => (
                 <Box
                   as="th"
                   key={h}
                   {...HEAD}
                   fontWeight={TYPOGRAPHY.normal}
-                  textAlign={i === 0 || i === 5 ? 'left' : 'right'}
+                  textAlign={i === 0 || i === 4 ? 'left' : 'right'}
                   py={SPACING.xs}
                   pr={SPACING.md}
                   borderBottom="1px solid"
@@ -165,18 +153,6 @@ export const DeploymentSection: React.FC<DeploymentSectionProps> = ({
                   pr={SPACING.md}
                 >
                   {pct(d.venue.recallRate, 0)}
-                </Box>
-                <Box
-                  as="td"
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="11.5px"
-                  {...tabular}
-                  color={SEMANTIC_COLORS.warning}
-                  textAlign="right"
-                  py={SPACING.xs}
-                  pr={SPACING.md}
-                >
-                  {pct(d.venue.fastRate, 0)}
                 </Box>
                 <Box
                   as="td"

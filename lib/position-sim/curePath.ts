@@ -11,32 +11,41 @@
  * census accounts.
  *
  * ---------------------------------------------------------------------------
- * CONTRACT TRUTH (membrane-solidity, read 2026-09-14)
+ * CONTRACT TRUTH (membrane-solidity master 10626e40; LE = LiquidationEngine.sol;
+ * line numbers re-pointed to master 2026-10-04)
  * ---------------------------------------------------------------------------
  * (i)   DELAY LENGTH. `liquidationDelay` is a constructor/timelock parameter
- *       (LiquidationEngine.sol:453, :588-595, :814-819). It has no compiled-in
- *       default on the Solidity side; the Rust source it ports sets 28,800 s
- *       (liquidation-engine/src/contract.rs:52, `unwrap_or(28800)`), which is the
+ *       (LE:550, :694-711, :985-992). It has no compiled-in default in the
+ *       engine; the deploy script passes `LIQUIDATION_DELAY_S = 8 hours` = 28,800 s
+ *       (script/DeployFullSystem.s.sol:199, constructor call :481), which is the
  *       value `CURE_WINDOW_SECONDS` carries. Timer arithmetic is
- *       `startTime + liquidationDelay` (LiquidationEngine.sol:839, :1348-1349).
+ *       `startTime + liquidationDelay` (LE:1012, :1595-1596).
  *
  * (ii)  THE BAND TEST IS MULTIPLICATIVE, AGAINST THE LIQUIDATION LINE.
  *       `_immediateThreshold(avgMaxLtv, avgMaxThresholdToDelay)
- *          = avgMaxLtv + band * avgMaxLtv / 1e18`   (LiquidationEngine.sol:2099-2103)
+ *          = avgMaxLtv + band * avgMaxLtv / 1e18`   (LE:2554-2557)
  *       so the break line is `line * (1 + band)`, NOT `line + band`. The test is
- *       strict: `aboveThreshold = currentLtv > threshold` (LiquidationEngine.sol:1329).
- *       `band` is the per-asset `max_threshold_to_delay` (Collateral.sol:48; the
+ *       strict: `aboveThreshold = currentLtv > threshold` (LE:1576).
+ *       `band` is the per-asset `max_threshold_to_delay` (Collateral.sol:50; the
  *       deploy scripts stamp 4e16 on every launch asset, and the only path that
  *       stamps anything else is permissionless onboarding at 95e16,
- *       Collateral.sol:208-210), averaged by collateral value across the basket.
+ *       Collateral.sol:296), averaged by collateral value across the basket.
+ *       UPDATE (master 10626e40): that 4e16 is the DELAYED class only. A no-delay
+ *       listing (cap > 90%) must carry band 0 (Collateral.sol:369-371,
+ *       DeployFullSystem.s.sol:1127), which puts the engine in instant mode
+ *       (LiquidationEngine.sol:1572): threshold = line, no timer is ever armed.
+ *       Passing `band: 0` here reproduces that exactly — `breakLine === line`, so any
+ *       breach classifies `Immediate` (a `sell` with reason 'band', or `sold-at-t0` in
+ *       cureWalk) and the delay length is never consulted. See membrane.ts
+ *       MEMBRANE_CLASS_PARAMS.
  *
  * (iii) RECOVERY CLEARS THE TIMER, SO A LATER BREACH RE-ARMS.
  *       `if (hasTimer && !aboveThreshold && currentLtv <= avgMaxLtv)` deletes the
- *       timer and records `SavedByDelay` (LiquidationEngine.sol:1362-1382); the
- *       permissionless `saveByDelay` entrypoint does the same and requires
- *       `currentLtv <= avgMaxLtv` (LiquidationEngine.sol:760-781). A fresh breach
- *       afterwards therefore classifies as `TimerStarted` and gets a FULL new delay
- *       (LiquidationEngine.sol:1388-1419). The delay is NOT one-shot.
+ *       timer and records `SavedByDelay` (LE:1666-1685); the permissionless
+ *       `clearRecoveredTimer` entrypoint does the same and requires
+ *       `currentLtv <= avgMaxLtv` (LE:926-949). A fresh breach afterwards therefore
+ *       classifies as `TimerStarted` and gets a FULL new delay (LE:1701-1702,
+ *       :1714-1724). The delay is NOT one-shot.
  *
  *       AMBIGUITY, stated and now PRICED: both clearing paths are permissionless and
  *       cost only gas, but somebody must call them. A recovery that nobody reports
@@ -48,26 +57,27 @@
  *       Recovery only re-arms on a return under the LINE (`<= line`), never merely
  *       back inside the band, because that is the exact predicate both contract paths
  *       require. (The contract also has a stale-timer amnesty at 2x delay,
- *       LiquidationEngine.sol:1343-1347; it cannot bind here because this model
+ *       LE:1580-1594; it cannot bind here because this model
  *       always resolves a timer at or before its own expiry.)
  *
- * (iv)  AT EXPIRY, STILL OVER THE LINE -> SALE. `timerExpired` (:1348) with
- *       `!aboveThreshold` classifies `DelayExpired` (:1391-1392) and falls through
- *       to the liquidation body; the timer is cleared (:1421-1423). The sale is the
+ * (iv)  AT EXPIRY, STILL OVER THE LINE -> SALE. `timerExpired` (LE:1595) with
+ *       `!aboveThreshold` classifies `DelayExpired` (:1699-1700) and falls through
+ *       to the liquidation body; the timer is cleared (:1724-1727). The sale is the
  *       partial repay-to-cap, `membraneRepayValue` — the Solidity partial-liquidation
- *       formula (LiquidationEngine.sol:2204-2238) sized against the borrow cap
+ *       formula (master LE:2663-2710) sized against the borrow cap
  *       `line - BORROW_LTV_GAP`, priced at that minute's collateral value, and then
- *       pushed through the `liqDebtMinimum` floor and remainder guard
- *       (LiquidationEngine.sol:2241-2269, see `applyDebtMinimum`).
+ *       pushed through the `liqDebtMinimum` floor (master LiquidationEngine.sol:
+ *       2718-2729, see `applyDebtMinimum`) AND its remainder guard — a sale never
+ *       leaves 0 < debt < dMin (owner ruling 2026-10-04; master has no guard, fix lane).
  *
  * (v)   BAND BROKEN DURING THE DELAY -> IMMEDIATE SALE. `aboveThreshold && hasTimer`
- *       classifies `BrokeWindow` (:1388-1389); the timer is cleared (:1421-1423) and
+ *       classifies `BrokeWindow` (LE:1695-1696); the timer is cleared (:1724-1727) and
  *       the same partial repay runs at once. A breach that is already past the band
- *       with no timer is `Immediate` (:1390) — also an immediate sale, never a
+ *       with no timer is `Immediate` (:1697-1698) — also an immediate sale, never a
  *       delay. So the band is the guarantee and the 8 hours are conditional on it.
  *
  * (vi)  A SALE RE-ARMS. The repay restores the BORROW cap, not zero, and the timer is
- *       deleted (:1421-1423). The position is therefore live afterwards: a later
+ *       deleted (LE:1724-1727). The position is therefore live afterwards: a later
  *       price move can breach it again and open a FULL fresh delay, and a later band
  *       break can sell again. The walk carries the reduced debt and collateral
  *       forward and keeps going, capped at `maxSales` sales.
@@ -83,7 +93,7 @@
  * forward (the clock keeps running through a gap — it is wall time, not tick time).
  */
 
-import { membraneRepayValue } from './membrane'
+import { membraneCollateralRepayValue, membraneRepayValue } from './membrane'
 
 export type CureOutcome =
   /** Never sold, never cured — reachable only if the position was never breached. */
@@ -115,13 +125,13 @@ export type CureOutcome =
 export type DelayAction =
   /** Healthy, nothing armed. */
   | { kind: 'none' }
-  /** A breach inside the band opened a FULL fresh delay (TimerStarted, :1393-1419). */
+  /** A breach inside the band opened a FULL fresh delay (TimerStarted, LE:1701-1702, :1714-1724). */
   | { kind: 'arm' }
-  /** A timer is running and protecting the position (TimerActive, :1385). */
+  /** A timer is running and protecting the position (TimerActive, LE:1690). */
   | { kind: 'hold' }
-  /** Back under the line: the timer is deleted (SavedByDelay, :1362-1382). */
+  /** Back under the line: the timer is deleted (SavedByDelay, LE:1666-1685). */
   | { kind: 'save' }
-  /** Sell now. `band` = BrokeWindow/Immediate (:1388-1390); `expiry` = DelayExpired. */
+  /** Sell now. `band` = BrokeWindow/Immediate (LE:1695-1698); `expiry` = DelayExpired (:1699-1700). */
   | { kind: 'sell'; reason: 'band' | 'expiry' }
 
 export interface DelayTimerOptions {
@@ -168,7 +178,7 @@ export class DelayTimer {
     return this.startedAt !== null
   }
 
-  /** The timer is deleted when a sale runs (LiquidationEngine.sol:1421-1423). */
+  /** The timer is deleted when a sale runs (LE:1724-1727). */
   clearAfterSale(): void {
     this.startedAt = null
   }
@@ -190,18 +200,18 @@ export class DelayTimer {
       }
       if (ltv > this.breakLine) {
         this.startedAt = null
-        return { kind: 'sell', reason: 'band' } // BrokeWindow (:1388-1389)
+        return { kind: 'sell', reason: 'band' } // BrokeWindow (LE:1695-1696)
       }
       if (i - this.startedAt >= this.delaySteps) {
         this.startedAt = null
-        return { kind: 'sell', reason: 'expiry' } // DelayExpired (:1391-1392)
+        return { kind: 'sell', reason: 'expiry' } // DelayExpired (LE:1699-1700)
       }
-      return { kind: 'hold' } // TimerActive (:1385)
+      return { kind: 'hold' } // TimerActive (LE:1690)
     }
 
     if (ltv > this.breakLine) {
       this.breaches++
-      return { kind: 'sell', reason: 'band' } // Immediate (:1390)
+      return { kind: 'sell', reason: 'band' } // Immediate (LE:1697-1698)
     }
     if (ltv > this.line) {
       this.breaches++
@@ -286,7 +296,12 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
       : Infinity
 
   const cap = Math.max(0, line - gap)
-  const oneRepay = Math.min(membraneRepayValue(debtUsd, collateralUsd, cap, dMin), repayCap)
+  // Collateral is the only payer here, so an underwater account closes at most its
+  // collateral value; the rest is bad debt (membraneCollateralRepayValue, LE:2361-2374).
+  const oneRepay = Math.min(
+    membraneCollateralRepayValue(debtUsd, collateralUsd, cap, dMin),
+    repayCap,
+  )
 
   // --- t0 classification ---------------------------------------------------
   if (!(debtUsd > 0) || !(collateralUsd > 0)) {
@@ -318,7 +333,7 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
 
   const breakLine = line * (1 + band)
 
-  // Past the band at t0: `Immediate` (LiquidationEngine.sol:1390). No delay exists.
+  // Past the band at t0: `Immediate` (LE:1697-1698). No delay exists.
   if (ltv0 > breakLine) {
     return {
       closedUsd: oneRepay,
@@ -351,7 +366,7 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
   const delaySteps = Math.max(1, Math.ceil(delaySeconds / stepSeconds))
 
   const timer = new DelayTimer({ line, band, delaySteps, noEarlyClear: input.noEarlyClear })
-  // Armed at t0 by the breach the census located: TimerStarted (:1393-1419).
+  // Armed at t0 by the breach the census located: TimerStarted (LE:1701-1702, :1714-1724).
   timer.step(0, ltv0)
 
   /** Debt and collateral carried forward across sales. `collBase` is on the t0 basis:
@@ -371,14 +386,17 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
     if (repaid > repayCap) repaid = repayCap
     if (repaid > debt) repaid = debt
     if (!(repaid > 0)) return debt > 0 && collAt > 0 && sales < maxSales
+    // The target is the FULL debt at L >= 1 (LE:2673-2688), but collateral repays at most
+    // what is held: book only what it covered. The uncovered rest stays owed, and with
+    // the collateral exhausted it is bad debt (LE:2361-2374) — never "closed".
     const seized = Math.min(repaid, collAt) // no liquidation fee in the census
-    closed += repaid
+    closed += seized
     sales++
     if (firstIndex === null) {
       firstIndex = i
       firstOutcome = reason === 'band' ? 'sold-at-band' : 'sold-at-expiry'
     }
-    debt -= repaid
+    debt -= seized
     collBase = r > 0 ? (collAt - seized) / r : 0
     timer.clearAfterSale()
     return debt > 1e-6 && collBase > 1e-6 && sales < maxSales

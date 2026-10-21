@@ -23,10 +23,11 @@ const erc20Abi = [
 /**
  * Known yield venues we can detect by token balance.
  *
- * `recallRate` / `fastRate` are MODELLED — they are our reading of how much of a
- * position can be pulled on demand and how much can arrive inside an 8-hour window,
- * based on the venue's own withdrawal mechanics. They are exposed as editable inputs
- * because they are the dominant variable in the result. They are not measured.
+ * `recallRate` is MODELLED — it is our reading of how much of a position can be pulled
+ * on demand, based on the venue's own withdrawal mechanics. It is exposed as an editable
+ * input because it is the dominant variable in the result. It is not measured.
+ * (A second, "fast" rate — the share arriving inside the 8-hour window — was REMOVED
+ * 2026-10-04 by owner ruling: a keeper call's recall is synchronous on master, LE:1453.)
  */
 export interface KnownVenue {
   symbol: string
@@ -46,39 +47,38 @@ export interface KnownVenue {
   /** How the venue's exit works — shown to the user so the rates are auditable. */
   exit: string
   recallRate: number
-  fastRate: number
 }
 
 export const KNOWN_VENUES: KnownVenue[] = [
   {
     symbol: 'sUSDe', underlying: 'USDe', name: 'Ethena sUSDe', address: '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497', decimals: 18,
     exit: 'a 7-day cooldown must elapse before staked USDe can be redeemed',
-    recallRate: 0.3, fastRate: 0,
+    recallRate: 0.3,
   },
   {
     symbol: 'sDAI', underlying: 'DAI', name: 'Savings DAI', address: '0x83F20F44975D03b1b09e64809B757c47f942BEeA', decimals: 18,
     exit: 'redeemable on demand against the DSR pot',
-    recallRate: 0.97, fastRate: 0.97,
+    recallRate: 0.97,
   },
   {
     symbol: 'sUSDS', underlying: 'USDS', name: 'Savings USDS', address: '0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD', decimals: 18,
     exit: 'redeemable on demand against the Sky savings rate',
-    recallRate: 0.97, fastRate: 0.97,
+    recallRate: 0.97,
   },
   {
     symbol: 'aEthUSDC', underlying: 'USDC', name: 'Aave V3 USDC', address: '0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c', decimals: 6,
     exit: 'withdrawable up to the unborrowed reserve — capped by utilisation',
-    recallRate: 0.9, fastRate: 0.9,
+    recallRate: 0.9,
   },
   {
     symbol: 'aEthUSDT', underlying: 'USDT', name: 'Aave V3 USDT', address: '0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a', decimals: 6,
     exit: 'withdrawable up to the unborrowed reserve — capped by utilisation',
-    recallRate: 0.9, fastRate: 0.9,
+    recallRate: 0.9,
   },
   {
     symbol: 'sfrxUSD', underlying: 'frxUSD', name: 'Staked frxUSD', address: '0xcF62F305562bA0170A4fa456be9BcB6fa6Ca6A70', decimals: 18,
     exit: 'redeemable against the Frax savings vault',
-    recallRate: 0.9, fastRate: 0.85,
+    recallRate: 0.9,
   },
 ]
 
@@ -209,15 +209,13 @@ export function excludeOwnCollateral(
 export function toVenueRecall(d: VenueDetection): VenueRecall | null {
   if (d.status !== 'detected' || d.totalUsd <= 0) return null
   const recallRate = d.detected.reduce((a, x) => a + x.venue.recallRate * x.valueUsd, 0) / d.totalUsd
-  const fastRate = d.detected.reduce((a, x) => a + x.venue.fastRate * x.valueUsd, 0) / d.totalUsd
   return {
     recallRate,
-    fastRate,
     deployedUsd: d.totalUsd,
     provenance: stamp(
       'modelled',
       'recall rates · modelled',
-      'Balances are read on-chain. The share that returns on demand, and the share that arrives inside 8 hours, are our modelling of each venue’s exit mechanics — not measured, and editable.',
+      'Balances are read on-chain. The share that returns on demand is our modelling of each venue’s exit mechanics — not measured, and editable.',
     ),
   }
 }

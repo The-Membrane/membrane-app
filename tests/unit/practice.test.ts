@@ -234,3 +234,25 @@ describe('liquidator column', () => {
     }
   })
 })
+
+describe('insolvency: a sale books only the debt the collateral covered (LE:2361-2374)', () => {
+  it('an underwater band-break sale closes the collateral value; the rest stays owed', () => {
+    // 70k debt on 100k collateral at a 0.80 line. ×0.85 → 0.8235, inside the band: arms.
+    // ×0.40 → 40k collateral, LTV 1.75: BrokeWindow. The target is the full 70k debt
+    // (LE:2673-2688) but only 40k of collateral exists to repay it.
+    const base = makeScenario(data, { asset: PRACTICE_ASSETS[0], openLtv: 0.7, line: 0.8, collateralUsd: 100_000 })
+    const sc = { ...base, ratios: [1, 0.85, 0.4, 0.4], count: 4 }
+    const st = runToEnd(initialState(sc))
+    const s = score(st)
+    expect(s.sales).toBe(1)
+    expect(st.sales[0].reason).toBe('band')
+    expect(s.soldUsd).toBeCloseTo(40_000, 6)
+    expect(st.closedUsd).toBeCloseTo(40_000, 6) // was 70,000: bad debt booked as repaid
+    expect(st.sales[0].repaidUsd).toBeCloseTo(st.sales[0].seizedUsd, 9)
+    expect(s.debtUsd).toBeCloseTo(30_000, 6) // the uncovered remainder: bad debt
+    expect(s.collateralKeptUsd).toBeCloseTo(0, 6)
+    // Still bitwise-identical to the census walk.
+    const frame = cureWalkInputFor(sc)!
+    expect(st.closedUsd).toBe(cureWalk(frame.input).closedUsd)
+  })
+})

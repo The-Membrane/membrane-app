@@ -1,0 +1,9 @@
+# R16 fH mechanism study — source handoff
+
+O84 CODEX CONTINUATION, 2026-10-20. Source-only review artifact. Original DRAFT source/design/spec bytes remain unchanged after execution. Parent admitted eight resource worlds and then all 64 paired worlds. Full invocation exited 0 in 12.206288625 seconds. This is not market validation or nominal-coverage certification.
+
+The 2×2 factors are synthetic HAR-target noise 0/.125 and common versus state-dependent mean-one depth shape. All four conditions share innovations and weights. B20 is the first 20 of B200. Separate aggregate evidence retains all 12 state/barrier cells, both settings, world MCSE and paired contrasts. Conditional depth shape can defeat pooled probabilities despite noiseless scale recovery. More draws do not change the analytic pooled limit. No additive causal variance allocation or B200 convergence claim follows.
+
+Included: exact mechanism source/tests/spec/design, exact parent timer, and accepted sibling original-fh_boot AST loader with source/caller pins. Original staging root is /Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/. The loader requires absolute frozen scientific checkout /Users/EBmic/research-workspaces/history-forecasts-continuation at 6aa64254073119c76f2b9e7a713abd601756d872. Spec paths and runtime qualification are Mac-local identities. Applying the patch does not create a portable execution environment. Future execution requires path/runtime re-admission and fresh output. The parent timer authenticates source/spec and bounds the entire child invocation.
+
+No market data, world realizations, prediction arrays, fitted coefficients, raw manifest or operational receipts are included. Bounded unit fixtures use seeds outside registered ranges. Existing original step/range research and blind/inference holds remain unchanged.

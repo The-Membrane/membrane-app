@@ -1,0 +1,14 @@
+{
+  "commit": "6aa64254073119c76f2b9e7a713abd601756d872",
+  "path": "scripts/research/history-forecasts/r164_recursive.py",
+  "inclusive_lines": [
+    507,
+    526
+  ],
+  "sha256": "b6568cd3212f401cf8016f884d3875cdcce3782810578e63b57981baa5d94442",
+  "operations": [
+    "np.minimum.accumulate(arr, axis=-1)",
+    "np.nanquantile(arr, (0.05,0.25,0.5,0.75,0.95), axis=0)",
+    "np.nanstd(arr, axis=0)"
+  ]
+}

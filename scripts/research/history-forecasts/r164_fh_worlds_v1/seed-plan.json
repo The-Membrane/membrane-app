@@ -1,0 +1,322 @@
+[
+  {
+    "world": 0,
+    "world_seed": 2026102000,
+    "bootstrap_seed": 2026103000
+  },
+  {
+    "world": 1,
+    "world_seed": 2026102001,
+    "bootstrap_seed": 2026103001
+  },
+  {
+    "world": 2,
+    "world_seed": 2026102002,
+    "bootstrap_seed": 2026103002
+  },
+  {
+    "world": 3,
+    "world_seed": 2026102003,
+    "bootstrap_seed": 2026103003
+  },
+  {
+    "world": 4,
+    "world_seed": 2026102004,
+    "bootstrap_seed": 2026103004
+  },
+  {
+    "world": 5,
+    "world_seed": 2026102005,
+    "bootstrap_seed": 2026103005
+  },
+  {
+    "world": 6,
+    "world_seed": 2026102006,
+    "bootstrap_seed": 2026103006
+  },
+  {
+    "world": 7,
+    "world_seed": 2026102007,
+    "bootstrap_seed": 2026103007
+  },
+  {
+    "world": 8,
+    "world_seed": 2026102008,
+    "bootstrap_seed": 2026103008
+  },
+  {
+    "world": 9,
+    "world_seed": 2026102009,
+    "bootstrap_seed": 2026103009
+  },
+  {
+    "world": 10,
+    "world_seed": 2026102010,
+    "bootstrap_seed": 2026103010
+  },
+  {
+    "world": 11,
+    "world_seed": 2026102011,
+    "bootstrap_seed": 2026103011
+  },
+  {
+    "world": 12,
+    "world_seed": 2026102012,
+    "bootstrap_seed": 2026103012
+  },
+  {
+    "world": 13,
+    "world_seed": 2026102013,
+    "bootstrap_seed": 2026103013
+  },
+  {
+    "world": 14,
+    "world_seed": 2026102014,
+    "bootstrap_seed": 2026103014
+  },
+  {
+    "world": 15,
+    "world_seed": 2026102015,
+    "bootstrap_seed": 2026103015
+  },
+  {
+    "world": 16,
+    "world_seed": 2026102016,
+    "bootstrap_seed": 2026103016
+  },
+  {
+    "world": 17,
+    "world_seed": 2026102017,
+    "bootstrap_seed": 2026103017
+  },
+  {
+    "world": 18,
+    "world_seed": 2026102018,
+    "bootstrap_seed": 2026103018
+  },
+  {
+    "world": 19,
+    "world_seed": 2026102019,
+    "bootstrap_seed": 2026103019
+  },
+  {
+    "world": 20,
+    "world_seed": 2026102020,
+    "bootstrap_seed": 2026103020
+  },
+  {
+    "world": 21,
+    "world_seed": 2026102021,
+    "bootstrap_seed": 2026103021
+  },
+  {
+    "world": 22,
+    "world_seed": 2026102022,
+    "bootstrap_seed": 2026103022
+  },
+  {
+    "world": 23,
+    "world_seed": 2026102023,
+    "bootstrap_seed": 2026103023
+  },
+  {
+    "world": 24,
+    "world_seed": 2026102024,
+    "bootstrap_seed": 2026103024
+  },
+  {
+    "world": 25,
+    "world_seed": 2026102025,
+    "bootstrap_seed": 2026103025
+  },
+  {
+    "world": 26,
+    "world_seed": 2026102026,
+    "bootstrap_seed": 2026103026
+  },
+  {
+    "world": 27,
+    "world_seed": 2026102027,
+    "bootstrap_seed": 2026103027
+  },
+  {
+    "world": 28,
+    "world_seed": 2026102028,
+    "bootstrap_seed": 2026103028
+  },
+  {
+    "world": 29,
+    "world_seed": 2026102029,
+    "bootstrap_seed": 2026103029
+  },
+  {
+    "world": 30,
+    "world_seed": 2026102030,
+    "bootstrap_seed": 2026103030
+  },
+  {
+    "world": 31,
+    "world_seed": 2026102031,
+    "bootstrap_seed": 2026103031
+  },
+  {
+    "world": 32,
+    "world_seed": 2026102032,
+    "bootstrap_seed": 2026103032
+  },
+  {
+    "world": 33,
+    "world_seed": 2026102033,
+    "bootstrap_seed": 2026103033
+  },
+  {
+    "world": 34,
+    "world_seed": 2026102034,
+    "bootstrap_seed": 2026103034
+  },
+  {
+    "world": 35,
+    "world_seed": 2026102035,
+    "bootstrap_seed": 2026103035
+  },
+  {
+    "world": 36,
+    "world_seed": 2026102036,
+    "bootstrap_seed": 2026103036
+  },
+  {
+    "world": 37,
+    "world_seed": 2026102037,
+    "bootstrap_seed": 2026103037
+  },
+  {
+    "world": 38,
+    "world_seed": 2026102038,
+    "bootstrap_seed": 2026103038
+  },
+  {
+    "world": 39,
+    "world_seed": 2026102039,
+    "bootstrap_seed": 2026103039
+  },
+  {
+    "world": 40,
+    "world_seed": 2026102040,
+    "bootstrap_seed": 2026103040
+  },
+  {
+    "world": 41,
+    "world_seed": 2026102041,
+    "bootstrap_seed": 2026103041
+  },
+  {
+    "world": 42,
+    "world_seed": 2026102042,
+    "bootstrap_seed": 2026103042
+  },
+  {
+    "world": 43,
+    "world_seed": 2026102043,
+    "bootstrap_seed": 2026103043
+  },
+  {
+    "world": 44,
+    "world_seed": 2026102044,
+    "bootstrap_seed": 2026103044
+  },
+  {
+    "world": 45,
+    "world_seed": 2026102045,
+    "bootstrap_seed": 2026103045
+  },
+  {
+    "world": 46,
+    "world_seed": 2026102046,
+    "bootstrap_seed": 2026103046
+  },
+  {
+    "world": 47,
+    "world_seed": 2026102047,
+    "bootstrap_seed": 2026103047
+  },
+  {
+    "world": 48,
+    "world_seed": 2026102048,
+    "bootstrap_seed": 2026103048
+  },
+  {
+    "world": 49,
+    "world_seed": 2026102049,
+    "bootstrap_seed": 2026103049
+  },
+  {
+    "world": 50,
+    "world_seed": 2026102050,
+    "bootstrap_seed": 2026103050
+  },
+  {
+    "world": 51,
+    "world_seed": 2026102051,
+    "bootstrap_seed": 2026103051
+  },
+  {
+    "world": 52,
+    "world_seed": 2026102052,
+    "bootstrap_seed": 2026103052
+  },
+  {
+    "world": 53,
+    "world_seed": 2026102053,
+    "bootstrap_seed": 2026103053
+  },
+  {
+    "world": 54,
+    "world_seed": 2026102054,
+    "bootstrap_seed": 2026103054
+  },
+  {
+    "world": 55,
+    "world_seed": 2026102055,
+    "bootstrap_seed": 2026103055
+  },
+  {
+    "world": 56,
+    "world_seed": 2026102056,
+    "bootstrap_seed": 2026103056
+  },
+  {
+    "world": 57,
+    "world_seed": 2026102057,
+    "bootstrap_seed": 2026103057
+  },
+  {
+    "world": 58,
+    "world_seed": 2026102058,
+    "bootstrap_seed": 2026103058
+  },
+  {
+    "world": 59,
+    "world_seed": 2026102059,
+    "bootstrap_seed": 2026103059
+  },
+  {
+    "world": 60,
+    "world_seed": 2026102060,
+    "bootstrap_seed": 2026103060
+  },
+  {
+    "world": 61,
+    "world_seed": 2026102061,
+    "bootstrap_seed": 2026103061
+  },
+  {
+    "world": 62,
+    "world_seed": 2026102062,
+    "bootstrap_seed": 2026103062
+  },
+  {
+    "world": 63,
+    "world_seed": 2026102063,
+    "bootstrap_seed": 2026103063
+  }
+]

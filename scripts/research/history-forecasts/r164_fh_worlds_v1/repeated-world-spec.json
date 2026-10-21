@@ -1,0 +1,59 @@
+{
+  "status": "DRAFT_REQUIRES_PARENT_SCIENTIFIC_REVIEW_AND_FREEZE",
+  "schema": "r16-fh-surrogate-worlds-v1",
+  "source_commit": "6aa64254073119c76f2b9e7a713abd601756d872",
+  "blocks": 32,
+  "valid_rows_per_block": 64,
+  "calendar_block_hours": 720,
+  "T_h": 24,
+  "scale": 0.5,
+  "beta": [
+    -2.5257286443082556,
+    0.0625,
+    -0.03125,
+    0.015625
+  ],
+  "shock_component_sd": 0.125,
+  "levels": [
+    -0.02,
+    -0.1,
+    -0.2
+  ],
+  "bootstrap_replicates": [
+    20,
+    200
+  ],
+  "quantiles": [
+    0.05,
+    0.25,
+    0.5,
+    0.75,
+    0.95
+  ],
+  "world_count": 64,
+  "world_seed_base": 2026102000,
+  "bootstrap_seed_base": 2026103000,
+  "seed_rule": "world j uses world_seed_base+j and bootstrap_seed_base+j, j=0..63; PCG64",
+  "initial_budget_stage_worlds": 8,
+  "full_budget_stage_worlds": 64,
+  "wall_seconds_per_invocation": 120,
+  "rss_bytes": 524288000,
+  "disk_reserve_bytes": 2147483648,
+  "decision_rule": "No tuning, seed search, selection, exclusion of bad worlds, or statistical early stopping. Stage 8 assesses budget only. Stage 64 uses the same frozen law and seeds. Abort retains completed and current-world evidence.",
+  "resource_only_pilot_gate": {
+    "pilot_worlds": 8,
+    "full_stage_worlds": 64,
+    "measured_pilot_elapsed": "t8: externally timed complete invocation elapsed seconds, including imports/startup and final output writes; parent retains wrapper receipt. Internal manifest elapsed begins after imports and is diagnostic only.",
+    "projected_full_elapsed": "8 * t8; conservatively includes startup eight times",
+    "advance_only_if_projected_full_seconds_at_most": 96,
+    "sampled_peak_rss_bytes_strictly_below": 524288000,
+    "free_disk_bytes_at_least": 2147483648,
+    "forbidden_gate_inputs": [
+      "forecast values",
+      "coverage values",
+      "B20 versus B200 metric values"
+    ],
+    "full_stage_admission": "Parent explicit admission required after actual pilot resource audit. Passing resource gate alone does not authorize stage64. All64 seeds, law, and metrics remain unchanged."
+  },
+  "beta_intercept_definition": "log(0.08), fixed once before any registered world is generated"
+}

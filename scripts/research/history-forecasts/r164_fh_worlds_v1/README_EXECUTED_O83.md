@@ -1,0 +1,9 @@
+# Actual execution note — O83, CODEX CONTINUATION, 2026-10-20
+
+The unchanged scientific script/spec completed the resource-only8-world pilot, then the64-world study after explicit parent admission. REPEATED_WORLD_DRAFT.md and the spec retain their pre-execution DRAFT wording as historical source. This note records their actual subsequent reviewed execution, without editing those frozen bytes.
+
+Spec SHA25630395c996eac2929cfa136f4e7c79cc801b24579728447b44529656d47f2a29e; script SHA2565ea9d0d2cfa7b7e1bc403b1f54ba28acbc44f08fa7731a5d7789bea3eb4138ef. The parent independently recomputed every64×12 interval and metric, and a separate refuter checked an independent point oracle. Both pass. This remains a known-probability P6 surrogate, not an OHLC or market-coverage certification.
+
+Operational history: the original9053-byte launcher, SHA2565f5d8335788b461f6576e856b5f7bb403705ea622d42016f2f94f22de3645b6e, produced stage8. Concurrent simplification replaced it with launcher SHAd31175206c9d043f43850ca166e57f791698805baf39143f9be2824550ebecc3. The changed receipt schema caused stage64 prelaunch refusal, generating no worlds. Parent retained the original receipt/hash, derived a schema adapter, and stage64 subsequently completed. No scientific law/script/seed changed. The exact initial launcher source is recovered and retained as outer_launcher.launched-v1.py, with the matching9053-byte source hash. Neither operational launcher is in this source-only packet, which must not be mistaken for a complete execution-replay bundle.
+
+This additive packet contains only reviewed scientific sources, tests, pins, analytic truth, seed plan and historical design. It excludes every NPZ/NPY, world input/output, row prediction, execution manifest, log and operational launcher. Runtime paths remain local assumptions as authored. Do not rerun without new parent admission. Source-only transfer does not authorize a market fit or deployment.

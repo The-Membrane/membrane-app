@@ -1,0 +1,15 @@
+{
+  "commit": "6aa64254073119c76f2b9e7a713abd601756d872",
+  "source_path": "scripts/research/history-forecasts/r164_recursive.py",
+  "source_sha256": "1a1e974b6d7c871c178c1a8e417fcfd90d9ce7eda7135ed1e1139bb6305fab48",
+  "function_sha256": "090ac06168d36ad01ca796b7496bb055d571f17024ce2717293243d7aa7e1be1",
+  "function_ast_sha256": "bd081f3d9ee1a777fddf96d09ea4948a77edf021a72ac19826873572543c5d7f",
+  "function_lines": [
+    369,
+    413
+  ],
+  "globals": {
+    "BOOT_B": 20,
+    "BOOT_BLOCK_H": 720
+  }
+}

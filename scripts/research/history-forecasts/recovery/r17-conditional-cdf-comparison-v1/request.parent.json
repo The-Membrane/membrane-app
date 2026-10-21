@@ -1,0 +1,101 @@
+{
+  "schema": "r17-conditional-cdf-comparison-protocol-v1",
+  "status": "PARENT_FROZEN_COMPARISON",
+  "source_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-cdf-comparison-v1/cdf_comparison.py",
+    "size": 18985,
+    "sha256": "f5cae4471db94e1a5e3b187db1c90192aad70f4fa2758fcb98df95ed6b08c7f1"
+  },
+  "tests_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-cdf-comparison-v1/test_cdf_comparison.py",
+    "size": 10014,
+    "sha256": "b4ff0b7bb0e54aab057fe6e79f0b7a24d89daefc54314cd393d888dcc776f470"
+  },
+  "design_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-cdf-comparison-v1/DESIGN.DRAFT.md",
+    "size": 19105,
+    "sha256": "3c3bccdbeff1a48e102fad482fd55a8e5af48680697dd7cb52e38be503ce67ca"
+  },
+  "base_request_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/analyze-v2.request.parent.json",
+    "size": 112585,
+    "sha256": "5484fcfca49d29cf8792a507c66f0ff7ea4e0e545dbf28ba36b11322b27ffc99"
+  },
+  "cuts_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-depth-audit-v1/cuts-v1/result.json",
+    "size": 6030,
+    "sha256": "15119684a77a93e62da694ae0392c5c6922d5ecf821984796d61995872499ce4"
+  },
+  "runtime": "Reuse exact approved single-thread recovery Python3.12.14/NumPy2.5.4, authenticated through original O86 admitted request; no new packages.",
+  "models": {
+    "A": "inclusive pooledZ ECDF(t)",
+    "B": "rowwiseWi=Zi/M_gi theninclusive pooledW ECDF(t/M_currentg)",
+    "C": "canonicalinclusive ownstateZ ECDF(t);exact-real-arithmetic equivalence to ownstateWquery",
+    "raw_fH": "externalstoredanchor; not matched library",
+    "hash_B/hash_C": "same eligible D-known base rows/Z, fixed firstbytehashstates, sameBCrecipes"
+  },
+  "library": "OwnSID/H/quarter; from2022 daily origins,issue+p_fH_valid+complete+finitepositive effective scale+finiteZ+knownDstate; ts+H*3600<=quarterstart. Future featurequarter provenance failsclosed.",
+  "state": "Frozen O86 D-imbalance cut only enters predictions;other frozenaxesdiagnostic only.",
+  "negative_control": {
+    "payload": "Q26-R17-COND-NEGATIVE-v1:{int(sid)}:{int(ts)}",
+    "encoding": "UTF-8",
+    "bit": "sha256.digest()[0]&1",
+    "shared_across_horizons": true,
+    "membership": "Same literal D-known eligible base rowIDs, not a larger hash-known library.",
+    "selection": "One fixed diagnostic; no seedsearch."
+  },
+  "fallback": "Unknowncurrentstate or missingeitherhistoricalstate/invalidMg/nonfiniteW ornormalizedquery =>B=C=A. EmptyZ/invalidquery =>allABC=rawfH. Rawunavailableorigin retained unavailable;noarm-specificrescue.",
+  "primary": "H24/-10 BrierC-B andC-A;notbarriermean;rawfH contextual.",
+  "outputs": {
+    "all_point_views": 270,
+    "main_nonfallback_calendar_views": 15,
+    "primary_resampling_targets": 6,
+    "LOAO_primary_rows": 72,
+    "cross_horizon_records": 60,
+    "row_archives": "No perrow output/NPZ copies/publication; aggregate only."
+  },
+  "resampling": {
+    "draws": 500,
+    "seed": 2026106000,
+    "targets": "H24/-10:C-B/C-A eachpooled/2024/2025",
+    "unit": "year\u00d7epochaligned28dayglobalcalendarblock, allassets/datescoupled;fixedpredictions,no refit",
+    "meaning": "conditionalresamplingsensitivity,notvalidatedCI/pvalue/power"
+  },
+  "policy": {
+    "wall_seconds": 120,
+    "rss_bytes": 1000000000,
+    "disk_reserve_bytes": 2147483648,
+    "output_bytes": 10000000
+  },
+  "proposed_output": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-cdf-comparison-v1/result-v1",
+  "interpretation": "Retrospective seen/spent development restriction comparison,motivated afterO86. Nolatent-scale/shape causal decomposition, future-skew/jumpforecastvalidation,marketwinner,arbitrarylineband,blinduse,promotionorautomaticfull277expansion.",
+  "admission": "Parent actualsource/test/design/request review plus independent refutation and exact freeze before any admitted arrays or realCDF construction/scoring.",
+  "outer_guard_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-cdf-comparison-v1/parent_run.py",
+    "size": 2712,
+    "sha256": "2e48f0816d8250bc959593e5e131629b65fc7f95af9d58152da3037e2284acf7"
+  },
+  "parent_review_pins": [
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-cdf-comparison-v1/parent-source-review.json",
+      "size": 1472,
+      "sha256": "cf398a692c6b4962ab9d63ef3a858df86a2e4a16db38de706f17b85e8a8409b3"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-cdf-comparison-v1/independent-source-review.md",
+      "size": 6374,
+      "sha256": "f12f3a314fab989ff202864828db28de1fa07c7752f1f9395d254ea122b801a2"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-cdf-comparison-v1/independent-oracle.py",
+      "size": 4627,
+      "sha256": "c7ab08e6aebe85a9e9933db660d2a9d4c7a3436e4a3c2f63fe9e4ef4b96a004c"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r17-conditional-cdf-comparison-v1/design-refutation.md",
+      "size": 12780,
+      "sha256": "e06116b516ae926c5416e86aadb5b28c85cbfa22308379643d2e53f8f943eb13"
+    }
+  ],
+  "parent_admission": "Source/tests/design actually reviewed; parent13tests and independent330 rational checks pass. Single bounded execution on previously seen inputs. No repeat/promotion/blind authorization."
+}

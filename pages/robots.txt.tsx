@@ -15,22 +15,15 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
     'User-agent: *',
     'Allow: /',
     'Disallow: /management',
-    'Disallow: /nft',
-    'Disallow: /lockdrop',
     'Disallow: /tournament',
     'Disallow: /proto/',
     'Disallow: /sensory/',
-    'Disallow: /*/acquisition-sim',
-    'Disallow: /*/acquisition-dashboard',
-    'Disallow: /*/control-room',
     'Disallow: /*/maze-runners',
     'Disallow: /*/ltv-dashboard',
-    'Disallow: /*/membrane-dashboard',
     'Disallow: /*/tournament',
     // about is internal until its placeholder copy is replaced with real
-    // company facts (docs/GEO_AUDIT.md trust-anchor finding); levels is a sim.
+    // company facts (docs/GEO_AUDIT.md trust-anchor finding).
     'Disallow: /*/about',
-    'Disallow: /*/levels',
     // /manic entries removed: the route was deleted on this branch and now
     // returns a real 404 via middleware.ts — disallowing a 404 is noise.
     '',

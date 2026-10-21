@@ -57,23 +57,15 @@ const navItems = [
     { label: 'Radar', href: '/radar' },
     // Auto-tracked mainnet carry strats (discovery scan -> watch -> verdicts).
     { label: 'Strats', href: '/strats' },
-    // Called-It receipts: wallet-signed venue calls, scored by the recorder.
-    { label: 'Receipts', href: '/receipts' },
     { label: 'Home', href: '/home' },
     { label: 'Builder', href: '/builder' },
     { label: 'Defend', href: '/defend' },
-    // Promoted out of the removed Dashboards menu — it stands on its own.
-    { label: 'Membrane', href: '/membrane-dashboard' },
     // Lore/marketing page — kept reachable, but numbers-first surfaces lead the nav.
     { label: 'About', href: '/about' },
 ];
 
 // Reachable, but not advertised as live. Depth-ordered per public/proto/flow.html.
 const comingSoonItems = [
-    // Direct door to the Levels directory (Transmuter, Manic, Stake, Maze Runners) —
-    // previously only discoverable by completing the Home fingerprint-scan ritual.
-    { label: 'Levels', href: '/levels' },
-    { label: 'Position', href: '/position' },
     { label: 'Borrow', href: '/borrow' },
     // Carry promoted to top-level (carry-first ruling) — no longer listed here.
     { label: 'Earn', href: '/earn' },
@@ -81,22 +73,18 @@ const comingSoonItems = [
     { label: 'Mint', href: '/mint' },
     { label: 'Portfolio', href: '/portfolio' }, // flow.html marks this replaced by Position — keep until owner removes
     { label: 'The Disco', href: '/disco' },
-    // Fully built page that was orphaned from every nav path.
-    { label: 'Boost', href: '/boost' },
     // { label: 'Transmuter', href: '/transmuter' },
     // { label: 'Maze Runners', href: '/maze-runners' },
     // { label: 'Bridge', href: '/bridge' },
 
     // { label: 'Manic', href: '/manic' }, //There is 190 TVL in here so whoever's that is can just type /manic
-    // { label: 'Isolated Markets', href: '/isolated' }, //Remove supplied CDT Trix
     // { label: 'Stake', href: '/stake' },
-    // { label: 'Control Room', href: '/control-room' },
 ];
 
 // Dashboards menu removed (owner ruling, Aug 31 2026):
 //   - Acquisition — the underlying feature does not exist yet
 //   - LTVs        — these updates belong on the Disco / Defend pages, not a separate dashboard
-//   - Membrane    — promoted to a solo top-level nav item above
+//   - Membrane    — page removed 2026-10-12 (mock data; docs/CUTS-2026-10-12.md)
 // Emptied rather than deleted: both render sites are guarded by `dashboards.length > 0`,
 // so the menu disappears while the markup stays ready to restore. The pages themselves
 // are untouched and still reachable by direct URL.

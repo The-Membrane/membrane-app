@@ -159,7 +159,6 @@ export const Builder: React.FC = () => {
       <VerdictCard
         verdict={view.verdict}
         mintHref={`/${chainName}/borrow`}
-        positionHref={`/${chainName}/position`}
         onSaveCard={actions.saveResultCard}
       />
 

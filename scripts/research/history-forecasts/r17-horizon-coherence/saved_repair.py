@@ -419,7 +419,7 @@ def output_bytes(root):
 
 
 def write_json(path, value):
-    path = Path(path); payload = (json.dumps(value, indent=2, allow_nan=False)+'\n').encode()
+    path = Path(path); payload = (json.dumps(value, separators=(',', ':'), allow_nan=False)+'\n').encode()
     need(len(payload) <= JSON_CAP and output_bytes(path.parent) + len(payload) <= OUTPUT_CAP, 'JSON/output byte cap')
     with path.open('xb') as stream: stream.write(payload)
 

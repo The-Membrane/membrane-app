@@ -240,6 +240,32 @@ class SerializedTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'byte cap'): S.write_json(root/'second.json', {})
             self.assertFalse((root/'second.json').exists())
 
+    def test_compact_full_synthetic_report_preserves_fixed_cap_and_values(self):
+        # The original small fixture hides repeated native/control-view whitespace.
+        mapping = [[i, f'synthetic:{i}'] for i in range(24)]
+        archives = {}
+        for h, old in fixture().items():
+            data = {k: np.tile(v[:2], (24, 1)) if v.ndim == 2 else np.tile(v[:2], 24)
+                    for k, v in old.items()}
+            data['sid'] = np.repeat(np.arange(24, dtype='int32'), 2)
+            archives[h] = data
+        _, report = S.reduce_saved(archives, mapping, project_grid)
+        payload = dict(schema='synthetic-report-serialization-regression', analysis=report, padding='')
+        compact_size = len((json.dumps(payload, separators=(',', ':'), allow_nan=False)+'\n').encode())
+        self.assertLess(compact_size, S.JSON_CAP)
+        # Padding is synthetic transport metadata, not omitted scientific fields.
+        payload['padding'] = 'x' * (S.JSON_CAP-compact_size-1)
+        self.assertGreater(len((json.dumps(payload, indent=2, allow_nan=False)+'\n').encode()), S.JSON_CAP)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp).resolve()/'report.json'
+            S.write_json(path, payload)
+            self.assertEqual(path.stat().st_size, S.JSON_CAP-1)
+            self.assertEqual(S.strict_json(path.read_bytes()), payload)
+            with self.assertRaises(FileExistsError): S.write_json(path, payload)
+            payload['padding'] += 'xx'
+            with self.assertRaisesRegex(ValueError, 'byte cap'): S.write_json(path.with_name('oversize.json'), payload)
+            self.assertFalse(path.with_name('oversize.json').exists())
+
 
 if __name__ == '__main__':
     unittest.main()

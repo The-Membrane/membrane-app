@@ -15,7 +15,6 @@ export const INDEXABLE_PATHS = [
   `/${DEFAULT_CHAIN}/borrow`,
   `/${DEFAULT_CHAIN}/carry`,
   `/${DEFAULT_CHAIN}/home`,
-  `/${DEFAULT_CHAIN}/landing`,
   `/${DEFAULT_CHAIN}/mint`,
   // BOTH simulator builds are indexable (pages/[chain]/simulator.tsx and
   // pages/[chain]/carry-simulator.tsx) and both are demo-first conversion surfaces.

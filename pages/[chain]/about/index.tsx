@@ -269,7 +269,7 @@ export default function AboutPage() {
                     {/* Navigation Buttons */}
                     <HStack spacing={4} justify="center">
                         <Button
-                            onClick={() => router.push(`/${chainName}/levels`)}
+                            onClick={() => router.push(`/${chainName}/home`)}
                             variant="outline"
                             px={8}
                             py={3}
@@ -288,7 +288,7 @@ export default function AboutPage() {
                             BACK
                         </Button>
                         <Button
-                            onClick={() => router.push(`/${chainName}/levels`)}
+                            onClick={() => router.push(`/${chainName}/home`)}
                             px={8}
                             py={3}
                             borderRadius={0}

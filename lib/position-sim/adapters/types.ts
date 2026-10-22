@@ -12,7 +12,7 @@
  */
 
 import type { PublicClient } from 'viem'
-import type { ProtocolId, ProtocolPosition } from '../types'
+import type { MarketDiscovery, ProtocolId, ProtocolPosition } from '../types'
 
 export interface LendingAdapter {
   id: ProtocolId
@@ -34,6 +34,47 @@ export class UnsupportedError extends Error {
   }
 }
 
+/**
+ * A check that a protocol's own numbers are in the unit the adapter assumes failed for ONE
+ * sub-market (one Comet). That market is dropped with this message; the others stand. A
+ * revert or a missing value is not this: those still fail the whole read.
+ */
+export class SanityCheckError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'SanityCheckError'
+  }
+}
+
+/**
+ * Thrown by an adapter whose read stands but is not whole: it dropped some sub-markets on a
+ * check (`skipped`), or it could not find every market an address may hold (`discovery`
+ * with complete: false — Morpho Blue). Carries what it did read; the registry reports it
+ * (status 'ok' with `skipped`/`discovery`; 'error' when a found position was dropped and
+ * nothing was left; 'incomplete' when nothing was found but discovery was partial).
+ */
+export class PartialReadError extends Error {
+  constructor(
+    readonly positions: ProtocolPosition[],
+    readonly skipped: { market: string; reason: string }[],
+    readonly discovery?: MarketDiscovery,
+  ) {
+    super(
+      [
+        ...skipped.map((s) => `${s.market} skipped: ${s.reason}`),
+        ...(discovery && !discovery.complete ? [discoveryNote(discovery)] : []),
+      ].join('; '),
+    )
+    this.name = 'PartialReadError'
+  }
+}
+
+/** "only 412 markets from the known-market list were checked (Morpho API: HTTP 429)" */
+export function discoveryNote(d: MarketDiscovery): string {
+  const reason = d.reason ? ` (${d.reason})` : ''
+  return `only ${d.checked} markets from the ${d.source} were checked${reason}; a position in any other market would not show`
+}
+
 // ------------------------------------------------------------------ multicall
 
 /** One entry of a viem `multicall({ allowFailure: true })` response. */
@@ -52,18 +93,41 @@ export interface Call {
 }
 
 /**
- * Thin typed wrapper over `client.multicall({ contracts, allowFailure: true })`.
+ * ONE BLOCK PER READ. An adapter pins the chain head once, at the start of a read, and
+ * passes that block to every multicall in the read: a position assembled from two blocks
+ * (balances from one, prices or thresholds from the next) is a position that never
+ * existed. The fallback transport retries a lagging endpoint that does not have the
+ * block yet on the next one.
+ */
+export async function pinBlock(client: PublicClient): Promise<bigint> {
+  return client.getBlockNumber({ cacheTime: 0 })
+}
+
+/**
+ * Thin typed wrapper over `client.multicall({ contracts, allowFailure: true, blockNumber })`.
  *
  * `allowFailure: true` is deliberate everywhere: a single reverting reserve or market
  * must not take down the whole fan-out. Callers then decide, per leg, whether the
  * failure is fatal (`unwrap`) or tolerable (borrow APR → null).
+ *
+ * `blockNumber` is the read's pinned block (see `pinBlock`); null only for a standalone
+ * read outside an adapter (one oracle price), which reads the latest block.
  */
-export async function mc<T>(client: PublicClient, contracts: Call[]): Promise<MulticallEntry<T>[]> {
+export async function mc<T>(
+  client: PublicClient,
+  contracts: Call[],
+  blockNumber: bigint | null,
+  /** Calldata bytes per Multicall3 chunk (viem's default is 1,024). A wide fan-out of
+   *  small calls — a Morpho market scan — passes more, so it is a few eth_calls, not dozens. */
+  batchSize?: number,
+): Promise<MulticallEntry<T>[]> {
   if (contracts.length === 0) return []
   const res = await client.multicall({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     contracts: contracts as any,
     allowFailure: true,
+    ...(blockNumber !== null ? { blockNumber } : {}),
+    ...(batchSize !== undefined ? { batchSize } : {}),
   })
   return res as unknown as MulticallEntry<T>[]
 }

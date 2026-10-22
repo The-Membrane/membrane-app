@@ -11,6 +11,7 @@ import {
 } from '@/components/Venue/capacityDriverLogic'
 import { CapacityCurve } from '@/components/Venue/CapacityCurve'
 import { NetApyCard } from '@/components/NetApy/NetApyCard'
+import { VenueAlerts } from '@/components/Alerts/VenueAlerts'
 import { venueByKey } from '@/lib/netApy/venues'
 import { fmtUsd } from '@/components/Radar/radarLogic'
 import { Entry, consequence, alarmConsequence, fmtDuration } from '@/components/Carry/venueLogLogic'
@@ -844,7 +845,8 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
               return (
                 <Grid
                   key={`${e.at}-${e.kind}`}
-                  templateColumns={{ base: '1fr', md: '110px 1fr 110px' }}
+                  // minmax(0, 1fr): a long consequence line may never widen the page.
+                  templateColumns={{ base: 'minmax(0, 1fr)', md: '110px minmax(0, 1fr) 110px' }}
                   gap={SPACING.base}
                   py={SPACING.sm}
                   borderBottom={i === logEntries.length - 1 ? 'none' : '1px solid'}
@@ -860,7 +862,7 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
                   >
                     {new Date(e.at).toISOString().slice(0, 10)}
                   </Text>
-                  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={textColor}>
+                  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={textColor} overflowWrap="anywhere">
                     {c.text}
                   </Text>
                   <Text
@@ -948,7 +950,10 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
         <ProvFooter date={corpusDate} />
       </Card>
 
-      {/* 07 / next-step row */}
+      {/* 07 / next-step row. "Alert me at" sits beside it as a SIBLING: NextRow is
+          redefined every render, and a form inside it would remount (and lose its
+          input) on each refetch. Hidden while alert storage is unavailable. */}
+      <VenueAlerts venue={venue} />
       <NextRow />
     </Box>
   )

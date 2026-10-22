@@ -20,4 +20,15 @@ AST-selected original pure functions from the parent history-forecasts directory
 
 Parent validation: nine kernel tests, ten input tests, three independent tests,
 four synthetic reference comparisons, and the original-source contracts check pass.
-Historical primary-pair predictions, endpoints and scores have NOT RUN.
+At O139, historical primary-pair endpoints and scores had NOT RUN.
+
+
+O140 completes the fixed historical diagnostic and two accepted saved-only checks.
+Past-only F worsens interval score against Rclock by13.6064%/28.9868% at H24/H72.
+Source qualification remains distinct from this adverse development result. Original
+blind R16.4 remains NOT RUN. Full views and limitations are on the shared Board.
+
+The runner requires a trusted, parent-admitted request and retained authentication
+lineage. It must not be launched from inferred inputs or this README. The observer
+requires macOS process-list access here. The consumer reads saved outputs only,
+with an independent original-source CAL reference. No original shard is reopened.

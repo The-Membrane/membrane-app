@@ -15,7 +15,7 @@ const SRC = '/data/oct10-2025/evidence.json'
 export function useEvidence(initial?: EvidenceDoc | null) {
   // `initial` is the summary-only doc the page server-renders (meta/debt/time/byAsset
   // with an empty cohort, ~2KB). It means a crawler and a first paint both see the real
-  // numbers instead of a spinner — docs/SEO_RULESET.md R1. The full 2,350-row cohort is
+  // numbers instead of a spinner — docs/SEO_RULESET.md R1. The full 2,347-row cohort is
   // still fetched client-side, because inlining ~870KB into the HTML is worse than a
   // second request for a table most visitors never scroll to.
   const [doc, setDoc] = useState<EvidenceDoc | null>(initial ?? null)

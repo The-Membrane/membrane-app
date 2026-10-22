@@ -6,7 +6,7 @@
  * the only honest way to show that is a wallet the crash actually took.
  *
  * WHERE IT COMES FROM: public/data/demo-borrower.json is selected out of
- * public/data/oct10-2025/evidence.json — 2,350 measured Aave V3 accounts over the
+ * public/data/oct10-2025/evidence.json — 2,347 measured Aave V3 accounts over the
  * 10-11 Oct 2025 window, each judged against its OWN measured liquidation line. The
  * selection ran the page's own engine over every mainnet row whose collateral the
  * measured price path prices and whose debt is priced or a stable held flat, in the

@@ -133,6 +133,15 @@ assert.ok(
   exc.every((r) => r.ltv0 <= r.liqLine + EPS),
   'every excluded row really is still under its line AFTER the rebase',
 )
+// ADDED 2026-10-14: a MIXED account (a stable AND a volatile reserve seized) cannot exist
+// on Membrane, but the CSV cannot class it as anything else either, so the headline walks
+// it delayed exactly as before. Excluding it is a published sensitivity, not the headline.
+assert.ok(
+  inc.some((r) => r.delayClass === 'mixed') &&
+    inc.filter((r) => r.delayClass === 'mixed').every((r) => r.outcome !== 'sold-no-delay'),
+  'mixed accounts stay in the headline, walked delayed',
+)
+checks += 2
 assert.ok(
   inc.every((r) => r.ltv0 >= r.liqLine - EPS),
   'every INCLUDED row really is breached after the rebase — no unlocated lines survive',
@@ -367,7 +376,8 @@ assert.ok(
   br.l2TimestampProxy?.accounts > 0,
   'the L2 timestamp-proxy bucket is published separately',
 )
-checks += 7
+assert.ok(!('mixedDelayClass' in br), 'mixed accounts are not an exclusion reason')
+checks += 8
 
 // The per-account medians. The all-included Membrane median is a FLOOR artefact and the
 // dataset must say so by publishing the subset the floor does not swallow.
@@ -490,6 +500,29 @@ assert.ok(sens.repeatSaleAccounts > 0 && sens.maxSalesSeen > 1, 'repeat sales re
 assert.ok(sens.withExcludedAaveClosedUsd > D.allIncluded.aaveClosedUsd, 'keeping them raises Aave')
 assert.ok(sens.withExcludedMembraneClosedUsd > MEM_ALL, 'and raises Membrane')
 checks += 8
+// A t0 sale past the band walks on like any sale; the old stop after it is a sensitivity, and
+// stopping can only close LESS. Its deltas are the subtractions they claim, on both sets.
+{
+  const nw = sens.noWalkOnAfterT0BandSale
+  assert.ok(nw && typeof nw.rule === 'string', 'the old t0 stop is published as a sensitivity')
+  assert.ok(
+    nw.pricedMembraneClosedUsd <= D.priced.membraneClosedUsd,
+    'stopping closes less (priced)',
+  )
+  assert.ok(nw.allIncludedMembraneClosedUsd <= MEM_ALL, 'and less (allIncluded)')
+  assert.ok(
+    Math.abs(nw.pricedDeltaUsd - (D.priced.membraneClosedUsd - nw.pricedMembraneClosedUsd)) <
+      0.01 && Math.abs(nw.allIncludedDeltaUsd - (MEM_ALL - nw.allIncludedMembraneClosedUsd)) < 0.01,
+    'the walk-on deltas are the subtractions they claim',
+  )
+  assert.ok(
+    nw.accountsChanged > 0,
+    'walking on after the t0 sale moves a published number of accounts',
+  )
+  const t0Walked = inc.filter((r: any) => r.outcome === 'sold-at-t0' && r.sales > 1)
+  assert.ok(t0Walked.length >= nw.accountsChanged, 'and those accounts sell again after t0')
+  checks += 6
+}
 
 // ---- the collateral mapping ----------------------------------------------
 const cmap = (doc.meta as any).collateralMapping
@@ -600,8 +633,197 @@ const healthy = cur.filter((r: any) => r.cure!.healthyAt8h).length
 assert.strictEqual(cur.length, doc.time.accountsAnalysed, 'cure sample size matches')
 assert.strictEqual(cured, doc.time.curedInWindow, 'curedInWindow recomputes')
 assert.strictEqual(healthy, doc.time.healthyAt8h, 'healthyAt8h recomputes')
-assert.ok(healthy <= cured, 'healthy-at-8h is a subset of cured')
+// healthy-at-8h is a PRICE fact and stays published for no-delay rows, which have no
+// window and so are never cured: the subset relation holds over the windowed rows only.
+const windowed = cur.filter((r: any) => !r.cure!.noWindow)
+assert.ok(
+  windowed.filter((r: any) => r.cure!.healthyAt8h).length <=
+    windowed.filter((r: any) => r.cure!.curedInWindow).length,
+  'healthy-at-8h is a subset of cured, over the rows that have a window',
+)
 checks += 4
+
+// ---- the delay class (lib/position-sim/collateralClass.ts) -------------------
+// ADDED 2026-10-14. A no-delay row is sold the minute it is over its line (curePath.ts
+// clause vii): no window, so never cured. The CSV names only the LIQUIDATED reserves, so a
+// class is applied only where they are >= 95% of the collateral (seenCollateralShare);
+// everywhere else it is 'unknown' and walks the window, unless the line is above 90%.
+const dc = (doc.meta as any).delayClass
+assert.ok(
+  dc && typeof dc.rule === 'string' && dc.sources.length > 5,
+  'meta.delayClass states its rule and cites',
+)
+assert.ok(
+  typeof dc.composition === 'string' && dc.composition.includes('on-chain reads of every reserve'),
+  'and says where full composition has to come from',
+)
+// ONE denominator (the first event's total collateral), capped at 1: a share above 1 is
+// not a fraction of anything, and the class test (>= 0.95) is the same capped or not.
+assert.ok(
+  (doc.cohort as any[]).every(
+    (r) =>
+      r.seenCollateralShare === null || (r.seenCollateralShare >= 0 && r.seenCollateralShare <= 1),
+  ),
+  'every published seen share is in [0, 1]',
+)
+assert.ok(
+  dc.seenCollateralShare.rawAboveOne.accounts >= 0 &&
+    (dc.seenCollateralShare.rawAboveOne.accounts === 0 ||
+      dc.seenCollateralShare.rawAboveOne.max > 1),
+  'the capped rows are counted, with the largest raw share',
+)
+checks += 2
+assert.ok(
+  dc.stableSymbols.includes('USDC') && dc.stableSymbols.includes('USDe'),
+  'the shared stable list',
+)
+assert.deepStrictEqual(
+  dc.measuredStables,
+  ['USDe', 'sUSDe'],
+  'USDe/sUSDe are measured, not held at $1',
+)
+const CLASSES = ['no-delay', 'delayed', 'mixed', 'unknown']
+for (const [label, rows] of [
+  ['cohort', doc.cohort as any[]],
+  ['included', inc],
+  ['priced', pricedRows],
+] as [string, any[]][]) {
+  assert.ok(
+    rows.every((r) => CLASSES.includes(r.delayClass)),
+    `${label}: every row is classed`,
+  )
+  for (const k of CLASSES) {
+    const g = rows.filter((r) => r.delayClass === k)
+    assert.strictEqual(dc.counts[label][k].accounts, g.length, `${label}/${k}: count recomputes`)
+    assert.ok(
+      Math.abs(dc.counts[label][k].membraneClosedUsd - sumOf(g, 'membraneClosedUsd')) < 1,
+      `${label}/${k}: Membrane dollars recompute`,
+    )
+    checks += 2
+  }
+}
+assert.strictEqual(
+  dc.mixedInCohort,
+  (doc.cohort as any[]).filter((r) => r.delayClass === 'mixed').length,
+  'mixedInCohort recomputes',
+)
+const KNOWN = dc.knownCompositionShare
+assert.strictEqual(KNOWN, 0.95, 'a class is applied only when >= 95% of the collateral is seen')
+const known = (r: any) => r.seenCollateralShare !== null && r.seenCollateralShare >= KNOWN
+assert.ok(
+  inc.filter((r) => r.delayClass === 'unknown').every((r) => !known(r) && r.liqLine <= 0.9),
+  'unknown means: the CSV sees under 95% of the collateral, and the line is not above 90%',
+)
+assert.ok(
+  inc.filter((r) => r.delayClass === 'delayed').every(known),
+  'delayed is only claimed where the composition is seen',
+)
+const ndInc = inc.filter((r) => r.delayClass === 'no-delay')
+assert.ok(ndInc.length > 0, 'the no-delay class is populated')
+assert.ok(
+  ndInc.every((r) => r.liqLine > 0.9 || (known(r) && dc.stableSymbols.includes(r.collSymbol))),
+  'no-delay means: seen-all-stable collateral, or a line above 90%',
+)
+assert.strictEqual(
+  dc.noDelayBy.included.stableCollateral + dc.noDelayBy.included.lineAbove90Only,
+  ndInc.length,
+  'every no-delay row is no-delay for a stated reason',
+)
+// How much of each account's collateral the CSV can see, as a partition of the rows.
+for (const [label, rows] of [
+  ['included', inc],
+  ['priced', pricedRows],
+] as [string, any[]][]) {
+  const dist = dc.seenCollateralShare[label]
+  assert.strictEqual(
+    (Object.values(dist) as number[]).reduce((a, b) => a + b, 0),
+    rows.length,
+    `${label}: the share buckets partition the rows`,
+  )
+  assert.strictEqual(dist['>=0.95'], rows.filter(known).length, `${label}: the known bucket`)
+  const sl = dc.stableLegs[label]
+  assert.strictEqual(
+    sl.compositionKnown + sl.compositionUnknown,
+    sl.accounts,
+    `${label}: stable-leg rows split into known and unknown`,
+  )
+  checks += 3
+}
+assert.ok(
+  dc.stableLegs.priced.compositionUnknown > dc.stableLegs.priced.compositionKnown,
+  'most stable-collateral rows are NOT classable from this CSV, and the data says so',
+)
+assert.ok(
+  ndInc.every((r) => r.outcome === 'sold-no-delay' || r.outcome === 'sold-immediately-no-series'),
+  'a no-delay row is sold at once (or takes the one-repay when it has no series)',
+)
+assert.strictEqual(
+  cm.outcomes['sold-no-delay'],
+  ndInc.filter((r) => r.outcome === 'sold-no-delay').length,
+  'the histogram counts the no-delay sales',
+)
+assert.ok(
+  ndInc
+    .filter((r) => r.outcome === 'sold-no-delay')
+    .every((r) => r.closedAtIndex === 0 && r.minutesToFirstCure === null),
+  'and every one of them is sold at t0 with no cure',
+)
+assert.ok(
+  inc.filter((r) => r.delayClass !== 'no-delay').every((r) => r.outcome !== 'sold-no-delay'),
+  'only a no-delay row carries the no-delay outcome',
+)
+assert.ok(
+  inc.filter((r) => r.liqLine > 0.9).every((r) => r.delayClass === 'no-delay'),
+  'every included line above 90% is no-delay — only that class can carry one',
+)
+assert.strictEqual(
+  dc.linesAbove90.included,
+  inc.filter((r) => r.liqLine > 0.9).length,
+  'lines > 90% counted',
+)
+// The cure diagnostic: no window, so never cured, and the dropped count stays visible.
+const ndCur = cur.filter((r: any) => r.cure!.noWindow)
+assert.ok(
+  ndCur.every(
+    (r: any) =>
+      r.delayClass === 'no-delay' && !r.cure!.curedInWindow && r.cure!.minutesToCure === null,
+  ),
+  'a no-delay row is never curedInWindow',
+)
+assert.strictEqual(doc.time.noDelay!.accounts, ndCur.length, 'time.noDelay.accounts recomputes')
+assert.strictEqual(
+  doc.time.noDelay!.wouldHaveCuredWithWindow,
+  ndCur.filter((r: any) => r.cure!.wouldHaveCuredWithWindow).length,
+  'time.noDelay.wouldHaveCuredWithWindow recomputes',
+)
+// The old all-delayed treatment, published as a sensitivity: it IS the previous headline.
+const sd = (doc.meta as any).sensitivity.stablesDelayed
+assert.strictEqual(sd.priced.accounts, D.priced.accounts, 'stablesDelayed walks the same rows')
+assert.ok(
+  Math.abs(sd.pricedDeltaUsd - (D.priced.membraneClosedUsd - sd.priced.membraneClosedUsd)) < 1,
+  'its priced delta is the subtraction it claims',
+)
+// Both sides are summed the same way (each row rounded to the cent, then added), so a true
+// zero prints as 0 — not as a few cents of rounding.
+assert.strictEqual(sd.sameRows.pricedDeltaUsd, 0, 'on this day the no-delay walk moves no dollar')
+assert.strictEqual(sd.sameRows.allIncludedDeltaUsd, 0, 'over every included row too')
+// Dropping the mixed accounts from both sides, published rather than applied.
+const mx = (doc.meta as any).sensitivity.mixedExcluded
+const mixedInc = inc.filter((r) => r.delayClass === 'mixed')
+assert.strictEqual(mx.mixed.allIncluded.accounts, mixedInc.length, 'mixedExcluded names the rows')
+assert.strictEqual(
+  mx.allIncluded.accounts + mixedInc.length,
+  D.allIncluded.accounts,
+  'and removes exactly them',
+)
+assert.ok(
+  Math.abs(mx.priced.aaveClosedUsd + mx.mixed.priced.aaveClosedUsd - D.priced.aaveClosedUsd) < 1 &&
+    Math.abs(
+      mx.priced.membraneClosedUsd + mx.mixed.priced.membraneClosedUsd - D.priced.membraneClosedUsd,
+    ) < 1,
+  'the priced split is a partition of the headline dollars',
+)
+checks += 27
 
 // ---- the anchor: Aave's own price vs the round we select ------------------
 // Added 2026-09-14. This is the only end-to-end check the pricing chain has, and its
@@ -704,14 +926,24 @@ const debtHtml = render(React.createElement(DebtLens, { debt: doc.debt, byAsset:
 // The knock-on: one wstETH row (0x4d43aa, $31M) leaves the included set again, so the
 // priced count drops 749 -> 748 and allIncluded 1,752 -> 1,751, and the priced gap FLIPS
 // - Membrane now closes LESS than Aave on the primary set.
+//
+// 2026-10-14: the delay-class rule (lib/position-sim/collateralClass.ts) moves no figure
+// here — on this day the no-delay walk moves no dollar. sUSD stopped being pinned at $1 and
+// has no series, so its 3 Optimism debt accounts drop out as unpriced debt: priced 748 ->
+// 747, allIncluded 1,751 -> 1,748, and the two priced medians move by a tenth.
+//
+// 2026-10-14: a delayed account sold at t0 past the band now walks on after that sale, as the
+// contract does (LiquidationEngine.sol:1724-1727 at 16e12329). One priced account (mainnet 0x9bafc9) is
+// sold again later: Membrane +$13,303 on both sets, and the priced Membrane median moves
+// 49.4% -> 49.5%. The old stop is meta.sensitivity.noWalkOnAfterT0BandSale.
 has(debtHtml, '$34.7M', 'DebtLens Aave total (priced set)')
 has(debtHtml, '$22.2M', 'DebtLens Membrane total (priced set)')
-has(debtHtml, '748', 'DebtLens account count == priced rows')
-has(debtHtml, '1,751', 'DebtLens also shows the allIncluded account count')
+has(debtHtml, '747', 'DebtLens account count == priced rows')
+has(debtHtml, '1,748', 'DebtLens also shows the allIncluded account count')
 has(debtHtml, '$47.5M', 'DebtLens allIncluded Aave total')
 has(debtHtml, '$54.2M', 'DebtLens allIncluded Membrane total')
 has(debtHtml, 'WETH', 'DebtLens per-asset table')
-has(debtHtml, '50.8%', 'DebtLens Aave median (priced)')
+has(debtHtml, '50.7%', 'DebtLens Aave median (priced)')
 has(debtHtml, '49.5%', 'DebtLens Membrane median (priced) — a real partial, not the floor artefact')
 // The PRIMARY set now says Membrane closes LESS debt. The lens has to render that
 // direction too, not only the "more" one it used to print.
@@ -723,18 +955,77 @@ has(debtHtml, 'less debt closed', 'DebtLens states the direction of the gap hone
 const timeHtml = render(React.createElement(TimeLens, { time: doc.time, cureModel: cm }))
 has(timeHtml, '0s', 'TimeLens Aave grants zero')
 has(timeHtml, '8h', 'TimeLens Membrane window')
+// The 8 hours are conditional, and stablecoins get none: the stat says so, and the "held
+// the whole day" denominator counts only accounts that had a window to walk.
+has(timeHtml, 'within 4% of the line · none for stablecoins†', 'TimeLens qualifies the 8h')
+// meta.caveats render verbatim on the Evidence page: the reader's words, no class names.
+assert.ok(
+  !(doc.meta.caveats as string[]).some((c) => /no-delay|MixedDelayClass|delay class/i.test(c)),
+  'no rendered caveat uses an insider class name',
+)
+checks++
+// ...and the two delay-class caveats speak plainly: no meta keys, no internal ticket
+// numbers, and the modelled claim carries the page's † (footnoted under the caveats).
+{
+  const cav = doc.meta.caveats as string[]
+  const noWin = cav.find((c) => c.startsWith('NO 8-HOUR WINDOW'))
+  const cannotSee = cav.find((c) => c.startsWith('THIS DATA CANNOT SEE MOST COLLATERAL'))
+  assert.ok(noWin && cannotSee, 'both delay-class caveats are rendered')
+  for (const c of [noWin!, cannotSee!]) {
+    assert.ok(!/meta\.|Q\d+\b/.test(c), `plain words, no meta keys: ${c.slice(0, 40)}`)
+  }
+  assert.ok(noWin!.startsWith('NO 8-HOUR WINDOW†:'), 'the modelled claim carries the †')
+  checks += 4
+}
+{
+  const windowed = (Object.entries(cm.outcomes) as [string, number][])
+    .filter(([k]) =>
+      [
+        'cured-then-held',
+        'sold-at-expiry',
+        'sold-at-band',
+        'sold-at-grid-end',
+        'sold-at-t0',
+      ].includes(k),
+    )
+    .reduce((a, [, v]) => a + v, 0)
+  has(
+    timeHtml,
+    `of ${windowed.toLocaleString()} accounts the window could be walked for`,
+    'the held denominator leaves out the no-window accounts',
+  )
+}
 // Both rise because the cure ratios are anchored to p_liq — the price in force at the
 // liquidation — instead of the minute cell at t0. Recovery is measured from the crash
 // print the account was actually taken at, which is what the borrower experienced.
 // UPDATED 2026-09-14 (second pass): the cure sample is the priced set (748 rows) and
 // wstETH rows walk the ETH path times a constant wrap rate, so all three move again.
-has(timeHtml, '69.79%', 'TimeLens cured pct')
-has(timeHtml, '57.62%', 'TimeLens healthy-at-8h pct')
+// 2026-10-14: the 19 no-delay rows in the cure sample have no window, so they count as not
+// cured — none would have cured on price anyway. The sample is 747 after sUSD left.
+has(timeHtml, '69.88%', 'TimeLens cured pct')
+has(timeHtml, '57.7%', 'TimeLens healthy-at-8h pct')
 has(timeHtml, '43 min', 'TimeLens median cure time')
+// The no-delay histogram row renders, with its count.
+has(
+  timeHtml,
+  'Stablecoin collateral (or a line above 90%): no 8-hour window†, sold at the line',
+  'TimeLens renders the no-delay histogram row',
+)
+has(timeHtml, 'Membrane gives this collateral no window†', 'and says why, marked modelled')
+{
+  // ...and carries its count from the histogram, rendered in the step right after its label.
+  const at = timeHtml.indexOf('Stablecoin collateral (or a line above 90%)')
+  const n = (cm.outcomes['sold-no-delay'] as number).toLocaleString()
+  assert.ok(
+    at >= 0 && timeHtml.slice(at, at + 1500).includes(`>${n}<`),
+    `the no-delay step renders its count (${n})`,
+  )
+  checks++
+}
 
 // ---- CohortLens ----------------------------------------------------------
 const cohortHtml = render(React.createElement(CohortLens, { rows: doc.cohort }))
-has(cohortHtml, 'Showing 100 of 2,350', 'CohortLens states its cap explicitly')
+has(cohortHtml, 'Showing 100 of 2,347', 'CohortLens states its cap explicitly')
 has(cohortHtml, 'wstETH/USDC', 'CohortLens renders the largest position')
 has(cohortHtml, 'Membrane worse', 'CohortLens exposes the losing filter')
 
@@ -780,8 +1071,8 @@ const base = {
 }
 
 const all = probe(base)
-assert.strictEqual(all.total, 2350, 'unfiltered total')
-assert.strictEqual(all.matched, 2350, 'unfiltered matched')
+assert.strictEqual(all.total, 2347, 'unfiltered total')
+assert.strictEqual(all.matched, 2347, 'unfiltered matched')
 assert.strictEqual(all.visible.length, 100, 'limit caps visible rows')
 checks += 3
 
@@ -808,7 +1099,7 @@ checks++
 checks += 2
 
 const better = probe({ ...base, outcome: 'membraneLess' })
-assert.strictEqual(better.matched + worse.matched, 2350, 'the two outcome filters partition')
+assert.strictEqual(better.matched + worse.matched, 2347, 'the two outcome filters partition')
 checks += 1
 
 const curedF = probe({ ...base, outcome: 'cured' })

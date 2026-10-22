@@ -33,6 +33,8 @@ export interface EvidenceMeta {
     reason: string
     rebasedIntoBreach: number
   }
+  /** The Membrane delay class of every row (lib/position-sim/collateralClass.ts). */
+  delayClass?: DelayClassMeta
   /** What each collateral symbol was priced through, and each proxy's exposure. */
   collateralMapping: {
     ethProxy: { symbols: string[]; accounts: number; debtUsd: number; note: string }
@@ -66,6 +68,48 @@ export interface EvidenceMeta {
   /** Rendered verbatim in the UI. These are not footnotes to bury. */
   caveats: string[]
 }
+
+/** Per-class totals over one row set. */
+export interface DelayClassTotals {
+  accounts: number
+  debtUsd: number
+  aaveClosedUsd: number
+  membraneClosedUsd: number
+}
+
+/**
+ * meta.delayClass. 'no-delay' rows (collateral the CSV sees is all stable, or a line above
+ * 90%) are sold the minute they are over their line. 'delayed', 'mixed' (a stable and a
+ * volatile reserve were both seized) and 'unknown' (the CSV sees under 95% of the
+ * collateral) walk the 8h window.
+ */
+export interface DelayClassMeta {
+  rule: string
+  composition: string
+  modelledAssumption: string
+  sources: string[]
+  stableSymbols: string[]
+  measuredStables: string[]
+  noDelayLineAbove: number
+  knownCompositionShare: number
+  counts: Record<'cohort' | 'included' | 'priced', Record<DelayClass, DelayClassTotals>>
+  noDelayBy: Record<'included' | 'priced', { stableCollateral: number; lineAbove90Only: number }>
+  stableLegs: Record<
+    'included' | 'priced',
+    { accounts: number; compositionKnown: number; compositionUnknown: number }
+  >
+  seenCollateralShare: {
+    included: Record<string, number>
+    priced: Record<string, number>
+    decilesIncluded: number[]
+    /** Accounts whose raw share was above 1 before the cap at 1, and the largest. */
+    rawAboveOne: { accounts: number; max: number }
+  }
+  linesAbove90: Record<'cohort' | 'included' | 'priced', number>
+  mixedInCohort: number
+}
+
+export type DelayClass = 'no-delay' | 'delayed' | 'mixed' | 'unknown'
 
 export interface CureModel {
   engine: string
@@ -200,6 +244,11 @@ export interface TimeSummary {
   medianMinutesToCure: number
   aaveSecondsGranted: number
   membraneSecondsGranted: number
+  /**
+   * The no-delay rows inside `accountsAnalysed`. They have no window, so none is counted
+   * cured; `wouldHaveCuredWithWindow` keeps what that dropped visible.
+   */
+  noDelay?: { accounts: number; wouldHaveCuredWithWindow: number; note: string }
 }
 
 export interface AssetSummary {
@@ -215,6 +264,10 @@ export interface CureRecord {
   minutesToCure: number | null
   bestLtv: number
   endLtv: number
+  /** No-delay class: there is no window, so `curedInWindow` is always false. */
+  noWindow?: boolean
+  /** No-delay class only: would the price alone have cured it inside a window? */
+  wouldHaveCuredWithWindow?: boolean
 }
 
 /** One real liquidated account. The unit the cohort table traverses. */
@@ -247,6 +300,11 @@ export interface CohortRow {
    * can still show the row.
    */
   excluded: boolean
+  /** The Membrane delay class this row was walked in (see DelayClassMeta). */
+  delayClass?: DelayClass
+  /** Share of the account's collateral the CSV can see (one denominator: the first
+   *  event's total; capped at 1); the class is known at >= 0.95. */
+  seenCollateralShare?: number | null
   collSymbol: string
   debtSymbol: string
   aaveClosedUsd: number

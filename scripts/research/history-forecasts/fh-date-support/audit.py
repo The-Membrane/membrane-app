@@ -71,6 +71,16 @@ def same_content(a, b):
     return a['size'] == b['size'] and a['sha256'] == b['sha256']
 
 
+def raw_authority_pins(raw):
+    """Project authenticated raw metadata onto content pins without mutating it."""
+    pins = {}
+    for record in raw['price_inputs'] + raw['auxiliary_inputs']:
+        value = {key: record[key] for key in ('path', 'size', 'sha256')}
+        need(value['path'] not in pins, 'unique raw authority path')
+        pins[value['path']] = value
+    return pins
+
+
 def previous_quarter(q):
     need(type(q) is int, 'integer cutoff')
     d = dt.datetime.fromtimestamp(q, dt.timezone.utc)
@@ -126,7 +136,7 @@ def authenticate(plan_path, plan_sha256):
              plan['legacy_sources'][rel]['path'].endswith('/' + rel), 'original scientific source pin')
     for value in fit['runtime_native_pins']:
         need(closure.get(value['path']) == value, 'all original runtime native pins')
-    raw_pins = {v['path']: v for v in raw['price_inputs'] + raw['auxiliary_inputs']}
+    raw_pins = raw_authority_pins(raw)
     need(len(staging['required_raw_paths']) == 30 and len(set(staging['required_raw_paths'])) == 30, 'thirty required raw inputs')
     for path in staging['required_raw_paths']:
         need(path in raw_pins and closure.get(path) == raw_pins[path], 'raw authority closure')

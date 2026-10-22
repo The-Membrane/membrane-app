@@ -240,7 +240,7 @@ class SavedFileCheck(unittest.TestCase):
                 self.assertFalse(receipt.exists())
                 self.root = original
 
-    def authority_fixture(self):
+    def authority_fixture(self, raw_change=None):
         roles = {}
         def role(name, data):
             roles[name] = write(self.root / (name + '.json'), data)
@@ -258,7 +258,10 @@ class SavedFileCheck(unittest.TestCase):
         pilot = fixture()[0]['pilot']
         role('private_lineage', {'private_pilot': {'sid': pilot['sid'], 'key': pilot['key'],
              'current_cutoff': pilot['current_cutoff'], 'predecessor_cutoff': pilot['previous_cutoff']}})
-        role('raw_authority', {'base_scope': {'price_inputs': rawpins, 'auxiliary_inputs': [],
+        raw_records = [dict(p, relative=Path(p['path']).name) for p in rawpins]
+        if raw_change is not None:
+            raw_records[0].update(raw_change)
+        role('raw_authority', {'base_scope': {'price_inputs': raw_records, 'auxiliary_inputs': [],
               'datasets': str(self.root), 'canonical_keys': [pilot['key']]}})
         role('fit_scope', {'source_sha256': {k: v['sha256'] for k, v in legacypins.items()}, 'runtime_native_pins': [native]})
         role('staging_request', {'schema': 'codex-r17-staging-request-v1', 'pins': {'fit_scope': roles['fit_scope'], 'raw_scope': roles['raw_authority'], 'helper': helper},
@@ -284,7 +287,16 @@ class SavedFileCheck(unittest.TestCase):
         with mock.patch.object(C, 'runtime_check'), mock.patch.object(C.np, 'load') as decode:
             metadata = C.authenticate(plan, 'a' * 64)
             self.assertEqual(metadata[-1], 0.0)
+            self.assertIn('relative', metadata[1]['price_inputs'][0])
+            self.assertEqual(set(metadata[1]['price_inputs'][0]), {'path', 'relative', 'size', 'sha256'})
         decode.assert_not_called()
+
+    def test_raw_authority_wrong_hash_or_path_refused(self):
+        for change in ({'sha256': '0' * 64}, {'path': str(self.root / 'wrong-grid.json')}):
+            plan = self.authority_fixture(raw_change=change)
+            with self.subTest(change=change), mock.patch.object(C, 'runtime_check'), mock.patch.object(C.np, 'load') as decode, self.assertRaisesRegex(ValueError, 'required raw closure'):
+                C.authenticate(plan, 'a' * 64)
+            decode.assert_not_called()
 
     def test_authority_closure_refusals_before_decode(self):
         plan = self.authority_fixture()

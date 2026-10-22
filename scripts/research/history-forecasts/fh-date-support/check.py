@@ -154,7 +154,10 @@ def authenticate(plan, external_sha):
     originals = fit['source_sha256']
     require(len(originals) == 30 and set(plan['legacy_sources']) == set(originals), 'complete thirty-source map')
     require(all(plan['legacy_sources'][k]['sha256'] == v for k, v in originals.items()), 'original scientific source hashes')
-    allowedraw = {p['path']: p for p in raw['price_inputs'] + raw['auxiliary_inputs']}
+    # Raw authorities also retain descriptive fields such as relative. Only
+    # these three fields form a byte pin; retain raw itself for loader metadata.
+    allowedraw = {p['path']: {k: p[k] for k in ('path', 'size', 'sha256')}
+                  for p in raw['price_inputs'] + raw['auxiliary_inputs']}
     require(len(stage['required_raw_paths']) == 30 and len(set(stage['required_raw_paths'])) == 30, 'thirty unique raw paths')
     for path in stage['required_raw_paths']:
         require(path in allowedraw and bypath.get(path) == allowedraw[path], 'required raw closure')

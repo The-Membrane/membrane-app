@@ -95,6 +95,22 @@ class AuditTests(unittest.TestCase):
         for paths in ([],[s['path'],s['path']]):
             with self.assertRaises(ValueError):A.grid_spec(paths,s['key'])
 
+    def test_authoritative_relative_metadata_projects_exact_content_pin(self):
+        record=dict(path='/private/tmp/raw/synthetic.json',relative='raw/synthetic.json',
+                    size=19,sha256='a'*64)
+        original=copy.deepcopy(record)
+        raw=dict(price_inputs=[record],auxiliary_inputs=[])
+        expected={key:record[key] for key in ('path','size','sha256')}
+        pins=A.raw_authority_pins(raw)
+        self.assertEqual(pins,{record['path']:expected})
+        self.assertEqual(record,original)
+        self.assertEqual(set(pins[record['path']]),{'path','size','sha256'})
+        for key,value in [('path','/private/tmp/raw/other.json'),('size',20),('sha256','b'*64)]:
+            changed=dict(expected,**{key:value})
+            self.assertNotEqual(pins.get(changed['path']),changed)
+        with self.assertRaisesRegex(ValueError,'unique raw authority path'):
+            A.raw_authority_pins(dict(price_inputs=[record],auxiliary_inputs=[dict(record)]))
+
     def mock_boundary(self, action=None):
         n=8;base=Q-28*3600
         ser=types.SimpleNamespace(base_ts=base,close=np.ones(n-1))

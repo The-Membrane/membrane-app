@@ -32,3 +32,13 @@ The runner requires a trusted, parent-admitted request and retained authenticati
 lineage. It must not be launched from inferred inputs or this README. The observer
 requires macOS process-list access here. The consumer reads saved outputs only,
 with an independent original-source CAL reference. No original shard is reopened.
+
+
+O141 adds fixed saved-array interval-score accounting, without CAL or model calls.
+The recomputed original total is exact; separately reduced component sums use a
+64-epsilon numerical verification allowance, not a confidence interval.
+At H72, mean group width explains69.26% of the matched score gap, lower-miss
+penalty4.78%, upper-miss penalty25.96%. Fixing the lower-miss count alone would
+miss most of the adverse score. All198 views and the native reference remain.
+Seven author and nine independent math/driver-boundary tests pass. The saved
+accounting runs once under the existing qualified resource supervisor.

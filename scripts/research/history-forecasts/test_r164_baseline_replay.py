@@ -23,7 +23,7 @@ class ReplayFixtures(unittest.TestCase):
             model=dict(w=.1, alpha=.1, gamma=.1, beta=.7), training_variance=.2,
             filter_initial_variance=.2, quarter_h=.3, pool={'sha256': 'synthetic'})],
             origins=[dict(origin=o, quarter=2, h0=.3) for o in (672,673)])
-        self.old = dict(series=self.key, quarter_fits=1, rows=[
+        self.old = dict(quarter_fits=1, rows=[
             dict(series=self.key, i0=672, T=72, k=0, p_garch=.2),
             dict(series=self.key, i0=673, T=168, k=1, p_garch=.7)])
         self.calls = []
@@ -53,6 +53,19 @@ class ReplayFixtures(unittest.TestCase):
             self.assertEqual(args[4:],(1000,[9,123,origin]))
             self.assertEqual(set(kwargs),{'pool'})
             np.testing.assert_array_equal(kwargs['pool'],self.pool)
+    def test_headerless_result_and_matching_optional_header(self):
+        self.assertEqual(set(self.old),{'quarter_fits','rows'})
+        self.replay()
+        self.old['series']=self.key
+        self.replay()
+    def test_contradictory_header_and_missing_wrong_row_series(self):
+        self.old['series']='blind5:wrong'
+        with self.assertRaisesRegex(ValueError,'contradictory historical'): self.replay()
+        del self.old['series']
+        del self.old['rows'][0]['series']
+        with self.assertRaisesRegex(ValueError,'mandatory historical row series'): self.replay()
+        self.old['rows'][0]['series']='blind5:wrong'
+        with self.assertRaisesRegex(ValueError,'mandatory historical row series'): self.replay()
     def test_row_order(self):
         self.old['rows'].reverse()
         self.assertEqual([r['i0'] for r in self.replay()[0]['rows']],[673,672])
@@ -136,7 +149,7 @@ class CompleteAuthorityFixtures(unittest.TestCase):
         self.inputs={};outputs={}
         for key in self.keys:
             name=key.replace(':','-')+'.json'
-            B.write_json(self.hist/name,{'result':{'series':key,'rows':[]}})
+            B.write_json(self.hist/name,{'derived_provenance':{'synthetic':True},'result':{'quarter_fits':1,'rows':[dict(series=key,i0=0,T=24,k=0,p_garch=.25)]}})
             B.write_json(self.states/name,dict(series=key,historical_checkpoint_sha256=B.digest(self.hist/name)))
             outputs[name]=B.digest(self.states/name)
             path=npz/(Path(name).stem+'.npz');path.write_bytes(b'synthetic nonarray')
@@ -163,8 +176,44 @@ class CompleteAuthorityFixtures(unittest.TestCase):
     def auth(self):
         self.path.write_text(json.dumps(self.plan))
         return B.authenticate(self.path,B.digest(self.path))
+    def test_authentication_prevalidates_actual_headerless_identity(self):
+        self.auth()
+        for name in ('blind5-synthetic0.json',):
+            packet=json.loads((self.hist/name).read_text())
+            self.assertEqual(set(packet),{'derived_provenance','result'})
+            self.assertEqual(set(packet['result']),{'quarter_fits','rows'})
+    def test_prelaunch_historical_identity_rejects_contradictions(self):
+        # Direct metadata validator is also called by authenticate before NPZ reads.
+        key=self.keys[0];name=key.replace(':','-')+'.json'
+        packet=json.loads((self.hist/name).read_text())
+        saved=json.loads((self.states/name).read_text())
+        for target in (packet,packet['result']):
+            target['series']='blind5:wrong'
+            with self.assertRaisesRegex(ValueError,'contradictory historical'):
+                B.historical_identity(key,packet['result'],saved,name,packet)
+            del target['series']
+        with self.assertRaisesRegex(ValueError,'filename identity'):
+            B.historical_identity(key,packet['result'],saved,'wrong.json',packet)
+        del packet['result']['rows'][0]['series']
+        with self.assertRaisesRegex(ValueError,'mandatory historical row series'):
+            B.historical_identity(key,packet['result'],saved,name,packet)
     def test_complete_authenticated_metadata_fixture(self):
         self.assertEqual(len(self.auth()[2]),42)
+    def test_authenticate_rejects_header_or_row_identity_before_numerical_io(self):
+        real=B.read_record
+        for mode in ('result_header','envelope_header','missing_row','wrong_row'):
+            def injected(item):
+                packet=real(item)
+                if Path(item['path']).parent==self.hist:
+                    if mode=='result_header': packet['result']['series']='blind5:wrong'
+                    elif mode=='envelope_header': packet['series']='blind5:wrong'
+                    elif mode=='missing_row': del packet['result']['rows'][0]['series']
+                    else: packet['result']['rows'][0]['series']='blind5:wrong'
+                return packet
+            with self.subTest(mode=mode),patch.object(B,'read_record',side_effect=injected),\
+                patch.object(B.np,'load',side_effect=AssertionError('numerical input read first')):
+                with self.assertRaisesRegex(ValueError,'historical.*(series|header)'):
+                    self.auth()
     def test_missing_or_stale_checker_pin(self):
         checker=str(self.sources/self.names[1])
         original=copy.deepcopy(self.plan['files'])

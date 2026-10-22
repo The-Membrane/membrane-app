@@ -14,8 +14,8 @@ _SPEC.loader.exec_module(C)
 
 def small():
     key = 'blind5:synthetic'
-    rows = [dict(i0=10, T=24, k=k, p_garch=.25 + k * .125) for k in range(2)]
-    old = dict(series=key, rows=rows, quarter_fits=1)
+    rows = [dict(series=key, i0=10, T=24, k=k, p_garch=.25 + k * .125) for k in range(2)]
+    old = dict(rows=rows, quarter_fits=1)
     new = dict(series=key, rows=[dict(series=key, i0=r['i0'], T=r['T'], k=r['k'], p_replay=r['p_garch']) for r in rows])
     state = dict(series=key, complete=True, quarters=[dict(quarter=5)], origins=[dict(origin=10, quarter=5)])
     return key, new, old, state
@@ -32,6 +32,21 @@ class SeriesTests(unittest.TestCase):
     def test_exact_success(self):
         self.assertEqual(C.check_series(self.key, self.new, self.old, self.state),
                          dict(quarters=1, origins=1, historical_rows=2))
+
+    def test_headerless_result_and_matching_optional_header(self):
+        self.assertEqual(set(self.old),{'quarter_fits','rows'})
+        C.check_series(self.key,self.new,self.old,self.state)
+        self.old['series']=self.key
+        C.check_series(self.key,self.new,self.old,self.state)
+
+    def test_contradictory_header_and_mandatory_historical_row_series(self):
+        self.old['series']='blind5:wrong'
+        self.rejects()
+        del self.old['series']
+        del self.old['rows'][0]['series']
+        self.rejects()
+        self.old['rows'][0]['series']='blind5:wrong'
+        self.rejects()
 
     def test_one_ulp_rejected(self):
         import math
@@ -120,10 +135,10 @@ class ProvenanceTests(unittest.TestCase):
                 count = 40 if origin_total < 2169 else 39
                 origin_total += 1
                 for k in range(count):
-                    rows.append(dict(i0=origin, T=24, k=k, p_garch=.25))
+                    rows.append(dict(series=key, i0=origin, T=24, k=k, p_garch=.25))
             quarter_total += nq
             row_total += len(rows)
-            old_record = self.save(historical / name, dict(result=dict(series=key, rows=rows, quarter_fits=nq)))
+            old_record = self.save(historical / name, dict(derived_provenance={'synthetic':True},result=dict(rows=rows, quarter_fits=nq)))
             pins.append(old_record)
             state_record = self.save(states / name, dict(series=key, complete=True, origins=origins,
                 quarters=[dict(quarter=q) for q in sorted({s['quarter'] for s in origins})],

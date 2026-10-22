@@ -83,6 +83,25 @@ def probability(value):
     return float(value)
 
 
+def historical_identity(key, historical, saved, filename=None, packet=None):
+    """O144 identity is authenticated filename/state plus mandatory row series.
+
+    Derived historical result objects do not have a series header. A header,
+    if present in either enclosing object, must nevertheless agree.
+    """
+    require(type(key) is str and key.startswith('blind5:'), 'historical series key')
+    require(saved['series'] == key, 'saved state series identity')
+    if filename is not None:
+        require(filename == key.replace(':', '-') + '.json', 'historical filename identity')
+    require(type(historical) is dict and {'rows', 'quarter_fits'}.issubset(historical), 'historical result shape')
+    for item in (historical, packet):
+        if item is not None:
+            require(type(item) is dict and ('series' not in item or item['series'] == key), 'contradictory historical series header')
+    require(type(historical['rows']) is list and historical['rows'], 'historical rows required')
+    require(all(type(row) is dict and row.get('series') == key for row in historical['rows']), 'mandatory historical row series identity')
+    integer(historical['quarter_fits'])
+
+
 def authenticate(plan_path, plan_sha256):
     # External hash admission precedes all JSON decoding.
     require(digest(plan_path) == plan_sha256, 'external plan hash mismatch')
@@ -149,7 +168,10 @@ def authenticate(plan_path, plan_sha256):
     for name in outputs:
         path = str(historical / name)
         require(path in pins and saved[name]['historical_checkpoint_sha256'] == pins[path]['sha256'], 'historical state binding')
-        old[name] = read_record(pins[path])['result']
+        packet = read_record(pins[path])
+        require(type(packet) is dict and 'result' in packet, 'historical envelope shape')
+        old[name] = packet['result']
+        historical_identity(saved[name]['series'], old[name], saved[name], filename=name, packet=packet)
         npz = str(Path(state_plan['datasets']) / 'history-forecasts/r16/r164-dev-63d4700f/rows' / (Path(name).stem + '.npz'))
         require(npz in pins, 'NPZ pin missing')
         key = saved[name]['series']
@@ -159,7 +181,8 @@ def authenticate(plan_path, plan_sha256):
 
 def replay_series(key, ser, folds, saved, old, npz_path, G, P, R):
     """Fixed model, ordered reconstructed pool and fresh original seed per origin."""
-    require(saved['series'] == key and saved['complete'] is True and old['series'] == key, 'series identity')
+    historical_identity(key, old, saved)
+    require(saved['complete'] is True, 'series completion')
     rows = old['rows']
     require(rows, 'historical rows required')
     keys = [(r['series'], integer(r['i0']), integer(r['T']), integer(r['k'])) for r in rows]

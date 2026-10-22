@@ -74,24 +74,23 @@ def inventory(root, names):
     require(all(p.is_file() and not p.is_symlink() for p in root.iterdir()), 'regular file inventory required')
 
 def row_key(row,key):
-    require(row['series']==key, 'row series identity')
+    require(type(row) is dict and row.get('series')==key, 'mandatory row series identity')
     origin,horizon,depth=(integer(row[k]) for k in ('i0','T','k'))
     require(origin>=0 and horizon in CONSTANTS['horizons'] and depth>=0, 'row origin/horizon/depth')
     return key,origin,horizon,depth
 
 def check_series(key,replay,historical,state):
     require(set(replay)=={'series','rows'} and replay['series']==key, 'replay series fields/identity')
-    require(historical['series']==key, 'historical series identity')
+    require(type(historical) is dict and {'rows','quarter_fits'}.issubset(historical), 'historical result shape')
+    require('series' not in historical or historical['series']==key, 'contradictory historical series header')
     require(state['series']==key and state['complete'] is True, 'accepted state series identity')
     require(type(replay['rows']) is list and type(historical['rows']) is list and replay['rows']
         and len(replay['rows'])==len(historical['rows']), 'exact row count')
     seen,origins=set(),set()
     for new,old in zip(replay['rows'],historical['rows']):
         require(set(new)=={'series','i0','T','k','p_replay'}, 'replay row fields')
-        old_identity=dict(old)
-        old_identity.setdefault('series',key)
         identity=row_key(new,key)
-        require(identity==row_key(old_identity,key), 'exact original row identity/order')
+        require(identity==row_key(old,key), 'exact original row identity/order')
         require(identity not in seen, 'duplicate row key')
         seen.add(identity)
         origins.add(identity[1])
@@ -179,7 +178,10 @@ def check(plan_path,output_dir,plan_sha256,manifest_sha256):
         require(str(old_path) in pins, 'historical row pin')
         state=read_json(state_path,state_outputs[name])
         require(state['historical_checkpoint_sha256']==pins[str(old_path)]['sha256'], 'state historical binding')
-        old=read_json(old_path,pins[str(old_path)]['sha256'])['result']
+        packet=read_json(old_path,pins[str(old_path)]['sha256'])
+        require(type(packet) is dict and 'result' in packet, 'historical envelope shape')
+        require('series' not in packet or packet['series']==key, 'contradictory historical envelope series')
+        old=packet['result']
         npz=Path(sp['datasets'])/'history-forecasts/r16/r164-dev-63d4700f/rows'/(Path(name).stem+'.npz')
         require(str(npz) in pins and pins[str(npz)]['sha256']==config['inputs'][key], 'stored-row NPZ pin/original identity')
         for field,value in check_series(key,replay,old,state).items():

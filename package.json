@@ -2,6 +2,9 @@
   "name": "my-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev --port 3005",
     "build": "next build",
@@ -39,6 +42,7 @@
     "receipts:ddl": "node scripts/apply-user-receipts-ddl.mjs",
     "telegram:ddl": "node scripts/apply-alert-subscriptions-ddl.mjs",
     "telegram:poll": "node scripts/telegram-poll.mjs",
+    "alerts:ddl": "node scripts/apply-alert-thresholds-ddl.mjs",
     "receipts:score": "node scripts/score-user-receipts.mjs",
     "corpus:scan": "tsx scripts/scan-aave-liquidations.mjs",
     "netapy:record": "tsx scripts/record-net-apy.ts",

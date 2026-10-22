@@ -155,7 +155,10 @@ export const alarmConsequence = (e: Entry): { text: string; tone: 'danger' | 'mu
       break
     }
     default:
-      body = `${e.kind}: ${JSON.stringify(ev)}`
+      // An alarm kind this file does not know yet is NAMED, never dumped as raw JSON
+      // (same rule as consequence() below): a JSON blob is unreadable and cannot wrap
+      // on a 390px screen.
+      body = `${e.kind.replace(/_/g, ' ')} flagged`
   }
   return { text: `${pre}${body}`, tone }
 }

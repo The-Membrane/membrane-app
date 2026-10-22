@@ -45,6 +45,9 @@ import useAppState from '@/persisted-state/useAppState';
 // Carry leads the nav right after the trust-story landing. Calculator moved down
 // into Carry's own toolkit row (it links there) to hold nav width.
 const navItems = [
+    // The data front page: weather, then Opportunities (calm) or Safety (choppy). The
+    // owner decides whether '/' should point here instead of the simulator.
+    { label: 'Today', href: '/today' },
     // The landing page (owner ruling 2026-09-11): '/' redirects here.
     // ONE nav slot, pointed at whichever build config/simulatorMode.ts is serving
     // (owner ruling 2026-09-12). The other build is reachable by URL and from a

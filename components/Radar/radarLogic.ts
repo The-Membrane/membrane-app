@@ -286,3 +286,31 @@ export function shareLine(result: RadarResult): string {
   const clauses = positions.map(venueClause).join('; ')
   return `My ${fmtUsd(totalUsd)} across ${positions.length} venue${positions.length === 1 ? '' : 's'}: ${clauses} — Membrane Carry Radar`
 }
+
+// ---------------------------------------------------------------------------
+// The example read (V20 demo-first: the page opens populated, never empty).
+// ---------------------------------------------------------------------------
+
+/**
+ * The address the Radar page reads when the reader has given none: the Uniswap v4
+ * PoolManager, a public mainnet contract. The Carry Strats board's scan of 2026-10-02
+ * recorded it holding sUSDS and sUSDe (≈$0.83M and ≈$0.55M), so the example has real,
+ * non-trivial positions in two instrumented venues. Its figures are read live like any
+ * other address; nothing here is a holding.
+ */
+export const EXAMPLE_ADDRESS = '0x000000000004444c5dc75cB358380D2e3dE08A90'
+
+export const EXAMPLE_BANNER = 'Example — not yours · paste your address'
+
+/** What the page reads: a deep link wins, then the reader's own scan, then the example. */
+export function radarSubject(deepLink: string | null, scanned: string | null): { address: string; example: boolean } {
+  if (scanned) return { address: scanned, example: false }
+  if (deepLink) return { address: deepLink, example: false }
+  return { address: EXAMPLE_ADDRESS, example: true }
+}
+
+/** The line printed when the read fails: says so, never an empty page. */
+export function readingUnavailable(message: string | null | undefined): string {
+  const m = (message ?? '').trim()
+  return m ? `Reading unavailable · ${m}` : 'Reading unavailable'
+}

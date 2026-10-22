@@ -1,5 +1,3 @@
-import { existsSync, readFileSync, statSync } from 'fs'
-import { join } from 'path'
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 import { compact } from '@/lib/curatorFeed/format'
@@ -13,13 +11,8 @@ import {
   parseFeedQuery,
   QueryError,
 } from '@/lib/curatorFeed/service'
-import { liveDir, seedDir } from '@/lib/curatorFeed/paths'
-import {
-  parseExposureFile,
-  parseFeedFile,
-  type ExposureFile,
-  type FeedFile,
-} from '@/lib/curatorFeed/store'
+import type { FeedFile } from '@/lib/curatorFeed/store'
+import { loadExposureFile, loadFeedFile, unavailableError } from '@/pages/api/_lib/curatorFeedFiles'
 
 // PUBLIC. Curator action feed — what Morpho / Euler Earn curators (and Aave v3, as the
 // protocol-level analogue) changed on Ethereum mainnet: caps, removals, queues,
@@ -42,22 +35,6 @@ import {
 // (pending / executable / history) is computed against the request clock, so a cap
 // change leaves its timelock window without a re-collect. Cached: s-maxage 300.
 
-const dir = (): string => {
-  const live = liveDir()
-  return existsSync(join(live, 'feed.json')) ? live : seedDir()
-}
-
-type Cached<T> = { path: string; mtimeMs: number; value: T }
-let feedCache: Cached<FeedFile> | null = null
-let exposureCache: Cached<ExposureFile> | null = null
-
-function load<T>(name: string, parse: (raw: unknown) => T, cache: Cached<T> | null): Cached<T> {
-  const path = join(dir(), name)
-  const { mtimeMs } = statSync(path)
-  if (cache && cache.path === path && cache.mtimeMs === mtimeMs) return cache
-  return { path, mtimeMs, value: parse(JSON.parse(readFileSync(path, 'utf8'))) }
-}
-
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
   let q
@@ -69,25 +46,21 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   }
   let feed: FeedFile
   try {
-    feedCache = load('feed.json', parseFeedFile, feedCache)
-    feed = feedCache.value
+    feed = loadFeedFile()
   } catch (e) {
-    return res.status(503).json({
-      // The fs code only: the message would carry a server path.
-      error: `curator feed dataset unavailable (${(e as NodeJS.ErrnoException).code ?? 'unreadable'}) — run pnpm curators:feed, or clone triccs/membrane-datasets next to the app (or set MEMBRANE_DATASETS_DIR)`,
-    })
+    return res.status(503).json({ error: unavailableError(e) })
   }
   const nowS = Math.floor(Date.now() / 1000)
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
   try {
     if (q.view === 'exposure') {
-      exposureCache = load('exposure.json', parseExposureFile, exposureCache)
+      const exposure = loadExposureFile()
       return res
         .status(200)
         .json(
           q.by === 'vault'
-            ? buildVaultExposure(feed, exposureCache.value, q)
-            : buildExposureResponse(feed, exposureCache.value, q),
+            ? buildVaultExposure(feed, exposure, q)
+            : buildExposureResponse(feed, exposure, q),
         )
     }
     if (q.view === 'attribution') {
@@ -95,8 +68,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       return res.status(200).json({ rows: rows.slice(0, q.limit), total: rows.length })
     }
     if (q.view === 'flags') {
-      exposureCache = load('exposure.json', parseExposureFile, exposureCache)
-      return res.status(200).json(buildFlagsResponse(feed, exposureCache.value, q, compact))
+      return res.status(200).json(buildFlagsResponse(feed, loadExposureFile(), q, compact))
     }
     if (q.view === 'spikes') return res.status(200).json(buildSpikeResponse(feed, q, compact))
     return res.status(200).json(buildFeedResponse(feed, q, nowS))

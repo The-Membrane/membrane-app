@@ -159,5 +159,29 @@ describe('the /api/net-apy service', () => {
     const r = (await handleNetApy(parseQuery({ size: '100000' }), { ...deps, merkl: async () => { throw new Error('down https://x.example/key') } })) as NetApyListResponse
     expect(r.venues.length).toBe(fx.snapshots.length)
     expect(r.incentivesStatus).toEqual({ ok: false, fetchedAt: null, error: 'down [rpc]' })
+    expect(r.venues.every((v) => v.incentives.length === 0 && !v.net.withIncentives)).toBe(true)
+  })
+
+  it('all venues: each row lists the campaigns its net includes, at the size, soonest end first', async () => {
+    const r = (await handleNetApy(parseQuery({ size: '100000' }), deps)) as NetApyListResponse
+    const rewarded = r.venues.filter((v) => v.incentives.length > 0)
+    expect(rewarded.length).toBeGreaterThan(0)
+    for (const v of r.venues) {
+      // Listed exactly when the net includes rewards; with no Membrane share, net = venue + rewards.
+      expect(v.incentives.length > 0).toBe(v.net.withIncentives)
+      const sum = v.incentives.reduce((a, c) => a + c.aprAtSize, 0)
+      expect(v.net.apr! - v.netIncentiveFree.apr!).toBeCloseTo(sum, 12)
+      const ends = v.incentives.map((c) => c.endTs)
+      expect(ends).toEqual([...ends].sort((a, b) => a - b))
+      expect(v.firstIncentiveEndTs).toBe(ends.length ? ends[0] : null)
+      for (const c of v.incentives) {
+        expect(c.source).toBe('merkl')
+        expect(c.aprAtSize).toBeLessThanOrEqual(c.aprReported)
+        expect(c.endTs).toBeGreaterThan(c.startTs)
+      }
+    }
+    // The same campaigns the one-venue breakdown counts.
+    const one = (await handleNetApy(parseQuery({ venue: rewarded[0].venueKey, size: '100000' }), deps)) as NetApyVenueResponse
+    expect(rewarded[0].incentives.map((c) => c.campaignId)).toEqual(one.breakdown.incentives.eligible.map((c) => c.campaignId))
   })
 })

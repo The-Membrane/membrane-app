@@ -40,6 +40,7 @@ import {
   buildExposureResponse,
   buildFeedResponse,
   broadExitVaults,
+  dedupeSameRows,
   buildSpikeResponse,
   buildVaultExposure,
   clusterText,
@@ -1205,5 +1206,47 @@ describe('rate spikes', () => {
     })
     expect(e.top).toBeUndefined()
     expect(e.contributions[0].share).toBe(0)
+  })
+})
+
+describe('identical cap and exit rows are one row', () => {
+  const V = '0x9a1d6bd5b8642c41f25e0958129b85f8e1176f3e'
+  const M = '0xe1961afdc874106e8c1e7810bd677cbd20c7f61a5b34415dcf841b6c44d606b8'
+  const DAY = Date.UTC(2026, 9, 9, 12) / 1000
+  const a = (id: string, o: Partial<FeedAction> = {}): FeedAction =>
+    ({
+      id,
+      protocol: 'morpho-v2',
+      vault: V,
+      block: 1,
+      ts: DAY,
+      tx: '0x1',
+      collateral: ['0xd341a146a4fd20ea89898e4d86ae1829bf3a1c23'],
+      kind: 'cap_zero',
+      scope: 'market',
+      target: M,
+      to: '0',
+      ...o,
+    }) as FeedAction
+  const run = (xs: FeedAction[]) =>
+    dedupeSameRows(xs, (x) => x, () => 'executed').map((x) => x.id)
+
+  it('a V2 absolute and relative cap to 0 on one market, one vault, one day: one row', () => {
+    expect(run([a('tx:251', { capType: 'relative' }), a('tx:250', { capType: 'absolute' })])).toEqual([
+      'tx:251',
+    ])
+  })
+  it('another market, vault, day or kind stays its own row; non-cap kinds are never merged', () => {
+    expect(
+      run([
+        a('1'),
+        a('2', { target: '0x' + 'f'.repeat(64) }),
+        a('3', { vault: '0x' + 'e'.repeat(40) }),
+        a('4', { ts: DAY + 86_400 }),
+        a('5', { kind: 'market_removed' }),
+        a('6', { kind: 'timelock_set', target: undefined }),
+        a('7', { kind: 'timelock_set', target: undefined }),
+      ]),
+    ).toEqual(['1', '2', '3', '4', '5', '6', '7'])
   })
 })

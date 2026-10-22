@@ -10,8 +10,12 @@
 // executed or resolved = history, grey; exits of one collateral by ≥ 2 curators inside
 // the window (24–72h) = red. COPY RULES: factual only — what the chain recorded, who, how
 // much, when. Never "safe", never a prediction. Every figure carries its provenance.
+//
+// §07 ORACLE ABOVE MARKET is its own file (OracleGapSection.tsx): one small card per
+// market, the viewer's markets framed. The compact card at the end of this file leads each
+// item with a short headline (lib/curatorFeed/headlines.ts).
 
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { Box, HStack, Input, Link, Stack, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
@@ -21,8 +25,18 @@ import { Card } from '@/components/ui/Card'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
+import { FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { compact, durationText, utc } from '@/lib/curatorFeed/format'
+import {
+  cardSummary,
+  clusterLine,
+  currentClusters,
+  exitsAsOf,
+  gapLine,
+  rowLine,
+  type Line,
+} from '@/lib/curatorFeed/headlines'
 import type {
   AttributionView,
   ClusterView,
@@ -31,11 +45,15 @@ import type {
   FeedRow,
   Group,
   MarketFlagView,
+  OracleGapResponse,
   ShiftView,
   SpikeView,
   VaultExposureView,
 } from '@/lib/curatorFeed/service'
 import type { Tone } from '@/lib/curatorFeed/status'
+
+import { Chip, getJson, LABEL, Mono } from './atoms'
+import { OracleGapSection } from './OracleGapSection'
 
 const TONE: Record<Tone, string> = {
   amber: SEMANTIC_COLORS.warning,
@@ -59,50 +77,9 @@ const GROUPS: { key: Group; label: string }[] = [
 ]
 const ETHERSCAN = 'https://etherscan.io'
 
-const Mono: React.FC<{
-  children: React.ReactNode
-  color?: string
-  size?: string
-  as?: 'span' | 'p'
-  title?: string
-}> = ({ children, color, size = '11px', as = 'p', title }) => (
-  <Text
-    as={as}
-    title={title}
-    fontFamily={TYPOGRAPHY.fontMono}
-    fontSize={size}
-    color={color ?? SEMANTIC_COLORS.textSecondary}
-    sx={{ fontVariantNumeric: 'tabular-nums' }}
-  >
-    {children}
-  </Text>
-)
-
-const Chip: React.FC<{ active?: boolean; onClick?: () => void; children: React.ReactNode }> = ({
-  active,
-  onClick,
-  children,
-}) => (
-  <Box
-    as="button"
-    type="button"
-    onClick={onClick}
-    aria-pressed={active}
-    px={SPACING.sm}
-    py="2px"
-    border="1px solid"
-    borderRadius={0}
-    borderColor={active ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.borderSubtle}
-    color={active ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.textSecondary}
-    fontFamily={TYPOGRAPHY.fontMono}
-    fontSize="10px"
-    letterSpacing="0.12em"
-    textTransform="uppercase"
-    _hover={{ borderColor: SEMANTIC_COLORS.borderStrong }}
-  >
-    {children}
-  </Box>
-)
+/** A row's React key. One SetSupplyQueue log can drop several markets, and each drop is
+ *  an action with the log's id, so the id alone repeats; id + target does not. */
+const rowKey = (r: Pick<FeedRow, 'id' | 'target'>): string => `${r.id}|${r.target ?? ''}`
 
 const Tag: React.FC<{ tone: Tone; wrap?: boolean; children: React.ReactNode }> = ({
   tone,
@@ -139,13 +116,6 @@ const zeroText = (fns: string[]): string =>
   fns.length === 1 && fns[0] === 'timelock'
     ? 'timelock 0'
     : `timelock 0: ${fns.slice(0, 2).join(', ')}${fns.length > 2 ? ` +${fns.length - 2}` : ''}`
-
-async function getJson<T>(url: string): Promise<T> {
-  const r = await fetch(url)
-  const body = await r.json()
-  if (!r.ok) throw new Error(body?.error ?? `${url} ${r.status}`)
-  return body as T
-}
 
 // ── rows ───────────────────────────────────────────────────────────────────────
 
@@ -666,7 +636,7 @@ const FlagsSection: React.FC<{ collateral: string }> = ({ collateral }) => {
   return (
     <Box>
       <SectionHeading
-        index="07"
+        index="08"
         title="Market and curator flags"
         note={
           data?.block ? `block ${data.block.toLocaleString()} · ${utc(data.ts ?? 0)}` : undefined
@@ -816,6 +786,12 @@ export const CuratorFeed: React.FC = () => {
   const nowS = data?.meta.now ?? Math.floor(Date.now() / 1000)
   const m = data?.meta
   const [showExecutable, setShowExecutable] = useState(false)
+  // "watch this market": filter every section to its collateral and go to the top.
+  const watch = useCallback((symbol: string) => {
+    setCollateralInput(symbol)
+    setCollateral(symbol)
+    window.scrollTo({ top: 0 })
+  }, [])
   const pending = data?.open.filter((r) => r.status === 'pending') ?? []
   const executable = data?.open.filter((r) => r.status === 'executable') ?? []
 
@@ -929,7 +905,7 @@ export const CuratorFeed: React.FC = () => {
           ) : (
             <Box>
               {pending.map((r) => (
-                <ActionRow key={r.id} r={r} nowS={nowS} />
+                <ActionRow key={rowKey(r)} r={r} nowS={nowS} />
               ))}
             </Box>
           )}
@@ -946,7 +922,7 @@ export const CuratorFeed: React.FC = () => {
                     executed or revoked.
                   </Mono>
                   {executable.map((r) => (
-                    <ActionRow key={r.id} r={r} nowS={nowS} />
+                    <ActionRow key={rowKey(r)} r={r} nowS={nowS} />
                   ))}
                 </Box>
               )}
@@ -956,7 +932,7 @@ export const CuratorFeed: React.FC = () => {
           <SectionHeading index="03" title="Feed" note={`${data.total.toLocaleString()} actions`} />
           <Box>
             {data.rows.map((r) => (
-              <ActionRow key={r.id} r={r} nowS={nowS} />
+              <ActionRow key={rowKey(r)} r={r} nowS={nowS} />
             ))}
           </Box>
           {data.nextBefore && (
@@ -976,6 +952,7 @@ export const CuratorFeed: React.FC = () => {
         keptDrop={m?.thresholds.keptSupplyDrop}
       />
       <SpikeSection collateral={collateral} minSupply={m?.thresholds.spikeMinSupplyUsd} />
+      <OracleGapSection collateral={collateral} onWatch={watch} />
       <FlagsSection collateral={collateral} />
 
       {m && (
@@ -992,45 +969,293 @@ export const CuratorFeed: React.FC = () => {
   )
 }
 
-/** Compact card: open clusters and the next timelocks to elapse. Links to the full page. */
+// ── compact card ─────────────────────────────────────────────────────────────────
+// Mounted on data pages (the Today edition's Safety body; the venue page), so it
+// follows the newspaper rules (membrane-board design/DESIGN_RULES.md) on every page it
+// sits on: a hairline rule instead of a filled card, no amber (amber means only the 8h
+// window: a pending timelock is ink), red with ✖ only for a real alarm (an exit cluster
+// whose last exit is inside the 72 h window, a fired oracle gap), muted ink for history
+// (an older cluster included), nothing under 11px, 44px targets. Its colours
+// are the app tokens, so it reads in both app themes and inside the edition.
+//
+// Owner, 2026-10-16: "summarized titles". One top line says whether anything fired; each
+// item leads with a 2–5 word headline; vault, curator and date are small print; the full
+// sentence and the transaction are in the item's fold.
+
+/** The card's cluster window, and how long a cluster stays an alarm after its last exit
+ *  (the API's default and widest window, parseFeedQuery). */
+const CARD_WINDOW_HOURS = 72
+
+/** The headline and its small print; ✖ and red only on an alarm. */
+const LineText: React.FC<{ l: Line; muted?: boolean }> = ({ l, muted }) => (
+  <>
+    <Text
+      fontFamily={TYPOGRAPHY.fontMono}
+      fontSize="14px"
+      lineHeight="20px"
+      fontWeight={TYPOGRAPHY.medium}
+      color={
+        l.alarm
+          ? SEMANTIC_COLORS.danger
+          : muted
+            ? SEMANTIC_COLORS.textSecondary
+            : SEMANTIC_COLORS.textPrimary
+      }
+      overflowWrap="anywhere"
+    >
+      {l.mark && (
+        <Box as="span" aria-hidden="true" mr="0.4em">
+          {l.mark}
+        </Box>
+      )}
+      {l.headline}
+    </Text>
+    {l.detail && (
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="11px"
+        lineHeight="16px"
+        color={SEMANTIC_COLORS.textSecondary}
+        overflowWrap="anywhere"
+      >
+        {l.detail}
+      </Text>
+    )}
+  </>
+)
+
+/** One item: the summary row is the 44px tap target; the fold holds the full record. */
+const CardItem: React.FC<{ l: Line; muted?: boolean; children: React.ReactNode }> = ({
+  l,
+  muted,
+  children,
+}) => (
+  <Box
+    as="details"
+    borderBottom="1px solid"
+    borderColor={SEMANTIC_COLORS.borderSubtle}
+    sx={{
+      '& > summary::-webkit-details-marker': { display: 'none' },
+      '& > summary [data-fold]::before': { content: '"▸"' },
+      '&[open] > summary [data-fold]::before': { content: '"▾"' },
+    }}
+  >
+    <Box
+      as="summary"
+      display="flex"
+      alignItems="flex-start"
+      gap={SPACING.sm}
+      py={SPACING.sm}
+      minH="44px"
+      cursor="pointer"
+      listStyleType="none"
+      _focusVisible={FOCUS_STYLES.ring}
+    >
+      <Box flex="1" minW={0}>
+        <LineText l={l} muted={muted} />
+      </Box>
+      <Box
+        as="span"
+        data-fold=""
+        aria-hidden="true"
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="11px"
+        lineHeight="20px"
+        color={SEMANTIC_COLORS.textSecondary}
+      />
+    </Box>
+    <Box pb={SPACING.sm}>{children}</Box>
+  </Box>
+)
+
+const TxLink: React.FC<{ tx: string }> = ({ tx }) => (
+  <Link
+    href={`${ETHERSCAN}/tx/${tx}`}
+    isExternal
+    display="inline-flex"
+    alignItems="center"
+    minH="44px"
+    fontFamily={TYPOGRAPHY.fontMono}
+    fontSize="11px"
+    color={SEMANTIC_COLORS.textSecondary}
+    textDecoration="underline"
+    _focusVisible={FOCUS_STYLES.ring}
+  >
+    tx ↗
+  </Link>
+)
+
+const CardRow: React.FC<{ r: FeedRow; current: boolean }> = ({ r, current }) => (
+  <CardItem l={rowLine(r, current)} muted={!current && r.tone === 'grey'}>
+    <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
+      {r.text}
+    </Mono>
+    {r.zeroTimelock.length > 0 && (
+      <Mono
+        size="11px"
+        title={`Runs in one transaction at the last read: ${r.zeroTimelock.join(', ')}`}
+      >
+        {zeroText(r.zeroTimelock)} (one transaction, no wait)
+      </Mono>
+    )}
+    <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
+      {utc(r.ts)} · {PROTOCOL[r.protocol]}
+    </Mono>
+    <TxLink tx={r.tx} />
+  </CardItem>
+)
+
+const ClusterItem: React.FC<{ c: ClusterView; current: boolean }> = ({ c, current }) => (
+  <CardItem l={clusterLine(c, current)} muted={!current}>
+    <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
+      {c.text}
+    </Mono>
+    <Mono size="11px">Vaults: {c.vaultNames.join(', ')}</Mono>
+    <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
+      {utc(c.start)} → {utc(c.end)}
+    </Mono>
+  </CardItem>
+)
+
+/** The oracle-gap line: a block link to §07, 44px tall, its glyph inline when it wraps. */
+const OracleGapLine: React.FC<{ l: Line; href: string }> = ({ l, href }) => (
+  <Box borderBottom="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
+    <Link
+      as={NextLink}
+      href={href}
+      display="flex"
+      alignItems="flex-start"
+      gap={SPACING.sm}
+      py={SPACING.sm}
+      minH="44px"
+      _hover={{ textDecoration: 'none' }}
+      _focusVisible={FOCUS_STYLES.ring}
+    >
+      <Box flex="1" minW={0}>
+        <LineText l={l} />
+      </Box>
+      <Box
+        as="span"
+        aria-hidden="true"
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="11px"
+        lineHeight="20px"
+        color={SEMANTIC_COLORS.textSecondary}
+      >
+        →
+      </Box>
+    </Link>
+  </Box>
+)
+
+/** Compact feed: the top line, open exit clusters, the oracle-gap state, the next
+ *  timelocks to elapse, the latest exits. Links to the full page. */
 export const CuratorFeedCard: React.FC = () => {
   const { chainName } = useChainRoute()
-  const { data } = useQuery<FeedResponse>({
+  const { data, isError } = useQuery<FeedResponse>({
     queryKey: ['curator_feed_card'],
-    queryFn: () => getJson('/api/curator-feed?group=exits&limit=5'),
+    queryFn: () => getJson(`/api/curator-feed?group=exits&limit=5&window=${CARD_WINDOW_HOURS}`),
     staleTime: 5 * 60_000,
+    // A missing dataset is a 503, not a blip: say so after one retry, not four.
+    retry: 1,
   })
-  const nowS = data?.meta.now ?? Math.floor(Date.now() / 1000)
+  const { data: gap, isError: gapIsError } = useQuery<OracleGapResponse>({
+    queryKey: ['curator_oracle_gap_card'],
+    queryFn: () => getJson('/api/curator-feed?view=oracle-gap&limit=1'),
+    staleTime: 5 * 60_000,
+    retry: 1,
+  })
+  const pending = data?.open.filter((r) => r.status === 'pending') ?? []
+  const empty =
+    !!data && data.clusters.length === 0 && pending.length === 0 && data.rows.length === 0
+  const collected = data ? Date.parse(data.meta.collectedAt) : NaN
+  const { current, past } = currentClusters(
+    data?.clusters ?? [],
+    data?.meta.now ?? 0,
+    CARD_WINDOW_HOURS,
+  )
+  const currentIds = new Set(current.flatMap((c) => c.actionIds))
+  // Current clusters, else the latest one as history.
+  const clusters = current.length ? current.slice(0, 2) : past.slice(0, 1)
+  const summary = cardSummary({
+    feed: data
+      ? {
+          currentClusters: current.length,
+          pending: pending.length,
+          // Stale after STALE_HOURS: no "now" about exits (DESIGN_RULES §4).
+          asOf: exitsAsOf(data.meta),
+        }
+      : undefined,
+    feedError: !data && isError,
+    gap,
+    gapError: !gap && gapIsError,
+  })
+  const gl = gapLine(gap, !gap && gapIsError)
   return (
-    <Card p={SPACING.base}>
-      <HStack justify="space-between" align="baseline">
-        <Eyebrow>Curator actions</Eyebrow>
+    <Box
+      as="section"
+      aria-label="Curator actions"
+      borderTop="1px solid"
+      borderColor={SEMANTIC_COLORS.borderStrong}
+      pt={SPACING.sm}
+    >
+      <Text {...LABEL} color={SEMANTIC_COLORS.textSecondary}>
+        Curator actions
+      </Text>
+      {/* The answer to "do I need to care": unavailable is said, never an endless loading. */}
+      <Box py={SPACING.xs} minH="32px" aria-live="polite">
+        {summary ? (
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.body}
+            lineHeight="24px"
+            fontWeight={TYPOGRAPHY.bold}
+            color={summary.alarm ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}
+          >
+            {summary.mark && (
+              <Box as="span" aria-hidden="true" mr="0.4em">
+                {summary.mark}
+              </Box>
+            )}
+            {summary.headline}
+          </Text>
+        ) : (
+          <Mono size="13px">—</Mono>
+        )}
+      </Box>
+      {clusters.map((c) => (
+        <ClusterItem key={`${c.collateral}:${c.start}`} c={c} current={current.includes(c)} />
+      ))}
+      {gl && <OracleGapLine l={gl} href={`/${chainName}/curator-feed#oracle-gap`} />}
+      {/* Compact: the full feed is one link away. */}
+      {pending.slice(0, 2).map((r) => (
+        <CardRow key={rowKey(r)} r={r} current={currentIds.has(r.id)} />
+      ))}
+      {data?.rows.slice(0, 2).map((r) => (
+        <CardRow key={rowKey(r)} r={r} current={currentIds.has(r.id)} />
+      ))}
+      {empty && <Mono size="11px">No curator exit in the feed window.</Mono>}
+      <HStack justify="space-between" align="center" spacing={SPACING.base} flexWrap="wrap">
+        <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
+          {Number.isFinite(collected) ? `collected ${utc(Math.floor(collected / 1000))}` : ''}
+        </Mono>
         <Link
           as={NextLink}
           href={`/${chainName}/curator-feed`}
+          display="inline-flex"
+          alignItems="center"
+          minH="44px"
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="10px"
-          color={SEMANTIC_COLORS.textSecondary}
+          fontSize="13px"
+          color={SEMANTIC_COLORS.textPrimary}
+          textDecoration="underline"
+          textUnderlineOffset="3px"
+          _focusVisible={FOCUS_STYLES.ring}
         >
-          full feed →
+          Full feed →
         </Link>
       </HStack>
-      {!data && <Mono size="11px">loading…</Mono>}
-      {data?.clusters.slice(0, 2).map((c) => (
-        <Mono key={`${c.collateral}:${c.start}`} size="12px" color={SEMANTIC_COLORS.danger}>
-          {c.text} ({utc(c.end).slice(0, 10)})
-        </Mono>
-      ))}
-      {data?.open
-        .filter((r) => r.status === 'pending')
-        .slice(0, 3)
-        .map((r) => (
-          <ActionRow key={r.id} r={r} nowS={nowS} />
-        ))}
-      {data?.rows.slice(0, 3).map((r) => (
-        <ActionRow key={r.id} r={r} nowS={nowS} />
-      ))}
-    </Card>
+    </Box>
   )
 }
 

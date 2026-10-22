@@ -1,0 +1,186 @@
+{
+  "indicator": "I3",
+  "name": "oracle-vs-market gap",
+  "lane": "Q25",
+  "test": "T2 — Would curators have been warned in time?",
+  "kind": "retrospective event study (n = 3 incidents: an existence check, not a rate)",
+  "verdict": "FAIL",
+  "constants": {
+    "gap": 0.02,
+    "persistenceHours": 24,
+    "persistenceDailyPoints": 2,
+    "warnDays": 9,
+    "windowDays": 60,
+    "quarterDays": 91.3125,
+    "minCalmDays": 28
+  },
+  "incidentCount": 3,
+  "incidents": [
+    {
+      "incident": "sdeUSD 2025",
+      "asset": "sdeUSD",
+      "T0": "2025-11-11T14:47Z",
+      "event": "write-off",
+      "status": "fired < 9 days before T0",
+      "firstFire": "2025-11-04T23:00Z",
+      "leadDays": 6.658,
+      "warned9d": false,
+      "calmDays": 216.741,
+      "calmEpisodeStarts": 0,
+      "falseFireRatePerQuarter": 0,
+      "calmFireStarts": [],
+      "inputs": "inputs present: series[].oraclePrice (weekly, interpolated) vs DefiLlama sdeUSD price (hourly grid)"
+    },
+    {
+      "incident": "msY/AZND 2026",
+      "asset": "AZND",
+      "T0": "2026-07-31T19:06Z",
+      "event": "write-off",
+      "status": "warned >= 9d",
+      "firstFire": "2026-06-12T17:48Z",
+      "leadDays": 49.054,
+      "warned9d": true,
+      "calmDays": 74.353,
+      "calmEpisodeStarts": 0,
+      "falseFireRatePerQuarter": 0,
+      "calmFireStarts": [],
+      "inputs": "inputs present: rows[].oraclePrice vs DefiLlama AZND price at row times (daily)",
+      "oracleFixed": {
+        "value": 1,
+        "unit": "USDC",
+        "csv": "validation/t2/AZND-I3.csv",
+        "sha256": "bdd9950f6435d38d8f7cbf5db22d28ece07ae0c047a4582484fa2b750af6b1e0"
+      }
+    },
+    {
+      "incident": "msY/AZND 2026",
+      "asset": "msY",
+      "T0": "2026-07-31T19:13Z",
+      "event": "write-off",
+      "status": "did not fire",
+      "firstFire": null,
+      "leadDays": null,
+      "warned9d": false,
+      "calmDays": 49.009,
+      "calmEpisodeStarts": 0,
+      "falseFireRatePerQuarter": 0,
+      "calmFireStarts": [],
+      "inputs": "inputs present: rows[].oraclePrice vs DefiLlama msY price at row times (daily)"
+    },
+    {
+      "incident": "Oct 10 2025",
+      "asset": "ETH",
+      "T0": "2025-10-10T21:00Z",
+      "event": "crash",
+      "status": "did not fire",
+      "firstFire": null,
+      "leadDays": null,
+      "warned9d": false,
+      "calmDays": 1951.958,
+      "calmEpisodeStarts": 0,
+      "falseFireRatePerQuarter": 0,
+      "calmFireStarts": [],
+      "inputs": "Chainlink oracle (hour-end round) vs Binance USDT close"
+    },
+    {
+      "incident": "Oct 10 2025",
+      "asset": "BTC",
+      "T0": "2025-10-10T21:00Z",
+      "event": "crash",
+      "status": "did not fire",
+      "firstFire": null,
+      "leadDays": null,
+      "warned9d": false,
+      "calmDays": 2048.5,
+      "calmEpisodeStarts": 0,
+      "falseFireRatePerQuarter": 0,
+      "calmFireStarts": [],
+      "inputs": "Chainlink oracle (hour-end round) vs Binance USDT close"
+    },
+    {
+      "incident": "Oct 10 2025",
+      "asset": "stETH",
+      "T0": "2025-10-10T21:00Z",
+      "event": "crash",
+      "status": "did not fire",
+      "firstFire": "2022-05-22T11:00Z",
+      "leadDays": null,
+      "warned9d": false,
+      "calmDays": 1448.167,
+      "calmEpisodeStarts": 2,
+      "falseFireRatePerQuarter": 0.1261,
+      "calmFireStarts": [
+        "2022-05-22T11:00Z",
+        "2022-07-31T15:00Z"
+      ],
+      "inputs": "1.00 ETH reference (Aave exchange-rate pricing) vs depeg-history stethEth"
+    },
+    {
+      "incident": "Oct 10 2025",
+      "asset": "USDe",
+      "T0": "2025-10-10T21:00Z",
+      "event": "crash",
+      "status": "did not fire",
+      "firstFire": null,
+      "leadDays": null,
+      "warned9d": false,
+      "calmDays": 528.833,
+      "calmEpisodeStarts": 0,
+      "falseFireRatePerQuarter": 0,
+      "calmFireStarts": [],
+      "inputs": "1.00 USD reference vs depeg-history usde"
+    }
+  ],
+  "passLine": {
+    "verdict": "FAIL",
+    "incidentsWarned": 1,
+    "warnedIncidents": [
+      "msY/AZND 2026"
+    ],
+    "warningCarriers": [
+      "AZND (msY/AZND 2026)"
+    ],
+    "allCarriersFfrOk": true,
+    "byIncident": {
+      "sdeUSD 2025": "fired < 9 days before T0 (sdeUSD: fired < 9 days before T0)",
+      "msY/AZND 2026": "warned >= 9d; calm FFR measurable and <= 1/quarter on AZND",
+      "Oct 10 2025": "did not fire (ETH: did not fire, BTC: did not fire, stETH: did not fire, USDe: did not fire)"
+    }
+  },
+  "decisions": [
+    {
+      "id": "D2",
+      "topic": "observed time"
+    },
+    {
+      "id": "D3",
+      "topic": "persistence and fire time"
+    },
+    {
+      "id": "D5",
+      "topic": "oracle normalization (I3)"
+    },
+    {
+      "id": "D7",
+      "topic": "which market price series (I3)"
+    },
+    {
+      "id": "D9",
+      "topic": "reverting oracle"
+    }
+  ],
+  "source": {
+    "repo": "triccs/membrane-datasets",
+    "commit": "42c792dfde51b3dc3b1f394044613fca3a2b141d",
+    "path": "validation/t2/results.json",
+    "sha256": "16b800ff9d040f3531996918425a732c1395d140363bb9cd90da4e64bc81e05a",
+    "computedAt": "2026-10-13T00:09:46Z",
+    "prereg": {
+      "repo": "triccs/membrane-board",
+      "file": "design/VALIDATION_PREREG.md",
+      "commit": "506e7c5",
+      "section": "T2"
+    }
+  },
+  "generatedAt": "2026-10-14T01:14:20.585Z"
+}

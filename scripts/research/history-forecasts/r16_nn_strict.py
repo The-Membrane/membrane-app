@@ -31,6 +31,7 @@ Known-answer check (synth): a synthetic panel with a known touch probability (se
   python3 r16_nn_strict.py fit   --datasets DS --rows ROWS_DIR --out OUT [--threads 3]
   python3 r16_nn_strict.py score --rows ROWS_DIR --orig ORIG_DIR --out OUT
   python3 r16_nn_strict.py synth --out OUT [--threads 1]
+  python3 r16_nn_strict.py freeze --datasets DS --rows ROWS_DIR --out OUT   (frozen blind model, hashed)
 No address, key or secret is read or written. Nothing here is blind evidence and nothing ships from it.
 """
 from __future__ import annotations
@@ -102,7 +103,7 @@ def exclusions(keys, SA):
     return flags
 
 
-def train_predict(m, R, SA, tr_full, va, te, L, nT, seed, log, tag):
+def train_predict(m, R, SA, tr_full, va, te, L, nT, seed, log, tag, keep_state=None):
     """the r16_nn.py training loop, unchanged except the row sets and the seed."""
     import torch
     torch.manual_seed(seed)
@@ -167,6 +168,8 @@ def train_predict(m, R, SA, tr_full, va, te, L, nT, seed, log, tag):
     info = {"tag": tag, "model": m, "train": int(len(tr)), "val": int(len(va)), "test": int(len(te)),
             "epochs": ep_done, "val_bce": vls, "best": best, "weights_sha256": wh.hexdigest(),
             "sec": round(time.time() - t0, 1)}
+    if keep_state is not None:
+        keep_state.update(best_state)
     log(f"  {tag} {m}: train {len(tr)} val {len(va)} test {len(te)} epochs {ep_done} "
         f"val {['%.5f' % v for v in vls]} ({time.time() - t0:.0f}s)")
     return out, info
@@ -238,6 +241,57 @@ def cmd_fit(a):
     meta["finished_utc"] = now()
     json.dump(meta, open(os.path.join(a.out, "strict-meta.json"), "w"), indent=1, default=float)
     log("END strict")
+
+
+def cmd_freeze(a):
+    """the frozen blind model: one GRU by the strict rule on ALL development rows (validation = the last 90 days of
+    rows, training rows end >= Tmax before it). Writes frozen-r162e-gru.pt (state dict) and frozen-r162e.json
+    (code sha, input sha256, constants, seed, weights sha256, UTC time)."""
+    import hashlib
+    import torch
+    torch.set_num_threads(a.threads)
+    os.makedirs(a.out, exist_ok=True)
+    keys = json.load(open(os.path.join(a.rows, "rows-meta.json")))["series"]
+    import r12_tail as R12
+    specs = {s_["key"]: s_ for s_ in R12.dev_specs(a.datasets)}
+    SA = {j: NN.series_arrays(specs[k]) for j, k in enumerate(keys)}
+    flags = exclusions(keys, SA)
+    drop = np.array([k in flags for k in keys])
+    R = NN.tier_rows(a.rows, TIER)
+    keep = ~drop[R["sid"]]
+    R = {k: v[keep] for k, v in R.items()}
+    L, nT, Tmax = len(NN.TIER_LV[TIER]), len(D.TIERS[TIER]), max(D.TIERS[TIER])
+    vend = int(R["ts"].max()) + Tmax * STEP
+    vstart = vend - VAL_DAYS * DAY
+    tr_all = np.where(R["ts"] + Tmax * STEP <= vstart)[0]
+    va = np.where(R["ts"] >= vstart)[0]
+    seed = SEED + 1000
+    rng = np.random.default_rng(seed)
+    tr = rng.choice(tr_all, NN.MAX_TRAIN, replace=False)
+    if len(va) > 60000:
+        va = np.sort(rng.choice(va, 60000, replace=False))
+    st = {}
+    _, info = train_predict(MODEL, R, SA, tr, va, np.array([], np.int64), L, nT, seed, print, "freeze", keep_state=st)
+    pt = os.path.join(a.out, "frozen-r162e-gru.pt")
+    torch.save(st, pt)
+
+    def sha(p_):
+        h = hashlib.sha256()
+        with open(p_, "rb") as f:
+            for b in iter(lambda: f.read(1 << 20), b""):
+                h.update(b)
+        return h.hexdigest()
+    cfg = {"schema": "q26-r162e-frozen-v1", "label": "frozen before any blind byte", "code": D.git_sha(),
+           "model": MODEL, "tier": TIER, "primary": {"T": 3, "level": -0.02, "comparator": "fH", "holm": 1},
+           "constants": {"HW": NN.HW, "DW": NN.DW, "STATIC": NN.STATIC, "CAP": NN.CAP[MODEL], "MAX_TRAIN": NN.MAX_TRAIN,
+                         "VAL_DAYS": VAL_DAYS, "seed": seed, "levels": NN.TIER_LV[TIER], "Ts": D.TIERS[TIER]},
+           "train_rows": int(len(tr[:NN.CAP[MODEL]])), "train_ts_max": int(R["ts"][tr].max()),
+           "val_rows": int(len(va)), "val_ts_range": [int(R["ts"][va].min()), int(R["ts"][va].max())],
+           "excluded": flags, "fit": info, "weights_file_sha256": sha(pt),
+           "inputs_sha256": {f"rows-T{T}.npz": sha(os.path.join(a.rows, f"rows-T{T}.npz")) for T in D.TIERS[TIER]},
+           "rows_meta_sha256": sha(os.path.join(a.rows, "rows-meta.json")), "created_utc": now()}
+    json.dump(cfg, open(os.path.join(a.out, "frozen-r162e.json"), "w"), indent=1, default=float)
+    print("frozen", cfg["weights_file_sha256"], cfg["created_utc"], flush=True)
 
 
 # ---------------------------------------------------------------------------------------------------- scoring
@@ -550,11 +604,16 @@ def main():
     s.add_argument("--rows", required=True)
     s.add_argument("--orig", required=True)
     s.add_argument("--out", required=True)
+    s = sub.add_parser("freeze")
+    s.add_argument("--datasets", required=True)
+    s.add_argument("--rows", required=True)
+    s.add_argument("--out", required=True)
+    s.add_argument("--threads", type=int, default=3)
     s = sub.add_parser("synth")
     s.add_argument("--out", required=True)
     s.add_argument("--threads", type=int, default=1)
     a = ap.parse_args()
-    {"fit": cmd_fit, "score": cmd_score, "synth": cmd_synth}[a.cmd](a)
+    {"fit": cmd_fit, "score": cmd_score, "synth": cmd_synth, "freeze": cmd_freeze}[a.cmd](a)
 
 
 if __name__ == "__main__":

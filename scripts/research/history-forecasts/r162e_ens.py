@@ -15,6 +15,7 @@ validation subsample, torch init and the shuffle, as r16_nn_strict.cmd_fit.
   python3 r162e_ens.py score  --rows ROWS --out OUT
   python3 r162e_ens.py freeze --datasets DS --rows ROWS --out OUT --rule A|B
   python3 r162e_ens.py synth  --out OUT --rule A|B
+  python3 r162e_ens.py power-live --rows ROWS --out OUT --rule A|B   (D11 DRAFT power vs calendar time, reported only)
 No address, key or secret is read or written. Nothing here is blind evidence and nothing ships from it.
 """
 from __future__ import annotations
@@ -414,6 +415,74 @@ def cmd_score(a):
     print(S.now(), "SELECTION", json.dumps(out["selection"]), flush=True)
 
 
+def load_wf(a):
+    res, idx0 = {}, None
+    for k in E1 + E2:
+        Z = np.load(os.path.join(a.out, f"res-k{k}.npz"))
+        if idx0 is None:
+            idx0 = Z["idx"]
+            o = np.argsort(idx0)
+        assert (Z["idx"] == idx0).all()
+        res[k] = {"A": Z["rA"][o].astype(np.float64), "B": Z["rB"][o].astype(np.float64)}
+    idx = idx0[o]
+    keys = json.load(open(os.path.join(a.rows, "rows-meta.json")))["series"]
+    excl = json.load(open(os.path.join(a.out, "excluded.json")))
+    R = NN.tier_rows(a.rows, TIER)
+    keep = ~np.array([k in excl for k in keys])[R["sid"]]
+    R = {k: v[keep] for k, v in R.items()}
+    sc = Scorer(a.rows, S.folds(int(R["ts"].max())))
+    sc.setup(R, keep, idx)
+    return sc, res, keys
+
+
+def nw_var(x, lag):
+    """Newey-West Bartlett long-run variance of a series (per observation)."""
+    x = x - x.mean()
+    n = len(x)
+    v = float(x @ x) / n
+    for j in range(1, lag + 1):
+        v += 2 * (1 - j / (lag + 1)) * float(x[j:] @ x[:-j]) / n
+    return v
+
+
+def cmd_power_live(a):
+    """D11 DRAFT power vs calendar time: the chosen rule's walk-forward E1 ensemble vs (fH) on the development rows of
+    the live assets (dev:ETH, dev:BTC; daily 00:00 UTC origins), per horizon over the D8 shallow levels. Effect and
+    long-run variance from those rows (seen data; an optimistic proxy for the frozen model). n80 = ((z_{1-alpha} +
+    z_0.8) sigma_LR / |mu|)^2 days, alpha = 0.05/3 one-sided (D8 rule). Reported only."""
+    from scipy.stats import norm
+    sc, res, keys = load_wf(a)
+    ens = np.mean([res[k][a.rule] for k in E1], axis=0)
+    p = sc.prob(ens)
+    e = (((p - sc.Yc) ** 2) * sc.msk).sum(1) / sc.nl - sc.bH
+    za, zb = norm.ppf(1 - 0.05 / 3), norm.ppf(0.8)
+    out = {"schema": "q26-r162e-d11-power/1", "label": "DEVELOPMENT proxy (seen data), reported only", "rule": a.rule,
+           "code": D.git_sha(), "alpha_one_sided": 0.05 / 3, "lags_days": [7, 30], "cells": {}}
+    groups = {"ETH": ["dev:ETH"], "BTC": ["dev:BTC"], "ETH+BTC": ["dev:ETH", "dev:BTC"],
+              "all dev series (small-cap reference)": None}
+    sid_of = {k: j for j, k in enumerate(keys)}
+    for T in D.TIERS[TIER]:
+        for gname, g in groups.items():
+            m = sc.T == T
+            if g is not None:
+                m &= np.isin(sc.sid, [sid_of[x] for x in g])
+            day = sc.ts[m] // DAY
+            ud, inv = np.unique(day, return_inverse=True)
+            dd = np.bincount(inv, weights=e[m]) / np.bincount(inv)        # per-day mean over the group's series
+            bh = np.bincount(inv, weights=sc.bH[m]) / np.bincount(inv)
+            mu = float(dd.mean())
+            row = {"days": int(len(ud)), "mean_d": mu, "bss_pooled": float(-dd.sum() / bh.sum()), "by_lag": {}}
+            for lag in (7, 30):
+                sd = math.sqrt(max(nw_var(dd, lag), 1e-30))
+                n80 = ((za + zb) * sd / abs(mu)) ** 2 if mu < 0 else None
+                pw = {str(n): float(norm.cdf(-mu * math.sqrt(n) / sd - za)) for n in (90, 180, 365, 730, 1095, 1825)}
+                row["by_lag"][str(lag)] = {"sigma_LR": sd, "days_to_80pct": n80, "power_at_days": pw}
+            out["cells"][f"{D.TL[T]} {gname}"] = row
+            print(f"{D.TL[T]} {gname}: days {len(ud)} BSS {row['bss_pooled']:+.4f} n80 lag7 "
+                  f"{row['by_lag']['7']['days_to_80pct']} lag30 {row['by_lag']['30']['days_to_80pct']}", flush=True)
+    json.dump(out, open(os.path.join(a.out, f"power-d11-{a.rule}.json"), "w"), indent=1, default=float)
+
+
 # ----------------------------------------------------------------------------------------------------------- freeze
 def cmd_freeze(a):
     import torch
@@ -528,12 +597,17 @@ def main():
     s = sub.add_parser("score")
     s.add_argument("--rows", required=True)
     s.add_argument("--out", required=True)
+    s = sub.add_parser("power-live")
+    s.add_argument("--rows", required=True)
+    s.add_argument("--out", required=True)
+    s.add_argument("--rule", choices=("A", "B"), required=True)
     s = sub.add_parser("synth")
     s.add_argument("--out", required=True)
     s.add_argument("--rule", choices=("A", "B"), required=True)
     s.add_argument("--threads", type=int, default=1)
     a = ap.parse_args()
-    {"check": cmd_check, "wf": cmd_wf, "score": cmd_score, "freeze": cmd_freeze, "synth": cmd_synth}[a.cmd](a)
+    {"check": cmd_check, "wf": cmd_wf, "score": cmd_score, "freeze": cmd_freeze, "synth": cmd_synth,
+     "power-live": cmd_power_live}[a.cmd](a)
 
 
 if __name__ == "__main__":

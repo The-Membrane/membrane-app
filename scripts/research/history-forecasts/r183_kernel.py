@@ -820,8 +820,11 @@ def load_real(a, res):
     cv, chk = curve_hourly(a.datasets, res, hts)
     d["s1"], d["s2"], d["base"] = cv["slope1"], cv["slope2"], cv["base"]
     d["kink"] = cv["optimal"]
-    d["cash"] = P["cash"].to_numpy(float)
-    d["debt"] = P["debt"].to_numpy(float)
+    # the hours before the first daily snapshot have no cash/debt anchor: back-fill them (they precede every
+    # origin; without this the NaN propagates through the cumulative sums of the SR lag means)
+    d["cash"] = pd.Series(P["cash"].to_numpy(float)).bfill().to_numpy()
+    d["debt"] = pd.Series(P["debt"].to_numpy(float)).bfill().to_numpy()
+    d["util"] = pd.Series(d["util"]).bfill().to_numpy()
     d["S"] = d["debt"] + np.maximum(d["cash"], 0.0)
     d["rf"] = cv["rf"]
     d["r"] = curve_rate(d["util"], d["kink"], d["s1"], d["s2"], d["base"])
@@ -866,11 +869,15 @@ def cmd_fit(a):
     sr_orig = np.sort(rng.choice(t_all, 400, replace=False))
     strip = lambda o: {k: v for k, v in o.items() if not k.startswith("_")}
     res = {"schema": "q26-r183/fit/1", "market": "Aave V3 Ethereum Core USDC (seen, development)", "B": B,
-           "curveCheck": d["curveCheck"]}
+           "curveCheck": d["curveCheck"],
+           "desc": {"hoursCashLE1M": int((d["cash"][t_all] <= 1e6).sum()),
+                    "shareAboveOptimal": float((d["util"][t_all - 1] >= d["kink"][t_all - 1]).mean())}}
     for cut in ("all", "exQ2"):
         t = _cut(d, t_all, cut)
         lp, lps, srf, sr = fit_all(d, t, B, 1, sr_orig)
+        lpW = fit_lpg(d["d182"], t, B=B, seed=4, shock="W")
         res[cut] = {"nOrigins": int(len(t)), "lpG": strip(lp), "lpGstate": strip(lps), "sr": sr,
+                    "lpG_totalW_R182_3P": strip(lpW),
                     "srTheta": dict(zip(srf["names"], srf["theta"].tolist())),
                     "srThetaSD": dict(zip(srf["names"], srf["thetaBoot"].std(0).tolist()))}
         print(cut, "done", flush=True)
@@ -940,41 +947,39 @@ def cmd_case(a):
     while i0 + hours_ge97 < len(util) and util[i0 + hours_ge97] >= 0.97:
         hours_ge97 += 1
     out["hoursUtilGE0.97"] = hours_ge97
-    rec = np.load(os.path.join(a.work, "recent-usdc.npy"))
+    d0 = d["d182"]
+    gall = d0["D"] + d0["Rp"] - d0["B"]          # every actor
+    g3 = d["g3P_hour"]                            # non-repeat, non-recent-withdrawer third parties
     for h in HS:
         sl = slice(i0 + 1, i0 + h + 1)
-        G_all = float((d["D"][sl] + d["Rp"][sl] - d["B"][sl]).sum())
-        G_nonrecent = float((d["D"][sl] + d["Rp"][sl] - d["B"][sl] - rec[sl]).sum())
-        W_ = float(d["W"][sl].sum())
-        out[f"{h}h"] = {"grossAllUSD": G_all, "grossNonRecentWithdrawersUSD": G_nonrecent, "withdrawalsUSD": W_,
-                        "D": float(d["D"][sl].sum()), "Rp": float(d["Rp"][sl].sum()), "B": float(d["B"][sl].sum()),
-                        "grossAllPerDrawdown$": G_all / dd, "grossNonRecentPerDrawdown$": G_nonrecent / dd,
+        out[f"{h}h"] = {"grossAllUSD": float(gall[sl].sum()), "grossThirdPartyUSD": float(g3[sl].sum()),
+                        "withdrawalsUSD": float(d0["W"][sl].sum()), "D_all": float(d0["D"][sl].sum()),
+                        "Rp_all": float(d0["Rp"][sl].sum()), "B_all": float(d0["B"][sl].sum()),
+                        "grossAllPerDrawdown$": float(gall[sl].sum()) / dd,
+                        "grossThirdPartyPerDrawdown$": float(g3[sl].sum()) / dd,
                         "cashChangeUSD": float(cash[i0 + h] - cash[i0])}
-    # baseline: the same hours of week in the 4 weeks before the peak (gross non-recent inflow)
     base = []
     for w in range(1, 5):
         b0 = i0 - 168 * w
-        sl = slice(b0 + 1, b0 + 73)
-        base.append(float((d["D"][sl] + d["Rp"][sl] - d["B"][sl] - rec[sl]).sum()))
-    out["baseline72hSameHoursPrior4wUSD"] = base
-    out["excess72hNonRecentPerDrawdown$"] = (out["72h"]["grossNonRecentWithdrawersUSD"] - float(np.mean(base))) / dd
+        base.append(float(g3[b0 + 1:b0 + 73].sum()))
+    out["baseline72hThirdPartySameHoursPrior4wUSD"] = base
+    out["excess72hThirdPartyPerDrawdown$"] = (out["72h"]["grossThirdPartyUSD"] - float(np.mean(base))) / dd
     # rate path
     out["borrowRateAtI0"] = float(d["r"][i0])
     out["borrowRateTrailing168AtPeak"] = float(pd.Series(d["r"]).rolling(168, min_periods=1).mean().iloc[pk])
     # SR prediction for this case, fitted without 2026Q2 (out-of-sample for the case)
     t = _cut(d, R.origins(d), "exQ2")
     srf = fit_sr(d, t, B=a.boot, seed=21)
-    st = {"S": d["S"][pk:pk + 1], "Dbt": d["debt"][pk:pk + 1], "cash": np.maximum(d["cash"][pk:pk + 1], 0),
-          "opt": d["kink"][pk:pk + 1], "s1": d["s1"][pk:pk + 1], "s2": d["s2"][pk:pk + 1],
-          "base": d["base"][pk:pk + 1]}
-    X = np.array([Wd])
+    st = sr_state(d, np.array([pk + 1]))
+    st["path"] = {k: np.repeat(v[:, :1], HMAX + 1, axis=1) for k, v in st["path"].items()}   # frozen at the peak
+    X = np.array([dd])
     e = sr_kernel(srf["theta"], st, X)[0, 0]
     b = sr_kernel(srf["thetaBoot"], st, X)[:, 0, :]
     out["SR_exQ2_prediction_perWithdrawn$"] = {f"{h}h": {"est": float(e[k]), "lo": float(np.percentile(b[:, k], 2.5)),
                                                          "hi": float(np.percentile(b[:, k], 97.5))}
                                                for k, h in enumerate(HS)}
-    out["note"] = ("SR is applied from the cash peak with the drawdown's withdrawals as one shock; its window "
-                   "starts at the peak, the observed window starts at cash <= $1M.")
+    out["note"] = ("SR (fitted without 2026Q2) is applied at the cash peak with the drawdown as one shock, on a base "
+                   "path frozen at the peak (the realised path already contains the drawdown); its window starts at the peak, the observed window at cash <= $1M.")
     with open(os.path.join(a.out, "case-april2026.json"), "w") as f:
         json.dump(out, f, indent=1, default=float)
     print(json.dumps(out, indent=1, default=float))

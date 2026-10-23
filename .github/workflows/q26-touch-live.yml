@@ -12,6 +12,11 @@
 # D10 (2026-10-18, membrane-board 0582957): the score job (--membrane-oracle) adds a fifth deep target, Membrane's own
 #    oracle (median of fixed Uniswap V3 route 1 h tick-TWAPs), and appends the membrane-oracle store (per-block swap
 #    ticks seeded by slot0, quote-feed answers). Report only. Issue step, cron times, sparse lists unchanged.
+# D11 (2026-10-23, membrane-board HISTORY_TOUCH_LIVE.md D11; owner approval 2026-10-23): the frozen GRU rule D vs (fH)
+#    on the 273 Binance development series (ETHUSDT/BTCUSDT descriptive), daily 00:00Z origins, walk-forward Platt,
+#    an anytime-valid e-process ledger. Log only. A SECOND JOB `d11` in this same workflow, run after `run` by the
+#    same two cron events (its own runner and 30-minute limit; no new cron, no new workflow, no new secret). It writes
+#    only forecasts/q26-touch-live/d11/. The main job's steps and flags are unchanged (only the pin moves).
 #
 # Moved 2026-10-17 from the private triccs/membrane-datasets to this PUBLIC repo (owner ruling 2026-10-17:
 # free Actions minutes; the data library stays private). Schedules run only from `main`, so THIS FILE LIVES ON
@@ -58,7 +63,8 @@ concurrency:
 
 env:
   APP_REPO: The-Membrane/membrane-app
-  APP_SHA: 37efd12794caab9060be82b5ff65f2aec83f26d2   # membrane-app research/history-forecasts, live/ code (model A6 + displayed rung + D8 short horizons + D9 deep levels + D10 Membrane oracle target)
+  APP_SHA: 5570128d46ac55180922aacc358a8f8be4add0d6   # membrane-app research/history-forecasts, live/ code (model A6 + displayed rung + D8 short horizons + D9 deep levels + D10 Membrane oracle target + D11 GRU arm)
+  D11_INPUTS: history-forecasts/r16/d11-inputs-b4f337cc
   DATASETS_REPO: triccs/membrane-datasets
   LIVE_DIR: forecasts/q26-touch-live
 
@@ -198,6 +204,139 @@ jobs:
           git add -- "$LIVE_DIR"
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -q -m "forecasts/q26-touch-live: $JOB $(date -u +%Y-%m-%dT%H:%MZ) (Q26 live log, app ${APP_SHA:0:7})" -- "$LIVE_DIR"
+          echo "committed $(git show --name-only --format= HEAD | wc -l) file(s)"
+          auth="$(printf 'x-access-token:%s' "$DATASETS_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          unset DATASETS_TOKEN
+          # Per-command config: the header and a disabled hooks path (command-line precedence over .git/config).
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          export GIT_CONFIG_KEY_1="core.hooksPath" GIT_CONFIG_VALUE_1="/dev/null"
+          for attempt in 1 2 3 4; do   # the first try plus up to 3 retries
+            if git pull -q --rebase origin main && git push -q origin HEAD:main; then
+              echo "pushed on attempt $attempt"; exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 15))
+          done
+          echo "push failed after 3 retries"; exit 1
+
+  # D11 (HISTORY_TOUCH_LIVE.md D11): the GRU rule-D arm. Its own job so that the 273-series model run never eats the
+  # main job's 30-minute budget. It runs after `run` (pass or fail) on the same trigger; it pushes only
+  # forecasts/q26-touch-live/d11/. Credential handling is identical to `run`. Public log: status and counts only.
+  d11:
+    needs: run
+    if: ${{ always() && github.repository == 'The-Membrane/membrane-app' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: q26-datasets
+    steps:
+      - name: Choose the job
+        id: job
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_JOB: ${{ inputs.job }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then job="$INPUT_JOB"
+          elif [ "$SCHEDULE" = "17 0 * * *" ]; then job=issue
+          elif [ "$SCHEDULE" = "47 0 * * *" ]; then job=score
+          else echo "unknown trigger"; exit 1; fi
+          case "$job" in issue|score) ;; *) echo "bad job $job"; exit 1 ;; esac
+          echo "job=$job" >> "$GITHUB_OUTPUT"
+          echo "job: $job"
+
+      # Sparse: the frozen development kline grids of the D11 universe (spent development sets only; no locked
+      # blind set), the frozen rule-D weights and config, the D11 development inputs and the D11 live block.
+      - name: Check out membrane-datasets (main, sparse, D11 inputs only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.DATASETS_REPO }}
+          token: ${{ secrets.DATASETS_TOKEN }}
+          ref: main
+          path: datasets
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /binance-klines/*-1h.json
+            /final-blind-prices/binance-*-1h.json
+            /blind3-prices/*-1h.json
+            /blind4-prices/*-1h.json
+            /blind5-prices/*-1h.json
+            /blind6-prices/*-1h.json
+            /blind7-prices/*-1h.json
+            /history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-*-1h.json.gz
+            /history-forecasts/r16/r162e-cd-c41dff8f/frozen-r162e-ens5-D.pt
+            /history-forecasts/r16/r162e-cd-c41dff8f/frozen-r162e-ens5-D.json
+            /history-forecasts/r16/d11-inputs-b4f337cc/
+            /forecasts/q26-touch-live/d11/
+
+      - name: Record the datasets git config (checked again before the push)
+        id: gitcfg
+        run: echo "sha256=$(sha256sum datasets/.git/config | cut -c1-64)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out membrane-app at the pinned commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.APP_REPO }}
+          ref: ${{ env.APP_SHA }}
+          path: app
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/research/history-forecasts
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned dependencies (torch CPU build pinned; the block STOPs on any other build)
+        run: |
+          python -m pip install --disable-pip-version-check numpy==2.5.3 scipy==1.18.1 scikit-learn==1.9.1 pandas==3.0.5
+          python -m pip install --disable-pip-version-check torch==2.14.1+cpu --index-url https://download.pytorch.org/whl/cpu
+
+      - name: D11 issue or score
+        env:
+          JOB: ${{ steps.job.outputs.job }}
+        run: |
+          set +x
+          out="$RUNNER_TEMP/q26-d11.log"; rc=0
+          python app/scripts/research/history-forecasts/live/q26_live_d11.py "$JOB" \
+            --datasets datasets --out datasets --expect-commit "$APP_SHA" \
+            --devcal "$D11_INPUTS/devcal.npz" \
+            --devcal-sha256 fdd053e5b36e7bb83455a3c236885588a58e130902dfd1d2fbaf1e8bdec24d7c \
+            --golden "$D11_INPUTS/replay-golden.npz" \
+            --golden-sha256 35f19207666c8a7c1be7853efcdb1063826da1cdfd940aab42312c73385febce \
+            --workers 4 \
+            >"$out" 2>&1 || rc=$?
+          # Public log: status and counts only. The run's own output is withheld and deleted.
+          echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \
+               "Traceback $(grep -c '^Traceback' "$out" || true)"
+          grep -E '^d11 replay: [0-9]+ of [0-9]+ \(fH\) equal, [0-9]+ of [0-9]+ features equal, [0-9]+ of [0-9]+ look-ahead equal$' "$out" || true
+          grep -E '^d11 klines: [0-9]+ ok, [0-9]+ failed, \+[0-9]+ klines$' "$out" || true
+          grep -E '^d11 issue: [0-9]+ test series issued, [0-9]+ not issued$' "$out" || true
+          grep -qE '^d11 issue: none ' "$out" && echo "d11 issue: none" || true
+          grep -E '^d11 scored: [0-9]+ days finalized, [0-9]+ pending, ledger [0-9]+ days$' "$out" || true
+          rm -f "$out"
+          exit "$rc"
+
+      - name: Commit forecasts/q26-touch-live/d11/ and push to membrane-datasets main (pull --rebase, up to 3 retries)
+        working-directory: datasets
+        env:
+          JOB: ${{ steps.job.outputs.job }}
+          GITCFG_SHA256: ${{ steps.gitcfg.outputs.sha256 }}
+          DATASETS_TOKEN: ${{ secrets.DATASETS_TOKEN }}
+        run: |
+          set +x
+          if [ "$(sha256sum .git/config | cut -c1-64)" != "$GITCFG_SHA256" ]; then
+            echo "datasets .git/config changed after checkout; not pushing"; exit 1
+          fi
+          git config user.name "q26-live-bot"
+          git config user.email "q26-live-bot@users.noreply.github.com"
+          git add -- "$LIVE_DIR/d11"
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -q -m "forecasts/q26-touch-live/d11: $JOB $(date -u +%Y-%m-%dT%H:%MZ) (Q26 D11 GRU arm, app ${APP_SHA:0:7})" -- "$LIVE_DIR/d11"
           echo "committed $(git show --name-only --format= HEAD | wc -l) file(s)"
           auth="$(printf 'x-access-token:%s' "$DATASETS_TOKEN" | base64 -w0)"
           echo "::add-mask::$auth"

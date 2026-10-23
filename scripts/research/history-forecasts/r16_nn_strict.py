@@ -12,7 +12,8 @@ Strict protocol (fixed here before any strict output):
   folds    half-year test windows [a, b) from 2019-01-01 to the end of the rows (Jan-Jun, Jul-Dec, UTC)
   train    rows of ALL series (own past included) whose window ends before the validation start:
            ts + Tmax h <= a - 90 d. No row from on or after the fold start can enter a fit.
-  valid    early stopping on rows with ts >= a - 90 d and ts + Tmax h <= a (temporal hold-out, not a series group)
+  valid    early stopping on rows with ts >= e - 90 d and ts + Tmax h <= e, e = the end of the last available row window
+           before a (e = a except after the dropped 2026Q2; amended before any score) (temporal hold-out)
   test     daily origins (ts % 86400 == 0) with a <= ts < b, as the original
   model    unchanged from r16_nn.py: make_model / build_batch imported; GRU(32) residual on logit p_fH, Adam lr 1e-3,
            wd 1e-4, batch 1024, dropout 0.1, epochs -1..3 with patience 1 (initial state eligible), 60,000-row uniform
@@ -204,9 +205,13 @@ def cmd_fit(a):
             "folds": [], "started_utc": now()}
     for fi, (fa, fb) in enumerate(F):
         te = np.where((R["ts"] >= fa) & (R["ts"] < fb) & (R["ts"] % DAY == 0))[0]
-        vstart = fa - VAL_DAYS * DAY
+        # amended 2026-10-23 before any strict score was computed: the validation window ends at the last available
+        # row before the fold (2026Q2 is dropped from the rows, so the 2026-07 fold had no validation rows)
+        prior = R["ts"][R["ts"] + Tmax * STEP <= fa]
+        vend = int(prior.max()) + Tmax * STEP if len(prior) else fa
+        vstart = vend - VAL_DAYS * DAY
         trm = R["ts"] + Tmax * STEP <= vstart
-        vam = (R["ts"] >= vstart) & (R["ts"] + Tmax * STEP <= fa)
+        vam = (R["ts"] >= vstart) & (R["ts"] + Tmax * STEP <= vend)
         tr_all, va = np.where(trm)[0], np.where(vam)[0]
         if len(te) == 0 or len(tr_all) < 5000 or len(va) < 1000:
             log(f"  fold {fi} skipped: test {len(te)} train {len(tr_all)} val {len(va)}")
@@ -215,7 +220,7 @@ def cmd_fit(a):
         tr = rng.choice(tr_all, NN.MAX_TRAIN, replace=False) if len(tr_all) > NN.MAX_TRAIN else rng.permutation(tr_all)
         if len(va) > 60000:
             va = np.sort(rng.choice(va, 60000, replace=False))
-        assert R["ts"][tr].max() + Tmax * STEP <= vstart and R["ts"][va].max() + Tmax * STEP <= fa
+        assert R["ts"][tr].max() + Tmax * STEP <= vstart and R["ts"][va].max() + Tmax * STEP <= vend <= fa
         assert R["ts"][te].min() >= fa
         p, info = train_predict(MODEL, R, SA, tr, va, te, L, nT, SEED + fi, log,
                                 f"fold {fi} {dt.datetime.utcfromtimestamp(fa):%Y-%m}")

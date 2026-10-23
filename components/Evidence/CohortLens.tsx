@@ -94,7 +94,7 @@ const Detail: React.FC<{ r: CohortRow }> = ({ r }) => (
 )
 
 /**
- * The traversable cohort. 2,350 real accounts, filterable and sortable.
+ * The traversable cohort. 2,347 real accounts, filterable and sortable.
  *
  * Caps at 100 rendered rows, and says so in the footer rather than silently
  * truncating — a table that quietly shows the top slice reads as "this is

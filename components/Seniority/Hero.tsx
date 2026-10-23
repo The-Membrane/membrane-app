@@ -70,6 +70,13 @@ export const Hero: React.FC<HeroProps> = ({ variant = 'a' }) => {
         >
           {HERO.bridge.line}
         </Text>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+          color={SEMANTIC_COLORS.textTertiary}
+        >
+          {HERO.bridge.footnote}
+        </Text>
       </VStack>
 
       {/* The one conversion event of the test: an address run in this simulator,

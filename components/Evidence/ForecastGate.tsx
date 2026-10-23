@@ -151,7 +151,7 @@ export const ForecastGate: React.FC<ForecastGateProps> = ({
           fontSize={TYPOGRAPHY.xs}
           color={SEMANTIC_COLORS.textTertiary}
         >
-          Answered on 2,350 real accounts. Scroll to skip. Every figure stays on the page.
+          Answered on 2,347 real accounts. Scroll to skip. Every figure stays on the page.
         </Text>
       </VStack>
     </Box>

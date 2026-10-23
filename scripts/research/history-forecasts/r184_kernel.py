@@ -854,12 +854,21 @@ def cmd_build(a):
 
 
 def load_real(a):
-    d0 = K.load_real(argparse.Namespace(datasets=a.datasets, work182=a.work182, work=a.work183), "USDC")
-    z = np.load(os.path.join(a.work, "r184-usdc.npz"))
-    d = dict(d0["d182"])
-    for k in ("S", "cash", "debt", "s1", "s2", "base", "rf", "kink", "util", "r", "z"):
-        d[k] = d0[k]
+    """Core USDC hourly view (R18.2 panel + curve, as r183_kernel.load_real) with the R18.4 unit-level splits."""
+    d = R.load_real(a.datasets, a.work182, "USDC")
+    P, _ = R.load_panel(a.work182, "USDC")
+    cv, chk = K.curve_hourly(a.datasets, "USDC", d["hts"])
+    d["s1"], d["s2"], d["base"], d["kink"], d["rf"] = cv["slope1"], cv["slope2"], cv["base"], cv["optimal"], cv["rf"]
+    d["cash"] = pd.Series(P["cash"].to_numpy(float)).bfill().to_numpy()      # pre-snapshot hours back-filled
+    d["debt"] = pd.Series(P["debt"].to_numpy(float)).bfill().to_numpy()
+    d["util"] = pd.Series(d["util"]).bfill().to_numpy()
+    d["S"] = d["debt"] + np.maximum(d["cash"], 0.0)
+    d["r"] = K.curve_rate(d["util"], d["kink"], d["s1"], d["s2"], d["base"])
+    zr = K.spread_rate(d["util"], d["kink"], d["s1"], d["s2"], d["base"], d["rf"])
+    d["z"] = zr - pd.Series(zr).rolling(ZWIN, min_periods=1).mean().to_numpy()
     d["zb"] = d["r"] - pd.Series(d["r"]).rolling(ZWIN, min_periods=1).mean().to_numpy()
+    add_fast_spreads(d, zr)
+    z = np.load(os.path.join(a.work, "r184-usdc.npz"))
     d["Ball"] = d["B"].copy()
     for k in ("D", "Rp", "B"):
         d[k + "_nr"] = d[k] - z[f"rep_{k}"]
@@ -869,7 +878,7 @@ def load_real(a):
     d["yRp"] = d["Rp_nr"] - z["recent_Rp"]
     d["yDf"] = d["yD"] - z["future_D"]
     d["yRpf"] = d["yRp"] - z["future_Rp"]
-    d["curveCheck"] = d0["curveCheck"]
+    d["curveCheck"] = chk
     return d
 
 

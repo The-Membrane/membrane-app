@@ -64,7 +64,11 @@ def first_month(ven, market):
 
 
 def hourly_exists(ven, market, at):
+    if ven == "bithumb":       # Bithumb rejects the trailing Z and reads `to` as KST: send the same instant in KST
+        at = (dt.datetime.strptime(at, "%Y-%m-%dT%H:%M:%SZ") + dt.timedelta(hours=9)).strftime("%Y-%m-%dT%H:%M:%S")
     d = get_json(f"{HOST[ven]}/candles/minutes/60?market={market}&count=1&to={at}")
+    if isinstance(d, dict) and "error" in d:
+        raise RuntimeError(f"{ven} {market} hourly probe: {d['error']}")
     t = d[0]["candle_date_time_utc"] if isinstance(d, list) and d else None
     del d
     return t                                                 # the last hourly candle before `at` (timestamp only)

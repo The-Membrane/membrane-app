@@ -866,7 +866,11 @@ def score(a, U, log=print, clock=time.time, http_get=None):
         raise SystemExit("STOP: d11 devcal sha256 mismatch")
     pool = CalPool(os.path.join(datasets, a.devcal))
     tests = {e["symbol"] for e in U["series"] if e["role"] == "test"}
-    for o in read_outcomes(ldir):                      # live calibration rows of finalized days
+    seen = set()
+    for o in read_outcomes(ldir):                      # live calibration rows of finalized (ledgered) days only
+        if o["origin"] not in done or o["origin"] in seen:
+            continue                                   # an outcome line without its ledger line is ignored
+        seen.add(o["origin"])
         for r in o["series"]:
             if r["symbol"] in tests and r.get("y"):
                 for T in HORIZONS:

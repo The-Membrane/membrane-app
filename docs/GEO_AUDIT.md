@@ -8,8 +8,13 @@ Findings carry the consensus weight of the tactic they violate (N/19 videos).
 ## Verdict
 
 The app's strongest GEO asset is already live: provenance-stamped first-party numbers on
-the root and landing pages ("2,350 accounts... Aave closed a median 71% vs Membrane's
-17.8%", "1,245 real carry positions measured on-chain"). Proprietary data is the
+the root and landing pages ("1,245 real carry positions measured on-chain", and the Oct 10
+liquidation counterfactual). *Superseded 2026-10-16: the figures quoted here at the time
+("2,350 accounts... a median 71% vs 17.8%") came from the old Aave-only census and are no
+longer on any page. The root and /evidence now read the full on-chain census
+(`public/data/oct10-2025/evidence-census.json`: every Aave and Morpho liquidation of 10-11 Oct
+2025 on four chains), and the evidence page's description is built from it
+(`components/Evidence/seo.ts`).* Proprietary data is the
 top-weighted citability signal (8/19 videos, Princeton GEO paper: up to +40% visibility).
 The problem: that asset sits on pages with zero H1, the flagship borrow page is
 deliberately noindexed, and every invalid URL returns a silent 200 - so crawlers either

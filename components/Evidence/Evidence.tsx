@@ -6,16 +6,25 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
 import { ACTIVE_EFFECTS, FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
 
 import { Caveats, Eyebrow } from './atoms'
-import { usd } from './format'
+import { PROTOCOL_NAME, gapWord, usd } from './format'
 import { CohortLens } from './CohortLens'
 import { DebtLens } from './DebtLens'
 import { TimeLens } from './TimeLens'
 import { ForecastGate } from './ForecastGate'
 import { DesireRouter } from './DesireRouter'
 import { useEvidence } from './useEvidence'
-import { EvidenceDoc, Lens } from './types'
+import { EvidenceDoc, Lens, ProtocolKey } from './types'
+
+const PROTOCOLS: ProtocolKey[] = ['aave-v3', 'morpho-blue']
+
+/** "Aave 5.8% less · Morpho 56.1% less": the split that sits beside every blended figure. */
+const splitLine = (d: EvidenceDoc) =>
+  PROTOCOLS.map(
+    (k) => `${PROTOCOL_NAME[k].split(' ')[0]} ${gapWord(d.debt.byProtocol[k].gapPct)}`,
+  ).join(' · ')
 
 /**
  * The three lenses, as numbered section openers.
@@ -38,46 +47,36 @@ const LENSES: {
     heading: 'How much of the loan gets closed',
     blurb:
       'Path-independent, so it holds whichever way the market goes next. This is the one to lead with.',
-    // DIRECTION-AWARE (2026-09-14). The gap can point either way and now does: on the
-    // priced set Membrane closes MORE. A caption hard-coded to "less" would have kept
-    // printing the winning word next to a losing number.
-    metric: (d) => usd(Math.abs(d.debt.differenceUsd)),
+    // DIRECTION-AWARE: the gap can point either way per protocol and per chain, so the word
+    // is computed from the sign, never typed.
+    metric: (d) => `${usd(Math.abs(d.debt.all.gapUsd))}†`,
     caption: (d) =>
-      `${d.debt.differenceUsd < 0 ? 'more' : 'less'} debt closed · ` +
-      `${Math.abs(d.debt.differencePct)}% · ${d.debt.accounts.toLocaleString()} priced accounts`,
+      `${d.debt.all.gapUsd < 0 ? 'more' : 'less'} debt closed, net · ` +
+      `${Math.abs(d.debt.all.gapPct).toFixed(1)}% · ${splitLine(d)}`,
   },
   {
     id: 'time',
     label: 'Time granted',
-    heading: 'What the delay did, account by account',
+    heading: 'What the delay did, position by position',
     blurb:
-      'Aave liquidates atomically, in the same block. Membrane grants an 8-hour delay inside a 4% band first, modelled here on the contract\u2019s own rules. Path-dependent; read the caveats.',
-    metric: (d) => `$${Math.abs(d.meta.cureModel.delayCreditUsd / 1e6).toFixed(1)}M`,
+      'Aave and Morpho liquidate atomically, in the same block. Membrane grants an 8-hour delay inside a 4% band first (none for stablecoin collateral†), modelled here on the contract\u2019s own rules. Path-dependent; read the caveats.',
+    metric: (d) => `$${Math.abs(d.time.oneRepay.delayCreditUsd / 1e6).toFixed(1)}M†`,
     caption: (d) =>
-      `${d.meta.cureModel.delayCreditUsd < 0 ? 'more' : 'less'} debt closed than one repay to cap \u00b7 ` +
-      `${(d.meta.cureModel.outcomes['cured-then-held'] ?? 0).toLocaleString()} accounts never sold`,
+      `${d.time.oneRepay.delayCreditUsd < 0 ? 'more' : 'less'} debt closed than one repay to cap \u00b7 ` +
+      `${d.time.neverSold.positions.toLocaleString('en-US')} positions never sold`,
   },
   {
     id: 'cohort',
-    label: 'Every account',
+    label: 'Every position',
     heading: 'All of them, including the losses',
     blurb:
-      'Every account is here and filterable — including the ones where Membrane does worse. Check the claim rather than taking it.',
-    // The cohort table traverses EVERY row, included and excluded, so this tile counts
-    // the cohort — not the priced headline.
-    metric: (d) => d.cohort.length.toLocaleString(),
+      'Every position is here and filterable — including the ones where Membrane does worse. Check the claim rather than taking it.',
+    metric: (d) => d.meta.positions.toLocaleString('en-US'),
     caption: (d) =>
-      `real accounts · ${d.debt.allIncluded.membraneClosesMore.toLocaleString()} where we lose`,
+      `real positions · ${d.debt.all.more.toLocaleString('en-US')} where Membrane closes more`,
   },
 ]
 
-/**
- * The counterfactual, made traversable.
- *
- * Protocol-scoped and identical with or without a wallet, so it opens fully
- * populated for a stranger (V20). There is no demo state here to fake — every
- * number is derived from real liquidations that really happened.
- */
 export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initialDoc }) => {
   const [lens, setLens] = useState<Lens>('debt')
   const { doc, error, isLoading } = useEvidence(initialDoc)
@@ -105,7 +104,7 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
         <VStack align="flex-start" spacing={SPACING.sm}>
           {/* No leading number here — the lens strip below owns 01/02/03, and two
               competing numbering schemes on one screen read as a mistake. */}
-          <Eyebrow>Counterfactual · 10 Oct 2025</Eyebrow>
+          <Eyebrow>Counterfactual · {doc?.meta.window.label ?? '10\u201311 Oct 2025'}</Eyebrow>
           <Text
             as="h1"
             fontFamily={TYPOGRAPHY.fontDisplay}
@@ -115,23 +114,54 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
           >
             What our engine would have done
           </Text>
-          <Text
-            fontFamily={TYPOGRAPHY.fontDisplay}
-            fontSize={TYPOGRAPHY.h4}
-            fontStyle="italic"
-            color={SEMANTIC_COLORS.textSecondary}
-            maxW="720px"
-            lineHeight="1.7"
-          >
-            On 10 October 2025, Aave liquidated {doc?.meta.accounts.toLocaleString() ?? '—'}{' '}
-            accounts across four chains. Every one of them is below, replayed through
-            Membrane&rsquo;s liquidation engine on the same measured prices, judged against its own
-            liquidation line.
-          </Text>
           {doc ? (
-            <MockStamp
-              label={`on-chain · ${doc.meta.sourceEvents.toLocaleString()} liquidation events · ${doc.meta.window}`}
-            />
+            <>
+              {/* THE HEADLINE (owner default, 2026-10-16): the whole census leads, and the
+                  Aave / Morpho split sits on the next line, always. Every figure is the
+                  doc's. Both lines carry numbers, so both read in mono (CLAUDE.md: never a
+                  number in the display serif). */}
+              <Text
+                data-testid="evidence-headline"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.h4}
+                color={SEMANTIC_COLORS.textPrimary}
+                maxW="760px"
+                lineHeight="1.7"
+              >
+                Every liquidation of {doc.meta.window.label}:{' '}
+                {doc.meta.positions.toLocaleString('en-US')} positions on Aave and Morpho, four
+                chains. The protocols force-closed {usd(doc.debt.all.realRepaidUsd)} of debt;
+                Membrane would have closed {usd(doc.debt.all.memRepaidUsd)}† —{' '}
+                {gapWord(doc.debt.all.gapPct)}.
+              </Text>
+              <Text
+                data-testid="evidence-split"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.small}
+                color={SEMANTIC_COLORS.textSecondary}
+                maxW="760px"
+                lineHeight="1.7"
+              >
+                {PROTOCOLS.map((k) => {
+                  const s = doc.debt.byProtocol[k]
+                  return `${PROTOCOL_NAME[k]}: ${s.positions.toLocaleString('en-US')} positions, ${usd(s.realRepaidUsd)} \u2192 ${usd(s.memRepaidUsd)}\u2020 (${gapWord(s.gapPct)})`
+                }).join(' · ')}
+              </Text>
+              {/* The 16.5% is NET: show what it is made of, beside it (review 2026-10-16). */}
+              <Text
+                data-testid="evidence-gross"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.xs}
+                color={SEMANTIC_COLORS.textTertiary}
+                maxW="760px"
+                lineHeight="1.7"
+              >
+                {`Net of both directions: Membrane closes less on ${doc.debt.all.less.toLocaleString('en-US')} positions (${usd(doc.debt.all.lessUsd)}\u2020 less) and more on ${doc.debt.all.more.toLocaleString('en-US')} (${usd(doc.debt.all.moreUsd)}\u2020 more); ${doc.debt.all.equal.toLocaleString('en-US')} are equal to the cent.`}
+              </Text>
+              <MockStamp
+                label={`on-chain · ${doc.meta.events.toLocaleString('en-US')} liquidation events · LTV walked on each protocol\u2019s own oracle · ${doc.meta.window.label}`}
+              />
+            </>
           ) : null}
         </VStack>
 
@@ -169,8 +199,15 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                 it is a reading comprehension test. See ForecastGate for why this is
                 calibration against a settled fact rather than prediction. */}
             <ForecastGate
-              aaveMedianFrac={doc.debt.aaveMedianFrac}
-              membraneMedianFrac={doc.debt.membraneMedianFrac}
+              realMedianFrac={doc.debt.all.medians.all.realMedianFrac}
+              membraneMedianFrac={doc.debt.all.medians.all.memMedianFrac}
+              split={PROTOCOLS.map((k) => ({
+                label: PROTOCOL_NAME[k],
+                realMedianFrac: doc.debt.byProtocol[k].medians.all.realMedianFrac,
+                membraneMedianFrac: doc.debt.byProtocol[k].medians.all.memMedianFrac,
+              }))}
+              positions={doc.debt.all.medians.all.positions}
+              membraneMore={doc.debt.all.more}
               onCommit={recordCall}
             />
 
@@ -258,8 +295,10 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
               </Text>
             </VStack>
 
-            {lens === 'debt' ? <DebtLens debt={doc.debt} byAsset={doc.byAsset} /> : null}
-            {lens === 'time' ? <TimeLens time={doc.time} cureModel={doc.meta.cureModel} /> : null}
+            {lens === 'debt' ? (
+              <DebtLens debt={doc.debt} byAsset={doc.byAsset} meta={doc.meta} />
+            ) : null}
+            {lens === 'time' ? <TimeLens time={doc.time} meta={doc.meta} /> : null}
             {lens === 'cohort' ? (
               doc.cohort.length ? (
                 <CohortLens rows={doc.cohort} />
@@ -269,12 +308,20 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                   fontSize={TYPOGRAPHY.small}
                   color={SEMANTIC_COLORS.textSecondary}
                 >
-                  Loading all {doc.cohort.length.toLocaleString()} accounts…
+                  Loading all {doc.meta.positions.toLocaleString('en-US')} positions…
                 </Text>
               )
             ) : null}
 
             <Caveats items={doc.meta.caveats} />
+            {/* The page's one footer line for every † above (DESIGN_RULES.md §3). */}
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.xs}
+              color={SEMANTIC_COLORS.textTertiary}
+            >
+              {MODELLED_FOOTNOTE}
+            </Text>
 
             <Box
               borderTop="1px solid"
@@ -295,14 +342,56 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                 <Text
                   fontFamily={TYPOGRAPHY.fontMono}
                   fontSize={TYPOGRAPHY.xs}
+                  color={SEMANTIC_COLORS.textSecondary}
+                  lineHeight="1.8"
+                  maxW="820px"
+                >
+                  Prices: {doc.meta.oracle} Scope: {doc.meta.scope.line}.{' '}
+                  {doc.meta.scope.outOfScope}
+                </Text>
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize={TYPOGRAPHY.xs}
                   color={SEMANTIC_COLORS.textTertiary}
                   lineHeight="1.8"
                 >
-                  Borrow gap {doc.meta.realConstants.borrowLtvGap * 100}pp ·{' '}
+                  Borrow gap {doc.meta.params.borrowLtvGap * 100}pp ·{' '}
                   {doc.meta.realConstants.borrowLtvGapSource} · repay formula{' '}
                   {doc.meta.realConstants.repayFormulaSource} · cure window{' '}
-                  {doc.meta.realConstants.cureWindowSeconds}s ·{' '}
-                  {doc.meta.realConstants.cureWindowSource}
+                  {doc.meta.params.delaySeconds}s · {doc.meta.realConstants.cureWindowSource} ·
+                  floor ${doc.meta.params.liqDebtMinimumUsd.toLocaleString('en-US')} ·{' '}
+                  {doc.meta.realConstants.liqDebtMinimumSource}
+                </Text>
+                {/* The ONLY place an old-census figure appears, and only to explain why the
+                    old headline moved. Labelled superseded (owner, 2026-10-16). */}
+                <Box
+                  borderLeft="2px solid"
+                  borderColor={SEMANTIC_COLORS.warning}
+                  pl={SPACING.base}
+                  maxW="820px"
+                  data-testid="evidence-old-census"
+                >
+                  <VStack align="flex-start" spacing={SPACING.xs}>
+                    <Eyebrow color={SEMANTIC_COLORS.warning}>{doc.meta.crossCheck.label}</Eyebrow>
+                    <Text
+                      fontFamily={TYPOGRAPHY.fontMono}
+                      fontSize={TYPOGRAPHY.xs}
+                      color={SEMANTIC_COLORS.textSecondary}
+                      lineHeight="1.8"
+                    >
+                      {doc.meta.crossCheck.line}
+                    </Text>
+                  </VStack>
+                </Box>
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize={TYPOGRAPHY.xs}
+                  color={SEMANTIC_COLORS.textTertiary}
+                  lineHeight="1.8"
+                  wordBreak="break-all"
+                >
+                  Source: {doc.meta.source.path} · sha256 {doc.meta.source.sha256.slice(0, 16)}… ·
+                  built by {doc.meta.generatedBy} at code {doc.meta.code.commit.slice(0, 10)}
                 </Text>
               </VStack>
             </Box>

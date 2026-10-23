@@ -8,7 +8,7 @@ import Head from 'next/head'
 import PageSeo from '@/components/PageSeo'
 import { SITE_URL } from '@/components/Seo'
 import { SeniorityLanding } from '@/components/Seniority'
-import type { EvidenceDoc } from '@/components/Evidence'
+import { summaryOf, type EvidenceDoc, type EvidenceFile } from '@/components/Evidence/types'
 import { supportedChains, DEFAULT_CHAIN } from '@/config/chains'
 import {
     LANDING_VARIANT_COOKIE,
@@ -53,17 +53,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         return { redirect: { destination: `/${DEFAULT_CHAIN}`, permanent: false } }
     }
 
-    // Server-render the SUMMARY (meta/debt/time/byAsset, ~2KB) so a crawler and the
-    // first paint both see real figures instead of a spinner — docs/SEO_RULESET.md R1.
-    // The 2,350-row cohort is deliberately NOT inlined; the client fetches it.
-    let summary: Omit<EvidenceDoc, 'cohort'> & { cohort: [] } | null = null
+    // Server-render the SUMMARY (everything but the cohort) so a crawler and the first paint
+    // both see real figures instead of a spinner — docs/SEO_RULESET.md R1. The 3,197-row
+    // cohort is deliberately NOT inlined; the client fetches it.
+    let summary: EvidenceDoc | null = null
     try {
         const raw = fs.readFileSync(
-            path.join(process.cwd(), 'public/data/oct10-2025/evidence.json'),
+            path.join(process.cwd(), 'public/data/oct10-2025/evidence-census.json'),
             'utf8',
         )
-        const { cohort, ...rest } = JSON.parse(raw) as EvidenceDoc
-        summary = { ...rest, cohort: [] }
+        summary = summaryOf(JSON.parse(raw) as EvidenceFile)
     } catch {
         // Missing/unreadable dataset must not 500 the landing page. The component
         // falls back to its client fetch, and to its error state if that fails too.
@@ -90,9 +89,10 @@ const { variant } = resolveLandingVariant({
  * The landing page is the seniority argument.
  *
  * A stranger arriving with no wallet gets a fully populated page: where a borrower
- * sits in the loss waterfall, what that order buys them, and the 2,350 real Aave
- * accounts liquidated on 10 Oct 2025 replayed through Membrane's own engine in the
- * close. Every factual sentence comes from components/Seniority/facts.ts with a
+ * sits in the loss waterfall, what that order buys them, and every Aave and Morpho
+ * position liquidated on 10-11 Oct 2025 on four chains (the full on-chain census,
+ * public/data/oct10-2025/evidence-census.json) replayed through Membrane's own engine in
+ * the close. Every factual sentence comes from components/Seniority/facts.ts with a
  * contract citation. The full filterable cohort tool lives at /[chain]/evidence; the
  * per-address simulator is at /[chain]/simulator.
  *

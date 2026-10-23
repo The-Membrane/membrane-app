@@ -5,12 +5,15 @@
  * cannot: a borrower-first landing has to open on the thing a borrower is afraid of, and
  * the only honest way to show that is a wallet the crash actually took.
  *
- * WHERE IT COMES FROM: public/data/demo-borrower.json is selected out of
- * public/data/oct10-2025/evidence.json — 2,350 measured Aave V3 accounts over the
- * 10-11 Oct 2025 window, each judged against its OWN measured liquidation line. The
- * selection ran the page's own engine over every mainnet row whose collateral the
- * measured price path prices and whose debt is priced or a stable held flat, in the
- * 50k-3M band, and kept the one with the largest equity delta run with NO deployment.
+ * WHERE IT COMES FROM: public/data/demo-borrower.json is selected out of the FULL on-chain
+ * census of 10-11 Oct 2025 (membrane-datasets oct10-2025/coverage/census.json, served as
+ * public/data/oct10-2025/evidence-census.json; owner decision 2026-10-16) — every Aave V3
+ * and Morpho Blue position liquidated on four chains, each judged against its OWN line on
+ * its protocol's own oracle. The selection ran the page's own engine over every mainnet Aave
+ * V3 Core position with one collateral and one debt leg, whose collateral the measured
+ * price path prices and whose debt is priced or a stable held flat, in the 50k-3M band,
+ * kept those where the live engine run at the census line lands on the census row, and
+ * kept the one with the largest equity delta run with NO deployment.
  * SURVIVAL is no longer the criterion and is not claimed: this wallet is liquidated on
  * Membrane too. What differs is how much of the loan each engine closes.
  *
@@ -22,10 +25,10 @@
  *             from public/data/oct10-2025/protocols.json, read at mainnet block
  *             23543615 — not assumed.
  *   DERIVED   the collateral and debt TOKEN amounts, and the minute-0 valuation. The
- *             evidence row records dollars READ AT THE LIQUIDATING BLOCK, so the token
- *             count is those dollars over `pLiqColl` / `pLiqDebt` — the oracle rounds in
- *             force there — and `valueUsd`, the totals, the LTV and the health factor are
- *             that token count repriced at minute 0 of the path.
+ *             census row records dollars READ AT THE FIRST LIQUIDATION (t0), so the token
+ *             count is those dollars over `pLiqColl` / `pLiqDebt` — the AaveOracle prices
+ *             those dollars were read at — and `valueUsd`, the totals, the LTV and the
+ *             health factor are that token count repriced at minute 0 of the path.
  *             FIXED 2026-09-14: this used to divide by the MINUTE-0 price, which
  *             back-solved an amount reproducing the liquidating LTV at midnight. The
  *             fixture then opened already over its line, 21 hours before the wallet
@@ -41,7 +44,7 @@
  * longer a differentiator (Aave V4 has it) and that a page about recall rails needs a
  * wallet with rails. Two measurements retired that argument:
  *
- *   1. The census has NO VENUE IN IT. Every dollar in evidence.json is walked with the
+ *   1. The census has NO VENUE IN IT. Every dollar in the census is walked with the
  *      delay window and the repay-to-cap and nothing else. A hero ranked on an assumed
  *      deployment could not be the same claim as the census row underneath it.
  *   2. It is not needed. The bare run already ends ahead on equity, and the gate and the
@@ -93,11 +96,21 @@ export const DEMO_BORROWER_MEASURED: MeasuredCensus = {
   aaveClosedUsd: fixture.censusAaveClosedUsd,
   membraneClosedUsd: fixture.censusMembraneClosedUsd,
   t0Index: fixture.censusT0Index,
+  line: fixture.row.liqLine,
+  eligibleCount: fixture.eligibleCount,
+  pool: fixture.selectionPool,
 }
 export interface MeasuredCensus {
   aaveClosedUsd: number
+  /** The census row's Membrane figure, at the position's OWN line on Aave's oracle (†). */
   membraneClosedUsd: number
   t0Index: number
+  /** The census row's own liquidation line. */
+  line?: number
+  /** How many census positions cleared every selection gate (the winner is the best). */
+  eligibleCount?: number
+  /** The pool of positions of the hero's kind, before any outcome-dependent gate. */
+  pool?: { definition: string; positions: number; membraneMore: number; medianGapPct: number }
 }
 
 /**
@@ -105,8 +118,8 @@ export interface MeasuredCensus {
  * it must carry the assumption, because this is the only label some readers will see.
  */
 export const DEMO_BORROWER_NOTE =
-  `liquidated by Aave V3 · ${DEMO_BORROWER_DATE} · no deployment, and none assumed — this ` +
-  'wallet had none, so the figure is the bare census row'
+  `liquidated by Aave V3 · ${DEMO_BORROWER_DATE} · the selection’s best case from the census, ` +
+  'not a typical one · no deployment, and none assumed'
 
 /** A real mainnet borrower, checksummed as the selection recorded it. */
 export const DEMO_BORROWER_ADDRESS = fixture.address as `0x${string}`
@@ -115,13 +128,13 @@ export const DEMO_BORROWER_ADDRESS = fixture.address as `0x${string}`
 export const DEMO_BORROWER_ROW = fixture.row
 
 const PROVENANCE_DETAIL =
-  `Measured account from public/data/oct10-2025/evidence.json (${fixture.row.events} ` +
+  `Measured position from the full on-chain census of 10-11 Oct 2025, public/data/oct10-2025/evidence-census.json (${fixture.row.events} ` +
   `liquidation event${fixture.row.events === 1 ? '' : 's'}, $${Math.round(
     fixture.row.aaveClosedUsd,
   ).toLocaleString()} closed by Aave over ${DEMO_BORROWER_WINDOW}). Collateral and debt ` +
   'dollars, health factor and liquidation line are as measured on-chain; the Aave V3 ' +
   'risk parameters are read from protocols.json; the collateral token amount is the ' +
-  'measured USD divided by the oracle round in force in the liquidating block, then ' +
+  'measured USD divided by the AaveOracle price it was read at, then ' +
   'repriced at minute 0 of the same path. There is NO ' +
   'deployment: this wallet had none and none is assumed, so nothing on this page is a ' +
   'modelled venue balance. Paste any address to read a live position instead.'

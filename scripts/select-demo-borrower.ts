@@ -2,11 +2,21 @@
  * Selects public/data/demo-borrower.json — the wallet the borrower landing hero opens on.
  *
  * SINGLE SOURCE OF TRUTH: this runs the PAGE'S OWN engine (lib/position-sim
- * `runComparison`) over every row of public/data/oct10-2025/evidence.json. It does not
- * re-implement the liquidation mechanics, the Membrane line, the fee default or the
- * measured repay fraction — it imports all of them, exactly as the simulator page does.
- * Two implementations of one claim is how a landing-page number silently drifts from
- * the contract.
+ * `runComparison`) over the rows of the FULL on-chain census of 10-11 Oct 2025
+ * (membrane-datasets oct10-2025/coverage/census.json, rule N18: found through
+ * MEMBRANE_DATASETS_DIR or ../membrane-datasets; the page serves the same rows as
+ * public/data/oct10-2025/evidence-census.json). It does not re-implement the liquidation
+ * mechanics, the Membrane line, the fee default or the measured repay fraction — it imports
+ * all of them, exactly as the simulator page does. Two implementations of one claim is how a
+ * landing-page number silently drifts from the contract.
+ *
+ * 2026-10-16 (owner decision: the Evidence page and the landing read the full census): the
+ * candidate rows come from the census, not the old evidence.json. Each census row is the
+ * position's WHOLE composition at t0 on the protocol's own oracle, so two gates are new and
+ * both are the old claims restated for that data: the position is one collateral leg and one
+ * debt leg (the hero's position has one of each), and the live engine run the census's way
+ * reproduces the census row (gate 3b below), because the hero walks the measured Chainlink
+ * path in prices-1m.json while the census walks the AaveOracle.
  *
  * WHAT IT OPTIMISES (owner ruling 2026-09-14, superseding the 2026-09-12 survival-first
  * ordering): the largest `Comparison.equityDeltaUsd` under the SHIPPED deployment
@@ -24,6 +34,11 @@
  *      the live engine is run the way the census runs — fee 0, NO deployment. The two
  *      engines share a state machine; if they disagree on this row, the row is a seam,
  *      not a story;
+ *   3b. the live engine run the census's way AT THE CENSUS LINE lands on the census row: Aave's
+ *      first liquidation within 2 minutes of the census t0, the first Membrane sale within 2
+ *      minutes of the census's, the same number of sales and the closed USD within 1% (or no
+ *      sale on either side). scripts/tests/position-sim.test.ts pins exactly this on the
+ *      shipped fixture, so the selection may not pick a row the test would reject;
  *   4. equityDeltaUsd > 0 under the shipped deployment assumption; AND
  *   5. equityDeltaUsd > 0 with NO deployment at all. Gate 5 is what stops the hero being
  *      an artefact of the assumed venue: the wallet must end ahead on equity even if the
@@ -65,6 +80,8 @@ import { join } from 'node:path'
 
 import { getAddress } from 'viem'
 
+import { datasetsDir } from './lib/datasetsDir.mjs'
+
 import { measuredRepayFraction, runComparison } from '@/lib/position-sim/compare'
 import {
   MAX_THRESHOLD_TO_DELAY,
@@ -89,10 +106,87 @@ const read = (p: string) => JSON.parse(readFileSync(join(DATA, p), 'utf8'))
 const series = read('oct10-2025/prices-1m.json') as Oct10Series
 const manifest = read('oct10-2025/manifest.json') as Oct10Manifest
 const protocols = read('oct10-2025/protocols.json')
-const evidence = read('oct10-2025/evidence.json')
-const cohort = evidence.cohort as EvidenceRow[]
+const CENSUS_PATH = join(datasetsDir(process.cwd()), 'oct10-2025', 'coverage', 'census.json')
+const census = JSON.parse(readFileSync(CENSUS_PATH, 'utf8')) as { rows: CensusRow[] }
+/** The Aave V3 Core pool on mainnet: protocols.json is a read of that pool, so only it fits. */
+const MAINNET_CORE_POOL = '0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2'
+
+/** The census row fields read here (scripts/oct10-coverage/census.ts CensusRow). */
+interface CensusRow {
+  pid: string
+  protocol: string
+  chain: string
+  owner: string
+  market: string
+  events: number
+  walked: boolean
+  t0?: { block: number; ts: number; minute: number }
+  collateral: { symbol: string; amount: number; usd: number | null }[]
+  debt: { symbol: string; amount: number; usd: number | null }[]
+  collUsd: number | null
+  debtUsd: number | null
+  line: number | null
+  ltv0: number | null
+  real: { repaidUsd: number; unpricedEvents: number }
+  mem: null | {
+    outcome: string
+    sales: number
+    firstSaleMinute: number | null
+    repaidUsd: number
+    closedT0: number
+    breaches: number
+  }
+}
+
+/**
+ * One census position in the shape this script (and the fixture's `row`) has always used.
+ * Only a mainnet Aave V3 Core position with ONE collateral leg and ONE debt leg maps: the
+ * hero's position has one of each, so anything else would be a different position.
+ */
+function toEvidenceRow(r: CensusRow): EvidenceRow | null {
+  if (r.protocol !== 'aave-v3' || r.chain !== 'mainnet' || r.market !== MAINNET_CORE_POOL)
+    return null
+  if (!r.walked || !r.mem || !r.t0) return null
+  if (r.collateral.length !== 1 || r.debt.length !== 1) return null
+  const c = r.collateral[0]
+  const d = r.debt[0]
+  if (c.usd == null || d.usd == null || !(c.amount > 0) || !(d.amount > 0)) return null
+  if (r.collUsd == null || r.debtUsd == null || r.line == null || r.ltv0 == null) return null
+  const t0Index = r.t0.minute
+  return {
+    pid: r.pid,
+    chain: r.chain,
+    user: r.owner,
+    events: r.events,
+    outcome: r.mem.outcome,
+    collateralUsd: r.collUsd,
+    debtUsd: r.debtUsd,
+    healthFactor: r.line / r.ltv0,
+    liqLine: r.line,
+    ltv0: r.ltv0,
+    collSymbol: c.symbol,
+    debtSymbol: d.symbol,
+    // The AaveOracle prices those dollars were read at (the t0 basis): usd / amount.
+    pLiqColl: c.usd / c.amount,
+    pLiqDebt: d.usd / d.amount,
+    t0Index,
+    t0Ts: r.t0.ts,
+    block: r.t0.block,
+    closedAtIndex: r.mem.firstSaleMinute == null ? null : r.mem.firstSaleMinute - t0Index,
+    aaveClosedUsd: r.real.repaidUsd,
+    membraneClosedUsd: r.mem.repaidUsd,
+    aaveClosedFrac: r.real.repaidUsd / r.debtUsd,
+    membraneClosedFrac: r.mem.closedT0 / r.debtUsd,
+    breaches: r.mem.breaches,
+    sales: r.mem.sales,
+  }
+}
+
+const cohort = census.rows.map(toEvidenceRow).filter((r): r is EvidenceRow => r !== null)
 
 interface EvidenceRow {
+  /** The census position id (lib/wavefront/pid.ts). */
+  pid: string
   chain: string
   user: string
   events: number
@@ -106,18 +200,21 @@ interface EvidenceRow {
   ltv0: number
   collSymbol: string
   debtSymbol: string
-  /** The oracle rounds IN FORCE IN THE LIQUIDATING BLOCK — the prices collateralUsd and
-   *  debtUsd were read at, so the token amounts divide by these and by nothing else. */
+  /** The oracle prices IN FORCE AT t0 — the prices collateralUsd and debtUsd were read at,
+   *  so the token amounts divide by these and by nothing else. */
   pLiqColl: number
   pLiqDebt: number
   /** Where the census opened this account's walk, and where it sold, in path minutes. */
   t0Index: number
+  t0Ts: number
+  block: number
   closedAtIndex: number | null
   aaveClosedUsd: number
   membraneClosedUsd: number
   aaveClosedFrac: number
   membraneClosedFrac: number
-  cure: Record<string, unknown>
+  breaches: number
+  sales: number
 }
 
 /**
@@ -306,8 +403,12 @@ function assumedVenue(
   }
 }
 
-/** The Oct 10 run, exactly as the borrower page assembles it. */
-function oct10Run(position: ProtocolPosition, venue: VenueRecall | null) {
+/**
+ * The Oct 10 run, exactly as the borrower page assembles it. `membraneLine` overrides the
+ * modelled per-asset Membrane line with the census's own line (gate 3b only: the census runs
+ * every position at its own line, the page at the modelled one).
+ */
+function oct10Run(position: ProtocolPosition, venue: VenueRecall | null, membraneLine?: number) {
   const symbols = [
     ...position.collateral.map((c) => c.symbol),
     ...position.debt.map((d) => d.symbol),
@@ -315,7 +416,7 @@ function oct10Run(position: ProtocolPosition, venue: VenueRecall | null) {
   const { path, unpriced } = buildPricePath(series, manifest, symbols)
   const repay = measuredRepayFraction(position.protocol, protocols.measuredLiquidations)
   return runComparison(position, path, unpriced, {
-    membraneMaxLtv: weightedMembraneLine(position.collateral).maxLtv,
+    membraneMaxLtv: membraneLine ?? weightedMembraneLine(position.collateral).maxLtv,
     membraneLiqFee: MEMBRANE_LIQ_FEE,
     venue,
     sourceRepayFraction: repay.fraction,
@@ -374,6 +475,45 @@ const reject = (why: string) => {
 
 const candidates: Candidate[] = []
 
+/**
+ * THE POOL THE WINNER IS DRAWN FROM, for the copy (review 2026-10-16): the hero wallet is the
+ * selection's best case, not a typical one, and the page says so with these figures. The pool
+ * is every census position of the hero's kind — mainnet Aave V3 Core, one collateral and one
+ * debt leg, collateral in the size band — before any outcome-dependent gate. Gap = real
+ * repaid minus Membrane repaid, over real repaid; "more" is compared on the cents.
+ */
+const poolRows = cohort.filter(
+  (r) => r.collateralUsd >= MIN_COLLATERAL_USD && r.collateralUsd <= MAX_COLLATERAL_USD,
+)
+const poolGaps = poolRows
+  .filter((r) => r.aaveClosedUsd > 0)
+  .map((r) => (r.aaveClosedUsd - r.membraneClosedUsd) / r.aaveClosedUsd)
+  .sort((a, b) => a - b)
+const poolMedian = poolGaps.length
+  ? poolGaps.length % 2
+    ? poolGaps[poolGaps.length >> 1]
+    : (poolGaps[(poolGaps.length >> 1) - 1] + poolGaps[poolGaps.length >> 1]) / 2
+  : 0
+const selectionPool = {
+  definition:
+    'mainnet Aave V3 Core, one collateral and one debt leg, ' +
+    `$${(MIN_COLLATERAL_USD / 1000).toFixed(0)}k–$${(MAX_COLLATERAL_USD / 1e6).toFixed(0)}M of collateral at t0`,
+  positions: poolRows.length,
+  membraneMore: poolRows.filter(
+    (r) => Math.round(r.membraneClosedUsd * 100) > Math.round(r.aaveClosedUsd * 100),
+  ).length,
+  medianGapPct: Math.round(poolMedian * 1000) / 10,
+}
+
+for (const r of census.rows) {
+  if (r.protocol !== 'aave-v3' || r.chain !== 'mainnet' || r.market !== MAINNET_CORE_POOL) {
+    reject('not-mainnet-aave-core')
+  } else if (r.collateral.length !== 1 || r.debt.length !== 1) {
+    reject('more-than-one-collateral-or-debt-leg')
+  } else if (!toEvidenceRow(r)) {
+    reject('unpriced-or-not-walked')
+  }
+}
 for (const row of cohort) {
   // EXCLUDED ROWS ARE NOT CANDIDATES (added 2026-09-14). An excluded row is one whose
   // breach the census could not locate at all — its health factor at the snapshot block
@@ -448,6 +588,31 @@ for (const row of cohort) {
   if (censusSold !== liveSold) {
     reject('census-and-live-engine-disagree')
     continue
+  }
+  /**
+   * GATE 3b (2026-10-16): the live engine run the census's way AT THE CENSUS LINE lands on
+   * the census row — Aave's first liquidation and Membrane's first sale each within 2
+   * minutes, the same number of sales, the closed USD within 1% (or nothing sold on either
+   * side). The census walks the AaveOracle and the page the measured Chainlink path, so this
+   * is where the two could part; the shipped fixture is pinned to exactly this in
+   * scripts/tests/position-sim.test.ts.
+   */
+  {
+    const atLine = oct10Run(position, null, row.liqLine)
+    const sales = atLine.membrane.events.filter((e) => e.repaidUsd > 0)
+    const closed = sales.reduce((a, e) => a + e.repaidUsd, 0)
+    const srcFirst = atLine.source.events.find((e) => e.kind === 'liquidation')
+    const t0Ok = !!srcFirst && Math.abs(srcFirst.minute - row.t0Index) <= 2
+    const agree =
+      row.closedAtIndex === null
+        ? sales.length === 0
+        : sales.length === row.sales &&
+          Math.abs(sales[0].minute - (row.t0Index + row.closedAtIndex)) <= 2 &&
+          Math.abs(closed - row.membraneClosedUsd) / row.membraneClosedUsd < 0.01
+    if (!t0Ok || !agree) {
+      reject('live-run-at-census-line-misses-the-census-row')
+      continue
+    }
   }
   /**
    * GATE 4: ahead on equity with NO DEPLOYMENT (owner ruling 2026-09-14). The old gate
@@ -671,27 +836,31 @@ const fixture = {
   address: getAddress(winner.row.user),
   readAt: WINDOW,
   provenance: 'measured wallet · no deployment',
-  source: 'public/data/oct10-2025/evidence.json',
+  source:
+    'membrane-datasets oct10-2025/coverage/census.json (served as public/data/oct10-2025/evidence-census.json)',
   selection:
     'Generated by scripts/select-demo-borrower.ts, which runs the page engine ' +
-    '(lib/position-sim runComparison) over every evidence row with NO deployment and ' +
+    '(lib/position-sim runComparison) over every row of the full on-chain census of ' +
+    '10-11 Oct 2025 (membrane-datasets oct10-2025/coverage/census.json) with NO deployment and ' +
     'ranks by equityDeltaUsd, ties broken by the census gap (Aave closed minus Membrane ' +
-    'closed). Eligible: the census row is INCLUDED (not one whose breach the census could ' +
-    'not locate); mainnet (protocols.json is a mainnet read, so its risk parameters and ' +
-    'the token addresses only apply there); a single collateral leg priced by the measured ' +
-    'path AND present in protocols.json aaveV3.reserves; debt priced or a $1 stable held ' +
+    'closed). Eligible: a mainnet Aave V3 Core position (protocols.json is a read of that ' +
+    'pool, so its risk parameters and the token addresses only apply there) whose whole t0 ' +
+    'composition is ONE collateral leg priced by the measured path AND present in ' +
+    'protocols.json aaveV3.reserves, and ONE debt leg priced or a $1 stable held ' +
     'flat; collateralUsd ' +
     `$${(MIN_COLLATERAL_USD / 1000).toFixed(0)}k-$${(MAX_COLLATERAL_USD / 1e6).toFixed(0)}M ` +
     `(no whales); the first Aave liquidation at least ${MIN_FIRST_LIQ_MINUTE} minutes into ` +
     'the path, so the hero is not a minute-0 artifact; the census says Membrane closes ' +
     'LESS than Aave on it; the census outcome and the live engine agree on outcome class ' +
-    "when the live engine is run the census's way (fee 0, no deployment); and " +
+    "when the live engine is run the census's way (fee 0, no deployment); run at the " +
+    "census's own line the live engine lands on the census row (Aave's first liquidation " +
+    'and the first sale within 2 minutes, the same sales, closed USD within 1%); and ' +
     'equityDeltaUsd > 0 with NO deployment. ' +
     `${candidates.length} rows cleared every gate and this one won on the ranked figure at ` +
     `${usd(winner.bareDeltaUsd)}. ` +
     'THE TOKEN AMOUNTS ARE REAL (fixed 2026-09-14): the collateral and debt amounts are ' +
-    'the measured USD over the oracle rounds in force in the liquidating block ' +
-    '(pLiqColl / pLiqDebt), then repriced at minute 0. They used to be the measured USD ' +
+    'the measured USD over the oracle prices those dollars were read at (pLiqColl / ' +
+    'pLiqDebt, the census t0 AaveOracle prices), then repriced at minute 0. They used to be the measured USD ' +
     'over the MINUTE-0 price, which back-solved an amount that reproduced the ' +
     'liquidating LTV at midnight - a breached position planted 21 hours before the ' +
     'wallet breached. ' +
@@ -731,7 +900,7 @@ const fixture = {
   /**
    * THE CENSUS ROW'S OWN FIGURES, lifted to the top level so any surface (and
    * scripts/tests/position-sim.test.ts) can check the live run against the census
-   * without re-reading evidence.json. `censusClosedAtIndex` is relative to
+   * without re-reading the census. `censusClosedAtIndex` is relative to
    * `censusT0Index`: the census walk opens at t0 and counts minutes from there, so the
    * full-path minute of the census sale is censusT0Index + censusClosedAtIndex.
    */
@@ -740,6 +909,9 @@ const fixture = {
   censusAaveClosedUsd: winner.row.aaveClosedUsd,
   censusMembraneClosedUsd: winner.row.membraneClosedUsd,
   censusClosedAtIndex: winner.row.closedAtIndex,
+  /** How many positions cleared every gate, and the pool the winner is the best case of. */
+  eligibleCount: candidates.length,
+  selectionPool,
   row: winner.row,
   position: winner.position,
 }

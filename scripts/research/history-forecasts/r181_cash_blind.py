@@ -293,9 +293,78 @@ def phase_power(dev_json, counts_json, cells, out_path, log):
     return out
 
 
+def phase_check(datasets, out_path, log):
+    """Instrument checks before any verdict (owner ruling 2026-10-19 rule 1), on development only.
+    C1 known-answer scorer tests on synthetic data. C2 cross-implementation: twoway / cgm / concentration equal the
+    r154_exit_std.py estimators on the 48 h development stack. C3 dev reproduction: Brier of v4ac and b4 on y_cash
+    per pooled (h, x) cell equals results-b6c.json (common rows, all segments, all dates)."""
+    if os.path.exists(out_path):
+        raise SystemExit(f"STOP: {out_path} exists")
+    out = {"phase": "instrument checks (development only)", "code": code_meta(), "checks": {}}
+    rng = np.random.default_rng(7)
+    # C1 known answers
+    n = 20000
+    t = rng.integers(0, 600, n); u = rng.integers(0, 300, n)
+    p = rng.uniform(0.01, 0.3, n); y = (rng.uniform(size=n) < p).astype(float)
+    c1 = {}
+    tw_same = twoway(t, u, y, p, p.copy(), 1, n_rep=500)
+    c1["identical_forecasts_bss0_meand0"] = abs(tw_same["bss"]) < 1e-15 and abs(tw_same["mean_d"]) < 1e-15
+    tw_perf = twoway(t, u, y, y.copy(), p, 2, n_rep=500)
+    c1["perfect_forecast_bss1"] = abs(tw_perf["bss"] - 1.0) < 1e-12 and tw_perf["p_centred"] < 0.01 and tw_perf["p_percentile"] < 0.01
+    tw_worse = twoway(t, u, y, np.clip(p * 3, 0, 1), p, 3, n_rep=500)
+    c1["worse_forecast_negative_bss_p_large"] = tw_worse["bss"] < 0 and tw_worse["p_percentile"] > 0.5
+    brier_manual = 1 - ((p - y) ** 2).sum() / ((np.full(n, y.mean()) - y) ** 2).sum()
+    c1["bss_matches_manual"] = abs(twoway(t, u, y, p, np.full(n, y.mean()), 4, n_rep=10)["bss"] - brier_manual) < 1e-12
+    ca = calib(t, u, y, p, 5, n_rep=200)
+    c1["R_matches_manual"] = abs(ca["R"] - p.sum() / y.sum()) < 1e-12
+    # null calibration of the two-way p: under a = b + symmetric noise, p_centred should be roughly uniform
+    ps = []
+    for s in range(40):
+        rr = np.random.default_rng(100 + s)
+        a_ = np.clip(p + rr.normal(0, 0.02, n), 0.001, 0.999); b_ = np.clip(p + rr.normal(0, 0.02, n), 0.001, 0.999)
+        ps.append(twoway(t, u, y, a_, b_, 200 + s, n_rep=300)["p_centred"])
+    c1["null_p_centred_share_below_0.05_of_40"] = float(np.mean(np.array(ps) < 0.05))
+    c1["null_p_centred_mean"] = float(np.mean(ps))
+    out["checks"]["C1_known_answer"] = c1
+    # C2 cross-implementation on the 48 h dev stack
+    (t, u, y, a, b), _ = dev_stack(datasets, "48h")
+    sys.path.insert(0, HERE)
+    import r154_exit_std as R4  # noqa: E402
+    mine, theirs = twoway(t, u, y, a, b, 11, n_rep=300), R4.twoway(t, u, y, a, b, 11, n_rep=300)
+    cg1, cg2 = cgm(t, u, y, a, b), R4.cgm(t, u, y, a, b)
+    out["checks"]["C2_cross_impl_48h"] = {
+        "twoway_equal": all(abs(mine[k] - theirs[k]) < 1e-12 for k in ("bss", "mean_d", "sd_mean_d_2way", "p_centred")),
+        "cgm_equal": all(abs(cg1[k] - cg2[k]) < 1e-18 for k in ("v_unit", "v_block", "v_inter"))}
+    # C3 reproduction of published B6c pooled Brier
+    res = json.load(open(os.path.join(datasets, B6C_RUN, "results-b6c.json")))["pooled"]
+    worst = 0.0
+    rep = {}
+    for h in HORIZONS:
+        cols = ["in_b6"] + [f"{k}_x{x}_{h}" for x in XS for k in ("ycash", "v4ac", "b4")]
+        d = pd.read_csv(os.path.join(datasets, B6C_RUN, f"predictions-b6c-{h}-USDC.csv.gz"), usecols=cols)
+        d = d[d["in_b6"] == 1]
+        for x in XS:
+            cid = f"x{x}_{h}"
+            yy = d[f"ycash_{cid}"].to_numpy(float)
+            for k in ("v4ac", "b4"):
+                br = float(np.mean((d[f"{k}_{cid}"].to_numpy() - yy) ** 2))
+                pub = res[cid]["brier"][k]
+                rel = abs(br - pub) / pub
+                worst = max(worst, rel)
+                rep[f"{cid}_{k}"] = {"recomputed": br, "published": pub, "rel_diff": rel}
+            rep[f"{cid}_rows"] = {"recomputed": int(len(d)), "published": res[cid]["n"]["rows"]}
+    out["checks"]["C3_dev_reproduction"] = {"max_rel_diff_brier": worst, "cells": rep,
+                                            "rows_equal": all(v["recomputed"] == v["published"] for k, v in rep.items() if k.endswith("_rows"))}
+    out["created_utc"] = utcnow()
+    with open(out_path, "w") as f:
+        json.dump(out, f, indent=1, sort_keys=True)
+    log(json.dumps({"C1": c1, "C2": out["checks"]["C2_cross_impl_48h"],
+                    "C3_max_rel": worst, "C3_rows_equal": out["checks"]["C3_dev_reproduction"]["rows_equal"]}))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("phase", choices=["dev", "power"])
+    ap.add_argument("phase", choices=["dev", "power", "check"])
     ap.add_argument("--datasets", default="/home/user/membrane-datasets")
     ap.add_argument("--out", required=True)
     ap.add_argument("--dev-json")
@@ -307,6 +376,8 @@ def main(argv=None):
         print(f"[{utcnow()}] {m}", flush=True)
     if a.phase == "dev":
         phase_dev(a.datasets, a.out, log)
+    elif a.phase == "check":
+        phase_check(a.datasets, a.out, log)
     elif a.phase == "power":
         phase_power(a.dev_json, a.counts_json, [c for c in a.cells.split(",") if c], a.out, log)
 

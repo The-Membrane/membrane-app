@@ -65,6 +65,8 @@ env:
   APP_REPO: The-Membrane/membrane-app
   APP_SHA: 5570128d46ac55180922aacc358a8f8be4add0d6   # membrane-app research/history-forecasts, live/ code (model A6 + displayed rung + D8 short horizons + D9 deep levels + D10 Membrane oracle target + D11 GRU arm)
   D11_INPUTS: history-forecasts/r16/d11-inputs-b4f337cc
+  # D11 amendment D11-A1 (2026-10-23): the d11 job alone moves to the review-fix pin; the main job stays at APP_SHA.
+  D11_APP_SHA: b6c1bb33a058af44e1b3ac750a9c843410691601
   DATASETS_REPO: triccs/membrane-datasets
   LIVE_DIR: forecasts/q26-touch-live
 
@@ -280,7 +282,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
         with:
           repository: ${{ env.APP_REPO }}
-          ref: ${{ env.APP_SHA }}
+          ref: ${{ env.D11_APP_SHA }}
           path: app
           fetch-depth: 1
           persist-credentials: false
@@ -303,7 +305,7 @@ jobs:
           set +x
           out="$RUNNER_TEMP/q26-d11.log"; rc=0
           python app/scripts/research/history-forecasts/live/q26_live_d11.py "$JOB" \
-            --datasets datasets --out datasets --expect-commit "$APP_SHA" \
+            --datasets datasets --out datasets --expect-commit "$D11_APP_SHA" \
             --devcal "$D11_INPUTS/devcal.npz" \
             --devcal-sha256 fdd053e5b36e7bb83455a3c236885588a58e130902dfd1d2fbaf1e8bdec24d7c \
             --golden "$D11_INPUTS/replay-golden.npz" \
@@ -336,7 +338,7 @@ jobs:
           git config user.email "q26-live-bot@users.noreply.github.com"
           git add -- "$LIVE_DIR/d11"
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git commit -q -m "forecasts/q26-touch-live/d11: $JOB $(date -u +%Y-%m-%dT%H:%MZ) (Q26 D11 GRU arm, app ${APP_SHA:0:7})" -- "$LIVE_DIR/d11"
+          git commit -q -m "forecasts/q26-touch-live/d11: $JOB $(date -u +%Y-%m-%dT%H:%MZ) (Q26 D11 GRU arm, app ${D11_APP_SHA:0:7})" -- "$LIVE_DIR/d11"
           echo "committed $(git show --name-only --format= HEAD | wc -l) file(s)"
           auth="$(printf 'x-access-token:%s' "$DATASETS_TOKEN" | base64 -w0)"
           echo "::add-mask::$auth"

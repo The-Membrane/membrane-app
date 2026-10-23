@@ -261,18 +261,28 @@ def cmd_freeze(a):
     keep = ~drop[R["sid"]]
     R = {k: v[keep] for k, v in R.items()}
     L, nT, Tmax = len(NN.TIER_LV[TIER]), len(D.TIERS[TIER]), max(D.TIERS[TIER])
-    vend = int(R["ts"].max()) + Tmax * STEP
-    vstart = vend - VAL_DAYS * DAY
-    tr_all = np.where(R["ts"] + Tmax * STEP <= vstart)[0]
-    va = np.where(R["ts"] >= vstart)[0]
-    seed = SEED + 1000
+    if a.as_fold is None:
+        vend = int(R["ts"].max()) + Tmax * STEP
+        vstart = vend - VAL_DAYS * DAY
+        tr_all = np.where(R["ts"] + Tmax * STEP <= vstart)[0]
+        va = np.where(R["ts"] >= vstart)[0]
+        seed = SEED + 1000
+    else:   # reproduce one walk-forward fold model exactly (same rule and seed as cmd_fit)
+        fa, _ = folds(int(R["ts"].max()))[a.as_fold]
+        prior = R["ts"][R["ts"] + Tmax * STEP <= fa]
+        vend = int(prior.max()) + Tmax * STEP
+        vstart = vend - VAL_DAYS * DAY
+        tr_all = np.where(R["ts"] + Tmax * STEP <= vstart)[0]
+        va = np.where((R["ts"] >= vstart) & (R["ts"] + Tmax * STEP <= vend))[0]
+        seed = SEED + a.as_fold
     rng = np.random.default_rng(seed)
-    tr = rng.choice(tr_all, NN.MAX_TRAIN, replace=False)
+    tr = rng.choice(tr_all, NN.MAX_TRAIN, replace=False) if len(tr_all) > NN.MAX_TRAIN else rng.permutation(tr_all)
     if len(va) > 60000:
         va = np.sort(rng.choice(va, 60000, replace=False))
     st = {}
     _, info = train_predict(MODEL, R, SA, tr, va, np.array([], np.int64), L, nT, seed, print, "freeze", keep_state=st)
-    pt = os.path.join(a.out, "frozen-r162e-gru.pt")
+    tag = "" if a.as_fold is None else f"-fold{a.as_fold}"
+    pt = os.path.join(a.out, f"frozen-r162e-gru{tag}.pt")
     torch.save(st, pt)
 
     def sha(p_):
@@ -290,7 +300,8 @@ def cmd_freeze(a):
            "excluded": flags, "fit": info, "weights_file_sha256": sha(pt),
            "inputs_sha256": {f"rows-T{T}.npz": sha(os.path.join(a.rows, f"rows-T{T}.npz")) for T in D.TIERS[TIER]},
            "rows_meta_sha256": sha(os.path.join(a.rows, "rows-meta.json")), "created_utc": now()}
-    json.dump(cfg, open(os.path.join(a.out, "frozen-r162e.json"), "w"), indent=1, default=float)
+    cfg["as_fold"] = a.as_fold
+    json.dump(cfg, open(os.path.join(a.out, f"frozen-r162e{tag}.json"), "w"), indent=1, default=float)
     print("frozen", cfg["weights_file_sha256"], cfg["created_utc"], flush=True)
 
 
@@ -609,6 +620,7 @@ def main():
     s.add_argument("--rows", required=True)
     s.add_argument("--out", required=True)
     s.add_argument("--threads", type=int, default=3)
+    s.add_argument("--as-fold", type=int, default=None)
     s = sub.add_parser("synth")
     s.add_argument("--out", required=True)
     s.add_argument("--threads", type=int, default=1)

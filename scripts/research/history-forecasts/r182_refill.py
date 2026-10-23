@@ -756,6 +756,79 @@ def synth_series(seed, n=30000, K=SYN_K, round_trips=True, comove="ar", trend=0.
     return P, own, M
 
 
+def cmd_samehour(a):
+    """Diagnostic (reported): split the same-hour offset of hour t into the hour's withdrawers' own deposits/repays
+    and third-party flows. LP regression of same-hour flows on the surprise s_t, and the event-study contrast."""
+    from datetime import datetime as _dt
+    end_ts = int(_dt(2026, 10, 13, 23, tzinfo=timezone.utc).timestamp())
+    ds = a.datasets
+    at = load_atoken(ds, "USDC")
+    at = at[(at["ts"] >= H0) & (at["ts"] < end_ts)]
+    tr = load_transfers(ds)
+    cin = set(tr["in"]["tx_hash"])
+    cout = set(tr["out"]["tx_hash"])
+    wd = at[(at["d"] < 0) & at["tx_hash"].isin(cout)].assign(h=lambda z: (z["ts"] - H0) // 3600)
+    sp = at[(at["d"] > 0) & at["tx_hash"].isin(cin)].assign(h=lambda z: (z["ts"] - H0) // 3600)
+    rp = load_repays(ds, "USDC")
+    rp = rp[(rp["ts"] >= H0) & (rp["ts"] < end_ts) & (rp["useATokens"].astype(int) == 0)].assign(h=lambda z: (z["ts"] - H0) // 3600)
+    wset = set(zip(wd["unit"], wd["h"]))
+    own_sp = sp[[ (u, h) in wset for u, h in zip(sp["unit"], sp["h"]) ]]
+    own_rp = rp[[ (u, h) in wset for u, h in zip(rp["unit"], rp["h"]) ]]
+    d = load_real(ds, a.work, "USDC")
+    n = len(d["W"])
+    ownD = own_sp.groupby("h")["d"].sum().reindex(range(n), fill_value=0.0).to_numpy()
+    ownR = own_rp.groupby("h")["amt"].sum().reindex(range(n), fill_value=0.0).to_numpy()
+    t = origins(d)
+    X1 = lp_controls(d, t, False)
+    sh = _resid(X1, d["W"][t])
+    X2 = lp_controls(d, t, True)
+    r = _resid(X2, sh[:, None])[:, 0]
+    rng = np.random.default_rng(5)
+    ys = {"D_all": d["D"][t], "D_own": ownD[t], "D_3P": d["D"][t] - ownD[t],
+          "Rp_all": d["Rp"][t], "Rp_own": ownR[t], "Rp_3P": d["Rp"][t] - ownR[t], "B_all": -d["B"][t],
+          "O": d["O"][t]}
+    same3p = d["D"][t] - ownD[t] + d["Rp"][t] - ownR[t] - d["B"][t] + d["O"][t]
+    for h in HS:   # rho_3P including hour t's third-party flows (B in hour t is not split by unit; it is ~0)
+        ys[f"incl_t_3P_{h}h"] = same3p + outcomes(d, t, h, "3P")
+    Y = _resid(X2, np.column_stack(list(ys.values())))
+    e, b_ = boot_ratio(r[:, None] * Y, r * r, d["block"][t], a.boot, rng)
+    out = {"lp_sameHour": dict(zip(ys, summarize(e, b_)))}
+    ev, _ = es_events(d, t)
+    ctl = es_match(d, t, ev)
+    den = d["W"][ev] - d["W"][ctl].mean(1)
+    num = np.column_stack([v_full[ev] - v_full[ctl].mean(1) for v_full in
+                           (d["D"], ownD, d["D"] - ownD, d["Rp"] - ownR, -d["B"])])
+    e2, b2 = boot_ratio(num, den, d["unit"][ev], a.boot, rng, groups2=d["block"][ev])
+    out["es_sameHour"] = dict(zip(["D_all", "D_own", "D_3P", "Rp_3P", "minusB_all"], summarize(e2, b2)))
+    out["nEvents"] = int(len(ev))
+    with open(os.path.join(a.out, "samehour-r182.json"), "w") as f:
+        json.dump(out, f, indent=1, sort_keys=True)
+    print(json.dumps({k: {kk: round(vv["est"], 3) for kk, vv in v.items()} for k, v in out.items() if isinstance(v, dict)}))
+
+
+def cmd_synth_onesided(a):
+    """Post hoc (decides nothing): one-sided coverage of the LP-3P 95% upper bound on the same seeds as S1."""
+    designs = {"A_homog": dict(K=SYN_K, round_trips=False), "B_roundtrip": dict(K=SYN_K, round_trips=True),
+               "N_null": dict(K={k: (0.0, v[1]) for k, v in SYN_K.items()}, round_trips=True),
+               "C_heldout": dict(K=SYN_K, round_trips=True, comove="markov", trend=1.0)}
+    name = a.designs
+    cfg = designs[name]
+    truth = synth_truth(cfg["K"])["net"]
+    rows = []
+    for r in range(a.reps):
+        P, own, M = synth_series({"A_homog": 11000, "B_roundtrip": 22000, "N_null": 33000, "C_heldout": 44000}[name] + r, **cfg)
+        d = make_data(P, own, M)
+        t = np.arange(LAG0, len(P) - HMAX - 1)
+        lp = fit_lp(d, t, B=a.boot, seed=r, comps=False, modes=("3P",))
+        rows.append({h: lp["rho"]["s"]["3P"]["net"][h] for h in ("3h", "24h", "72h")})
+    out = {h: {"truth": truth[h], "shareHiAboveTruth": float(np.mean([x[h]["hi"] >= truth[h] for x in rows])),
+               "shareLoBelowTruth": float(np.mean([x[h]["lo"] <= truth[h] for x in rows])),
+               "meanHi": float(np.mean([x[h]["hi"] for x in rows]))} for h in ("3h", "24h", "72h")}
+    with open(os.path.join(a.work, f"synth-onesided-{name}.json"), "w") as f:
+        json.dump({"design": name, "reps": a.reps, "boot": a.boot, "lp3P": out}, f, indent=1, sort_keys=True)
+    print(name, json.dumps(out))
+
+
 def cmd_synth(a):
     os.makedirs(a.work, exist_ok=True)
     R = a.reps
@@ -1015,6 +1088,7 @@ def main(argv=None):
     sy.add_argument("--reps", type=int, default=40)
     sy.add_argument("--boot", type=int, default=300)
     sy.add_argument("--designs", default="")
+    sy.add_argument("--one-sided", action="store_true")
     fi = sub.add_parser("fit")
     fi.add_argument("--datasets", required=True)
     fi.add_argument("--work", required=True)
@@ -1022,13 +1096,20 @@ def main(argv=None):
     fi.add_argument("--boot", type=int, default=2000)
     fi.add_argument("--nperm", type=int, default=200)
     fi.add_argument("--perm-both", action="store_true")
+    sh = sub.add_parser("samehour")
+    sh.add_argument("--datasets", required=True)
+    sh.add_argument("--work", required=True)
+    sh.add_argument("--out", required=True)
+    sh.add_argument("--boot", type=int, default=2000)
     a = ap.parse_args(argv)
+    if a.cmd == "samehour":
+        cmd_samehour(a)
     if a.cmd == "fit":
         cmd_fit(a)
     if a.cmd == "build":
         cmd_build(a)
     elif a.cmd == "synth":
-        cmd_synth(a)
+        cmd_synth_onesided(a) if a.one_sided else cmd_synth(a)
     return 0
 
 

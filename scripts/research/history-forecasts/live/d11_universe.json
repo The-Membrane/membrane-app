@@ -1,0 +1,2487 @@
+{
+ "schema": "q26-touch-live/d11-universe/1",
+ "what": "D11 universe: the 273 non-BTC/ETH R16.2e development series (rows-meta order; dev:ETH, dev:BTC, P1:KRAKEN-ETH and the excluded blind8:JUPUSDT left out) and ETHUSDT / BTCUSDT (descriptive only; BTCUSDT also feeds the btc_r24 / btc_dm features). Paths are membrane-datasets paths of the frozen development grids (sha256 checked at every run).",
+ "excluded": {
+  "dev:ETH": "BTC/ETH (descriptive via Binance ETHUSDT)",
+  "dev:BTC": "BTC/ETH (descriptive via Binance BTCUSDT)",
+  "P1:KRAKEN-ETH": "ETH, not Binance",
+  "blind8:JUPUSDT": "R16.2e exclusion pattern"
+ },
+ "series": [
+  {
+   "key": "A2:BNBUSDT",
+   "symbol": "BNBUSDT",
+   "role": "test",
+   "path": "binance-klines/BNBUSDT-1h.json",
+   "sha256": "9b66f92ee6d37fe5ad9e99761595cd631050ee72b513f062b21298ea7522dc28",
+   "startTs": 1509937200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:XRPUSDT",
+   "symbol": "XRPUSDT",
+   "role": "test",
+   "path": "binance-klines/XRPUSDT-1h.json",
+   "sha256": "20d400a4d37afec5cab54a7fd975d845edddde1448d476ece56f058f752f3b74",
+   "startTs": 1525420800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:ADAUSDT",
+   "symbol": "ADAUSDT",
+   "role": "test",
+   "path": "binance-klines/ADAUSDT-1h.json",
+   "sha256": "19658a51526fc5c93f9794fc5bfd961c9070a551aa43f8d400f86a42305c5803",
+   "startTs": 1523937600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:LTCUSDT",
+   "symbol": "LTCUSDT",
+   "role": "test",
+   "path": "binance-klines/LTCUSDT-1h.json",
+   "sha256": "adcdd4c3654b6e5c5192b025234b5e345efca51c5c2d71e9a460620d1545da37",
+   "startTs": 1513134000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:DOGEUSDT",
+   "symbol": "DOGEUSDT",
+   "role": "test",
+   "path": "binance-klines/DOGEUSDT-1h.json",
+   "sha256": "2a977c971762469a9aaf088c73601e4ecf89cc40c2f10a447da6b4eda60a652a",
+   "startTs": 1562328000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:LINKUSDT",
+   "symbol": "LINKUSDT",
+   "role": "test",
+   "path": "binance-klines/LINKUSDT-1h.json",
+   "sha256": "e282390a984f1ceac8fbb4606049d22ac2f278d8496975ee802ae18c79c7e969",
+   "startTs": 1547632800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:SOLUSDT",
+   "symbol": "SOLUSDT",
+   "role": "test",
+   "path": "binance-klines/SOLUSDT-1h.json",
+   "sha256": "076649c6ce5233b8e5fd5ce30273c6e5eb9db08f126612c8e886f99c3f5fdb31",
+   "startTs": 1597125600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:AVAXUSDT",
+   "symbol": "AVAXUSDT",
+   "role": "test",
+   "path": "binance-klines/AVAXUSDT-1h.json",
+   "sha256": "a20470208a313bfeae7c2e65d3c9e1db566e4bc9cbc40073ef2ae6de6e47c64c",
+   "startTs": 1600754400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:AAVEUSDT",
+   "symbol": "AAVEUSDT",
+   "role": "test",
+   "path": "final-blind-prices/binance-AAVEUSDT-1h.json",
+   "sha256": "2ab52f6bd10b4dfb7eb7158478d4cf3a6f0bc610fa3a6896064af368d292344a",
+   "startTs": 1602730800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:BATUSDT",
+   "symbol": "BATUSDT",
+   "role": "test",
+   "path": "final-blind-prices/binance-BATUSDT-1h.json",
+   "sha256": "681185503f7ccdac4972e7bef920c55b5e1db209c4212f37995ae4c5b308cd8a",
+   "startTs": 1551693600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:DOTUSDT",
+   "symbol": "DOTUSDT",
+   "role": "test",
+   "path": "final-blind-prices/binance-DOTUSDT-1h.json",
+   "sha256": "8d6e7f9797580e6ecbdb600befab34b8471ed1e4320c9cacfd450e2532cf67df",
+   "startTs": 1597791600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:FILUSDT",
+   "symbol": "FILUSDT",
+   "role": "test",
+   "path": "final-blind-prices/binance-FILUSDT-1h.json",
+   "sha256": "551aae34c0b47768b7ed3cd21cb34a2a8d6bb75acf53cc3ee4d17f7f2373d354",
+   "startTs": 1602781200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:INJUSDT",
+   "symbol": "INJUSDT",
+   "role": "test",
+   "path": "final-blind-prices/binance-INJUSDT-1h.json",
+   "sha256": "1664a760f26af20e7a6fbaf394ac8f0216429d2bb2171e4f7b89fe7b1709fb5d",
+   "startTs": 1603252800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:QNTUSDT",
+   "symbol": "QNTUSDT",
+   "role": "test",
+   "path": "final-blind-prices/binance-QNTUSDT-1h.json",
+   "sha256": "9755005d8bf3ade2cbf69b16c5a4eae0ea9f6c5b5b2deddc9937e65ed10a4e63",
+   "startTs": 1627538400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:NEARUSDT",
+   "symbol": "NEARUSDT",
+   "role": "test",
+   "path": "final-blind-prices/binance-NEARUSDT-1h.json",
+   "sha256": "06d76a240de3cf3128f9c4226df47fd0b4be3c2f1b04f8ea93e7960c7dcdeb24",
+   "startTs": 1602651600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:UNIUSDT",
+   "symbol": "UNIUSDT",
+   "role": "test",
+   "path": "final-blind-prices/binance-UNIUSDT-1h.json",
+   "sha256": "912565f749e3e690513fe50365ff49b15377a900762cd009ce31eaf046e67bb7",
+   "startTs": 1600311600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:TRXUSDT",
+   "symbol": "TRXUSDT",
+   "role": "test",
+   "path": "final-blind-prices/binance-TRXUSDT-1h.json",
+   "sha256": "e7e13d5daf1c30eff3258e3531fc54928c2af346d3407b2de0aa477d57826bf4",
+   "startTs": 1528714800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:ZECUSDT",
+   "symbol": "ZECUSDT",
+   "role": "test",
+   "path": "final-blind-prices/binance-ZECUSDT-1h.json",
+   "sha256": "b3d482465e31c011a43a536564459dd4ae736da7635cc051fb22f2a647484250",
+   "startTs": 1553140800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:AMPUSDT",
+   "symbol": "AMPUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-AMPUSDT-1h.json",
+   "sha256": "095140c24db74e169504eb47aa794208e5e8d29106e0febf794f3a71ad7aa7a0",
+   "startTs": 1637647200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:ALGOUSDT",
+   "symbol": "ALGOUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-ALGOUSDT-1h.json",
+   "sha256": "c303c4aaf7ded310d309f1c74dc31e4ab7a20cbe1f4734a7bb8050c9349c241c",
+   "startTs": 1561161600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:ATOMUSDT",
+   "symbol": "ATOMUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-ATOMUSDT-1h.json",
+   "sha256": "96466d0e093b8daf81e57a3343d2ec940eb36fa4fbf11cbc9bc85c1e2c3657fa",
+   "startTs": 1556510400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:AVAUSDT",
+   "symbol": "AVAUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-AVAUSDT-1h.json",
+   "sha256": "129a23ef4aa863c3bc134fef9aad7f30cd742bf2d1b2e91d269e8fad7a132f4c",
+   "startTs": 1606222800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:BCHUSDT",
+   "symbol": "BCHUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-BCHUSDT-1h.json",
+   "sha256": "2dbbc59414faea5ca04050a0c07e224336dbefa86629e66d0b6610ac327ff96b",
+   "startTs": 1574935200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:CFXUSDT",
+   "symbol": "CFXUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-CFXUSDT-1h.json",
+   "sha256": "a4a2a6c2b026cd88545422ee6ca838e900bdfa9700ad6a5b8ed60b4545be58c2",
+   "startTs": 1617015600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:CRVUSDT",
+   "symbol": "CRVUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-CRVUSDT-1h.json",
+   "sha256": "0e96cb2b5728be863961dfe45972eb848ee19598d312c95786bd6c2b0c1d8cdc",
+   "startTs": 1597464000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:CTKUSDT",
+   "symbol": "CTKUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-CTKUSDT-1h.json",
+   "sha256": "65c608edac1341b1d48621737ee7822deeea53e1fc83423b9df7bc7f89be2aa2",
+   "startTs": 1603785600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:DODOUSDT",
+   "symbol": "DODOUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-DODOUSDT-1h.json",
+   "sha256": "632b7e2343babf27fc2b9f4aa65daaeaf9a339753580fc04982cce7cf72cdd58",
+   "startTs": 1613728800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:DASHUSDT",
+   "symbol": "DASHUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-DASHUSDT-1h.json",
+   "sha256": "df78c5922b2ff556b74eef615690f6af1f326a8705af3cc433c5dc55aa2b81e2",
+   "startTs": 1553745600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:DUSKUSDT",
+   "symbol": "DUSKUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-DUSKUSDT-1h.json",
+   "sha256": "053ecc47da2395002d43348460f283e464510c779f69f728da427ea265c448a2",
+   "startTs": 1563789600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:GTCUSDT",
+   "symbol": "GTCUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-GTCUSDT-1h.json",
+   "sha256": "bd3a7d2162956d349302b39e1ba561822cb8cebd700ea116b6a6324d685a12b9",
+   "startTs": 1623319200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:FETUSDT",
+   "symbol": "FETUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-FETUSDT-1h.json",
+   "sha256": "868e7c60b4e474f27a89c1c24ed289aacec6250d589ed97d1cc93ff360f9b345",
+   "startTs": 1551348000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:ICPUSDT",
+   "symbol": "ICPUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-ICPUSDT-1h.json",
+   "sha256": "f8459695f72a6a23106db68f10a81c15c72d1748ff0932a7f735c5a754b5c8c4",
+   "startTs": 1620694800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:HBARUSDT",
+   "symbol": "HBARUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-HBARUSDT-1h.json",
+   "sha256": "a772a575b4ea819b45908bc203781a000db127b0b8a2d5f5f80c8db178b31ad8",
+   "startTs": 1569729600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:RAYUSDT",
+   "symbol": "RAYUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-RAYUSDT-1h.json",
+   "sha256": "1d0c7b27e20385047773df798cfac65f8a96fe31088564278c1223db3a8bcde7",
+   "startTs": 1628575200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:ONEUSDT",
+   "symbol": "ONEUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-ONEUSDT-1h.json",
+   "sha256": "fb596c98130b74a5a999dba5eaa5f71531664127b97397a35831551b72d85739",
+   "startTs": 1559361600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:RLCUSDT",
+   "symbol": "RLCUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-RLCUSDT-1h.json",
+   "sha256": "920f78eae966073165f76838e33c3df7159659a93614d16df8751dd7f70f86f9",
+   "startTs": 1573700400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:SHIBUSDT",
+   "symbol": "SHIBUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-SHIBUSDT-1h.json",
+   "sha256": "060e4314b81571e4f3f32e1bf8d94696b9b9401765aaac1b41c7e11d4d08c721",
+   "startTs": 1620644400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:RSRUSDT",
+   "symbol": "RSRUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-RSRUSDT-1h.json",
+   "sha256": "f7678c2b6bd8a9b13f5a52c926f4cd5f377d3cad8832b2ba49a7cccafd3f2799",
+   "startTs": 1598511600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:SKLUSDT",
+   "symbol": "SKLUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-SKLUSDT-1h.json",
+   "sha256": "3505f0a18898aa273ea86805576fbb197d1e48218888817ac1dccfd9657dfa24",
+   "startTs": 1606784400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:STXUSDT",
+   "symbol": "STXUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-STXUSDT-1h.json",
+   "sha256": "3dae00e9a2825663aca381048cabaee21320960bdc0a84ef6f6e3ff4fc70b57a",
+   "startTs": 1571976000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:ARUSDT",
+   "symbol": "ARUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-ARUSDT-1h.json",
+   "sha256": "1b4ffa0b51a9934899e7315a862c98813b7f38d6669c610af3822953c39612e5",
+   "startTs": 1620993600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind3:XLMUSDT",
+   "symbol": "XLMUSDT",
+   "role": "test",
+   "path": "blind3-prices/binance-XLMUSDT-1h.json",
+   "sha256": "a0b00c21a8ee3d52886de366c2ae8013d4a993170fb460a915ae66ed11cc430d",
+   "startTs": 1527757200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:AUDIOUSDT",
+   "symbol": "AUDIOUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-AUDIOUSDT-1h.json",
+   "sha256": "b16ca922d3197497bc204258d90b349709250b1d36fde935bc2454caa8af61a2",
+   "startTs": 1603479600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:AXSUSDT",
+   "symbol": "AXSUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-AXSUSDT-1h.json",
+   "sha256": "b4ea5129f1e266e31d99c4b3d732ffed3dc6abbbf3e07f4c1551658e602f708e",
+   "startTs": 1604494800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:BARUSDT",
+   "symbol": "BARUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-BARUSDT-1h.json",
+   "sha256": "a27085a304301720c7ddf5ffa504c76a217e9716b31365cbcdedd2f28f6165a5",
+   "startTs": 1619002800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:C98USDT",
+   "symbol": "C98USDT",
+   "role": "test",
+   "path": "blind4-prices/binance-C98USDT-1h.json",
+   "sha256": "e78d7a2ea84bd73fcb08e36ab3ee94549c67aad10915e8991b4aafa91316441c",
+   "startTs": 1627041600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:CAKEUSDT",
+   "symbol": "CAKEUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-CAKEUSDT-1h.json",
+   "sha256": "965c32ff22208862114440c412c0a1912c418ea9acbf55536aa51f2bf669225e",
+   "startTs": 1613714400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:CHZUSDT",
+   "symbol": "CHZUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-CHZUSDT-1h.json",
+   "sha256": "b7cef20a64b2244bba7c826e6d45160b663948a24a850a5c19d84859467abce8",
+   "startTs": 1567742400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:CKBUSDT",
+   "symbol": "CKBUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-CKBUSDT-1h.json",
+   "sha256": "a0763fcf5eff56d5c6978aa5704c156e3bb526e9e123a5835c520434f4000e9e",
+   "startTs": 1611662400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:COMPUSDT",
+   "symbol": "COMPUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-COMPUSDT-1h.json",
+   "sha256": "d2f559a145a7abfe9b902a3783369d0b9df4103d2d4949e279884c1ebf212aa0",
+   "startTs": 1593064800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:COTIUSDT",
+   "symbol": "COTIUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-COTIUSDT-1h.json",
+   "sha256": "c54ba174e59c9fcff33c70bb8cfafa399b0dc47640fe521386144f578cae4f85",
+   "startTs": 1582725600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:CTSIUSDT",
+   "symbol": "CTSIUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-CTSIUSDT-1h.json",
+   "sha256": "17b644ab821a34386dba806774fdc6dfbcf7331aa16e61ddc7e1cf9ede84b82f",
+   "startTs": 1587607200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:DEXEUSDT",
+   "symbol": "DEXEUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-DEXEUSDT-1h.json",
+   "sha256": "6483135c4b529193ec2467959b6c21d564aefd4ebcc46fe66f2303fe2c148529",
+   "startTs": 1627034400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:DYDXUSDT",
+   "symbol": "DYDXUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-DYDXUSDT-1h.json",
+   "sha256": "7d59942bf98ee37a635560d1fa273c3e3003107a5e287edff0552717334530ab",
+   "startTs": 1631152800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:FLOWUSDT",
+   "symbol": "FLOWUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-FLOWUSDT-1h.json",
+   "sha256": "0ba8dd93e6c97de6fdc8520a22976008e59408282734f98ccd55976b8296e59d",
+   "startTs": 1627650000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:ETCUSDT",
+   "symbol": "ETCUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-ETCUSDT-1h.json",
+   "sha256": "f96ff262dd6ff3e98aa45e8060c971f71709ed4b337f51f324a08de7a250a116",
+   "startTs": 1528768800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:FTTUSDT",
+   "symbol": "FTTUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-FTTUSDT-1h.json",
+   "sha256": "680faed04e6f5375f047911e61bf0d2fe21e33c5661e34f7138a40bcb2bd40c6",
+   "startTs": 1576810800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:GALAUSDT",
+   "symbol": "GALAUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-GALAUSDT-1h.json",
+   "sha256": "6dfc0734cf6f73988faa9333901dd0237dc29e1790de0632ff0146435f9e9911",
+   "startTs": 1631512800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:JASMYUSDT",
+   "symbol": "JASMYUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-JASMYUSDT-1h.json",
+   "sha256": "8ece77a458478445657d99e41d7d195539a2133056232238c63d26fb1a5c28d0",
+   "startTs": 1637582400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:GRTUSDT",
+   "symbol": "GRTUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-GRTUSDT-1h.json",
+   "sha256": "bfad4ef83399369351fb875df7e269b861ddd3f9bb3a1d937c55f84e06a1163a",
+   "startTs": 1608235200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:JSTUSDT",
+   "symbol": "JSTUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-JSTUSDT-1h.json",
+   "sha256": "e90600c109770c4704320b802c51eda8b1df3980250b865aa2e9b43b397c9d98",
+   "startTs": 1597125600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:LAZIOUSDT",
+   "symbol": "LAZIOUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-LAZIOUSDT-1h.json",
+   "sha256": "8a93a3e9de4c71f3b83a38dcf4bcace44960bb8e24e51b81dbd96a98819c2f44",
+   "startTs": 1634817600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:KAVAUSDT",
+   "symbol": "KAVAUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-KAVAUSDT-1h.json",
+   "sha256": "407405806acb12a86b6a00c38164aa3c445ac9290ecd2d54f34a1056d33d6b0c",
+   "startTs": 1571968800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:LPTUSDT",
+   "symbol": "LPTUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-LPTUSDT-1h.json",
+   "sha256": "08d44bd16f157833a0c9027e6d4a740b5ab86d63953b0ce61217c86fd1d3cfe7",
+   "startTs": 1622178000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:LSKUSDT",
+   "symbol": "LSKUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-LSKUSDT-1h.json",
+   "sha256": "3985026cf3cdca76a7c49c9c1b20c457c039f31c0b2ec95d9768be94f9167655",
+   "startTs": 1580983200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:MINAUSDT",
+   "symbol": "MINAUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-MINAUSDT-1h.json",
+   "sha256": "a8b1ce9546d4f8f4f0747b1efc54715beec00f3cb1768fb4af86a74ce750550c",
+   "startTs": 1628575200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:MBLUSDT",
+   "symbol": "MBLUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-MBLUSDT-1h.json",
+   "sha256": "6d3ee7b9a667f01656d3b8b2764e9a9d3d34b06800c2f500a609b7a93803d535",
+   "startTs": 1582293600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:MOVRUSDT",
+   "symbol": "MOVRUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-MOVRUSDT-1h.json",
+   "sha256": "6f282c57c2c7efca801468168b11f286ec8bd5717217c50808400cb08e25a5fe",
+   "startTs": 1636351200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:NMRUSDT",
+   "symbol": "NMRUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-NMRUSDT-1h.json",
+   "sha256": "f6c84350eb1ab3bf0bf6ede2ef45b7344891341a2b8a9d2975ac10dd2b05b9b6",
+   "startTs": 1597838400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:PHAUSDT",
+   "symbol": "PHAUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-PHAUSDT-1h.json",
+   "sha256": "f105ac9a3a68021bb75729b937ddc6c7f1726a6c81b76ffea95aa6d4054f2473",
+   "startTs": 1624615200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:ONGUSDT",
+   "symbol": "ONGUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-ONGUSDT-1h.json",
+   "sha256": "1bddc993a9f2052a80f84d8ba3d0e7148592325b6b083a23cfa162dc7ff5ee54",
+   "startTs": 1550311200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:QIUSDT",
+   "symbol": "QIUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-QIUSDT-1h.json",
+   "sha256": "f88b191f4e0b52633ddebd2166c582a9a3127f68315d3eec5d37ada2073fac1c",
+   "startTs": 1636963200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:RADUSDT",
+   "symbol": "RADUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-RADUSDT-1h.json",
+   "sha256": "beb0195ad300db0a8df344905134468c943a16c725ca8aa9002ded8d562759e3",
+   "startTs": 1633590000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:RUNEUSDT",
+   "symbol": "RUNEUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-RUNEUSDT-1h.json",
+   "sha256": "4cdfb5302839feac36cbeb9c8d0228ba5bf0d0e1a41da7b61bac185d4250eaab",
+   "startTs": 1599199200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:RVNUSDT",
+   "symbol": "RVNUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-RVNUSDT-1h.json",
+   "sha256": "a311a32fb03c1691731401d7c7f4402183acf0cca76c2f3f2dcf73a2937b1430",
+   "startTs": 1569412800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:SANDUSDT",
+   "symbol": "SANDUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-SANDUSDT-1h.json",
+   "sha256": "1555293f6c0b6898d261d6ce5bb0e6a21e2e6773a08f57d3fb03de2b3a263c49",
+   "startTs": 1597410000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:SNXUSDT",
+   "symbol": "SNXUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-SNXUSDT-1h.json",
+   "sha256": "b113a52ae167e2dfbebd5335e047d3f3b1249ddb09c979bf2142f894a793dd21",
+   "startTs": 1594296000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:SPELLUSDT",
+   "symbol": "SPELLUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-SPELLUSDT-1h.json",
+   "sha256": "a838f160935a50f0caac07f3fea94e0df61bd99b1b3dfba3cc51c48c312515be",
+   "startTs": 1640332800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:SUPERUSDT",
+   "symbol": "SUPERUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-SUPERUSDT-1h.json",
+   "sha256": "5f69747a5f8e8b99cb4aad5c75664d587a7e4d8dfe8721bbd622e009dc0ccd28",
+   "startTs": 1616666400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:TWTUSDT",
+   "symbol": "TWTUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-TWTUSDT-1h.json",
+   "sha256": "4ac57434ed66e76e1b34a84191072a743cbfcf04b493450c0c99bddfb50e437d",
+   "startTs": 1611734400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:VETUSDT",
+   "symbol": "VETUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-VETUSDT-1h.json",
+   "sha256": "79a300526e432a6e65a0e8b927cbf161529aceba92ddf4ddfd74ea7a466da098",
+   "startTs": 1532491200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:ZENUSDT",
+   "symbol": "ZENUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-ZENUSDT-1h.json",
+   "sha256": "cccb1b5219290d8dba111b89e40efcbef1463650840b1297c6707b972b20f339",
+   "startTs": 1594011600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind4:XTZUSDT",
+   "symbol": "XTZUSDT",
+   "role": "test",
+   "path": "blind4-prices/binance-XTZUSDT-1h.json",
+   "sha256": "7fc24d951c3f6670529e1e3c81c0d6e02a042b9a6374964b304960660fd62145",
+   "startTs": 1569322800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:1INCHUSDT",
+   "symbol": "1INCHUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-1INCHUSDT-1h.json",
+   "sha256": "3fe5941773d7e993f616e4a9651133fd7035ab0ccd7f2d070d3a2bd97e5b5e15",
+   "startTs": 1608872400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:ADXUSDT",
+   "symbol": "ADXUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-ADXUSDT-1h.json",
+   "sha256": "81e4ce7bf0aee044232b261c61013786540f1d52302edcbd11c9409e4a1205f2",
+   "startTs": 1635501600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:ALICEUSDT",
+   "symbol": "ALICEUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-ALICEUSDT-1h.json",
+   "sha256": "fce9e935f839c8cc90834565fb34b7513a1b10688efb3c766873f4e1e0e400fd",
+   "startTs": 1615788000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:ATMUSDT",
+   "symbol": "ATMUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-ATMUSDT-1h.json",
+   "sha256": "a6ba5e45f0a00861740ac6c1fa18083899507b17b751fd8ba97dd8baaf05253e",
+   "startTs": 1609308000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:AUCTIONUSDT",
+   "symbol": "AUCTIONUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-AUCTIONUSDT-1h.json",
+   "sha256": "9db592acbbaf1927cc5ac23bfdf2f63f711d98eb09bb2ff78c7d05efa0e652b5",
+   "startTs": 1635501600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:ANKRUSDT",
+   "symbol": "ANKRUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-ANKRUSDT-1h.json",
+   "sha256": "e5b842ac47ed0959b9eb132abc5c0091050b29be31e0aa5b0b853e82d565071b",
+   "startTs": 1563890400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:BICOUSDT",
+   "symbol": "BICOUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-BICOUSDT-1h.json",
+   "sha256": "f249fac85a1682ce05cb8a45c388734ebe322aede7ebec6a8555c955609e7dfa",
+   "startTs": 1639029600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:BELUSDT",
+   "symbol": "BELUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-BELUSDT-1h.json",
+   "sha256": "7d3a17fdcbb834a0abbdad8d9a9001a3109fc6f613edf78fee9aa600450b5f82",
+   "startTs": 1600156800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:CELOUSDT",
+   "symbol": "CELOUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-CELOUSDT-1h.json",
+   "sha256": "d43d26c6f7691a86151f57a3d9e139c679f057e7ae8b176172f9c9a8e7b454af",
+   "startTs": 1609833600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:CITYUSDT",
+   "symbol": "CITYUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-CITYUSDT-1h.json",
+   "sha256": "2c0281951c9bb03292891091f39223b9339c18ae759eec134c82cbf0eb5deac0",
+   "startTs": 1636531200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:CVXUSDT",
+   "symbol": "CVXUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-CVXUSDT-1h.json",
+   "sha256": "c30ae30d04815d290d79d7094099f34285d59092dea36c348f4f153e2d0694d9",
+   "startTs": 1640268000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:CHRUSDT",
+   "symbol": "CHRUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-CHRUSDT-1h.json",
+   "sha256": "47303f0598ab74fffe175a78e6b988388a5382c9efbbd6a889e29bfe5315faa6",
+   "startTs": 1588860000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:DCRUSDT",
+   "symbol": "DCRUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-DCRUSDT-1h.json",
+   "sha256": "72deff97203758bc258677aa09456b46797234a1e7a0162c71283b5f6fc5df94",
+   "startTs": 1596085200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:DIAUSDT",
+   "symbol": "DIAUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-DIAUSDT-1h.json",
+   "sha256": "854d18ebf016e109f87a98eb650104c5450da1e708dd0709dfe892c8029d4d3f",
+   "startTs": 1599224400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:EGLDUSDT",
+   "symbol": "EGLDUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-EGLDUSDT-1h.json",
+   "sha256": "ffdf480d85a515b1183cefa50af7697925f43310aed447953d8d8dbb66d228a4",
+   "startTs": 1599102000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:ENSUSDT",
+   "symbol": "ENSUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-ENSUSDT-1h.json",
+   "sha256": "44dbfb63bc8ea8d37ac3fbe7c3dffc5eb0f59840323394d22c5a98881707cd6a",
+   "startTs": 1636527600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:FIDAUSDT",
+   "symbol": "FIDAUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-FIDAUSDT-1h.json",
+   "sha256": "d30ad1644406ffb97a59ee5c94b943969cc83848cea7c8bd7c84e077b589ebd3",
+   "startTs": 1633003200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:ENJUSDT",
+   "symbol": "ENJUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-ENJUSDT-1h.json",
+   "sha256": "06771dadf2d05fbb83a65791b24e8bc437e2244dd16ce30ad1fbe8725ff71928",
+   "startTs": 1555560000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:FLUXUSDT",
+   "symbol": "FLUXUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-FLUXUSDT-1h.json",
+   "sha256": "2b42c474c2c0457495890766437cb1de8576b0ebd37e3bff85331ac5ba7ffebd",
+   "startTs": 1639116000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:ILVUSDT",
+   "symbol": "ILVUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-ILVUSDT-1h.json",
+   "sha256": "ce8b590d9196097207fed326229972fa15e7f7fad4a604910044c9b02ed05ae5",
+   "startTs": 1632290400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:IOSTUSDT",
+   "symbol": "IOSTUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-IOSTUSDT-1h.json",
+   "sha256": "db6ee55d579573e246a37a71ba2a183b1a46fa8d26eb02e90f150e5a644a6f9c",
+   "startTs": 1553227200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:IOTXUSDT",
+   "symbol": "IOTXUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-IOTXUSDT-1h.json",
+   "sha256": "c45cb2d501e905f2541a36515b5f51c72db16cd7c3cdc2ca71397b9d164f9c7a",
+   "startTs": 1573700400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:JUVUSDT",
+   "symbol": "JUVUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-JUVUSDT-1h.json",
+   "sha256": "03bd9756c1277ef44cc10409eab8a5274b5c1b1af674a47ea121b1416dd31956",
+   "startTs": 1608530400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:KSMUSDT",
+   "symbol": "KSMUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-KSMUSDT-1h.json",
+   "sha256": "e3a0a72ad63149c3b6e9d944cc8f7edb75e60002be56a2e6f2764431c5ff85d2",
+   "startTs": 1599217200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:LUNAUSDT",
+   "symbol": "LUNAUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-LUNAUSDT-1h.json",
+   "sha256": "5320c9f68e336be51786c22c99d5e809c9c8d1f51dee972bc33f4daea1d775c6",
+   "startTs": 1598004000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:MANAUSDT",
+   "symbol": "MANAUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-MANAUSDT-1h.json",
+   "sha256": "56cb7c08e62893c01f056e20d88cf415fa078ddf1be6a50b0a51c09a7f8e8df7",
+   "startTs": 1596708000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:MASKUSDT",
+   "symbol": "MASKUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-MASKUSDT-1h.json",
+   "sha256": "09e544420e49a99f17ccf5724008fda779a09af7c6032b7ada611b8530fd9982",
+   "startTs": 1621922400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:OGUSDT",
+   "symbol": "OGUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-OGUSDT-1h.json",
+   "sha256": "aaaf67554b1ef2b0eabe7dc0d4be0f0820b4a01f86bb0e436a3f5bc9ab2d83de",
+   "startTs": 1609308000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:NEOUSDT",
+   "symbol": "NEOUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-NEOUSDT-1h.json",
+   "sha256": "71a444e4a11291a2b73f1f6ea24bc51283c5c270c6e40763728d0e2eb7073f1d",
+   "startTs": 1511146800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:PORTOUSDT",
+   "symbol": "PORTOUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-PORTOUSDT-1h.json",
+   "sha256": "4ba9999b9923335e2d0a6a0e783285eefa659bdc300efecbe17b07546d193648",
+   "startTs": 1637064000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:ONTUSDT",
+   "symbol": "ONTUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-ONTUSDT-1h.json",
+   "sha256": "5e22b874050eb23eedb03c2fe82a93ad1fdab0d3d05db8f6f23070255996e00d",
+   "startTs": 1528441200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:ROSEUSDT",
+   "symbol": "ROSEUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-ROSEUSDT-1h.json",
+   "sha256": "21526c66c3f99cc5ec7b6998209debf5d1934a7c1613a8677988223043f3b181",
+   "startTs": 1605772800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:SUNUSDT",
+   "symbol": "SUNUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-SUNUSDT-1h.json",
+   "sha256": "184a50ce158d88fc62189d2ef2ba4bc33434abf4a7e246239685cf70f76a6310",
+   "startTs": 1600696800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:SUSHIUSDT",
+   "symbol": "SUSHIUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-SUSHIUSDT-1h.json",
+   "sha256": "6aa7a88c9912b3b9afe870d525afdfea5875b90379cee72e4b23d8c0b4509f95",
+   "startTs": 1598958000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:TKOUSDT",
+   "symbol": "TKOUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-TKOUSDT-1h.json",
+   "sha256": "fcede9faf1ae47f298c954066c9207f6486bcb2fb58a82089104944eb7e3a288",
+   "startTs": 1617800400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:THETAUSDT",
+   "symbol": "THETAUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-THETAUSDT-1h.json",
+   "sha256": "79e7ad1585cf31cf8a2922ecb7785073894ee594a8526c6c70b6b21b33c13f96",
+   "startTs": 1554868800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:TLMUSDT",
+   "symbol": "TLMUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-TLMUSDT-1h.json",
+   "sha256": "e09924c6847b1d73b431672ba5ecc216b4aff5708d618bb507a35e318f0d693b",
+   "startTs": 1618293600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:UMAUSDT",
+   "symbol": "UMAUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-UMAUSDT-1h.json",
+   "sha256": "ab393a2b37b972a89c518db021def9b75cd118ae6edf6d97ca6da951be335b42",
+   "startTs": 1599642000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:WAXPUSDT",
+   "symbol": "WAXPUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-WAXPUSDT-1h.json",
+   "sha256": "66c6fa6a54ae13041c3811895f1c99e4c25edeba979680751c9534da7cd5f670",
+   "startTs": 1629698400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:VTHOUSDT",
+   "symbol": "VTHOUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-VTHOUSDT-1h.json",
+   "sha256": "323c693c0b2a670c9a0bfe8cf790e58e1c755ea8fa1aef68d9969bb885591709",
+   "startTs": 1594976400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:XECUSDT",
+   "symbol": "XECUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-XECUSDT-1h.json",
+   "sha256": "6e98608d511fdb6630e75961cc12e59ab68184bc6e641a40ddaa4b6d4cfc3370",
+   "startTs": 1630663200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:ACHUSDT",
+   "symbol": "ACHUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-ACHUSDT-1h.json",
+   "sha256": "1c58872e1bddac2517f266bacdc7d7cca26dc285720184e4f8301c69c91fa46c",
+   "startTs": 1641808800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind5:YGGUSDT",
+   "symbol": "YGGUSDT",
+   "role": "test",
+   "path": "blind5-prices/binance-YGGUSDT-1h.json",
+   "sha256": "3cb0dc3610e410b8d77f1fb0211446c89ebedbdc0594d62ccc10db391600ba43",
+   "startTs": 1632463200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:ALPINEUSDT",
+   "symbol": "ALPINEUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-ALPINEUSDT-1h.json",
+   "sha256": "c8df97853ef14986433d7c04200000dae423acda75d1c93a2efb0a4859af4a92",
+   "startTs": 1645444800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:ACMUSDT",
+   "symbol": "ACMUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-ACMUSDT-1h.json",
+   "sha256": "0fdd5e6f2253d4c710f8cc68ac994fbdc04580ae9f4703fcc023adbbaff9a9e0",
+   "startTs": 1614164400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:AGLDUSDT",
+   "symbol": "AGLDUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-AGLDUSDT-1h.json",
+   "sha256": "300f9db7ad07a6e95e8c70a68a235a3393b5a4546dba25a3389159a60349a227",
+   "startTs": 1633417200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:APTUSDT",
+   "symbol": "APTUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-APTUSDT-1h.json",
+   "sha256": "e9071a234af6a3ffa012cab9af713a36d1cbe9703fd9fb763804040f62b53e33",
+   "startTs": 1666141200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:APEUSDT",
+   "symbol": "APEUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-APEUSDT-1h.json",
+   "sha256": "c70ef55791ac3fc4e4b860fa241f6295bdb9eafc55535c17420e3d444cb2adae",
+   "startTs": 1647525600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:API3USDT",
+   "symbol": "API3USDT",
+   "role": "test",
+   "path": "blind6-prices/binance-API3USDT-1h.json",
+   "sha256": "d4186e276452a05b803e0ccfb7fd38c214222df8c0523c5bb9d8d8653bca8fb7",
+   "startTs": 1642759200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:ASTRUSDT",
+   "symbol": "ASTRUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-ASTRUSDT-1h.json",
+   "sha256": "aa3f69d2fc9887966e9dca6f4424fd4d9fa6658a7cec55c0d34bcf581c0e1d7a",
+   "startTs": 1646046000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:ASRUSDT",
+   "symbol": "ASRUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-ASRUSDT-1h.json",
+   "sha256": "5f0711f88a05439e70f5305572014b5e6711613d728145350b04b600c830139f",
+   "startTs": 1609308000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:ARPAUSDT",
+   "symbol": "ARPAUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-ARPAUSDT-1h.json",
+   "sha256": "dffbafb705b37b399f7d050021ae79ae38ea62912f17ef7e85d7ed304b11df02",
+   "startTs": 1573048800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:BTTCUSDT",
+   "symbol": "BTTCUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-BTTCUSDT-1h.json",
+   "sha256": "6d2fd2042601c93822e79dbd6e65b419912b47d83a1aa4d8484abbdcb63c1ba9",
+   "startTs": 1643083200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:BANDUSDT",
+   "symbol": "BANDUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-BANDUSDT-1h.json",
+   "sha256": "74c17e952e106603222e980f8d9f3f6be4bc3635132e41584da92c73fba8ed3a",
+   "startTs": 1568808000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:BNTUSDT",
+   "symbol": "BNTUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-BNTUSDT-1h.json",
+   "sha256": "2221f97790a465094b9607b693fda05bace88231f887a9ab2049a2cafca59666",
+   "startTs": 1580983200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:DGBUSDT",
+   "symbol": "DGBUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-DGBUSDT-1h.json",
+   "sha256": "44c11af390f71d8b0039e202a6ffad9654425b068d10af055ec9e039c428ccb1",
+   "startTs": 1595246400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:CVCUSDT",
+   "symbol": "CVCUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-CVCUSDT-1h.json",
+   "sha256": "d272af571890dee5ac8967de94c3c77a45a5bfa0dc844bb7caaf49db2743a782",
+   "startTs": 1566878400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:CELRUSDT",
+   "symbol": "CELRUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-CELRUSDT-1h.json",
+   "sha256": "b4eb344e21a92897b38ee59b5d23dffdba090353a641e04e76e9f1f0a22805b4",
+   "startTs": 1553486400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:GLMRUSDT",
+   "symbol": "GLMRUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-GLMRUSDT-1h.json",
+   "sha256": "569569b31012d2cd31431d18e2532b3aa7a432895db0859d814c42bd98494b91",
+   "startTs": 1641916800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:GMXUSDT",
+   "symbol": "GMXUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-GMXUSDT-1h.json",
+   "sha256": "4b7b577cc321b0b8b6955ef718045bf8d93e8a75806197a6834f0ecaf53c5dad",
+   "startTs": 1664964000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:GMTUSDT",
+   "symbol": "GMTUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-GMTUSDT-1h.json",
+   "sha256": "bd7bd54aa87e8c525e42847e5c0c3abbcea4b46d450453129a181f578a5b89bc",
+   "startTs": 1646827200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:GNOUSDT",
+   "symbol": "GNOUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-GNOUSDT-1h.json",
+   "sha256": "d67a98f2d190dfefe900f3136212201a76d6a766e3d03b0186d4cd361834bf0f",
+   "startTs": 1630303200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:HIVEUSDT",
+   "symbol": "HIVEUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-HIVEUSDT-1h.json",
+   "sha256": "0d7768594c4b5032aac05b490d254adecb890b4b3bba0eb86bf9858651b2600d",
+   "startTs": 1587963600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:HOTUSDT",
+   "symbol": "HOTUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-HOTUSDT-1h.json",
+   "sha256": "3319287c142ebf744bea7f163acbf4409963175342b1b53b16893a465c970038",
+   "startTs": 1550484000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:IMXUSDT",
+   "symbol": "IMXUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-IMXUSDT-1h.json",
+   "sha256": "284cc167eb05918bf061cb209526f2cf29ed07ac2f62a14261be6a2ae8b98fb9",
+   "startTs": 1641808800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:JOEUSDT",
+   "symbol": "JOEUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-JOEUSDT-1h.json",
+   "sha256": "198da54b2a5c852cf5950a2c67aa7e820c9b364297bb98f43f89f3c4b2248720",
+   "startTs": 1640689200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:KNCUSDT",
+   "symbol": "KNCUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-KNCUSDT-1h.json",
+   "sha256": "a884f310106c7139d4624cb92418a6fdacccc8e9cc96c72a8d8913d9ffe621c3",
+   "startTs": 1591948800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:IOTAUSDT",
+   "symbol": "IOTAUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-IOTAUSDT-1h.json",
+   "sha256": "8b677ca7382fd5ae58ef7dead0eba24d7c62eaaec2f7b83928b7623bff0ba1fb",
+   "startTs": 1527757200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:LDOUSDT",
+   "symbol": "LDOUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-LDOUSDT-1h.json",
+   "sha256": "9b34cc4ebadcf8a2eb909eaa736cab31f8d5cdf80ce2292313b0b0ee7d7b118a",
+   "startTs": 1652094000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:MAGICUSDT",
+   "symbol": "MAGICUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-MAGICUSDT-1h.json",
+   "sha256": "15ec529d6811e21a9efe4e01cb8cae101b4d4bb27d64fe3ee70155be82c9ad69",
+   "startTs": 1670832000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:LUNCUSDT",
+   "symbol": "LUNCUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-LUNCUSDT-1h.json",
+   "sha256": "ba1db5ec9d462ef0d0d9fa71144af810ccc6c04ef625c6b9dcd0b933c9d9d19e",
+   "startTs": 1662710400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:NEXOUSDT",
+   "symbol": "NEXOUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-NEXOUSDT-1h.json",
+   "sha256": "0f5a32e15ec2750be8bf027938c150eb5b2f41d6d4972c895030d18dbb7764f3",
+   "startTs": 1651240800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:MTLUSDT",
+   "symbol": "MTLUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-MTLUSDT-1h.json",
+   "sha256": "598f98dfeaedd0c0d04f8779f97e7201bb5d480da8769af2da29782f2b0e6841",
+   "startTs": 1566554400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:OGNUSDT",
+   "symbol": "OGNUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-OGNUSDT-1h.json",
+   "sha256": "146c8887fa7d65fd46ce1e6df2a7046a7b7f7ec6bae39a0ee8bcb628da908067",
+   "startTs": 1578538800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:OPUSDT",
+   "symbol": "OPUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-OPUSDT-1h.json",
+   "sha256": "d2c337130e9a155484779bde1b6be13efc3544f496e3eb474e7f4791df8b3aa1",
+   "startTs": 1654070400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:OSMOUSDT",
+   "symbol": "OSMOUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-OSMOUSDT-1h.json",
+   "sha256": "8425e57a32e23e3198c894f89a78dfd66ceb58cb20b35ce119e322b03a241399",
+   "startTs": 1666951200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:POLYXUSDT",
+   "symbol": "POLYXUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-POLYXUSDT-1h.json",
+   "sha256": "37b99de7cb532299e9df07384a2cbf275fbfb6f207ee745a68eb9bd244718157",
+   "startTs": 1665993600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:PEOPLEUSDT",
+   "symbol": "PEOPLEUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-PEOPLEUSDT-1h.json",
+   "sha256": "dfe022aa91e266380d451a04140a0193a23780c29e244677e282546f54bbf597",
+   "startTs": 1640239200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:POWRUSDT",
+   "symbol": "POWRUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-POWRUSDT-1h.json",
+   "sha256": "32f52cd94db6d1cfb414c937aaec58a48a4c8c13ba99eb86f1274a4ff1fe37c1",
+   "startTs": 1637128800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:PUNDIXUSDT",
+   "symbol": "PUNDIXUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-PUNDIXUSDT-1h.json",
+   "sha256": "9cfe8f9340c29182e043175f8c2f0114dc1e43522a70e845f797f5b2435e6696",
+   "startTs": 1617940800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:PSGUSDT",
+   "symbol": "PSGUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-PSGUSDT-1h.json",
+   "sha256": "b5c462dad4c16abd1734ded8e5ce3b7dba1f4caee80f51d712a9c2520709b13d",
+   "startTs": 1608530400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:QUICKUSDT",
+   "symbol": "QUICKUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-QUICKUSDT-1h.json",
+   "sha256": "6adc1ff2c95e4b2d31d3714042773a8b72339496f6b853ae5b77f97dd3678293",
+   "startTs": 1628856000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:RAREUSDT",
+   "symbol": "RAREUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-RAREUSDT-1h.json",
+   "sha256": "07c6e3ca2342a654d0e3a26a390004a772b78d193a6f2b8a2bf5c845e58692dd",
+   "startTs": 1633932000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:QTUMUSDT",
+   "symbol": "QTUMUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-QTUMUSDT-1h.json",
+   "sha256": "8d08de8833de200617b7ece5e5efd8e50746078bd59d99068ab2065230a4cc20",
+   "startTs": 1521446400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:REQUSDT",
+   "symbol": "REQUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-REQUSDT-1h.json",
+   "sha256": "fb9ef176f73791f6b009245b4111fbed3ca75588b79711b004b891beacca9937",
+   "startTs": 1629453600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:RIFUSDT",
+   "symbol": "RIFUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-RIFUSDT-1h.json",
+   "sha256": "3b019d42cc9397f6bfff0b1b0266ad82e5359ff635711077377eceb984306438",
+   "startTs": 1610024400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:SANTOSUSDT",
+   "symbol": "SANTOSUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-SANTOSUSDT-1h.json",
+   "sha256": "530e372c31750cfecc0a7b07b733fea4e7f03c4ee22753ecdd2174d0d55b5365",
+   "startTs": 1638356400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:SLPUSDT",
+   "symbol": "SLPUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-SLPUSDT-1h.json",
+   "sha256": "8394e71e01484748bc4dda9d06a5a9f6efde62c81fc4ba9f177adc72b944ce9c",
+   "startTs": 1619784000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:SFPUSDT",
+   "symbol": "SFPUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-SFPUSDT-1h.json",
+   "sha256": "0e4e4eddd8f966ff59c17465c5507da59929a2e6590c42d03082b36c504a15bd",
+   "startTs": 1612789200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:SCUSDT",
+   "symbol": "SCUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-SCUSDT-1h.json",
+   "sha256": "b5b100301d72a9e44b476f6c036c8bca4b197d1f242c07647cf45f75716f18d0",
+   "startTs": 1594011600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:STEEMUSDT",
+   "symbol": "STEEMUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-STEEMUSDT-1h.json",
+   "sha256": "f8d64be4ff1b332d7e00d6f9e4e429fef4b9492c3ffd2f763c1b1d03be66fca4",
+   "startTs": 1650621600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:STRAXUSDT",
+   "symbol": "STRAXUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-STRAXUSDT-1h.json",
+   "sha256": "97599240dfdd3397d84da19bac5e27df9398c75c875782e391723270d8ddc520",
+   "startTs": 1605668400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:TFUELUSDT",
+   "symbol": "TFUELUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-TFUELUSDT-1h.json",
+   "sha256": "44d2219cec1666109402e35f105bb93a5a7f499eb1fba76f3f84820afaca2c46",
+   "startTs": 1558692000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:TUSDT",
+   "symbol": "TUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-TUSDT-1h.json",
+   "sha256": "58eefd654e7c330dd130491049c0d9dabfd24fad8e28649c0db9edbf330c6e6a",
+   "startTs": 1645761600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:TRBUSDT",
+   "symbol": "TRBUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-TRBUSDT-1h.json",
+   "sha256": "7d25d1916890643e5c4d96edab85f263fe54228777ff8479aa4162fabd3afab7",
+   "startTs": 1598684400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:WOOUSDT",
+   "symbol": "WOOUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-WOOUSDT-1h.json",
+   "sha256": "8fec61e5bdd22d1fdc0c3ff1737a1c58834b61bbcc909562bbcea9685ecf2072",
+   "startTs": 1644300000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:XNOUSDT",
+   "symbol": "XNOUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-XNOUSDT-1h.json",
+   "sha256": "8950497801632de714e9454973064c472c18f42177247b5834fd71018defb5a2",
+   "startTs": 1643356800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:WINUSDT",
+   "symbol": "WINUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-WINUSDT-1h.json",
+   "sha256": "3b98f3edbc9d3cb123875704cf9f61a39a6589dab1c506e77444b9f187aa3b8b",
+   "startTs": 1564653600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:XVGUSDT",
+   "symbol": "XVGUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-XVGUSDT-1h.json",
+   "sha256": "30094880386dbe62d021daf502e48e97d0d30d4bb0703bac935468078e2291db",
+   "startTs": 1622973600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:XVSUSDT",
+   "symbol": "XVSUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-XVSUSDT-1h.json",
+   "sha256": "0b2c9df5dfda5ccd38b9834483d54bf5ec81535cea759d26fcca5467e3c65e7d",
+   "startTs": 1601960400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:YFIUSDT",
+   "symbol": "YFIUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-YFIUSDT-1h.json",
+   "sha256": "91b19d548ed7e6127945388f70824d44369bef15e16cb228119830501141fae9",
+   "startTs": 1597060800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:1000SATSUSDT",
+   "symbol": "1000SATSUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-1000SATSUSDT-1h.json",
+   "sha256": "49ad42bb6faf50b2769e93abfb69442337c7753da8e80de78dc028bb6b19c9eb",
+   "startTs": 1702382400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:ACEUSDT",
+   "symbol": "ACEUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-ACEUSDT-1h.json",
+   "sha256": "bb137c31f8d946c5ef27a37ee40fdee1535eb6f0c02553dfdddd130d6b8545cc",
+   "startTs": 1702879200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:ZILUSDT",
+   "symbol": "ZILUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-ZILUSDT-1h.json",
+   "sha256": "4c08232d67f8c7fd499ab76d43e712dce805ad541e8974770d2d6d3bb7201344",
+   "startTs": 1550574000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind6:ZRXUSDT",
+   "symbol": "ZRXUSDT",
+   "role": "test",
+   "path": "blind6-prices/binance-ZRXUSDT-1h.json",
+   "sha256": "0c7271797c3c0376e95985235f2f42cb0dee175061273b4ccd5ae13a85f399cd",
+   "startTs": 1551326400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:ARBUSDT",
+   "symbol": "ARBUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-ARBUSDT-1h.json",
+   "sha256": "84b90deb64eb7f3031936010417f55d05c4e999bb8ea791be3291da0234aee09",
+   "startTs": 1679583600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:ARKMUSDT",
+   "symbol": "ARKMUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-ARKMUSDT-1h.json",
+   "sha256": "2538001c9cf5d4535295964bdf7357f52d51fc36bafb4fd535f0a24907b04e7d",
+   "startTs": 1689681600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:ARKUSDT",
+   "symbol": "ARKUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-ARKUSDT-1h.json",
+   "sha256": "bc1d5bd9cb97743c9c7ba293092f425d3aa153ba7c4230fc2ea8ed8123dd3cd8",
+   "startTs": 1695369600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:BEAMXUSDT",
+   "symbol": "BEAMXUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-BEAMXUSDT-1h.json",
+   "sha256": "1cd772152cba029e567d2f2457587a1da1532683ac199b1c491f9ebec9516ac7",
+   "startTs": 1699948800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:BLURUSDT",
+   "symbol": "BLURUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-BLURUSDT-1h.json",
+   "sha256": "7b54373824881d43adcfd9f1819937c9bff558fa2adbf65613ae52ab68617e3b",
+   "startTs": 1700816400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:BONKUSDT",
+   "symbol": "BONKUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-BONKUSDT-1h.json",
+   "sha256": "b2215ce0e4fd52db50344dc07d246751d6627c6b07388a8b7c04fb4c2523a8ee",
+   "startTs": 1702627200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:CYBERUSDT",
+   "symbol": "CYBERUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-CYBERUSDT-1h.json",
+   "sha256": "b74fdf147c11bd4b7bef4378e4deb93bf526786359d88456c6518721331c8181",
+   "startTs": 1692100800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:EDUUSDT",
+   "symbol": "EDUUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-EDUUSDT-1h.json",
+   "sha256": "9987b2bd4c32a290d8b0d240b0f5a0dc985f361996573be4976c1b61a93abe58",
+   "startTs": 1682683200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:FLOKIUSDT",
+   "symbol": "FLOKIUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-FLOKIUSDT-1h.json",
+   "sha256": "062adb3f2815caad34681c3eec04542d75de9a63bbb55b25e339dd24fa9b91da",
+   "startTs": 1683309600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:GASUSDT",
+   "symbol": "GASUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-GASUSDT-1h.json",
+   "sha256": "71ad5247ecd747e7d8b17dd94741c2ee3d102db600dc79395876049bd8a10a7f",
+   "startTs": 1679040000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:GLMUSDT",
+   "symbol": "GLMUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-GLMUSDT-1h.json",
+   "sha256": "42824676896d1e70a3ecf14c39a0c1f302bd1b5734aedc2cac2e5933d7ee95d5",
+   "startTs": 1679040000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:GNSUSDT",
+   "symbol": "GNSUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-GNSUSDT-1h.json",
+   "sha256": "17125322641da3cd0d3fcf1d2390bb083fb3c530e329e18915f86e17342d870f",
+   "startTs": 1676631600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:IDUSDT",
+   "symbol": "IDUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-IDUSDT-1h.json",
+   "sha256": "62ba4920806664b5bc0e02592a65a770c1fae001638959c299ca1b6199766cf4",
+   "startTs": 1679486400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:IQUSDT",
+   "symbol": "IQUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-IQUSDT-1h.json",
+   "sha256": "eda6b396898166b14cfafd08f3a25ea85910ddf68a6b09be1ff2096cbc4710a5",
+   "startTs": 1695369600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:JTOUSDT",
+   "symbol": "JTOUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-JTOUSDT-1h.json",
+   "sha256": "3d7a3d55caa2e3d06e91c9c2fcd2acd656ad6d94232b5fda38d95d9d67fda145",
+   "startTs": 1701964800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:LQTYUSDT",
+   "symbol": "LQTYUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-LQTYUSDT-1h.json",
+   "sha256": "57f7ad74cb3a4e1d139f940ff7b636c5b021b5216937b7cdc09f5c6de5c4feb9",
+   "startTs": 1677582000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:MEMEUSDT",
+   "symbol": "MEMEUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-MEMEUSDT-1h.json",
+   "sha256": "aaf0b134bf5aaf1a64a872e1f8ffbb3fa7a5922d88b635945e413668eff4a5e2",
+   "startTs": 1698998400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:MAVUSDT",
+   "symbol": "MAVUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-MAVUSDT-1h.json",
+   "sha256": "dcfbf06cea9352d8b0a563d4c38e1bebf8436744da2b25541df5aa4f0ffce664",
+   "startTs": 1687939200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:ORDIUSDT",
+   "symbol": "ORDIUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-ORDIUSDT-1h.json",
+   "sha256": "66345cf6f08d70787a3a9634dbe65636fa1f2025838938cf812cebc51cf9d57e",
+   "startTs": 1699358400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:PENDLEUSDT",
+   "symbol": "PENDLEUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-PENDLEUSDT-1h.json",
+   "sha256": "59c96f3cc3300219669211c229b4b848ec041a89cbca64d7d1dd3da631d17821",
+   "startTs": 1688378400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:PEPEUSDT",
+   "symbol": "PEPEUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-PEPEUSDT-1h.json",
+   "sha256": "138bbaa5cf8f2bfe9ef77d1c672dc581be20abad42a0747c6595cfe919fbdb33",
+   "startTs": 1683309600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:PROMUSDT",
+   "symbol": "PROMUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-PROMUSDT-1h.json",
+   "sha256": "92db56d46e3831dbc96591b79d8c40e6623f220833560a42fa6e555dcb0c822d",
+   "startTs": 1679040000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:QKCUSDT",
+   "symbol": "QKCUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-QKCUSDT-1h.json",
+   "sha256": "c583a6006c6aa25577ff8007859712522e6198eb1c3a5369e18bbc539897682d",
+   "startTs": 1679040000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:RPLUSDT",
+   "symbol": "RPLUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-RPLUSDT-1h.json",
+   "sha256": "e2a9c69331533395d4bc47edcfdf306974388b0dd8b2886d02f3ba59549c3a5b",
+   "startTs": 1674028800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:SEIUSDT",
+   "symbol": "SEIUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-SEIUSDT-1h.json",
+   "sha256": "f9d0d1520de3fb4d2eaa3e17e9c2b3ff7b6cf138eafa550a618525455b8c9a69",
+   "startTs": 1692100800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:SSVUSDT",
+   "symbol": "SSVUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-SSVUSDT-1h.json",
+   "sha256": "7b46d4168073bf6dd8fb4b88fba9211459684710e41bcaf40a10dce59027344b",
+   "startTs": 1677225600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:SUIUSDT",
+   "symbol": "SUIUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-SUIUSDT-1h.json",
+   "sha256": "67ec9eb09e9295e0129aabed205586c7db28447761ea4c96c040311effd676f6",
+   "startTs": 1683115200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:SYNUSDT",
+   "symbol": "SYNUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-SYNUSDT-1h.json",
+   "sha256": "feaf0bcaa401e4265441704b25f0cfd6541f5ae9b43455e5b75bcbd07cc87a1c",
+   "startTs": 1677060000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind7:TIAUSDT",
+   "symbol": "TIAUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-TIAUSDT-1h.json",
+   "sha256": "cebf78269b921d520e2eee19028bb556dc350f843e1923c750abc92661a16dcc",
+   "startTs": 1698768000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind8:1000CATUSDT",
+   "symbol": "1000CATUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-1000CATUSDT-1h.json.gz",
+   "sha256": "3099acaf808832468ca5f98b7f52d31867201769521d58b1ed0cf40bddb71b48",
+   "startTs": 1734426000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind7:WLDUSDT",
+   "symbol": "WLDUSDT",
+   "role": "test",
+   "path": "blind7-prices/binance-WLDUSDT-1h.json",
+   "sha256": "dfef5239b43b6a847d8d8d28f0ee9c78570ebf55250f97c7108e6a15f9fa6fc9",
+   "startTs": 1690189200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "blind8:1MBABYDOGEUSDT",
+   "symbol": "1MBABYDOGEUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-1MBABYDOGEUSDT-1h.json.gz",
+   "sha256": "5d969e6039ba0d469dd050bb21ed40c0addd56a3c0eb07c4273672a47e3e646b",
+   "startTs": 1726480800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:ACTUSDT",
+   "symbol": "ACTUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-ACTUSDT-1h.json.gz",
+   "sha256": "00d54f13f2b999d61a6bb30d47cf9180c9fb3eefe0b42a85dd7702372d31960d",
+   "startTs": 1731319200,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:AEVOUSDT",
+   "symbol": "AEVOUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-AEVOUSDT-1h.json.gz",
+   "sha256": "334ecd05db37b15c303627d3231e59966a3538c8856d58186bf0193d065a7895",
+   "startTs": 1710324000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:AIUSDT",
+   "symbol": "AIUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-AIUSDT-1h.json.gz",
+   "sha256": "ac56de961462b2594cbd1a05c3157a9569ab67ad68e810da3ec1ec6de1f9298c",
+   "startTs": 1704362400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:ALTUSDT",
+   "symbol": "ALTUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-ALTUSDT-1h.json.gz",
+   "sha256": "22243f8a1c38dd6ce117c837109cad935bf71c1cf82e5be7b78ee1c9a074a828",
+   "startTs": 1706176800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:BANANAUSDT",
+   "symbol": "BANANAUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-BANANAUSDT-1h.json.gz",
+   "sha256": "1b349999e0b353e9ea2438882e262f98cb3f2e848007bce7fe93525d79273bd7",
+   "startTs": 1721466000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:AXLUSDT",
+   "symbol": "AXLUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-AXLUSDT-1h.json.gz",
+   "sha256": "6c326f33dcc0dd13c05c01f740f5dd53c14873b44b7e2fb885a423fcecbf5482",
+   "startTs": 1709290800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:BBUSDT",
+   "symbol": "BBUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-BBUSDT-1h.json.gz",
+   "sha256": "73963d96eda5ff9d416325dd2ae542ff089feb433bd371e403da6988715a87c8",
+   "startTs": 1715594400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:CATIUSDT",
+   "symbol": "CATIUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-CATIUSDT-1h.json.gz",
+   "sha256": "964f812765f58939036431775a8588899ddcf3980440a72855afe4626ae7c830",
+   "startTs": 1726830000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:CETUSUSDT",
+   "symbol": "CETUSUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-CETUSUSDT-1h.json.gz",
+   "sha256": "ea85b1ece86059cc289930ec382bcee7c19761f4f8348869fc9e831aea62c2a4",
+   "startTs": 1730894400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:BOMEUSDT",
+   "symbol": "BOMEUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-BOMEUSDT-1h.json.gz",
+   "sha256": "a7f022d691baba6b7b6a50f3a695bf627c76289391bb313430def3bce5f6f4fa",
+   "startTs": 1710590400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:COWUSDT",
+   "symbol": "COWUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-COWUSDT-1h.json.gz",
+   "sha256": "e6d759e350aa718ba2c448ca68fb4e0ba3f05265e59a3460dc6b434df3f08281",
+   "startTs": 1730894400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:DOGSUSDT",
+   "symbol": "DOGSUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-DOGSUSDT-1h.json.gz",
+   "sha256": "87d439e44184c6f2754f623a597ab4e7cb40e2d03007d129c9b239c7fd2f5fc5",
+   "startTs": 1724673600,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:EIGENUSDT",
+   "symbol": "EIGENUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-EIGENUSDT-1h.json.gz",
+   "sha256": "7e1d235c70fa51a714871768f85c8a0899c3b21e307cb29796d891d755c7faa1",
+   "startTs": 1727758800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:DYMUSDT",
+   "symbol": "DYMUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-DYMUSDT-1h.json.gz",
+   "sha256": "7d2daae2db1e59db6b79a63b338b08e0b27c447633e420ecd0bae8fc4a1c3693",
+   "startTs": 1707238800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:ENAUSDT",
+   "symbol": "ENAUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-ENAUSDT-1h.json.gz",
+   "sha256": "b8f49fb0dcd1e20d7125f506ac8c1ea2190de0249e4ded634abbfb5bb77f9fd7",
+   "startTs": 1712044800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:GUSDT",
+   "symbol": "GUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-GUSDT-1h.json.gz",
+   "sha256": "104c3886f8e2e18688cb347721911b2eced2affb9b6a50e971a4ea821da09713",
+   "startTs": 1721376000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:ETHFIUSDT",
+   "symbol": "ETHFIUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-ETHFIUSDT-1h.json.gz",
+   "sha256": "702d50cd186dd6f91b3f907c781bf0632d26dd9e5f0d328a4d89d347e66cc67a",
+   "startTs": 1710763200,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:HMSTRUSDT",
+   "symbol": "HMSTRUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-HMSTRUSDT-1h.json.gz",
+   "sha256": "f439cecff3c68f60202a9ee112a76ba622c82c48e68625e92e4e39a2743f6354",
+   "startTs": 1727352000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:IOUSDT",
+   "symbol": "IOUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-IOUSDT-1h.json.gz",
+   "sha256": "0564f16050bd17baa56cfd1f9f5df00f608f790b0f7107d53adb869dab533d32",
+   "startTs": 1718107200,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:KAIAUSDT",
+   "symbol": "KAIAUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-KAIAUSDT-1h.json.gz",
+   "sha256": "4fd95fca4c4a531dfba735ce21d9fbcb2d9573525cb71b9663d719a4323824cb",
+   "startTs": 1730361600,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:LUMIAUSDT",
+   "symbol": "LUMIAUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-LUMIAUSDT-1h.json.gz",
+   "sha256": "bcecba90db66c996b6fab13d617457dc952182e3d736960ce82e130c6778ee38",
+   "startTs": 1729242000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:LISTAUSDT",
+   "symbol": "LISTAUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-LISTAUSDT-1h.json.gz",
+   "sha256": "a98e41c7e1b092f6660ca2d4b7f3205f825052e2486f478a099f4b5f7baccb18",
+   "startTs": 1718877600,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:MANTAUSDT",
+   "symbol": "MANTAUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-MANTAUSDT-1h.json.gz",
+   "sha256": "9f8c7943e8aab036c54aad381c73ed8b08a17387cb990a39280beba337111970",
+   "startTs": 1705572000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:MEUSDT",
+   "symbol": "MEUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-MEUSDT-1h.json.gz",
+   "sha256": "2110912f532f8e7a257d83c0026f40b06df2f08c74435ef5953f10973433ba67",
+   "startTs": 1733842800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:METISUSDT",
+   "symbol": "METISUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-METISUSDT-1h.json.gz",
+   "sha256": "a750cf9bd2f32d6fe4e380fc87902cf269a0db2468f5a107cc45e25f91696715",
+   "startTs": 1710158400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:MOVEUSDT",
+   "symbol": "MOVEUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-MOVEUSDT-1h.json.gz",
+   "sha256": "b20cdd53ff4e12c4cfe779053c5272cc85e46a0d58986574e64212e3129b76da",
+   "startTs": 1733745600,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:NEIROUSDT",
+   "symbol": "NEIROUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-NEIROUSDT-1h.json.gz",
+   "sha256": "fa2e99f72ad0085bd4cefdfb9aeaae1a01aa3a029c6790c0c6e661832a35c6f8",
+   "startTs": 1726480800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:ORCAUSDT",
+   "symbol": "ORCAUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-ORCAUSDT-1h.json.gz",
+   "sha256": "858c4551854cf5e7bf45b6fda87f4850d7827d273312a6113f4e51fc6bff462a",
+   "startTs": 1733490000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:PENGUUSDT",
+   "symbol": "PENGUUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-PENGUUSDT-1h.json.gz",
+   "sha256": "8126b873e767be5f6fb685cfe40ca8fa94aed65a9dbffac68af324421264635c",
+   "startTs": 1734444000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:NOTUSDT",
+   "symbol": "NOTUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-NOTUSDT-1h.json.gz",
+   "sha256": "9b0aca2563cceaf795bd0efceba2597fb79bee0d8cf7692e981fa0be6a30d33d",
+   "startTs": 1715860800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:PNUTUSDT",
+   "symbol": "PNUTUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-PNUTUSDT-1h.json.gz",
+   "sha256": "7aec276e1ad89b58366df121e8b419dfb7386420aee8060e24069ca333a8d687",
+   "startTs": 1731319200,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:POLUSDT",
+   "symbol": "POLUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-POLUSDT-1h.json.gz",
+   "sha256": "0a45dfbbaedd8414d25c577950592301c6c6e754356aa23570233f301c3a2b13",
+   "startTs": 1726221600,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:PIXELUSDT",
+   "symbol": "PIXELUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-PIXELUSDT-1h.json.gz",
+   "sha256": "206fd7233bc8bbb551e909e8bcb4845151ce3a846e51477fcface4905b02963a",
+   "startTs": 1708336800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:RENDERUSDT",
+   "symbol": "RENDERUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-RENDERUSDT-1h.json.gz",
+   "sha256": "671578b879f1d05898e1c78be9c9375a1529b87b7bcfbb115d8b58bc0504fa6f",
+   "startTs": 1721980800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:PORTALUSDT",
+   "symbol": "PORTALUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-PORTALUSDT-1h.json.gz",
+   "sha256": "ccc1d64030870bbd0ca77c91e4c0373da743d5f0108722ae8dcad41346573b31",
+   "startTs": 1709200800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:PYTHUSDT",
+   "symbol": "PYTHUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-PYTHUSDT-1h.json.gz",
+   "sha256": "d998b57c434b616371054272a3d8c6666edc4689c57cca0a96316a2dc1e2f9c9",
+   "startTs": 1706875200,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:REZUSDT",
+   "symbol": "REZUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-REZUSDT-1h.json.gz",
+   "sha256": "0ce3620cd6c674b54406f77decad1167756fdcb3c26b63ae35ee5ebf6c4e3a26",
+   "startTs": 1714478400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:SAGAUSDT",
+   "symbol": "SAGAUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-SAGAUSDT-1h.json.gz",
+   "sha256": "6c588fc4094c2a8f23c79bf2e75a23255716c94f49e7344eba430d6857b1be00",
+   "startTs": 1712649600,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:RONINUSDT",
+   "symbol": "RONINUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-RONINUSDT-1h.json.gz",
+   "sha256": "679b99c3fb9bf8f08bc8316fb0fb62d552db819a7903edbfdc15bbbca2a350d6",
+   "startTs": 1707138000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:SCRUSDT",
+   "symbol": "SCRUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-SCRUSDT-1h.json.gz",
+   "sha256": "563e349aa556aa7acb73b452f937883126fc922766c08912bd4e5ec57c4edfa2",
+   "startTs": 1728640800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:THEUSDT",
+   "symbol": "THEUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-THEUSDT-1h.json.gz",
+   "sha256": "7ecf80373f55522e7542fd6383d565718ebb677e32284c36d7ae728596839647",
+   "startTs": 1732701600,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:TAOUSDT",
+   "symbol": "TAOUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-TAOUSDT-1h.json.gz",
+   "sha256": "80a4864989ba1506a305ece69f7ade0fd0602f139355701ef746bc1f78e66380",
+   "startTs": 1712836800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:STRKUSDT",
+   "symbol": "STRKUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-STRKUSDT-1h.json.gz",
+   "sha256": "e68bdc4380e1ceb31a4c89f23281ef8f645eb876915d5a63e51865aa79104ca1",
+   "startTs": 1708434000,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:USUALUSDT",
+   "symbol": "USUALUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-USUALUSDT-1h.json.gz",
+   "sha256": "47a7d7fd90e7bf4de25630f0ac7e191e5f0440a9894aa176e0ca34a9e9fcd25c",
+   "startTs": 1732010400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:TURBOUSDT",
+   "symbol": "TURBOUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-TURBOUSDT-1h.json.gz",
+   "sha256": "4b23a618a72755dabd503feadb5ab705f6999a2c5267b4c18e95fdb69849696b",
+   "startTs": 1726480800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:TNSRUSDT",
+   "symbol": "TNSRUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-TNSRUSDT-1h.json.gz",
+   "sha256": "2fca957dc5983c117885bebb3f82b450ebc77f34e215378b22c646098d3c066d",
+   "startTs": 1712588400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:VELODROMEUSDT",
+   "symbol": "VELODROMEUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-VELODROMEUSDT-1h.json.gz",
+   "sha256": "f8acc996ded15cb8894924ed6975b5fb2b443a5307b9e1369819bf6f420432f4",
+   "startTs": 1734098400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:VANAUSDT",
+   "symbol": "VANAUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-VANAUSDT-1h.json.gz",
+   "sha256": "568ffb88b870cfb01082ee4ce3e71df9b0916bea834a9062c02d3b10829ec411",
+   "startTs": 1734346800,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:WIFUSDT",
+   "symbol": "WIFUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-WIFUSDT-1h.json.gz",
+   "sha256": "d9936ca3b0270636b10578fa0f589eb2fc8658fe05a87a29b87ca1af2a80d30a",
+   "startTs": 1709647200,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:WUSDT",
+   "symbol": "WUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-WUSDT-1h.json.gz",
+   "sha256": "db1f0c5eacd0d1c5a21c3c1abc22f021becae8e8ac8332811b39374004503949",
+   "startTs": 1712145600,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:XAIUSDT",
+   "symbol": "XAIUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-XAIUSDT-1h.json.gz",
+   "sha256": "1bc26f4c5112147ff025c80352176ebe8e7b14b310eea2a68b2796cc3630eeaa",
+   "startTs": 1704794400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:ZKUSDT",
+   "symbol": "ZKUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-ZKUSDT-1h.json.gz",
+   "sha256": "c73a75abc34d8bf79f389c44894f49b7a2924400faf08aa8bbe3493d3346f316",
+   "startTs": 1718618400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "blind8:ZROUSDT",
+   "symbol": "ZROUSDT",
+   "role": "test",
+   "path": "history-forecasts/r11/r1110-p3-run-9ab156bb/acq/binance-ZROUSDT-1h.json.gz",
+   "sha256": "d949802b87b92705edb12e6cec55e1e49de90f2a3213a9579eb0608117c18cba",
+   "startTs": 1718888400,
+   "devEndOpen": 1790809200
+  },
+  {
+   "key": "desc:ETHUSDT",
+   "symbol": "ETHUSDT",
+   "role": "descriptive",
+   "path": "binance-klines/ETHUSDT-1h.json",
+   "sha256": "d5c5532a9e32550066edaf0e40b3995d00b8ee54d8d0a64451bc4de0420442db",
+   "startTs": 1502942400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "desc:BTCUSDT",
+   "symbol": "BTCUSDT",
+   "role": "descriptive",
+   "path": "binance-klines/BTCUSDT-1h.json",
+   "sha256": "f01e2fbfd0b39939985106de3e53b94fd395893a90b823da626ae85a684f59bd",
+   "startTs": 1502942400,
+   "devEndOpen": 1791252000
+  }
+ ]
+}

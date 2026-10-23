@@ -161,8 +161,6 @@ jobs:
             --model-b4-sha256 cc8680c42d3f00ef7f08d84850406153fa082772daf22a3b1d90113aae1bbadf \
             --labels-b4 history-forecasts/b4/run-2035639d/labels-b4-d2.csv \
             --labels-b4-sha256 140a0d28a276c3b45d6279c6b9ff802b68639363084c89cf31808e6a60e7bd0f \
-            --stress-refill history-forecasts/r7/r7-refill-usdc.json \
-            --stress-refill-sha256 cb13e6b79b31343af83a4352f29573ba8f5a452c532a8e7b60942db4125a5f61 \
             >"$out" 2>&1 || rc=$?
           # Public log: status and counts only. The run's own output is withheld and deleted.
           echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \

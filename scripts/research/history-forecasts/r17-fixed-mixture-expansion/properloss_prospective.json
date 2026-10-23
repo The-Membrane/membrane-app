@@ -1,0 +1,601 @@
+{
+  "schema": "q26-o186-properloss-prospective-v2",
+  "status": "FROZEN_SOURCE_DESIGN_PENDING_PARENT_PHASE_ADMISSION",
+  "scope": "SYNTHETIC_JOINT_BINARY_PROPER_LOSS_UPPER_NULL_SIZE_DIAGNOSTIC",
+  "source_authorities": {
+    "generator": {
+      "path": "/private/tmp/q26-o186-properloss-generator.py",
+      "size": 6465,
+      "sha256": "2fef475959c8a247cae105524ae2cb8aae10d9e1803229a34b8475465b71ad91"
+    },
+    "core": {
+      "path": "/private/tmp/q26-U-hac-core.py",
+      "size": 7913,
+      "sha256": "15dd196cff71cf3c47104f73bf3e53e61e458c6843ea8b8b298db4ff6dfc9906"
+    },
+    "fixed_b": {
+      "path": "/private/tmp/q26-o186-fixedb-core.py",
+      "size": 4047,
+      "sha256": "f5b706b15cb2cab4c9551602f2ab2020274052414ed3aa3687b3a25c7e15984c"
+    },
+    "legacy_CP_reference": {
+      "path": "/private/tmp/q26-hac-size-simulation.py",
+      "size": 6688,
+      "sha256": "436ba09506f3ba97c1a6e911d5323f3ad9fe5c7de172294baca741aa37c40683"
+    }
+  },
+  "reps_per_configuration": 1000,
+  "seed": 20261023,
+  "configurations": [
+    {
+      "id": "complete_boundary_rho0",
+      "rho": "0",
+      "missing": "complete",
+      "roles": {
+        "2024": "boundary",
+        "2025": "boundary"
+      }
+    },
+    {
+      "id": "complete_boundary_rho05",
+      "rho": "1/2",
+      "missing": "complete",
+      "roles": {
+        "2024": "boundary",
+        "2025": "boundary"
+      }
+    },
+    {
+      "id": "complete_boundary_rho09",
+      "rho": "9/10",
+      "missing": "complete",
+      "roles": {
+        "2024": "boundary",
+        "2025": "boundary"
+      }
+    },
+    {
+      "id": "independent_missing_upper_boundary_rho0",
+      "rho": "0",
+      "missing": "independent",
+      "roles": {
+        "2024": "boundary",
+        "2025": "boundary"
+      }
+    },
+    {
+      "id": "independent_missing_upper_boundary_rho05",
+      "rho": "1/2",
+      "missing": "independent",
+      "roles": {
+        "2024": "boundary",
+        "2025": "boundary"
+      }
+    },
+    {
+      "id": "independent_missing_upper_boundary_rho09",
+      "rho": "9/10",
+      "missing": "independent",
+      "roles": {
+        "2024": "boundary",
+        "2025": "boundary"
+      }
+    },
+    {
+      "id": "complete_boundary2024_alternative2025_rho09",
+      "rho": "9/10",
+      "missing": "complete",
+      "roles": {
+        "2024": "boundary",
+        "2025": "alternative"
+      }
+    },
+    {
+      "id": "complete_alternative2024_boundary2025_rho09",
+      "rho": "9/10",
+      "missing": "complete",
+      "roles": {
+        "2024": "alternative",
+        "2025": "boundary"
+      }
+    }
+  ],
+  "true_null_diagnostic_cells": [
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho0",
+      "cell": "2024:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho0",
+      "cell": "2024:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho0",
+      "cell": "2025:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho0",
+      "cell": "2025:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho0",
+      "cell": "IUT4",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho05",
+      "cell": "2024:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho05",
+      "cell": "2024:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho05",
+      "cell": "2025:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho05",
+      "cell": "2025:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho05",
+      "cell": "IUT4",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho09",
+      "cell": "2024:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho09",
+      "cell": "2024:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho09",
+      "cell": "2025:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho09",
+      "cell": "2025:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary_rho09",
+      "cell": "IUT4",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho0",
+      "cell": "2024:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho0",
+      "cell": "2024:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho0",
+      "cell": "2025:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho0",
+      "cell": "2025:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho0",
+      "cell": "IUT4",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho05",
+      "cell": "2024:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho05",
+      "cell": "2024:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho05",
+      "cell": "2025:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho05",
+      "cell": "2025:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho05",
+      "cell": "IUT4",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho09",
+      "cell": "2024:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho09",
+      "cell": "2024:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho09",
+      "cell": "2025:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho09",
+      "cell": "2025:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "independent_missing_upper_boundary_rho09",
+      "cell": "IUT4",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary2024_alternative2025_rho09",
+      "cell": "2024:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary2024_alternative2025_rho09",
+      "cell": "2024:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_boundary2024_alternative2025_rho09",
+      "cell": "IUT4",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_alternative2024_boundary2025_rho09",
+      "cell": "2025:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_alternative2024_boundary2025_rho09",
+      "cell": "2025:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "gaussian_hac",
+      "configuration": "complete_alternative2024_boundary2025_rho09",
+      "cell": "IUT4",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho0",
+      "cell": "2024:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho0",
+      "cell": "2024:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho0",
+      "cell": "2025:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho0",
+      "cell": "2025:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho0",
+      "cell": "IUT4",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho05",
+      "cell": "2024:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho05",
+      "cell": "2024:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho05",
+      "cell": "2025:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho05",
+      "cell": "2025:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho05",
+      "cell": "IUT4",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho09",
+      "cell": "2024:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho09",
+      "cell": "2024:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho09",
+      "cell": "2025:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho09",
+      "cell": "2025:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary_rho09",
+      "cell": "IUT4",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho0",
+      "cell": "2024:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho0",
+      "cell": "2024:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho0",
+      "cell": "2025:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho0",
+      "cell": "2025:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho0",
+      "cell": "IUT4",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho05",
+      "cell": "2024:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho05",
+      "cell": "2024:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho05",
+      "cell": "2025:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho05",
+      "cell": "2025:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho05",
+      "cell": "IUT4",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho09",
+      "cell": "2024:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho09",
+      "cell": "2024:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho09",
+      "cell": "2025:brier",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho09",
+      "cell": "2025:bounded_logloss",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "independent_missing_upper_boundary_rho09",
+      "cell": "IUT4",
+      "null_type": "UPPER_NULL_REJECTION_NOT_FALSE_ACTUAL_IMPROVEMENT"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary2024_alternative2025_rho09",
+      "cell": "2024:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary2024_alternative2025_rho09",
+      "cell": "2024:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_boundary2024_alternative2025_rho09",
+      "cell": "IUT4",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_alternative2024_boundary2025_rho09",
+      "cell": "2025:brier",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_alternative2024_boundary2025_rho09",
+      "cell": "2025:bounded_logloss",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    },
+    {
+      "method": "fixed_b_hac",
+      "configuration": "complete_alternative2024_boundary2025_rho09",
+      "cell": "IUT4",
+      "null_type": "FALSE_REJECTION_OF_TRUE_UPPER_AND_ACTUAL_NULL"
+    }
+  ],
+  "true_null_family_size": 72,
+  "family_MC_confidence": 0.99,
+  "CP_per_tail": 6.944444444444444e-05,
+  "nominal_test_alpha": 0.05,
+  "oversize_flag": "CP_lower(observed rejection count)>nominal.05; refusals do not erase this evidence. No flag is not size validity or empirical admission.",
+  "alternative_years": "Save decisions and descriptive unadjusted95percent binomial intervals only, no size flag or qualified power.",
+  "analytic_laws": {
+    "predictions": "A=.4,C=.6 constants predictable before each outcome",
+    "two_losses": "Actual binary Brier and original EPS1e-6 bounded log/log1p losses from same A,C,Y. d_B=.2(1-2Y),d_LL=log(1.5)(1-2Y); actualmachine endpoints generated by original formulas, exactly antisymmetric.",
+    "complete_boundary": "StationaryY probability1/2, no unknownlabels; actual and upper population means0.",
+    "independent_missing_boundary": "Unknown probability1/5 independentofY andN, stationaryY probability5/8. Uppermean0, actualmean=-1/4 times positive endpoint; upper-null rejection is NOT falseactual-improvement here.",
+    "MNAR_tight_NO_EXTRA_MC": "FairY; unknown givenY0 probability2/5, unknownneverY1, marginalunknown1/5. U=d pathwise. Coupled fixture uses sameY/count streams ascomplete; therefore its U-input process exactly equals completecase, with no additional simulation configurations.",
+    "alternative": "Completecase stationaryY probability9/10, actual anduppermeans=-4/5 times positive endpoint.",
+    "Markov": "P01=(1-rho)q,P10=(1-rho)(1-q), eachyearinitializedBernoulli(q) separately; no burnin. Rational Bernoulli probabilities via randrange preserve intended finite law.",
+    "counts": "iiduniformN in{0,1,3,7}, independentofY/missingness. All N rows share the dayY/M shock. ZeroNdays retained; meanN=11/4.",
+    "streams": "Separate deterministic Y/N/M PRNG streams derivedbySHA256 namespace; changing missingmode at sameq/seed doesnotchangeY/count. Configuration+replicate+year seedderivation frozen in generator.",
+    "no_realized_demeaning": true
+  },
+  "comparison": {
+    "methods": [
+      "gaussian_hac",
+      "fixed_b_hac"
+    ],
+    "HAC_L": 28,
+    "Bartlett_M": 29,
+    "calendars": {
+      "2024": 366,
+      "2025": 365
+    },
+    "shared_statistic": "Call original core.ratio_hac(counts,sums,L=28) ONCE peryear. Gaussian decision from returnedcomponents; fixedbmean/t threshold from identicalreturnedmeans/se/z. Do notcall fixedb.evaluate or recomputeHAC.",
+    "fixed_b_source": "Kiefer/Vogelsang TableI95percentrightcritical b.06=1.772,b.08=1.813; frozenlinear interpolation,b=29/T,lefttailby symmetry. Asymptoticnotfiniteexact.",
+    "IUT": "Bothlosses inbothyears. Perfectlycorrelatedlosses andsingularcovariance allowedwithoutinverse.",
+    "rounding_sensitivity": "Not a selectablealternative; noextra method or favorable resultselection."
+  },
+  "saved_output": {
+    "archive": "decisions.json.gz",
+    "logical_archive_cap": 8388608,
+    "report": "report.json",
+    "masks": "Perreplicate twofivebitdecisionmasks: bits0/1=2024Brier/logloss,bits2/3=2025Brier/logloss,bit4=allfour. Sameorderfor fivebitrefusalmask.",
+    "audit_statistics": "Save shared means,se,z,N,occupieddays,bandwidth for eachyear, plusrefusalreasons. Reducer reconstructs allcountsfrommasks.",
+    "no_hidden_denominator": "All1000 replicates/config retained. No redraw, retry or omission. A refused component is operationally a nonrejection; report count and worst-case rejection-plus-refusal sensitivity. Unexpected driver/source failures remain execution failures.",
+    "no_output_score_selection": true
+  },
+  "proposed_phase_limits": {
+    "wall_seconds": 180,
+    "CPU_seconds": 175,
+    "OS_peak_RSS_bytes": 268435456,
+    "whole_output_bytes": 2097152,
+    "logical_archive_bytes": 8388608,
+    "reserve_bytes": 536870912,
+    "status": "PARENT_MUST_ADMIT_FRESH_SINGLE_PHASE"
+  },
+  "limits": [
+    "This is a jointly realizable proper-score synthetic law, not actual fH predictions, market OHLC dynamics or an empirically justified missingness law.",
+    "Gaussian/fixedb nullsize diagnostics at these generated laws do not establish applicationFCLT, uniformsize, power, empiricaladmission or forecastinggain.",
+    "No reserveddata, newlearner, modelrefit or outcome/forecastscore access.",
+    "Allnull andone-null-year configurations arefixedbeforeoutcomes; alternative marginalrates neverenter true-nullfamily."
+  ],
+  "supersedes_source_only_draft": {
+    "path": "/private/tmp/q26-o186-properloss-prospective.json",
+    "sha256": "31a71efa27195b36349a080353a4819f5f3d2967589724934c51e7f60b00eb37",
+    "reason": "Parent requires preserving full-n rejection diagnostics despite constant-path core refusals."
+  },
+  "refusal_confidence": "For72 true-upper-null cells use primary envelope [CP_lower(k),CP_upper(k+r)] with each tail=.01/(2*72), where k is observed rejections and r is refusals. This envelope is simultaneous99percent by Bonferroni. Full CP(k) and CP(k+r) intervals are supplementary; do not falsely claim joint99percent for two complete72-cell families. Alternative cells have descriptive unadjusted95percent envelopes and no size flag."
+}

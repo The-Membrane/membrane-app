@@ -1,0 +1,125 @@
+{
+  "schema": "q26-o188-qlike-source-prospective-v1",
+  "status": "SOURCE_QUALIFICATION_ONLY_NO_EMPIRICAL_ADMISSION",
+  "label": "CODEX CONTINUATION",
+  "helper": {
+    "source_name": "variance_qlike.py",
+    "size": 10558,
+    "sha256": "13cb41e2672f9bc669d8ef6b5161eb2f4b4983f174284adfaeec6a6f8d5eee7f"
+  },
+  "tests": {
+    "source_name": "test_variance_qlike.py",
+    "size": 8610,
+    "sha256": "98a659e74bc8103067ac5d481b7c3c2a3657802f00e8b6b5c4b13d4eb806ff00"
+  },
+  "primary_source": {
+    "title": "Volatility forecast comparison using imperfect volatility proxies",
+    "author": "Andrew J. Patton",
+    "publication": "Journal of Econometrics160(2011)246\u2013256",
+    "url": "https://public.econ.duke.edu/~ap172/Patton_vol_proxies_JoE_2011.pdf",
+    "doi": "https://doi.org/10.1016/j.jeconom.2010.03.034",
+    "retrieval": "One targeted Exa primary-source search and author-hosted paper fetch. No provider, price or outcome requests.",
+    "locators": [
+      "Eq(6)",
+      "Section3 assumptionsA1\u2013A5",
+      "Proposition1",
+      "Proposition2(ii)",
+      "Proposition3"
+    ],
+    "supported_claim": "QLIKE is an established variance forecast score. The paper characterizes loss functions preserving expected forecast rankings when an imperfect proxy is conditionally unbiased for latent variance, under additional smoothness, distribution, domain and integrability assumptions. Scale-invariant normalized QLIKE is a member.",
+    "not_supported_for_our_data": "No proof that the original missing-tolerant close-return RMS squared, especially on realized-positive selected support, is conditionally unbiased for latent conditional variance. No inference, calibration, actual-market law or expected latent ranking is established by this source qualification."
+  },
+  "normalization": {
+    "paper_formula": "log(h)+Y/h, h=forecast variance, Y=positive observed variance proxy",
+    "normalized_formula": "q-log(q)-1, q=Y/h=(target_sigma/forecast_sigma)^2",
+    "algebra": "Subtract log(Y)+1, a target-only constant, from each forecast loss. For identical rows and targets, paired differences and forecast rankings are unchanged when expectations exist.",
+    "variance_not_sigma_ratio": "logq=2*log(target_sigma/forecast_sigma); do not use unsquared sigma ratio.",
+    "units": "Both input scales are original annualized sigmas. Any identical positive unit multiplier cancels. Conceptual squaring is performed in the log ratio without creating overflowed or underflowed variance arrays."
+  },
+  "numeric_policy": {
+    "close_ratio": "When sigmas differ by at most half their maximum, Sterbenz-safe subtraction and log1p((target-prediction)/prediction) preserve adjacent distinct float64 scales. Otherwise subtract logs to avoid extreme direct ratios.",
+    "log_loss": "Near x=0, logQLIKE=2log(abs(x))+log(sum(x^(k-2)/k!,k2..26)). x=0 is exact zero. For x>50, logQLIKE=x+log1p(-(x+1)exp(-x)). Otherwise log(expm1(x)-x). Here x=logq.",
+    "aggregation": "Compute log(arithmetic mean QLIKE) by logsumexp. Perfect zero rows contribute zero numerator and remain in the denominator. This is not mean(logQLIKE).",
+    "ordinary_output": "Report ordinary arithmetic mean only when representable; otherwise null with ABOVE_FLOAT64_RANGE or BELOW_POSITIVE_FLOAT64_RANGE. Preserve finite logmean and explicit ordinary per-row overflow count. All-perfect support reports mean0, logmean null and EXACT_ZERO. Empty support reports EMPTY.",
+    "differences": "Ordinary mean difference is reported when both means are representable. Otherwise report their log-arithmetic-mean ordering and null ordinary difference. Ties are labeled TIE_AT_FLOAT_PRECISION. No saturation, clipping, extreme-row exclusion or silent replacement.",
+    "invalid": "Invalid/nonpositive input scales are unavailable under prespecified support and counted. The scalar loss refuses them. Nonfinite log-loss arithmetic aborts rather than deleting rows. No actual numerical failure is reclassified as a model win.",
+    "global_merge": "merge_qlike weights each per-SID arithmetic mean by its actual support n, using logsumexp; perfect-zero SID rows remain in the global denominator, empty SID n=0 does not. Sum ordinary-row-overflow and perfect-zero counts. Never equally average SID means or log means. merge_reports repeats this separately for each calendar, all four fixed supports and both target/strict blocks. Squared-log means use the same actual n weights. The outer collector must include every authenticated SID once.",
+    "ordering_resolution": "LEFT_LOWER, RIGHT_LOWER and TIE_AT_FLOAT_PRECISION describe computed float64 log-arithmetic means. They are not exact-arithmetic or repartition-invariant rankings when the true difference is tiny relative to the loss. Direct-row and per-SID reductions may round such an ordering differently even when all reported means reconcile within fixed tolerance. No direction from that rounding is a test, superiority gate or promotion claim. No epsilon, clipping or data-dependent tie rule is introduced."
+  },
+  "population": {
+    "horizon_hours": 24,
+    "target": "Exact unchanged O187 original annualized future close-return RMS, squared conceptually for QLIKE",
+    "J": "Exact accepted full277 prediction-only J. No touch-label or error-selected row filtering.",
+    "calendar_views": [
+      "2024",
+      "2025",
+      "pooled2024-2025"
+    ],
+    "outside_period": "Counted, not pooled into the primary views",
+    "source_rows": "Per-SID ordered unique int64 timestamps and float64 fullprecision scales. Global SID/membership provenance is the outer collector responsibility.",
+    "support_sets": [
+      "fixed HAR/EWMA pair",
+      "HAR/persistence pair",
+      "EWMA/persistence pair",
+      "common HAR/EWMA/persistence three-way"
+    ],
+    "support_rule": "Each named support requires its forecasts finite positive plus original target finite positive. All four masks are frozen and all are reported. Do not select an arm/support after outcomes.",
+    "missing": "All forecast and target unavailable counts explicit; overlapping count categories labeled. Zero target remains unavailable under original O187 positive-target recipe, not a new QLIKE-specific exclusion. Overflowed ordinary QLIKE rows remain included in log-domain moments.",
+    "strict_future": "For each of the three pairs and three-way common support, report both original_target_paired and complete_future_paired metrics, with identical target values. The latter additionally requires stored strict_future true. It is a separate diagnostic, never a primary-mask replacement. New persistence supports can include different rows from O187 HAR/EWMA, so each has its own complete-future diagnostic.",
+    "primary_support": "COMMON_THREE",
+    "secondary_supports": [
+      "HAR_EWMA",
+      "HAR_PERSISTENCE",
+      "EWMA_PERSISTENCE"
+    ],
+    "support_priority": "Three-way common support is primary. All three pairwise supports are secondary diagnostics, including fixed HAR/EWMA reconciliation. This priority is frozen before empirical scoring."
+  },
+  "paired_metrics": {
+    "QLIKE": "Normalized observed-proxy variance QLIKE arithmetic mean, its log representation and paired mean ordering",
+    "squared_log_sigma": "Same mathematical O187 squared log-sigma loss, recomputed on each fixed mask for support comparison",
+    "reconciliation": "All identities/counts exact. Fixed HAR/EWMA squared-log means may differ in reduction/log implementation from NumPy O187 at float rounding; prespecify abs difference<=2e-12*max(1,abs(reference)), not byte identity.",
+    "schema": "Each support has fixed prediction/target exclusion counts plus original_target_paired and complete_future_paired blocks. Each block reports n, per-arm QLIKE mean/logmean/status, squared-log-sigma means, and pairwise differences/orderings."
+  },
+  "objective_alignment": "Original A6 HAR coefficient fitting is least squares on log future sigma. It targets a log-scale projection, whereas expected QLIKE with observed Y is minimized by the conditional mean of Y. A ranking difference need not contradict O187 or prove a HAR bias mechanism. No smearing correction, refit or optimization of another objective is included.",
+  "integration": {
+    "persistence_owner": "Separate source-qualified original backward close-return RMS helper from original24_control_execute",
+    "shared_API": "score_scales(ts,har,ewma,persistence,target,strict_future,operational_fallback,*,status=DRAFT)",
+    "admitted_status": "READY_PARENT_REVIEWED_O188_PERSISTENCE_EXTENSION",
+    "synthetic_status": "READY_SYNTHETIC_SOURCE_QUALIFICATION",
+    "default": "DRAFT refuses before any numeric scoring",
+    "pure_seam": "No input loading, provider request, fitting or learner in this helper. A later parent-reviewed bounded collector must authenticate accepted archives/source/runtime and exact joins before any empirical decode.",
+    "persistence_source_status": "Source-only qualified separately. QLIKE helper independently derives the same four positive-scale/observed-target masks; an admitted collector can assert exact mask agreement with the persistence helper.",
+    "global_API": "merge_qlike(per_SID_QLIKE_summaries); merge_reports(per_SID_score_scales_reports). No global membership inference inside these pure reducers."
+  },
+  "qualification": {
+    "generated_tests": 15,
+    "decimal_known_answers": 600,
+    "command": "python3 -B -m unittest test_variance_qlike",
+    "result": "PASS .220s",
+    "additional_cases": [
+      "sigma-versus-variance asymmetry",
+      "unit rescaling",
+      "adjacent large/small scales",
+      "near-one cancellation",
+      "extreme positive/negative log ratios",
+      "perfect and empty support",
+      "all paired and common masks",
+      "overflow row retained",
+      "zero invalid-scale refusal",
+      "arithmetic mean versus geometric mean distinction",
+      "complete-future subset changes both metric values without changing original paired population",
+      "unequal SID row counts reproduce direct pooled-row means",
+      "perfect-zero SID contributes denominator, empty SID does not",
+      "overflowing per-SID mean retained in global log arithmetic mean",
+      "both primary and strict-future global summaries match direct pooled rows",
+      "merge rejects missing fixed calendars, supports or arm inventories, even when all SID reports omit them"
+    ]
+  },
+  "empirical_execution": "NOT_RUN",
+  "new_fits": 0,
+  "inference_admitted": false,
+  "latent_proxy_claim": false,
+  "unseen_validation": false,
+  "promotion": "NOT_ADMITTED",
+  "portability": "Pure helper and tests use sibling source names. No empirical paths, private input digests or raw loader are embedded. Requires NumPy already used by accepted research runtime."
+}

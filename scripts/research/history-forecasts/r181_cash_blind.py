@@ -80,6 +80,12 @@ def code_meta():
             "numpy": np.__version__, "pandas": pd.__version__}
 
 
+def _np_default(o):
+    if hasattr(o, "item"):
+        return o.item()
+    raise TypeError(type(o).__name__)
+
+
 def _ncdf(x):
     return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
 
@@ -260,7 +266,7 @@ def phase_dev(datasets, out_path, log):
             f"z {tw['z_mean_d_2way']:.2f} R {P['calib_a']['R']:.3f} power1 {P['power_at_dev_counts']['holm1']['joint']:.3f}")
     out["created_utc"] = utcnow()
     with open(out_path, "w") as f:
-        json.dump(out, f, indent=1, sort_keys=True)
+        json.dump(out, f, indent=1, sort_keys=True, default=_np_default)
     log(f"wrote {out_path} sha256 {sha256_file(out_path)}")
 
 
@@ -287,7 +293,7 @@ def phase_power(dev_json, counts_json, cells, out_path, log):
     out["any_cell_joint_indep"] = 1.0 - float(np.prod([1 - j for j in joint]))
     out["created_utc"] = utcnow()
     with open(out_path, "w") as f:
-        json.dump(out, f, indent=1, sort_keys=True)
+        json.dump(out, f, indent=1, sort_keys=True, default=_np_default)
     log(json.dumps({h: {kk: round(v[kk], 4) for kk in ("z_proj", "p_test", "p_R_band", "p_concentration", "joint")}
                     for h, v in out["cells"].items()}))
     return out
@@ -357,9 +363,10 @@ def phase_check(datasets, out_path, log):
                                             "rows_equal": all(v["recomputed"] == v["published"] for k, v in rep.items() if k.endswith("_rows"))}
     out["created_utc"] = utcnow()
     with open(out_path, "w") as f:
-        json.dump(out, f, indent=1, sort_keys=True)
+        json.dump(out, f, indent=1, sort_keys=True, default=_np_default)
     log(json.dumps({"C1": c1, "C2": out["checks"]["C2_cross_impl_48h"],
-                    "C3_max_rel": worst, "C3_rows_equal": out["checks"]["C3_dev_reproduction"]["rows_equal"]}))
+                    "C3_max_rel": worst, "C3_rows_equal": out["checks"]["C3_dev_reproduction"]["rows_equal"]},
+                   default=_np_default))
 
 
 def main(argv=None):

@@ -919,6 +919,31 @@ def cmd_fit(a):
         json.dump(res, f, indent=1, default=float)
 
 
+def cmd_mech(a):
+    """Mechanical-only cap accounting on Core USDC (no D+Rp response): blocked borrows per $ by cell, at the same 400
+    origins as `fit`, with base executed borrows as demand. Bounds the cap's share when refill is slow."""
+    os.makedirs(a.out, exist_ok=True)
+    d = load_real(a)
+    t_all = R.origins(d)
+    t0s = np.sort(np.random.default_rng(20261840).choice(t_all, 400, replace=False))
+    i = t0s - 1
+    base = base_path(d, t0s)
+    kern = {}
+    for xk, X in (("X1", 0.02 * d["S"][i]), ("X2", np.maximum(d["cash"][i], 0) + 0.02 * d["S"][i])):
+        o = E.shock_path(base, X, None)
+        cs = np.cumsum(o["blocked"][:, 1:], axis=1)
+        b = np.stack([cs[:, h - 1] / X for h in HS], axis=1)[None]
+        kern[xk] = {"Bmech": np.concatenate([b, b], axis=0),
+                    "queueLeft72hPer$": np.concatenate([(o["queue"][:, -1] / X)[None, :, None]] * 2, axis=0)}
+    res = cells_from(kern, d, t0s, comps=("Bmech",))
+    res["sumBaseBorrows72hPerX2"] = {"median": float(np.median(d["Ball"][t0s[:, None] + np.arange(1, 73)].sum(1) /
+                                                                 (np.maximum(d["cash"][i], 0) + 0.02 * d["S"][i])))}
+    res["note"] = "no D+Rp response: an upper reading of mechanical blocking; with the fitted SRDR refill see fit-r184.json"
+    with open(os.path.join(a.out, "mech-r184.json"), "w") as f:
+        json.dump(res, f, indent=1, default=float)
+    print(json.dumps({c: res["Bmech"][c]["72h"]["est"] for c in res["Bmech"]}))
+
+
 def cmd_case(a):
     """April 2026 cash-out recomputed: aligned windows (observed and predicted both count hours i0+1..i0+h from the
     first hour with cash <= $1M) and a non-frozen base (the realised path with the excess drawdown withdrawals put
@@ -1042,7 +1067,7 @@ def main(argv=None):
     p = sub.add_parser("calib")
     p.add_argument("--design", required=True)
     p.add_argument("--reps", type=int, default=3)
-    for nm in ("build", "fit", "case"):
+    for nm in ("build", "fit", "case", "mech"):
         p = sub.add_parser(nm)
         p.add_argument("--datasets", required=True)
         p.add_argument("--work182", required=True)
@@ -1052,7 +1077,8 @@ def main(argv=None):
         p.add_argument("--boot", type=int, default=1000)
         p.add_argument("--cand", default="SRDR")
     a = ap.parse_args(argv)
-    {"synth": cmd_synth, "calib": cmd_calib, "build": cmd_build, "fit": cmd_fit, "case": cmd_case}[a.cmd](a)
+    {"synth": cmd_synth, "calib": cmd_calib, "build": cmd_build, "fit": cmd_fit, "case": cmd_case,
+     "mech": cmd_mech}[a.cmd](a)
     return 0
 
 

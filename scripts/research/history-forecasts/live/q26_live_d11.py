@@ -597,10 +597,11 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
     nets, model = load_nets(datasets)
     t0 = time.time()
     res, why, sec = compute_origin(datasets, ldir, U, origin, workers=a.workers, log=log)
-    for e in U["series"]:              # a symbol whose store was not fetched through the origin is not issued
+    censor_all = set()                 # D11 amendment A: a store fetch after t never removes an issued series;
+    for e in U["series"]:              # it stays in the day's set with every row censored (0 and its bound)
         s_ = e["symbol"]
         if res.get(s_) is not None and cov.get(s_, 0) < origin:
-            res[s_], why[s_] = None, "kline store not fetched through the origin"
+            censor_all.add(s_)
     retired = retired_symbols(ldir)
     for s_ in retired:
         if res.get(s_) is not None:
@@ -618,7 +619,9 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
                         "fH": {TL[T]: f32(r["T"][T]["fH"]) for T in HORIZONS},
                         "D": {TL[T]: [float(x) for x in fc[s_][T]["D"]] for T in HORIZONS},
                         "res": {TL[T]: [float(x) for x in fc[s_][T]["res"]] for T in HORIZONS},
-                        "fHfallback": {TL[T]: bool(r["T"][T]["fallback"]) for T in HORIZONS}})
+                        "fHfallback": {TL[T]: bool(r["T"][T]["fallback"]) for T in HORIZONS},
+                        "censorAll": (s_ in censor_all),
+                        "censorWhy": ("kline store not fetched through the origin" if s_ in censor_all else None)})
         series.append(row)
     n_iss = sum(r["issued"] for r in series if r["role"] == "test")
     doc = {"schema": SCHEMA, "prereg": PREREG, "display": "none (log only; DO NOT SHOW)",
@@ -763,7 +766,7 @@ def day_delta(rows, maps, T, levels):
     (qH - y)^2 - (qD - y)^2 (N = issued rows, censored rows add 0); L, U = (1/N) sum over issued rows of the per-row
     min(0, .) / max(0, .) over y in {0, 1}; B = max(-L, U)."""
     idx = [DEV_LV[T].index(k) for k in levels]
-    N, num, lo, hi, sy, sqD, sqH, nlab = 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0
+    N, num, lo, hi, sy, sqD, sqH, nlab, pess = 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0, 0.0
     for pH, pD, y in rows:
         qH = apply_maps(maps, T, "fH", pH)
         qD = apply_maps(maps, T, "D", pD)
@@ -772,8 +775,11 @@ def day_delta(rows, maps, T, levels):
             a0, a1 = qH[j] ** 2 - qD[j] ** 2, (1 - qH[j]) ** 2 - (1 - qD[j]) ** 2
             lo += min(0.0, a0, a1)
             hi += max(0.0, a0, a1)
-            if y is not None:
+            if y is None:
+                pess += min(a0, a1)            # pessimistic: a censored row takes its worst outcome for D
+            else:
                 num += a1 if y[j] else a0
+                pess += a1 if y[j] else a0
                 sy += y[j]
                 sqD += qD[j]
                 sqH += qH[j]
@@ -781,7 +787,7 @@ def day_delta(rows, maps, T, levels):
     if N == 0:
         return None
     L, U = lo / N, hi / N
-    return {"delta": num / N, "L": L, "U": U, "B": max(-L, U), "N": N, "labelled": nlab, "pos": sy,
+    return {"delta": num / N, "deltaPess": pess / N, "L": L, "U": U, "B": max(-L, U), "N": N, "labelled": nlab, "pos": sy,
             "sum_qD": sqD, "sum_qH": sqH}
 
 
@@ -814,13 +820,16 @@ def outcomes_path(ldir, origin):
 
 
 def read_outcomes(ldir):
+    """{sha256 of the line bytes: outcome} over every outcome line (orphan lines from a crash included)."""
     d = os.path.join(ldir, D11_SUB, "outcomes")
-    out = []
+    out = {}
     if os.path.isdir(d):
         for n in sorted(os.listdir(d)):
-            with open(os.path.join(d, n)) as f:
-                out += [json.loads(line) for line in f if line.strip()]
-    return sorted(out, key=lambda o: o["origin"])
+            with open(os.path.join(d, n), "rb") as f:
+                for raw in f.read().splitlines(keepends=True):
+                    if raw.strip():
+                        out[C.sha256_bytes(raw)] = json.loads(raw)
+    return out
 
 
 def nw_z(x, lag):
@@ -866,11 +875,11 @@ def score(a, U, log=print, clock=time.time, http_get=None):
         raise SystemExit("STOP: d11 devcal sha256 mismatch")
     pool = CalPool(os.path.join(datasets, a.devcal))
     tests = {e["symbol"] for e in U["series"] if e["role"] == "test"}
-    seen = set()
-    for o in read_outcomes(ldir):                      # live calibration rows of finalized (ledgered) days only
-        if o["origin"] not in done or o["origin"] in seen:
-            continue                                   # an outcome line without its ledger line is ignored
-        seen.add(o["origin"])
+    outs = read_outcomes(ldir)
+    for d_ in led:                                     # live calibration rows: the outcome line each ledger line names
+        o = outs.get(d_["outcomeSha256"])
+        if o is None or o["origin"] != d_["origin"]:
+            raise SystemExit(f"STOP: d11 outcome line named by the ledger for {d_['date']} is missing")
         for r in o["series"]:
             if r["symbol"] in tests and r.get("y"):
                 for T in HORIZONS:
@@ -897,7 +906,7 @@ def score(a, U, log=print, clock=time.time, http_get=None):
             r = [x for x in doc["series"] if x["symbol"] == e["symbol"]][0]
             if not r["issued"]:
                 continue
-            lab = labels_for(e, ldir, t, r["S"], cov)
+            lab = ({T: None for T in HORIZONS} if r.get("censorAll") else labels_for(e, ldir, t, r["S"], cov))
             if lab is None:
                 if now < t + 12 * HOUR + GIVE_UP:
                     waiting = True
@@ -923,11 +932,19 @@ def score(a, U, log=print, clock=time.time, http_get=None):
                 else:
                     desc.setdefault(r["symbol"], {})[TL[T]] = day_delta([item], maps, T, D8_LV[T])
         n_series = sum(1 for r in doc["series"] if r["issued"] and r["role"] == "test")
+        not_issued = {}
+        for r in doc["series"]:
+            if r["role"] == "test" and not r["issued"]:
+                w_ = str(r.get("why", "?")).split(":")[0][:60]
+                not_issued[w_] = not_issued.get(w_, 0) + 1
         observed = n_series >= MIN_SERIES_DAY
         line = {"schema": SCHEMA + "/ledger", "date": doc["date"], "origin": t, "nSeriesIssued": n_series,
                 "observed": observed, "recal": {cell_name(*c): {arm: list(maps[c][arm]) for arm in ("fH", "D")}
                                                for c in CELLS}}
         prim = day_delta(rows_T[PRIMARY_T], maps, PRIMARY_T, D8_LV[PRIMARY_T])
+        line["notIssued"] = not_issued
+        line["censorAllSeries"] = sum(1 for r in doc["series"] if r["issued"] and r["role"] == "test"
+                                      and r.get("censorAll"))
         secs = {T: day_delta(rows_T[T], maps, T, D8_LV[T]) for T in (1, 12)}
         st = json.loads(json.dumps(state))
         st["events"] = []
@@ -936,6 +953,8 @@ def score(a, U, log=print, clock=time.time, http_get=None):
             st["obs"] += 1
             st["primary"], lam = grapa_step(st["primary"], prim["delta"], prim["B"], 0.5 * DEV_MU[3], DEV_V0[3])
             st["harm"], lamh = grapa_step(st["harm"], -prim["delta"], prim["B"], 0.0, DEV_V0[3])
+            st.setdefault("pess", {"n": 0, "s1": 0.0, "s2": 0.0, "logK": 0.0})
+            st["pess"], _ = grapa_step(st["pess"], prim["deltaPess"], prim["B"], 0.5 * DEV_MU[3], DEV_V0[3])
             for T in (1, 12):
                 if secs[T] is not None:
                     st["sec"][TL[T]], _ = grapa_step(st["sec"][TL[T]], secs[T]["delta"], secs[T]["B"],
@@ -945,7 +964,8 @@ def score(a, U, log=print, clock=time.time, http_get=None):
             st["sum_y3"] += prim["pos"]
             R3 = st["sum_qD3"] / st["sum_y3"] if st["sum_y3"] > 0 else None
             line["primary"] = dict(prim, lam=lam, lamHarm=lamh, logK=st["primary"]["logK"],
-                                   logKharm=st["harm"]["logK"], R3=R3)
+                                   logKharm=st["harm"]["logK"], logKpess=st["pess"]["logK"], R3=R3,
+                                   censoredShare=1 - prim["labelled"] / prim["N"])
             line["secondary"] = {TL[T]: (dict(secs[T], logK=st["sec"][TL[T]]["logK"]) if secs[T] else None)
                                  for T in (1, 12)}
             n_obs = st["obs"]
@@ -969,11 +989,13 @@ def score(a, U, log=print, clock=time.time, http_get=None):
         line["descriptive"] = desc
         line["state"] = st
         line["prevSha256"] = prev
+        oraw = (json.dumps(C.clean({"date": doc["date"], "origin": t, "series": series_out}),
+                           separators=(",", ":")) + "\n").encode()
+        line["outcomeSha256"] = C.sha256_bytes(oraw)
         raw = (json.dumps(C.clean(line), separators=(",", ":"), ensure_ascii=True, allow_nan=False) + "\n").encode()
-        C.append_bytes(outcomes_path(ldir, t), (json.dumps(C.clean({"date": doc["date"], "origin": t,
-                                                                    "series": series_out}),
-                                                           separators=(",", ":")) + "\n").encode())
-        C.append_bytes(ledger_path(ldir), raw)
+        C.append_bytes(outcomes_path(ldir, t), oraw)
+        C.append_bytes(ledger_path(ldir), raw)    # a crash between the two appends leaves an orphan outcome line,
+        #                                           which no ledger line names (ignored; the day is redone)
         prev = C.sha256_bytes(raw)
         led.append(line)
         state = st
@@ -999,6 +1021,7 @@ def write_summary(ldir, led):
             "observedDays": st["obs"] if st else 0, "status": st["status"] if st else STATUS_PROVING,
             "eValuePrimary": math.exp(st["primary"]["logK"]) if st else 1.0,
             "eValueHarm": math.exp(st["harm"]["logK"]) if st else 1.0,
+            "eValuePessimistic_reportOnly": math.exp(st["pess"]["logK"]) if st and "pess" in st else 1.0,
             "eValueSecondary": {k: math.exp(v["logK"]) for k, v in st["sec"].items()} if st else None,
             "threshold": 1 / ALPHA, "meanDailyDelta3h": (float(np.mean(deltas)) if deltas else None),
             "R3_recal_D": (st["sum_qD3"] / st["sum_y3"]) if st and st["sum_y3"] else None,

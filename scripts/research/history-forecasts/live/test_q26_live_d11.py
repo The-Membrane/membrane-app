@@ -227,3 +227,103 @@ if __name__ == "__main__":
         if name.startswith("test_"):
             fn()
             print("ok", name)
+
+
+def _score_world(tmp, n_ser=60, days=2):
+    """A synthetic D11 world: n_ser test series issued on `days` daily origins from T0, stores, coverage, devcal."""
+    ldir = L.C.live_dir(tmp)
+    U = {"series": [{"symbol": f"S{j}USDT", "key": f"x:S{j}USDT", "role": "test"} for j in range(n_ser)]}
+    rng = np.random.default_rng(5)
+    prev = L.C.ZERO_SHA
+    for d in range(days):
+        t = T0 + d * L.DAY
+        ser = []
+        for e in U["series"]:
+            fH = {L.TL[T]: list(np.sort(rng.uniform(0.001, 0.2, len(L.DEV_LV[T])))[::-1]) for T in L.HORIZONS}
+            D = {k: list(np.minimum(1, np.array(v) * 1.1)) for k, v in fH.items()}
+            ser.append({"symbol": e["symbol"], "key": e["key"], "role": "test", "issued": True, "S": 100.0,
+                        "fH": fH, "D": D, "censorAll": False})
+        raw = L.gz_json({"date": L.C.utc_date(t), "origin": t, "prevSha256": prev, "series": ser})
+        p = os.path.join(L.issue_dir(ldir), L.C.utc_date(t) + ".json.gz")
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        open(p, "wb").write(raw)
+        prev = L.C.sha256_bytes(raw)
+    for e in U["series"]:
+        rows = [[str((T0 + j * H) * 1000), "1", "1", str(100 * (1 - rng.uniform(0, 0.04))), "1", "1", "0"]
+                for j in range(days * 24)]
+        _store(ldir, e["symbol"], rows)
+    cov = os.path.join(ldir, L.D11_SUB, "klines", "coverage.jsonl")
+    open(cov, "w").write(json.dumps({"fetchedAt": 0, "covered": {e["symbol"]: T0 + days * L.DAY for e in U["series"]}})
+                         + "\n")
+    arrs = {}
+    for (T, k) in L.CELLS:
+        nm = L.cell_name(T, k).replace(" ", "_")
+        n = 2000
+        p_ = rng.uniform(0.01, 0.2, n)
+        arrs[f"{nm}_ts"] = (T0 - L.DAY * rng.integers(1, 700, n)).astype(np.int64)
+        arrs[f"{nm}_fH"] = p_.astype(np.float32)
+        arrs[f"{nm}_D"] = p_
+        arrs[f"{nm}_y"] = (rng.random(n) < p_).astype(np.int8)
+    np.savez_compressed(os.path.join(tmp, "devcal.npz"), **arrs)
+    a = types.SimpleNamespace(datasets=tmp, out=tmp, devcal="devcal.npz",
+                              devcal_sha256=L.C.sha256_file(os.path.join(tmp, "devcal.npz")))
+    return ldir, U, a
+
+
+def test_crash_between_outcome_and_ledger_appends_is_recovered():
+    saved = (L.ensure_ci_replay, L.update_all, L.C.append_bytes, L.CalPool.add)
+    try:
+        L.ensure_ci_replay = lambda a, U, log=print: None
+        L.update_all = lambda *x, **k: ({}, [])
+        with tempfile.TemporaryDirectory() as tmp:
+            ldir, U, a = _score_world(tmp)
+            orig = saved[2]
+
+            def crashing(path, data):
+                if path.endswith("ledger.jsonl"):
+                    raise OSError("simulated crash")
+                return orig(path, data)
+            L.C.append_bytes = crashing
+            now = lambda: T0 + 13 * H                    # only day 1 is due
+            try:
+                L.score(a, U, log=lambda *x: None, clock=now)
+                raise AssertionError("crash not simulated")
+            except OSError:
+                pass
+            L.C.append_bytes = orig
+            op = L.outcomes_path(ldir, T0)
+            orphan = open(op, "rb").read()
+            assert orphan.count(b"\n") == 1 and not os.path.exists(L.ledger_path(ldir))
+            # make the orphan differ from what the redo writes (as a crash mid-write or another code path might)
+            o = json.loads(orphan)
+            o["series"][0]["y"]["3h"] = [1, 1, 1, 1]
+            open(op, "wb").write((json.dumps(o, separators=(",", ":")) + "\n").encode())
+            L.score(a, U, log=lambda *x: None, clock=now)
+            led, _ = L.read_ledger(ldir)
+            assert len(led) == 1
+            lines = open(op, "rb").read().splitlines(keepends=True)
+            assert len(lines) == 2
+            assert led[0]["outcomeSha256"] == L.C.sha256_bytes(lines[1]) != L.C.sha256_bytes(lines[0])
+            seen = []
+            L.CalPool.add = lambda self, origin, T, k, pH, pD, y: seen.append((origin, T, k, y))
+            L.score(a, U, log=lambda *x: None, clock=lambda: T0 + L.DAY + 13 * H)   # day 2 rebuilds the pool
+            led, _ = L.read_ledger(ldir)
+            assert len(led) == 2
+            day1_3h = [x for x in seen if x[0] == T0 and x[1] == 3]
+            good = json.loads(lines[1])
+            assert len(day1_3h) == sum(len(r["y"]["3h"]) for r in good["series"] if r["y"]["3h"] is not None)
+            first = [x[3] for x in day1_3h[:4]]
+            assert first == list(good["series"][0]["y"]["3h"])         # the ledgered line, not the orphan
+    finally:
+        L.ensure_ci_replay, L.update_all, L.C.append_bytes, L.CalPool.add = saved
+
+
+def test_censor_all_series_counts_in_the_bound_and_pessimistic_delta():
+    maps = _ident_maps()
+    rows = [([0.2, 0.1, 0.05, 0.01], [0.1, 0.05, 0.02, 0.01], [0, 0, 0, 0]),
+            ([0.2, 0.1, 0.05, 0.01], [0.3, 0.2, 0.1, 0.05], None)]           # second series censored
+    r = L.day_delta(rows, maps, 3, L.D8_LV[3])
+    full = L.day_delta(rows[:1], maps, 3, L.D8_LV[3])
+    assert r["N"] == 8 and r["labelled"] == 4
+    assert abs(r["delta"] - full["delta"] / 2) < 1e-15
+    assert r["L"] <= r["deltaPess"] <= r["delta"]

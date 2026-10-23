@@ -1,0 +1,62 @@
+{
+  "schema": "q26-o187-retained-vol-source-prospective-v1",
+  "status": "SOURCE_QUALIFIED_RECIPE_NOT_EMPIRICAL_FREEZE",
+  "scope": "Standalone pure retained HAR annualized scale versus original EWMA annualized scale",
+  "source_pins": [
+    {
+      "size": 133980,
+      "sha256": "6da8e4f719ef164128cdceccfd6ba9dc347d3fa75e6e4e585bcd27eb0e36ed45",
+      "source_name": "a6_touch.py"
+    },
+    {
+      "size": 101006,
+      "sha256": "0a3d892e08cfbaaf07719ae4c22e59f880382b802defa93545c998217f01e3ce",
+      "source_name": "a2_touch.py"
+    },
+    {
+      "size": 75865,
+      "sha256": "f719a3202738c4c301e13ad892f4406de4c0adc532b219359301aa50d8e205f7",
+      "source_name": "a3_touch.py"
+    },
+    {
+      "size": 17441,
+      "sha256": "6086f3369dc4264b4e06987163a1389c90a19ed08b51db9213c892ec63928793",
+      "source_name": "build_inputs.py"
+    }
+  ],
+  "empirical_execution": "NOT_RUN",
+  "H": 24,
+  "periods": [
+    "2024",
+    "2025",
+    "pooled2024-2025"
+  ],
+  "primary_loss": "mean((log(predicted annual sigma)-log(realized annual sigma))**2)",
+  "paired_difference": "HAR minus EWMA, row weighted",
+  "prediction_universe": "Accepted O168 exact per-SID quarter on_J keys, prediction-only five-horizon J; consume saved membership, not label-filtered support",
+  "target": "Exact original A6.sigma_fut(close,24,start_i): hourly log returns r[i:i+24] from spot close[i-1], RMS times sqrt8760, up to1 nonfinite hourly return allowed, realized sigma positive. Preserve original cumsum arithmetic and invalid-close convention. Finite positive target required for finite squared-log-scale point loss.",
+  "strict_diagnostic": "Same primary paired rows additionally requiring all24 future hourly log returns finite. Not a separate target or repaired primary mask.",
+  "forecast": "Exact original har_components high/low history [i-W:i] annualized Parkinson then float64 raw X=[1,logD,logW,logM]; original unbound Prep6.sigma_H using own retained H24 quarter coefficient, no Prep6 construction, no har_coef, solve or lstsq. EWMA is original ser.sigma computed hourly by original loader, already annualized.",
+  "missing_forecast": "None retained coefficient, invalid raw feature, exp overflow/underflow or nonpositive/nonfinite scale remains unavailable. No EWMA substitution as HAR. Original operational fH fallback flag is counted separately; it is not inferred from HAR availability.",
+  "coefficient_authority": "Authenticate original prepared H24 metadata through accepted O166 manifest; exact quarter/source row counts and own-quarter cutoff, finite4-vector or None iff n_reg<4, all recorded maturity endpoints<=cutoff. This validates authority and recorded maturity, not independent re-estimation or proof of every historical fit input.",
+  "integration": "The reviewed O187 private replay adapter reuses the authenticated original raw-series loader and frozen-source imports, O166 retained H24 coefficient metadata and O168 saved prediction-only J. It does not reconstruct probability forecasts or refit. Authenticate request/source/runtime/accepted manifest closure before any numerical decode. Stream-hash used raw files before original loader access and after the pass. Load only original H24 identity/clock/fallback and accepted J key members. Reconstruct each series separately, persist matched full-precision scales and target for independent verification, then reduce row-weighted 2024/2025 means. The helper is a pure numerical seam and does not authenticate files, establish global J completeness or supervise resources.",
+  "collector": "One SID at a time, retain only J-scale/target arrays and fixed counters; concatenate exact J arrays for score or accumulate unrounded per-row loss sums with declared reduction order. Global SID and timestamp identity and expected J counts must be authenticated by outer collector. This helper alone does not authenticate files or establish global completeness.",
+  "selection_limit": "Paired-valid-scale and positive-realized-target support is a selected subset, including outcome-dependent target eligibility. Exclusion counts overlap and are explicitly labeled. Report all J, out-of-period J, per-view scale/target unavailability, paired scales, target exclusions, strict exclusions and operational fallback count. No causal, full-J superiority, calibration, liquidation risk, or unseen validation claim.",
+  "no_other_recipes": [
+    "QLIKE",
+    "new fit",
+    "new fallback",
+    "hyperparameter selection",
+    "strata selection",
+    "reserved data",
+    "new forecasts of price/touch"
+  ],
+  "qualification": {
+    "generated_tests": 11,
+    "command": "python3 -B -m unittest test_retained_vol",
+    "result": "11 generated tests PASS on private source qualification. Portable test loader additionally authenticates the original A6 source digest.",
+    "tests_use": "AST-extracted exact original raw features/sigma_fut/sigma_H with generated arrays only; typed scoring known answers, no solve guards, Nonecoef, clock/maturity/join refusals, precision/units/null/strict support."
+  },
+  "actual_phase": "Separate prospective request and parent source/resource review are required. Resource proposal: fresh600s wall, OS child high-water RSS<=512MiB checked after exit, whole output<=32MiB, reserve>=512MiB before/after, no automatic retry. These are not a continuous memory containment claim. No empirical phase is admitted by this source document.",
+  "portability": "Place these three files in the r17-fixed-mixture-expansion directory beside existing modules. Tests use ../a6_touch.py; Q26_A6_SOURCE may explicitly supply an authenticated original source location for standalone source qualification. No empirical input paths are embedded."
+}

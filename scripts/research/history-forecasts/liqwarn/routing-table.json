@@ -1,14 +1,15 @@
 {
- "version": "e124b8c0895a62cb",
- "generated_utc": "2026-10-24T07:47:19Z",
+ "version": "ddfde05847563e9b",
+ "generated_utc": "2026-10-24T13:00:41Z",
  "schema": "liqwarn-routing/1",
- "map_sha256": "2cda6194da89d85cd45fd70ac93258dd3c8e50b3b305d6a8d4abf15fe3450518",
+ "map_sha256": "dfe6c060ce51aca674d57ae61605c4d5c1e42923182114d5fa646ed65f555b5d",
  "release_grading_present": true,
  "live_monitors_deployed": [
   "D1",
   "D10",
   "D11",
   "D12",
+  "D13",
   "D2",
   "D3",
   "D4",
@@ -24,7 +25,15 @@
   "lastLedgerDate": null,
   "downgraded": []
  },
+ "d13_classes": {
+  "path": "forecasts/q26-touch-live/d13/classes.json",
+  "sha256": "5de9df34c5e603a9c6a360516636418e8e0848933b6dd4790cfa86b6b74c3355",
+  "lastLedgerDate": null,
+  "surfaced": false,
+  "downgraded": []
+ },
  "section_rank": {
+  "d13": -2,
   "live": -1,
   "release": 0,
   "borrower": 1,
@@ -5762,6 +5771,2526 @@
     "status": "deployed"
    },
    "row": "Same, ETH | **PENDING** | R12.8 unpowered; live log D10 | Labelled pending"
+  },
+  {
+   "id": "d13-btc_eth-6h-20",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default HISTORY COUNT (current UI-map class (kept; D-R19.5-review (d)))",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": null,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-6h-15",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default HISTORY COUNT (current UI-map class (kept; D-R19.5-review (d)))",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-6h-10",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default HISTORY COUNT (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-6h-7",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-6h-5",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-6h-3",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-6h-2",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-12h-20",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default HISTORY COUNT (current UI-map class (kept; D-R19.5-review (d)))",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-12h-15",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default HISTORY COUNT (current UI-map class (kept; D-R19.5-review (d)))",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-12h-10",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-12h-7",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-12h-5",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-12h-3",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-12h-2",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default RECALIBRATE (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-24h-20",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default HISTORY COUNT (current UI-map class (kept; D-R19.5-review (d)))",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-24h-15",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (current UI-map class (kept; D-R19.5-review (d)))",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-24h-10",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default RECALIBRATE (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-24h-7",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-24h-5",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-24h-3",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-24h-2",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-72h-20",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED (current UI-map class (kept; D-R19.5-review (d)))",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-72h-15",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default RECALIBRATE (current UI-map class (kept; D-R19.5-review (d)))",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-72h-10",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default RECALIBRATE (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-72h-7",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-72h-5",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-72h-3",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-72h-2",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default RECALIBRATE (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-168h-20",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED (current UI-map class (kept; D-R19.5-review (d)))",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-168h-15",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (current UI-map class (kept; D-R19.5-review (d)))",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-168h-10",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-168h-7",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-168h-5",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-168h-3",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-btc_eth-168h-2",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-6h-20",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default HISTORY COUNT (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-6h-15",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default DO NOT SHOW (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-6h-10",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-6h-7",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-6h-5",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-6h-3",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-6h-2",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-12h-20",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default DO NOT SHOW (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-12h-15",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-12h-10",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-12h-7",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-12h-5",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-12h-3",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-12h-2",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-24h-20",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.07096774193548387,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-24h-15",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.015384615384615385,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-24h-10",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0007710100231303007,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-24h-7",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.00031017369727047146,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-24h-5",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-24h-3",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-24h-2",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-72h-20",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.031545741324921134,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-72h-15",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.006839276990718124,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-72h-10",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0007670182166826462,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-72h-7",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.00031928480204342275,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-72h-5",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 7.176690110521028e-05,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-72h-3",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 9.761335350675973e-05,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-72h-2",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 4.092657771957109e-05,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-168h-20",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.01911049339819319,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-168h-15",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.003946896304269824,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-168h-10",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0009333582228859437,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-168h-7",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.000257052888631836,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-168h-5",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.0002519653295706511,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-168h-3",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 0.00015917230401910068,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
+  },
+  {
+   "id": "d13-large-168h-2",
+   "section": "d13",
+   "rank": -2,
+   "context": "oracle_target",
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH_twap",
+   "evidence": "D13 live monitor, target (b) oracle crossing; default CALIBRATED-WARN (R19.5 III-on-(b) grading)",
+   "monitor": {
+    "id": "D13",
+    "status": "deployed"
+   },
+   "row": "",
+   "display": false,
+   "surfaced": false,
+   "ui_use": "not surfaced: owner decision pending. When shown, the UI must show the oracle distance from G(t0).",
+   "event_label": "Binance-proxy oracle event (no pool basis check)",
+   "downgraded": false,
+   "path_unavailable_dev_share": 3.5770496494491345e-05,
+   "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable flag reported separately and never lowers the odds"
   }
  ],
  "unparsed": [

@@ -22,6 +22,8 @@
 #    caps; -10% 6 h-7 d, -20% 1 d-7 d; daily 00:00Z origins; anytime-valid downgrade flag in d12/classes.json). A THIRD
 #    JOB `d12`, run after `run` and `d11` by the same two cron events (own runner and 30-minute limit; no new cron, no
 #    new workflow, no new secret). It writes only forecasts/q26-touch-live/d12/. The run and d11 jobs are unchanged.
+# D12-A2 (2026-10-24, review must-fixes): d12 re-pinned (pooled shallow monitor, default classes); d11 and d12 run
+#    on `!cancelled()` instead of `always()`; the d12 push step ignores global/system git config.
 #
 # Moved 2026-10-17 from the private triccs/membrane-datasets to this PUBLIC repo (owner ruling 2026-10-17:
 # free Actions minutes; the data library stays private). Schedules run only from `main`, so THIS FILE LIVES ON
@@ -72,8 +74,8 @@ env:
   D11_INPUTS: history-forecasts/r16/d11-inputs-b4f337cc
   # D11 amendment D11-A1 (2026-10-23): the d11 job alone moves to the review-fix pin; the main job stays at APP_SHA.
   D11_APP_SHA: b6c1bb33a058af44e1b3ac750a9c843410691601
-  # D12 (2026-10-24): the d12 job alone runs this pin; APP_SHA and D11_APP_SHA do not move.
-  D12_APP_SHA: e6f70a8170288070fe8bfb1eabce74f350f9a5f4
+  # D12 (2026-10-24): the d12 job alone runs this pin; APP_SHA and D11_APP_SHA do not move. D12-A2 re-pins it.
+  D12_APP_SHA: a5079f729beb3d61c2ee2f18d04f42011d624ca9   # D12-A2 (pooled shallow monitor, default classes, classes.json fixes)
   DATASETS_REPO: triccs/membrane-datasets
   LIVE_DIR: forecasts/q26-touch-live
 
@@ -235,7 +237,7 @@ jobs:
   # forecasts/q26-touch-live/d11/. Credential handling is identical to `run`. Public log: status and counts only.
   d11:
     needs: run
-    if: ${{ always() && github.repository == 'The-Membrane/membrane-app' }}
+    if: ${{ !cancelled() && github.repository == 'The-Membrane/membrane-app' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: q26-datasets
@@ -368,7 +370,7 @@ jobs:
   # forecasts/q26-touch-live/d12/. Credential handling is identical to `run`. Public log: status and counts only.
   d12:
     needs: [run, d11]
-    if: ${{ always() && github.repository == 'The-Membrane/membrane-app' }}
+    if: ${{ !cancelled() && github.repository == 'The-Membrane/membrane-app' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: q26-datasets
@@ -471,6 +473,8 @@ jobs:
           JOB: ${{ steps.job.outputs.job }}
           GITCFG_SHA256: ${{ steps.gitcfg.outputs.sha256 }}
           DATASETS_TOKEN: ${{ secrets.DATASETS_TOKEN }}
+          GIT_CONFIG_GLOBAL: /dev/null   # D12-A2: no global or system git config in the push step
+          GIT_CONFIG_NOSYSTEM: "1"
         run: |
           set +x
           if [ "$(sha256sum .git/config | cut -c1-64)" != "$GITCFG_SHA256" ]; then

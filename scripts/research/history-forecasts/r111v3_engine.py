@@ -9,6 +9,17 @@ AnswerUpdated of a held reserve's feed (and at the hour boundary). The liquidati
 dust minimum. A simulated call leaves an overlay on the account that is cleared by the account's next real token
 event.
 
+R11.1-v5 (D-R11.1q, Replay(v5=True)):
+- F1: token and flag rows that belong to a real LiquidationCall of the account (same block, same account, log index
+  after the previous LiquidationCall log of that block and before this one) do not clear the overlay. A negative
+  delta on such a row debits the overlay of that reserve and balance kind (overlay = max(overlay + delta, 0)), so the
+  simulated world keeps max(simulated, real) liquidated. Only the account's own other rows (supply, withdraw, borrow,
+  repay, transfers, flag and e-mode changes) clear it.
+- F2: reserve and e-mode configuration switches at the end of every block that holds a PoolConfigurator log (meta
+  read at that block), not only at the 00:00Z anchor.
+- Episode check: per account, simulated repay summed between two borrower actions vs the account's debt at its first
+  simulated call of that episode.
+
 Imported by r111v3_gate.py. No address leaves this module.
 """
 from __future__ import annotations
@@ -30,7 +41,7 @@ import r10_mechanics as M  # noqa: E402  (Day: reserve LT / LB / fee / decimals 
 YEAR = 365 * 86400
 MAX_CALLS = 6
 CAND_HF = 1.05
-EV_TOK, EV_FLAG, EV_EMODE, EV_ORACLE, EV_HOUR = 0, 1, 2, 3, 4
+EV_TOK, EV_FLAG, EV_EMODE, EV_ORACLE, EV_HOUR, EV_CONF = 0, 1, 2, 3, 4, 5
 
 
 def jload(path):
@@ -197,6 +208,49 @@ class State:
         self.EM[p["e_user"][i]] = p["e_cat"][i]
 
 
+def liq_row_masks(inp, liq_rows):
+    """R11.1-v5 F1: token and flag rows that belong to a real LiquidationCall of the same account. liq_rows: dicts
+    with block, log_index and the account's global id 'u'. A row belongs to a call when it is in the same block, has
+    the same account, and its log index lies after the previous LiquidationCall log of that block (any account) and
+    before this call's log. Returns (token mask, flag mask)."""
+    t, p = inp.tok, inp.pool
+    tm = np.zeros(len(t["block"]), dtype=bool)
+    fm = np.zeros(len(p["f_block"]), dtype=bool)
+    if not liq_rows:
+        return tm, fm
+    by_block = {}
+    for r in liq_rows:
+        by_block.setdefault(int(r["block"]), []).append((int(r["log_index"]), r["u"]))
+    for b in by_block:
+        by_block[b].sort()
+    win = {}           # (block, user) -> list of (lo, hi) log index windows
+    for b, lst in by_block.items():
+        prev = -1
+        for li, u in lst:
+            if u is not None:
+                win.setdefault((b, int(u)), []).append((prev, li))
+            prev = li
+    blocks = np.array(sorted(by_block), dtype=np.int64)
+    for arr_b, arr_l, arr_u, mask in ((t["block"], t["lidx"], t["user"], tm), (p["f_block"], p["f_lidx"], p["f_user"], fm)):
+        cand = np.nonzero(np.isin(arr_b, blocks))[0]
+        for i in cand.tolist():
+            w = win.get((int(arr_b[i]), int(arr_u[i])))
+            if w:
+                li = int(arr_l[i])
+                if any(lo < li < hi for lo, hi in w):
+                    mask[i] = True
+    return tm, fm
+
+
+def liq_rows_with_uid(inp, rows):
+    """Attach global account ids to LiquidationCall rows (no address leaves this module)."""
+    out = []
+    for r in rows:
+        b = bytes.fromhex(r["user"][2:]).ljust(20, b"\0")
+        out.append({"block": r["block"], "log_index": r["log_index"], "u": inp.uid.get(b)})
+    return out
+
+
 def merged_order(keys_list):
     """keys_list: [(type, keys array)] -> (types, positions) in global key order (ties keep list order).
     R11.1-v4 memory: the order of key * 8 + type under a stable sort (the same order as the former lexsort((ty, ks)),
@@ -349,8 +403,15 @@ class Replay:
     """Full v3 replay. hours: list of dicts {hour, block, prices (vector R, USD), base_fee (wei)} in block order;
     metas: day -> meta (r10 layout); rule: {G, prio_wei, builder_usd, dust_usd}."""
 
-    def __init__(self, inp: Inputs, metas, hours, rule, usdc_assets, first_hour, eth_k, record=False):
+    def __init__(self, inp: Inputs, metas, hours, rule, usdc_assets, first_hour, eth_k, record=False, v5=False,
+                 liq_rows=None, conf_metas=None):
         self.inp, self.metas, self.hours, self.rule = inp, metas, hours, rule
+        self.v5 = v5
+        self.conf_metas = sorted(conf_metas or [], key=lambda m: m["block"]) if v5 else []
+        if v5:
+            self.tok_liq, self.flag_liq = liq_row_masks(inp, liq_rows or [])
+        self.episodes = {"n": 0, "viol_1pct": 0, "max_ratio": 0.0, "sum_repay_usd": 0.0, "viol_repay_usd": 0.0}
+        self.ep = {}
         self.usdc_set = {inp.gidx[a] for a in usdc_assets}
         self.usdc_list = sorted(self.usdc_set)
         self.first_hour = first_hour
@@ -378,10 +439,15 @@ class Replay:
         em_key = inp_p["e_block"] * 1_000_000 + inp_p["e_lidx"]
         ora_key = ora["key"]
         hour_key = np.array([h["block"] * 1_000_000 + 999_999 for h in self.hours], dtype=np.int64)
-        ks, ty, pos = merged_order([(EV_TOK, tok_key), (EV_FLAG, flag_key), (EV_EMODE, em_key), (EV_ORACLE, ora_key),
-                                    (EV_HOUR, hour_key)])
+        streams = [(EV_TOK, tok_key), (EV_FLAG, flag_key), (EV_EMODE, em_key), (EV_ORACLE, ora_key), (EV_HOUR, hour_key)]
+        if self.v5:
+            # end of the configurator block, before an hour read at the same block (999_998 < 999_999)
+            conf_key = np.array([m["block"] * 1_000_000 + 999_998 for m in self.conf_metas], dtype=np.int64)
+            streams.append((EV_CONF, conf_key))
+            self._conf_key = conf_key
+        ks, ty, pos = merged_order(streams)
         # R11.1-v4 memory: the keys are built; oracle block / log index arrays are not read again
-        del tok_key, flag_key, em_key, ora_key, hour_key
+        del tok_key, flag_key, em_key, ora_key, hour_key, streams
         ora.pop("key", None)
         import gc
         gc.collect()
@@ -431,6 +497,11 @@ class Replay:
             hh = self.hours[S_["hour_pos"]]
             md = self.days_sorted[max(bisect.bisect_right(self.days_sorted, cur_day) - 1, 0)]
             day = self.day_obj(md)
+            if self.v5:
+                self.ep, self.episodes = S_["ep"], S_["episodes"]
+                if S_.get("conf_pos") is not None:
+                    day = self.conf_day(S_["conf_pos"])
+                self._conf_pos = S_.get("conf_pos")
             lt_cache = {}
             drivers = inp.drivers_at(hh["block"])
             asset_of_agg = {}
@@ -444,23 +515,58 @@ class Replay:
                 print(f"progress events {n:,}/{len(ks):,} day {cur_day} elapsed {_time.time() - _t0:.0f}s", flush=True)
             t_, p_ = ty[n], pos[n]
             if t_ == EV_TOK:
+                if self.v5 and self.tok_liq[p_]:
+                    # F1: a row of the account's own real liquidation debits the overlay; it does not clear it
+                    u0, r0, k0 = inp_t["user"][p_], inp_t["res"][p_], inp_t["kind"][p_]
+                    before = st.SP[u0, r0] if k0 == 2 else 0.0
+                    u, r = st.apply_tok(inp_t, p_)
+                    ov = overlay.get(u)
+                    if ov is not None:
+                        dl = (st.SP[u, r] - before) if k0 == 2 else inp_t["delta"][p_]
+                        if dl < 0:
+                            ov[k0][r] = max(ov[k0][r] + dl, 0.0)
+                            if not (ov[0].any() or ov[1].any() or ov[2].any()):
+                                del overlay[u]
+                    if u in self.cpos:
+                        self.dirty.add(u)
+                    if r in self.usdc_set:
+                        usdc_debt[u] = any(st.SV[u, j] > 0.5 or st.SP[u, j] > 0.5 for j in self.usdc_list)
+                    continue
                 u, r = st.apply_tok(inp_t, p_)
                 if u in self.cpos:
                     self.dirty.add(u)
                 if u in overlay:
                     del overlay[u]
+                if self.v5:
+                    self._end_episode(u)
                 if r in self.usdc_set:
                     usdc_debt[u] = any(st.SV[u, j] > 0.5 or st.SP[u, j] > 0.5 for j in self.usdc_list)
                 continue
             if t_ == EV_FLAG:
                 st.apply_flag(inp_p, p_)
-                if inp_p["f_user"][p_] in self.cpos:
-                    self.dirty.add(int(inp_p["f_user"][p_]))
+                fu = int(inp_p["f_user"][p_])
+                if fu in self.cpos:
+                    self.dirty.add(fu)
+                if self.v5 and not self.flag_liq[p_]:
+                    # F1: a borrower's own flag change ends the episode and clears the overlay
+                    overlay.pop(fu, None)
+                    self._end_episode(fu)
                 continue
             if t_ == EV_EMODE:
                 st.apply_emode(inp_p, p_)
-                if inp_p["e_user"][p_] in self.cpos:
-                    self.dirty.add(int(inp_p["e_user"][p_]))
+                eu = int(inp_p["e_user"][p_])
+                if eu in self.cpos:
+                    self.dirty.add(eu)
+                if self.v5:
+                    overlay.pop(eu, None)
+                    self._end_episode(eu)
+                continue
+            if t_ == EV_CONF:
+                # F2: configuration as read at the end of the configurator block
+                day = self.conf_day(int(p_))
+                self._conf_pos = int(p_)
+                lt_cache = {}
+                self.dirty |= set(self.cpos)
                 continue
             if t_ == EV_ORACLE:
                 g = ora["agg"][p_]
@@ -501,6 +607,16 @@ class Replay:
                 md = self.days_sorted[max(bisect.bisect_right(self.days_sorted, d) - 1, 0)]
                 day = self.day_obj(md)
                 lt_cache = {}
+                self._conf_pos = None
+                if self.v5 and len(self.conf_metas):
+                    # a configurator block after the day's anchor block but before this hour read stays in force
+                    ab = self.metas[md].get("block")
+                    j = int(np.searchsorted(self._conf_key, ks[n], side="right")) - 1
+                    if ab is not None and j >= 0 and self.conf_metas[j]["block"] > ab:
+                        day = self.conf_day(j)
+                        self._conf_pos = j
+                if self.dirty or self.cpos:
+                    self.dirty |= set(self.cpos)
             px_h = np.array(h["prices"], dtype=np.float64)
             px = px_h.copy()
             A_h = A.copy()
@@ -534,7 +650,8 @@ class Replay:
                       "A": A, "A_h": A_h, "px": px, "px_h": px_h, "cand": cand, "overlay": overlay, "usdc_debt": usdc_debt,
                       "cost_usd": cost_usd, "cur_day": cur_day, "sim": sim, "rec": rec, "started": started,
                       "seq_down": self.seq_down, "seq_up_ts": self.seq_up_ts, "sentinel": self.sentinel,
-                      "cpos": self.cpos, "dirty": self.dirty, "C": self.C}
+                      "cpos": self.cpos, "dirty": self.dirty, "C": self.C,
+                      "ep": self.ep, "episodes": self.episodes, "conf_pos": getattr(self, "_conf_pos", None)}
                 with open(ck_path + ".tmp", "wb") as f:
                     pickle.dump(S_, f, protocol=pickle.HIGHEST_PROTOCOL)
                 os.replace(ck_path + ".tmp", ck_path)
@@ -543,8 +660,34 @@ class Replay:
                 print(f"checkpoint at event {n:,} day {cur_day} elapsed {_last_ck - _t0:.0f}s", flush=True)
                 if ck_stop:
                     raise SystemExit("stopped after the first checkpoint (test)")
+        if self.v5:
+            for u in list(self.ep):
+                self._end_episode(u)
+            rec["episodes"] = self.episodes
         self.sim, self.rec = sim, rec
         return sim
+
+    def conf_day(self, j):
+        key = ("conf", j)
+        if key not in self._day:
+            meta = self.conf_metas[j]
+            g = {a: self.inp.gidx[a] for a in meta["reserves"] if a in self.inp.gidx}
+            self._day[key] = M.Day({**meta, "reserves": {a: r for a, r in meta["reserves"].items() if a in g}}, self.inp.gidx)
+        return self._day[key]
+
+    def _end_episode(self, u):
+        e = self.ep.pop(u, None)
+        if e is None:
+            return
+        debt0, rep_ = e
+        E_ = self.episodes
+        E_["n"] += 1
+        E_["sum_repay_usd"] += rep_
+        r = rep_ / debt0 if debt0 > 0 else float("inf")
+        E_["max_ratio"] = max(E_["max_ratio"], r)
+        if r > 1.01:
+            E_["viol_1pct"] += 1
+            E_["viol_repay_usd"] += rep_
 
     def _lt(self, day, lt_cache, em):
         em = int(em)
@@ -688,8 +831,16 @@ class Replay:
             fresh = ov is None
             if fresh:
                 ov = (np.zeros(R), np.zeros(R), np.zeros(R))
+            if self.v5 and u not in self.ep:
+                sv_ = np.maximum(st.SV[u] - ov[1], 0.0) * Vt * inv_unit * px
+                ss_ = np.maximum(stable_value(st.SP[u], st.SR[u], st.ST[u], t) - ov[2], 0.0) * inv_unit * px
+                debt0 = float(sv_.sum() + ss_.sum())
             calls, reason = liquidate(u, st, ov, t, px, Lt, Vt, inv_unit, lt, lb, day, cost_usd,
                                       self.rule["dust_usd"], self.usdc_set, blocked)
+            if calls and self.v5:
+                if u not in self.ep:
+                    self.ep[u] = [debt0, 0.0]
+                self.ep[u][1] += sum(c[0] for c in calls)
             if calls:
                 if fresh:
                     overlay[u] = ov

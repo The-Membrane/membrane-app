@@ -709,6 +709,115 @@ def cmd_recal(a):
     print(json.dumps(res["selection"], indent=1))
 
 
+def fit_all(R, mask, j, cand):
+    x = lgt(R["fH"][mask, j])
+    bx = np.clip(np.searchsorted(XB, x, side="right") - 1, 0, len(XB) - 2)
+    NB = len(XB) - 1
+    n = np.bincount(bx, None, NB).astype(float)
+    sy = np.bincount(bx, R["y"][mask, j].astype(float), NB)
+    sx = np.bincount(bx, x, NB)
+    c1 = fit_c1(n, sy, sx)
+    out = {"rows": int(mask.sum()), "pos": int(sy.sum())}
+    if cand in ("C1", "C3"):
+        out["a"], out["b"] = (c1 if c1 else (None, None))
+    if cand == "C2":
+        c2 = fit_c2(n, sy, sx)
+        out["xm"], out["iso"] = ([float(v) for v in c2[0]], [float(v) for v in c2[1]]) if c2 else (None, None)
+    return out
+
+
+def apply_frozen(R, mask, T, params, cand):
+    """frozen map on rows in mask, all GRID[T] levels; running minimum over levels; C3 adds the subject level."""
+    P = R["fH"][mask].copy()
+    for j, k in enumerate(GRID[T]):
+        q = params.get(str(int(round(k * 100))))
+        if not q or (cand != "C2" and q.get("a") is None) or (cand == "C2" and q.get("xm") is None):
+            continue
+        x = lgt(R["fH"][mask, j])
+        if cand == "C2":
+            P[:, j] = apply_c2((np.array(q["xm"]), np.array(q["iso"])), x)
+        else:
+            p1 = apply_c1((q["a"], q["b"]), x)
+            if cand == "C3":
+                lt = level_term(R["ts"][mask], R["sid"][mask], p1, R["y"][mask, j], T, np.ones(mask.sum(), bool))
+                p1 = 1 / (1 + np.exp(-np.clip(lgt(p1) + lt, -35, 35)))
+            P[:, j] = p1
+    return np.clip(np.minimum.accumulate(P, axis=1), PCLIP, 1 - PCLIP)
+
+
+def cmd_freeze(a):
+    rec = json.load(open(os.path.join(a.out, "recal-r193.json")))
+    cand = a.cand or rec["selection"]["pick"]
+    fr = {"schema": "q26-r19.3/frozen-recal/1", "label": "fitted on development and spent rows (D-R19.3a)",
+          "candidate": cand, "code": git_sha(), "created_utc": now(), "W_days": W_C3, "kappa": KAPPA_C3,
+          "pclip": PCLIP, "applies_to_cells": rec["selection"]["repaired_by_pick"],
+          "pools": {"alt": "development altcoins + spent-blind B12/B13a/B15a/B15b/B20a",
+                    "majors": "development large caps (A2/A3) + dev:ETH + dev:BTC; serves large and btc_eth"},
+          "maps": {}, "inputs_sha256": {}}
+    for T in TS:
+        R = load_alt_all(a, T)
+        fr["maps"].setdefault("alt", {})[TL[T]] = {str(int(round(k * 100))): fit_all(R, np.ones(len(R["ts"]), bool),
+                                                                                       j, cand)
+                                                    for j, k in enumerate(GRID[T])}
+        del R
+        R = load_dev(a, T)
+        pool = np.isin(R["grp"], ("large", "btc_eth"))
+        fr["maps"].setdefault("majors", {})[TL[T]] = {str(int(round(k * 100))): fit_all(R, pool, j, cand)
+                                                       for j, k in enumerate(GRID[T])}
+        del R
+        src = os.path.join(a.r192, f"rowsB-T{T}.npz") if T in (6, 12, 24, 72, 168) else \
+            os.path.join(a.r162, f"rows-T{T}.npz")
+        fr["inputs_sha256"][os.path.basename(os.path.dirname(src)) + "/" + os.path.basename(src)] = sha_file(src)
+        for name in SETS:
+            pb = os.path.join(a.out, "blindrows", f"blind-{name}-T{T}.npz")
+            if os.path.exists(pb):
+                fr["inputs_sha256"]["blindrows/" + os.path.basename(pb)] = sha_file(pb)
+        print(now(), "froze", TL[T], flush=True)
+    fr["inputs_sha256"]["recal-r193.json"] = sha_file(os.path.join(a.out, "recal-r193.json"))
+    fr["inputs_sha256"]["grade-r193.json"] = sha_file(os.path.join(a.out, "grade-r193.json"))
+    fr["code_sha256"] = sha_file(os.path.abspath(__file__))
+    p = os.path.join(a.out, "frozen-r193-recal.json")
+    json.dump(fr, open(p, "w"), indent=1)
+    print("frozen", p, sha_file(p))
+
+
+def cmd_transfer(a):
+    """D-R19.3a item 4: the picked candidate refitted on development altcoin rows only, applied once to the
+    spent-blind rows; and the frozen map's in-sample view for majors is not a test (not run)."""
+    rec = json.load(open(os.path.join(a.out, "recal-r193.json")))
+    cand = rec["selection"]["pick"]
+    rep = set(rec["selection"]["repaired_by_pick"])
+    out = {"schema": "q26-r19.3/transfer/1", "label": "fit: development altcoins only; test: spent-blind altcoins",
+           "candidate": cand, "code": git_sha(), "started_utc": now(), "cells": {}}
+    seed = 900000
+    for T in TS:
+        R = load_alt_all(a, T)
+        dev = R["src"] == 0
+        params = {str(int(round(k * 100))): fit_all(R, dev, j, cand) for j, k in enumerate(GRID[T])}
+        bl = R["src"] == 1
+        P = apply_frozen(R, bl, T, params, cand)
+        blk = block_of(R["ts"][bl], T)
+        for j, k in enumerate(GRID[T]):
+            key = f"blind|alt|{TL[T]}|{int(round(k * 100))}"
+            seed += 1
+            st = cell_stats(R["fH"][bl, j], R["a"][bl, j], R["y"][bl, j], R["sid"][bl], blk, False, seed=seed,
+                            extra={cand: P[:, j]})
+            e = st["extra"][cand]
+            st["repaired_in_cv"] = key in rep
+            st["transfer_repairs"] = bool(R_BAND[0] <= e["R"][0] <= R_BAND[1] and e["slope"][1] <= 1 <= e["slope"][2]
+                                          and e["dbrier_rel"][0] < 0 and st["auc"][0] - e["auc"][0] <= 0.005)
+            out["cells"][key] = st
+            print(now(), key, "cv-rep" if key in rep else "-", "raw R %.3f sl %.3f" % (st["R"][0], st["slope"][0]),
+                  "%s R %.3f sl %.3f[%.2f,%.2f] dB %+.4f[%+.4f,%+.4f] dAUC %+.4f %s" % (
+                      cand, e["R"][0], e["slope"][0], e["slope"][1], e["slope"][2], e["dbrier_rel"][0],
+                      e["dbrier_rel"][1], e["dbrier_rel"][2], e["auc"][0] - st["auc"][0],
+                      "REP" if st["transfer_repairs"] else "-"), flush=True)
+        del R, P
+        json.dump(out, open(os.path.join(a.out, "transfer-r193.json"), "w"), indent=1)
+    out["finished_utc"] = now()
+    json.dump(out, open(os.path.join(a.out, "transfer-r193.json"), "w"), indent=1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd")
@@ -720,7 +829,8 @@ def main():
     ap.add_argument("--sets", default=",".join(SETS))
     ap.add_argument("--cand")
     a = ap.parse_args()
-    {"blindrows": cmd_blindrows, "grade": cmd_grade, "recal": cmd_recal}[a.cmd](a)
+    {"blindrows": cmd_blindrows, "grade": cmd_grade, "recal": cmd_recal, "freeze": cmd_freeze,
+     "transfer": cmd_transfer}[a.cmd](a)
 
 
 if __name__ == "__main__":

@@ -219,7 +219,12 @@ class Client:
     def header_ts(self, block):
         """Block timestamp from the block header (cached). Raises on a missing or zero timestamp."""
         if block not in self._hdr_ts:
-            h = self.request("eth_getBlockByNumber", [hex(block), False])
+            # some endpoints answer null for an old header; retry (the request rotates endpoints)
+            for _ in range(12):
+                h = self.request("eth_getBlockByNumber", [hex(block), False])
+                if h and h.get("timestamp"):
+                    break
+                time.sleep(1)
             ts = int((h or {}).get("timestamp") or "0x0", 16)
             if ts <= 0:
                 raise RpcError(f"header of block {block} has no timestamp")

@@ -28,6 +28,7 @@ import datetime as dt
 import gzip
 import json
 import os
+import time
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -531,8 +532,7 @@ def phase_meta(mk, work):
         for i, u in enumerate(m["usdc"]):
             v, s = res[q + 1 + 2 * i], res[q + 2 + 2 * i]
             usdc_debt[u] = (X.word(v[1]) or 0 if v[0] else 0) + (X.word(s[1]) or 0 if s[0] else 0)
-        blkobj = cl.request("eth_getBlockByNumber", [hex(blk), False])
-        jdump(p, {"date": k, "block": blk, "ts": int(blkobj["timestamp"], 16), "assets": assets, "reserves": R,
+        jdump(p, {"date": k, "block": blk, "ts": cl.header_ts(blk), "assets": assets, "reserves": R,
                   "v33": v33, "emode": emode_read(cl, m["pool"], blk), "usdc_debt_raw": {u: str(v) for u, v in usdc_debt.items()},
                   "virtual_balance_ok": False})
 
@@ -571,6 +571,13 @@ def phase_hourly(mk, work):
             heads = [hc.request("eth_getBlockByNumber", [hex(x), False]) for x in blks]
         else:
             heads = hc.batch([("eth_getBlockByNumber", [hex(x), False]) for x in blks])
+        for i_, (x, bo) in enumerate(zip(blks, heads)):
+            for _ in range(12):
+                if bo and bo.get("timestamp"):
+                    break
+                time.sleep(1)
+                bo = hc.request("eth_getBlockByNumber", [hex(x), False])
+            heads[i_] = bo
         rows = []
         for h, blk, bo in zip(by_day[day], blks, heads):
             dec = None

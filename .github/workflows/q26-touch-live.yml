@@ -30,6 +30,9 @@
 #    run after `run`, `d11` and `d12` by the same two cron events (own runner and 30-minute limit; no new cron, no new
 #    workflow, no new secret). It writes only forecasts/q26-touch-live/d13/ (it reads d12/klines/ read only). Nothing
 #    is shown to users. The run, d11 and d12 jobs are unchanged.
+# D13-A1/A2 (2026-10-24, HISTORY_TOUCH_LIVE.md D13-A2 and the D13-A1 deployment note): the d13 job alone is re-pinned
+#    (should-fixes; report-only Chainlink and Uniswap pool-TWAP input arms under d13/arms/). The run, d11 and d12 jobs,
+#    their pins, the cron times and the secrets are unchanged.
 #
 # Moved 2026-10-17 from the private triccs/membrane-datasets to this PUBLIC repo (owner ruling 2026-10-17:
 # free Actions minutes; the data library stays private). Schedules run only from `main`, so THIS FILE LIVES ON
@@ -83,7 +86,7 @@ env:
   # D12 (2026-10-24): the d12 job alone runs this pin; APP_SHA and D11_APP_SHA do not move. D12-A2 re-pins it.
   D12_APP_SHA: a5079f729beb3d61c2ee2f18d04f42011d624ca9   # D12-A2 (pooled shallow monitor, default classes, classes.json fixes)
   # D13 (2026-10-24): the d13 job alone runs this pin; APP_SHA, D11_APP_SHA and D12_APP_SHA do not move.
-  D13_APP_SHA: 854daa713c1bb70655b2448ef85ddc79bef88f01   # D13 (oracle-crossing block; history-forecasts/r19/d13-inputs-93d337c9)
+  D13_APP_SHA: 485b35b6dc95ad71131f6f418350a7fb2b3b3f84   # D13 + D13-A1 arms + D13-A2 (inputs d13-inputs-93d337c9, d13a1-inputs-1c64ee0e)
   DATASETS_REPO: triccs/membrane-datasets
   LIVE_DIR: forecasts/q26-touch-live
 
@@ -537,7 +540,8 @@ jobs:
           echo "job: $job"
 
       # Sparse: the frozen D13 III grids, the 20 D12 development kline grids (ratio arm; spent development sets only; no
-      # locked blind set), the D12 kline store (read only) and the D13 live block.
+      # locked blind set), the D12 kline store (read only) and the D13 live block. D13-A1: the arm C grids and the two
+      # R19.5 pool-TWAP (V) grids.
       - name: Check out membrane-datasets (main, sparse, D13 inputs only)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
         with:
@@ -570,6 +574,9 @@ jobs:
             /final-blind-prices/binance-TRXUSDT-1h.json
             /final-blind-prices/binance-ZECUSDT-1h.json
             /history-forecasts/r19/d13-inputs-93d337c9/
+            /history-forecasts/r19/d13a1-inputs-1c64ee0e/
+            /history-forecasts/r19/r195-inputs-f4056460/grids/V-ETHUSDT-1h.json.gz
+            /history-forecasts/r19/r195-inputs-f4056460/grids/V-BTCUSDT-1h.json.gz
             /forecasts/q26-touch-live/d12/klines/
             /forecasts/q26-touch-live/d13/
 
@@ -613,6 +620,14 @@ jobs:
           grep -E '^d13 issue: [0-9]+ series issued, [0-9]+ not issued$' "$out" || true
           grep -qE '^d13 issue: none ' "$out" && echo "d13 issue: none" || true
           grep -E '^d13 scored: [0-9]+ cell-days finalized, [0-9]+ horizons pending, ledger [0-9]+ lines$' "$out" || true
+          grep -E '^d13 runtime: [0-9]+ of [0-9]+ golden rows equal, [0-9]+ of [0-9]+ TWAP values equal, full replay (ran|not needed)$' "$out" || true
+          grep -E '^d13 arm [CV] replay: [0-9]+ of [0-9]+ rows equal$' "$out" || true
+          grep -E '^d13 arm V probe: latest-block 25 h reach [0-9] of 2 pools, archive reads [0-9] of 2 pools$' "$out" || true
+          grep -E '^d13 arm [CV] store: (\+[0-9]+ rows|failed \([A-Za-z]+\))$' "$out" || true
+          grep -E '^d13 arm [CV] splice: [0-9]+ of [0-9]+ series pass$' "$out" || true
+          grep -E '^d13 arm [CV] issue: ([0-9]+ series issued, [0-9]+ not issued|none \([a-z ]+\))$' "$out" || true
+          grep -E '^d13 arm [CV] scored: [0-9]+ cell-days finalized, [0-9]+ horizons pending, ledger [0-9]+ lines$' "$out" || true
+          grep -E '^d13 arms?( [CV])?: (closed|error) \([A-Za-z ;]+\)$' "$out" || true
           rm -f "$out"
           exit "$rc"
 

@@ -1,0 +1,842 @@
+{
+ "version": "2ef1ee1a6eb2057e",
+ "generated_utc": "2026-10-24T05:14:31Z",
+ "schema": "liqwarn-routing/1",
+ "map_sha256": "3a93896fb8cac067b2d73b23ca4d7b20ccf5a27e51fa1cdc51f642ab5926d791",
+ "release_grading_present": false,
+ "live_monitors_deployed": [
+  "D1",
+  "D10",
+  "D11",
+  "D2",
+  "D3",
+  "D4",
+  "D5",
+  "D6",
+  "D7",
+  "D8",
+  "D9"
+ ],
+ "section_rank": {
+  "release": 0,
+  "borrower": 1,
+  "oracle": 2,
+  "touch": 3
+ },
+ "rules": [
+  {
+   "id": "touch-0-0",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -0.03,
+    "hi": 0.0
+   },
+   "class": "SKILL",
+   "source": "raw_fH",
+   "evidence": "R11.10 P3 blind8: BSS vs (f) +0.03 to +0.05; two-way robust; 53/56 pairs gain",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "1 h | to −3% | altcoins | **SKILL** | R11.10 P3 blind8: BSS vs (f) +0.03 to +0.05; two-way robust; 53/56 pairs gain | Approach-zone alerts and odds",
+   "ui_use": "Approach-zone alerts and odds",
+   "display": true
+  },
+  {
+   "id": "touch-0-1",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -0.07,
+    "hi": 0.0
+   },
+   "class": "SKILL",
+   "source": "raw_fH",
+   "evidence": "same",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "3 h | to −7% | altcoins | **SKILL** | same | same",
+   "ui_use": "same",
+   "display": true
+  },
+  {
+   "id": "touch-0-2",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -0.1,
+    "hi": 0.0
+   },
+   "class": "SKILL",
+   "source": "raw_fH",
+   "evidence": "same",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "12 h | to −10% | altcoins | **SKILL** | same | same",
+   "ui_use": "same",
+   "display": true
+  },
+  {
+   "id": "touch-0-3",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "btc_eth",
+    "steth"
+   ],
+   "horizon": [
+    [
+     1.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -0.1,
+    "hi": 0.0
+   },
+   "class": "PENDING",
+   "source": "raw_fH",
+   "evidence": "ETH only from P1 (Kraken 2016–17, fragile). BTC and stETH untested. Live log scoring since 2026-10-18 (D8)",
+   "monitor": {
+    "id": "D8",
+    "status": "deployed"
+   },
+   "row": "1–12 h | same bands | ETH, BTC, stETH | **PENDING** | ETH only from P1 (Kraken 2016–17, fragile). BTC and stETH untested. Live log scoring since 2026-10-18 (D8) | Labelled \"pending live verdict\"",
+   "ui_use": "Labelled \"pending live verdict\"",
+   "display": true
+  },
+  {
+   "id": "touch-0-4",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "btc_eth",
+    "large",
+    "alt",
+    "young",
+    "steth"
+   ],
+   "horizon": [
+    [
+     1.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -1.0,
+    "hi": -0.04
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "Loses to (f), over-forecasts",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "1–12 h | deeper than the bands above | all | **DO NOT SHOW** (history count) | Loses to (f), over-forecasts | Far-zone history count",
+   "ui_use": "Far-zone history count",
+   "display": true
+  },
+  {
+   "id": "touch-0-5",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     1.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03,
+     -0.02
+    ]
+   },
+   "class": "SKILL",
+   "source": "recal_r131",
+   "evidence": "B15a, robust under percentile p only at 1 h −2/−3%, 3 h −2/−3%, 12 h −2% (retro 2026-10-19)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "1 h–12 h | smallest levels (−2/−3%) | altcoins | R13.1 recalibration **SKILL** (calibration fix) | B15a, robust under percentile p only at 1 h −2/−3%, 3 h −2/−3%, 12 h −2% (retro 2026-10-19) | Apply the recalibration only at those cells",
+   "cells": [
+    [
+     1.0,
+     -0.02
+    ],
+    [
+     1.0,
+     -0.03
+    ],
+    [
+     3.0,
+     -0.02
+    ],
+    [
+     3.0,
+     -0.03
+    ],
+    [
+     12.0,
+     -0.02
+    ]
+   ],
+   "ui_use": "Apply the recalibration only at those cells",
+   "display": true
+  },
+  {
+   "id": "touch-0-6",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -0.1,
+    "hi": 0.0
+   },
+   "class": "SKILL",
+   "source": "raw_fH",
+   "evidence": "A6 retro check 2026-10-24: blind set 5 (42 altcoins) two-way p 1e-4, CGM z 10.7, leave-top-10 +0.041. ETH/BTC own history (seen): ETH +0.024, BTC +0.030 vs (f), p 2e-4; R 0.95 / 0.86. This row governs 6 h for ETH/BTC over the 1–12 h PENDING row",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "6 h | shallow–mid (to −10%) | ETH, BTC | **SKILL** | A6 retro check 2026-10-24: blind set 5 (42 altcoins) two-way p 1e-4, CGM z 10.7, leave-top-10 +0.041. ETH/BTC own history (seen): ETH +0.024, BTC +0.030 vs (f), p 2e-4; R 0.95 / 0.86. This row governs 6 h for ETH/BTC over the 1–12 h PENDING row | Borrow and position pages; approach-zone warnings",
+   "ui_use": "Borrow and position pages; approach-zone warnings",
+   "display": true
+  },
+  {
+   "id": "touch-0-7",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -0.1,
+    "hi": 0.0
+   },
+   "class": "CALIBRATED",
+   "source": "raw_fH",
+   "evidence": "Blind set 5 (altcoins) +0.028 robust, but ETH/BTC own history shows no edge over (f): ETH +0.005 (p 0.22), BTC +0.009 (p 0.06). R 0.98 / 0.93",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "1 d | shallow–mid | ETH, BTC | **CALIBRATED** (downgraded 2026-10-24) | Blind set 5 (altcoins) +0.028 robust, but ETH/BTC own history shows no edge over (f): ETH +0.005 (p 0.22), BTC +0.009 (p 0.06). R 0.98 / 0.93 | Labelled context; keep the (fH) number, but never a trigger",
+   "ui_use": "Labelled context; keep the (fH) number, but never a trigger",
+   "display": true
+  },
+  {
+   "id": "touch-0-8",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -0.1,
+    "hi": 0.0
+   },
+   "class": "CALIBRATED",
+   "source": "raw_fH",
+   "evidence": "Blind set 5 marginal after leaving out the top 10 series (CI −0.0001 to +0.016). On ETH/BTC own history (fH) is slightly worse than (f) (−0.002). R 1.00 / 0.95",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "3 d | shallow–mid | ETH, BTC | **CALIBRATED** (downgraded 2026-10-24) | Blind set 5 marginal after leaving out the top 10 series (CI −0.0001 to +0.016). On ETH/BTC own history (fH) is slightly worse than (f) (−0.002). R 1.00 / 0.95 | Labelled context only",
+   "ui_use": "Labelled context only",
+   "display": true
+  },
+  {
+   "id": "touch-0-9",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2,
+     -0.15
+    ]
+   },
+   "class": "SKILL",
+   "source": "raw_fH",
+   "evidence": "R12.5 B12: 6/6, two-way robust, broad. −20% weaker. Edge vs (f) sits in 2023–26",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "12 h–3 d | −15%, −20% | altcoins | **SKILL** | R12.5 B12: 6/6, two-way robust, broad. −20% weaker. Edge vs (f) sits in 2023–26 | Far-zone odds for alt collateral",
+   "ui_use": "Far-zone odds for alt collateral",
+   "display": true
+  },
+  {
+   "id": "touch-0-10",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -1.0,
+    "hi": -0.25
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Not established; concentrated. R16.5 (2026-10-19) NOT RUN on B18: too thin (11 of 171 series score), joint power 0.033. On development, the DR and R13.1 gains over (fH) at −25…−40% sit in about 2.5% of series (leave-top-19 z 0.2–1.1)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "12 h–3 d | −25% and deeper | altcoins | **DO NOT SHOW** | Not established; concentrated. R16.5 (2026-10-19) NOT RUN on B18: too thin (11 of 171 series score), joint power 0.033. On development, the DR and R13.1 gains over (fH) at −25…−40% sit in about 2.5% of series (leave-top-19 z 0.2–1.1) | History count",
+   "ui_use": "History count",
+   "display": true
+  },
+  {
+   "id": "touch-0-11",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -1.0,
+    "hi": -0.15
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "2–3 own events per cell; no blind set; every model under-forecasts ETH calm-origin deep odds (D-R15.0c)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "12 h–3 d | −15% and deeper | ETH, BTC | **HISTORY COUNT** | 2–3 own events per cell; no blind set; every model under-forecasts ETH calm-origin deep odds (D-R15.0c) | History count plus crisis replay",
+   "ui_use": "History count plus crisis replay",
+   "display": true
+  },
+  {
+   "id": "touch-0-12",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ],
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03,
+     -0.02
+    ]
+   },
+   "class": "SKILL",
+   "source": "linear_pool",
+   "evidence": "R16.2 linear pool lp (fixed weights: GJR-in-HAR scale, boosted touch classifier, (f)) beats (fH) on B20a, 21 unseen XT pairs: BSS +0.032 and +0.021, two-way z −2.5 and −2.3, CGM −3.5 and −3.3, R 1.05 and 1.11, top-3 share 0.55–0.58 (D-R16.2d). The log-linear stack failed. Other lp cells untested blind",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "6 h, 12 h | −3% (6 h), −2% (12 h) | altcoins | **SKILL** (provisional: one blind set, review pending) | R16.2 linear pool lp (fixed weights: GJR-in-HAR scale, boosted touch classifier, (f)) beats (fH) on B20a, 21 unseen XT pairs: BSS +0.032 and +0.021, two-way z −2.5 and −2.3, CGM −3.5 and −3.3, R 1.05 and 1.11, top-3 share 0.55–0.58 (D-R16.2d). The log-linear stack failed. Other lp cells untested blind | Research build only. May replace (fH) in these two cells after a refuting review and a second set (B20b). Not a trigger yet",
+   "ui_use": "Research build only. May replace (fH) in these two cells after a refuting review and a second set (B20b). Not a trigger yet",
+   "display": false
+  },
+  {
+   "id": "touch-0-13",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -1.0,
+    "hi": 0.0
+   },
+   "class": "CALIBRATED",
+   "source": "raw_fH",
+   "evidence": "A6 blind set 5: 130 HIGH cells held. No skill over (f). R16.1 (2026-10-19) NOT RUN: skill over plain history (a) and calibration beyond HIGH cannot be powered on any set (H1 joint 0.59 and 0.54, ceiling 0.63; H2 0.0006), because the 7–30 d noise is market-wide time (94% of variance). Development only: every scaled rung beats (a) by about 4–5% BSS (two-way p 0.006–0.08); HIGH R 0.985–0.998 with slope 0.97–1.01; ETH (fβL) MEDIUM slope 0.81 (too spread); ETH LOWER R 0.91",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "7 d–30 d | label classes | ETH, BTC | **CALIBRATED** (HIGH labels only) | A6 blind set 5: 130 HIGH cells held. No skill over (f). R16.1 (2026-10-19) NOT RUN: skill over plain history (a) and calibration beyond HIGH cannot be powered on any set (H1 joint 0.59 and 0.54, ceiling 0.63; H2 0.0006), because the 7–30 d noise is market-wide time (94% of variance). Development only: every scaled rung beats (a) by about 4–5% BSS (two-way p 0.006–0.08); HIGH R 0.985–0.998 with slope 0.97–1.01; ETH (fβL) MEDIUM slope 0.81 (too spread); ETH LOWER R 0.91 | Labelled context, never a trigger or alert. Keep the scaled rung on display, not plain history (a). Wording: skill over history \"not established under the two-way rules; no crypto set can establish it\". MEDIUM and lower keep number plus label; ETH MEDIUM labelled \"less reliable\"",
+   "ui_use": "Labelled context, never a trigger or alert. Keep the scaled rung on display, not plain history (a). Wording: skill over history \"not established under the two-way rules; no crypto set can establish it\". MEDIUM and lower keep number plus label; ETH MEDIUM labelled \"less reliable\"",
+   "display": true
+  },
+  {
+   "id": "touch-0-14",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     1.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -0.1,
+    "hi": -0.02
+   },
+   "class": "DO NOT SHOW",
+   "source": "gru",
+   "evidence": "Development only (seen): strict GRU beats (fH), mean BSS +0.010, two-way z −6.6, 273 of 275 series; about 73% of the original z −8.1 edge survives; calibration not repaired (rare 12 h −10% R 1.38 late). Blind step NOT RUN (D-R16.2e-b): no unowned unseen set reaches joint power 0.80 (P5a bound: 4 series, 0.53). The all-rows freeze equals (fH)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "1 h–12 h | −2…−10% | altcoins, strict walk-forward GRU residual on (fH) (R16.2e) | **DO NOT SHOW** (research) | Development only (seen): strict GRU beats (fH), mean BSS +0.010, two-way z −6.6, 273 of 275 series; about 73% of the original z −8.1 edge survives; calibration not repaired (rare 12 h −10% R 1.38 late). Blind step NOT RUN (D-R16.2e-b): no unowned unseen set reaches joint power 0.80 (P5a bound: 4 series, 0.53). The all-rows freeze equals (fH) | None. Not a candidate to replace (fH) until a powered blind set exists",
+   "ui_use": "None. Not a candidate to replace (fH) until a powered blind set exists",
+   "display": false
+  },
+  {
+   "id": "touch-0-16",
+   "section": "touch",
+   "rank": 3,
+   "context": "young_listing",
+   "assets": [
+    "young"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "SKILL",
+   "source": "reg2_young",
+   "evidence": "R13.5r B14a PASS, review CONFIRMED (D-R13.5g). BSS vs own history +0.025 (z −4.9), vs L_all +0.018, vs best simple blend +0.015; 155 of 197 series gain; survives dropping the top crash days and any single year. R 1.067 (90% CI 1.006–1.135), with a slope: forecasts under 5% realise higher (R 0.68–0.81), and forecasts over 20% run 8–18% high",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "3 d | −15% | young altcoin listings aged about 85–364 days, reg2 decoder (Gate.io small caps) | **SKILL** (modest; medium confidence) | R13.5r B14a PASS, review CONFIRMED (D-R13.5g). BSS vs own history +0.025 (z −4.9), vs L_all +0.018, vs best simple blend +0.015; 155 of 197 series gain; survives dropping the top crash days and any single year. R 1.067 (90% CI 1.006–1.135), with a slope: forecasts under 5% realise higher (R 0.68–0.81), and forecasts over 20% run 8–18% high | Far-zone odds for new collateral aged about 3–12 months, shown as a band, labelled \"tested once on held-out young listings: modest edge\". Say that low odds may understate risk. Ages 21–85 days: \"unverified\". Under 21 days: nothing. Not 1 d, not deeper, not ≥ 5 d, not mature assets, not other venues, not ETH/BTC",
+   "ui_use": "Far-zone odds for new collateral aged about 3–12 months, shown as a band, labelled \"tested once on held-out young listings: modest edge\". Say that low odds may understate risk. Ages 21–85 days: \"unverified\". Under 21 days: nothing. Not 1 d, not deeper, not ≥ 5 d, not mature assets, not other venues, not ETH/BTC",
+   "display": true,
+   "age_days": [
+    85,
+    364
+   ]
+  },
+  {
+   "id": "touch-0-19",
+   "section": "touch",
+   "rank": 3,
+   "context": null,
+   "assets": [
+    "steth"
+   ],
+   "horizon": [
+    [
+     0,
+     1000000
+    ]
+   ],
+   "levels": {
+    "kind": "range",
+    "lo": -1.0,
+    "hi": 0.0
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "No meaningful blind test",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "any | any | stETH | **DO NOT SHOW** / \"blind test\" label | No meaningful blind test | Log only",
+   "ui_use": "Log only",
+   "display": false
+  },
+  {
+   "id": "borrower-0-0",
+   "section": "borrower",
+   "rank": 1,
+   "context": null,
+   "assets": [
+    "btc_eth",
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Raw (fH): R 0.87–0.96 (ETH/BTC), slope CI contains 1 (ETH 12 h under-confident, 1.63); BSS vs (a) and (e) +0.04 to +0.11, all CIs > 0 (D-R19.2-review)",
+   "monitor": {
+    "id": "D12",
+    "status": "planned"
+   },
+   "row": "6 h–7 d | −10% | ETH, BTC, large caps | **CALIBRATED-WARN** | Raw (fH): R 0.87–0.96 (ETH/BTC), slope CI contains 1 (ETH 12 h under-confident, 1.63); BSS vs (a) and (e) +0.04 to +0.11, all CIs > 0 (D-R19.2-review) | Borrower warning odds. 6 h is also SKILL",
+   "ui_use": "Borrower warning odds. 6 h is also SKILL",
+   "display": true
+  },
+  {
+   "id": "borrower-0-1",
+   "section": "borrower",
+   "rank": 1,
+   "context": null,
+   "assets": [
+    "btc_eth",
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Raw (fH): R 0.76–0.93 point (CIs contain 1); BSS vs (a) +0.03 to +0.05, CIs > 0",
+   "monitor": {
+    "id": "D12",
+    "status": "planned"
+   },
+   "row": "1 d–7 d | −20% | ETH, BTC, large caps | **CALIBRATED-WARN** | Raw (fH): R 0.76–0.93 point (CIs contain 1); BSS vs (a) +0.03 to +0.05, CIs > 0 | Borrower warning odds",
+   "ui_use": "Borrower warning odds",
+   "display": true
+  },
+  {
+   "id": "borrower-0-2",
+   "section": "borrower",
+   "rank": 1,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "0–3 events; not estimable",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "within 12 h | −20% | ETH, BTC | **HISTORY COUNT** | 0–3 events; not estimable | Count only",
+   "ui_use": "Count only",
+   "display": true
+  },
+  {
+   "id": "borrower-0-3",
+   "section": "borrower",
+   "rank": 1,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "0–8 events; not estimable",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "within 3 d | −30% | ETH, BTC | **HISTORY COUNT** | 0–8 events; not estimable | Count only",
+   "ui_use": "Count only",
+   "display": true
+  },
+  {
+   "id": "borrower-0-4",
+   "section": "borrower",
+   "rank": 1,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "raw_fH",
+   "evidence": "R 1.12 (wide CI 0.73–2.58), 51 positives",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "7 d | −30% | ETH, BTC | CALIBRATED context | R 1.12 (wide CI 0.73–2.58), 51 positives | Context, not a trigger, until the live monitor confirms it",
+   "ui_use": "Context, not a trigger, until the live monitor confirms it",
+   "display": true
+  },
+  {
+   "id": "oracle-0-0",
+   "section": "oracle",
+   "rank": 2,
+   "context": "oracle_through",
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     0,
+     6
+    ]
+   ],
+   "levels": null,
+   "class": "SKILL",
+   "source": "imminent_oracle",
+   "evidence": "R12.7 B13b: hit rate about 0.76 at 1 h −2%; H1 15/15 two-way; broad",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "TWAP \"already through\" alert, altcoins (KuCoin, 1/3/6 h) | **SKILL** (H1) / CALIBRATED | R12.7 B13b: hit rate about 0.76 at 1 h −2%; H1 15/15 two-way; broad | Imminent-zone alert (\"the oracle has not caught up yet\")"
+  },
+  {
+   "id": "oracle-0-1",
+   "section": "oracle",
+   "rank": 2,
+   "context": "oracle_through",
+   "assets": [
+    "alt",
+    "large"
+   ],
+   "horizon": [
+    [
+     0,
+     6
+    ]
+   ],
+   "levels": null,
+   "class": "SKILL",
+   "source": "imminent_oracle",
+   "evidence": "R12.9 B17a: 0.81 at 1 h −2%; 5 tokens hold 69–83% of alerts; equivalence only at −2%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Same, on Membrane's exact route-median oracle | **SKILL** (H1), concentrated | R12.9 B17a: 0.81 at 1 h −2%; 5 tokens hold 69–83% of alerts; equivalence only at −2% | Imminent zone, −2% only, with a caveat"
+  },
+  {
+   "id": "oracle-0-2",
+   "section": "oracle",
+   "rank": 2,
+   "context": "oracle_through",
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     0,
+     6
+    ]
+   ],
+   "levels": null,
+   "class": "PENDING",
+   "source": "imminent_oracle",
+   "evidence": "R12.8 unpowered; live log D10",
+   "monitor": {
+    "id": "D10",
+    "status": "deployed"
+   },
+   "row": "Same, ETH | **PENDING** | R12.8 unpowered; live log D10 | Labelled pending"
+  }
+ ],
+ "unparsed": [
+  {
+   "id": "touch-0-15",
+   "row": "any | any | pooled standardized library (R13.4 L_all, any class decoder) | **DO NOT SHOW** | Not blind-tested. Without a vol-state term it under-states crypto deep odds in calm states 2–7 fold (board R 0.15–0.5) and over-states them in turbulent states (standardization diagnosis 2026-10-19) | None. Research only, with a vol-state decoder (reg2)",
+   "why": "parse horizon=True levels=True assets=False class=True"
+  },
+  {
+   "id": "touch-0-17",
+   "row": "1 d–30 d | all | recursive (fH) path simulation (R16.4, 12 h steps with vol feedback) | **DO NOT SHOW** (research) | R16.4 development only, NOT RUN: ties (fH) at every horizon (BSS −0.006 to +0.001, two-way z ≤ 1.3); beats its own fixed-scale ablation by up to +0.019 BSS; R 1.01–1.04; fixes the 3–7 d deep over-forecast in R (7 d −40%: 1.32 → 0.98) but not in Brier. 12 h beat 6, 3 and 1 h steps (pre-stated rule) | None. Keep (fH) on display",
+   "why": "parse horizon=True levels=True assets=False class=True"
+  },
+  {
+   "id": "touch-0-18",
+   "row": "1 d–30 d | all | probability ranges (\"10–20%\" style, R16.4) | **DO NOT SHOW** as a confidence range for the current probability | R16.4 development only, NOT RUN (joint power 0.02). Regime-honest ranges (conformal on half-year groups) cover only 0.73–0.79 of altcoin groups at −2…−10% (nominal 0.90), with median widths 10–55 points (altcoins) and 15–81 points (ETH, BTC) at 7–30 d. Narrow ranges (parameter bootstrap, model disagreement, calibration band) cover 0.15–0.68. Narrow honest ranges only at deep altcoin cells (1 d −15…−30%, 3 d −25…−30%: coverage 0.91–0.97, width 2–5 points, many start at 0) | At most a labelled calibration statement for altcoins: \"forecasts like this came true about X–Y% of the time\" (calibration band, width 0.1–15 points). Needs its own owner surfacing decision. Never \"high confidence the probability is X–Y%\"",
+   "why": "parse horizon=True levels=True assets=False class=True"
+  },
+  {
+   "id": "oracle-0-3",
+   "row": "Liquidation ladder (debt per level) | measured, not forecast | Positions | Show as measured",
+   "why": "oracle row"
+  },
+  {
+   "id": "oracle-0-4",
+   "row": "Liquidation volume forecast | **SCENARIO** | R11.1-v4 Polygon FAIL as implemented (D-R11.1p): day classes pass (mean J 0.894 vs PD 0.673), magnitude fails (sim/real 2.19). Engine faults F1 (repeat counting) and F2 (listing-day config) found. v5 needs a new registration | Scenario only. Day-class skill is not shown until a v5 passes",
+   "why": "oracle row is not a forecast route"
+  },
+  {
+   "id": "oracle-0-5",
+   "row": "Position-level liquidation odds, borrower-facing no-action (a) vs protocol rescue-adjusted (b) | **DO NOT SHOW** (spec only) | Label spec and validity checks in the R11.1-v4 FINISH entry (2026-10-24). Needs F2 fixed and the Membrane 1 h TWAP oracle rule. No run | —",
+   "why": "oracle row is not a forecast route"
+  }
+ ]
+}

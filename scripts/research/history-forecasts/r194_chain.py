@@ -828,6 +828,64 @@ def cmd_synth(a):
     print(now(), "synth written", flush=True)
 
 
+FILL = {"k30_T72": {"k": 30, "val_T": (24, 72, 168), "own_T": (168,), "gap_T": 72},
+        "k20_T12": {"k": 20, "val_T": (12, 24), "own_T": (24, 72, 168), "gap_T": 12}}
+
+
+def cmd_verdict(a):
+    """R19.4e fill rule, applied exactly, from score-r194.json and synth-r194.json."""
+    sc = json.load(open(os.path.join(a.out, "score-r194.json")))["cells"]
+    sy = json.load(open(os.path.join(a.out, "synth-r194.json")))["cells"]
+    out = {"code": git_sha(), "rule": "R19.4e", "cells": {}}
+    for name, f in FILL.items():
+        k = f["k"]
+        items = {}
+        # 1 synthetic
+        syn = {T: sy[f"T{T}|k{k}"]["c10"] for T in f["val_T"]}
+        items["1_synthetic"] = {"pass": all(v["pass"] for v in syn.values()),
+                                "detail": {T: {"scored": v["scored"], "pass": v["pass"], "ratio": v["ratio"],
+                                               "slope": v["slope"]} for T, v in syn.items()}}
+        # 2 validation
+        det, ok2 = {}, True
+        for grp in ("large", "alt"):
+            est = []
+            for T in f["val_T"]:
+                c = sc.get(f"{grp}|T{T}|k{k}|all|c10")
+                if c is None:
+                    continue
+                det[f"{grp}|T{T}"] = {"estimable": c["estimable"], "calibrated": c["calibrated"],
+                                      "informative": c["informative"], "R": c["point"]["R"],
+                                      "slope_ci": c["ci"]["slope"], "bss_a_ci": c["ci"]["bss_a"],
+                                      "bss_e_ci": c["ci"]["bss_e"], "pos": c["pos"]}
+                if c["estimable"]:
+                    est.append(c["calibrated"] and c["informative"])
+            ok2 &= len(est) >= 2 and all(est)
+        items["2_validation"] = {"pass": bool(ok2), "detail": det}
+        # 3 own check
+        det, ok3 = {}, True
+        for T in f["own_T"]:
+            c = sc.get(f"btc_eth|T{T}|k{k}|all|c10")
+            if c is None or not c["estimable"]:
+                det[f"T{T}"] = "not estimable"
+                continue
+            okc = R_BAND[0] <= c["point"]["R"] <= R_BAND[1] and c["ci"]["slope"][0] <= 1 <= c["ci"]["slope"][1]
+            det[f"T{T}"] = {"R": c["point"]["R"], "slope_ci": c["ci"]["slope"], "pass": bool(okc), "pos": c["pos"]}
+            ok3 &= okc
+        items["3_own"] = {"pass": bool(ok3), "detail": det}
+        # 4 step sensitivity on the gap rows
+        c10 = sc[f"btc_eth|T{f['gap_T']}|k{k}|all|c10"]
+        c05 = sc[f"btc_eth|T{f['gap_T']}|k{k}|all|c05"]
+        ratio = c05["mean_p"] / c10["mean_p"]
+        items["4_step"] = {"pass": bool(1 / 1.25 <= ratio <= 1.25), "ratio_c05_c10": ratio}
+        out["cells"][name] = {"items": items, "fill": all(v["pass"] for v in items.values()),
+                              "gap_cell_btc_eth": {"n": c10["n"], "pos": c10["pos"], "mean_p_c10": c10["mean_p"],
+                                                   "sum_p_c10": c10["mean_p"] * c10["n"],
+                                                   "mean_p_c05": c05["mean_p"], "R_c10": c10["point"]["R"],
+                                                   "rate": c10["rate"]}}
+    json.dump(out, open(os.path.join(a.out, "verdict-r194.json"), "w"), indent=1)
+    print(json.dumps({k: v["fill"] for k, v in out["cells"].items()}))
+
+
 def main():
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(dest="cmd", required=True)
@@ -845,8 +903,10 @@ def main():
     c = sp.add_parser("synth")
     c.add_argument("--out", required=True)
     c.add_argument("--npath", type=int, default=4000)
+    c = sp.add_parser("verdict")
+    c.add_argument("--out", required=True)
     a = ap.parse_args()
-    {"cache": cmd_cache, "run": cmd_run, "score": cmd_score, "synth": cmd_synth}[a.cmd](a)
+    {"cache": cmd_cache, "run": cmd_run, "score": cmd_score, "synth": cmd_synth, "verdict": cmd_verdict}[a.cmd](a)
 
 
 if __name__ == "__main__":

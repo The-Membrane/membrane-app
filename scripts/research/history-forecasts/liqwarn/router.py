@@ -98,6 +98,7 @@ class Router:
                     "table_version": self.version, "map_sha256": self.t["map_sha256"], "shows_number": False,
                     "monitor_missing": False, "also_matching": also, "reason": reason}
         cls, src = rule["class"], rule["source"]
+        # a warning class needs a deployed live monitor; until then the UI shows it as labelled context
         shows = cls in SHOWS_NUMBER or (cls == "RECALIBRATE" and src == "recal_fH" and rule.get("validated", False))
         if not shows:
             src_out = "history_count"
@@ -109,10 +110,17 @@ class Router:
                 "map_sha256": self.t["map_sha256"], "shows_number": shows,
                 "monitor_missing": bool(shows and cls in ("CALIBRATED-WARN", "RECALIBRATE")
                                         and rule["monitor"].get("status") != "deployed"),
-                "also_matching": also, "reason": reason, "context": context or {}}
+                "also_matching": also, "reason": reason, "context": context or {},
+                "note": rule.get("note")}
 
     # ------------------------------------------------------------------------------------------------------------
     def route(self, asset_class, horizon_h, distance, context=None):
+        o = self._route(asset_class, horizon_h, distance, context)
+        o["display_class"] = ("CALIBRATED (labelled context; live monitor missing)" if o.get("monitor_missing")
+                              else o["class"])
+        return o
+
+    def _route(self, asset_class, horizon_h, distance, context=None):
         """asset_class in ASSET_CLASSES; horizon_h > 0 (hours); distance < 0 (fraction, e.g. -0.20)."""
         if asset_class not in ASSET_CLASSES:
             raise ValueError(f"asset_class must be one of {ASSET_CLASSES}")

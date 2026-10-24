@@ -229,6 +229,108 @@ def _col(hdr, *names):
     return None
 
 
+GROUP_WORDS = {"eth/btc": "btc_eth", "eth, btc": "btc_eth", "large caps": "large", "large": "large",
+               "altcoins": "alt", "altcoin": "alt"}
+SEG_RX = re.compile(r"^(CALIBRATED-WARN|RECALIBRATE|DO NOT SHOW|HISTORY COUNT|CALIBRATED)\s+((?:[-\u2212]\d+(?:\.\d+)?%?,?\s*)+)")
+
+
+def _pairs(text):
+    """'altcoins 1 h -5%, 3 h -7%' / '-10% 6 h-7 d' style -> list of (group|None, [lo_h, hi_h], k)."""
+    t = strip_md(text).replace(MINUS, "-")
+    out, grp = [], None
+    for m in re.finditer(r"(eth/btc|large caps|altcoins)?\s*(\d+)\s*([hd])\s*(-\d+(?:\.\d+)?(?:,\s*-\d+(?:\.\d+)?)*)%", t,
+                         flags=re.I):
+        if m.group(1):
+            grp = GROUP_WORDS[m.group(1).lower()]
+        h = float(m.group(2)) * _unit_h(m.group(3))
+        for k in re.findall(r"-\d+(?:\.\d+)?", m.group(4)):
+            out.append((grp, [h, h], float(k) / 100))
+    return out
+
+
+def parse_release(body, live_ids):
+    """The R19.3 'Release grading' section: a Group | T | 'Class by level' table, plus the recalibration transfer
+    sentence and the D12 coverage sentence. -> (rules, unparsed)."""
+    rules, unparsed = [], []
+    flat = strip_md(body).replace(MINUS, "-")
+    m = re.search(r"repair holds at[^:]*:\s*([^.]*)\.", flat)
+    confirmed = {(g or "alt", h[0], k) for g, h, k in _pairs(m.group(1))} if m else set()
+    m = re.search(r"Cells repaired in walk-forward CV:\s*(.*?)(?:\n|$)", flat)
+    cv = set()
+    if m:
+        for part in m.group(1).split("."):
+            g = None
+            pl = part.strip().lower()
+            for w, gid in GROUP_WORDS.items():
+                if pl.startswith(w):
+                    g = gid
+                    break
+            for _g, h, k in _pairs(part):
+                cv.add((g or "alt", h[0], k))
+    m = re.search(r"D12[^.]*?covers\s+([^.]*)\.", flat)
+    d12 = []
+    if m:
+        grp_txt = m.group(1).lower()
+        d12_groups = [gid for w, gid in (("eth/btc", "btc_eth"), ("large caps", "large")) if w in grp_txt]
+        for k, a, ua, b, ub in re.findall(r"(-\d+)%\s*(\d+)\s*([hd])?\s*[" + DASH + r"]\s*(\d+)\s*([hd])", m.group(1)):
+            ua = ua or ub
+            d12.append((d12_groups, float(a) * _unit_h(ua), float(b) * _unit_h(ub), float(k) / 100))
+
+    def mon(grp, h, k, cls):
+        for gs, lo, hi, kk in d12:
+            if grp in gs and lo <= h <= hi and abs(k - kk) < 1e-9:
+                return {"id": "D12", "status": "deployed" if "D12" in live_ids else "planned"}
+        if cls in ("CALIBRATED-WARN", "RECALIBRATE"):
+            return {"id": None, "status": "needed"}
+        return {"id": None, "status": "none"}
+
+    for ti, (hdr, rows) in enumerate(md_tables(body)):
+        cg, ct = _col(hdr, "group"), _col(hdr, "t")
+        cc = _col(hdr, "class by level", "class")
+        if None in (cg, ct, cc):
+            continue
+        for ri, r in enumerate(rows):
+            text = " | ".join(r)
+            grp = GROUP_WORDS.get(strip_md(r[cg]).lower())
+            hz = parse_horizon(r[ct])
+            if grp is None or hz is None:
+                unparsed.append({"id": f"release-{ti}-{ri}", "row": text, "why": "group or horizon"})
+                continue
+            h = hz[0][0]
+            for si, seg in enumerate(re.split(r"<br\s*/?>", r[cc])):
+                seg = strip_md(seg).replace(MINUS, "-")
+                ms = SEG_RX.match(seg)
+                if not ms:
+                    unparsed.append({"id": f"release-{ti}-{ri}-{si}", "row": seg, "why": "segment"})
+                    continue
+                cls = ms.group(1)
+                ks = [float(x) / 100 for x in re.findall(r"-\d+(?:\.\d+)?", ms.group(2))]
+                for k in ks:
+                    rid = f"release-{ti}-{ri}-{si}-{int(round(-100 * k))}"
+                    src, c2, val = "raw_fH", cls, None
+                    if cls == "RECALIBRATE":
+                        src = "recal_fH"
+                        if (grp, h, k) in confirmed:
+                            val = True                         # transfer-confirmed C3 repair
+                        elif (grp, h, k) in cv:
+                            c2, val = "CALIBRATED", True       # CV-repaired only: labelled context
+                        else:
+                            val = False                        # no validated fix: not warning odds
+                    rule = {"id": rid, "section": "release", "rank": SECTION_RANK["release"], "context": None,
+                            "assets": [grp], "horizon": [[h, h]], "levels": {"kind": "set", "values": [k]},
+                            "class": c2, "source": src, "evidence": f"Release grading (R19.3): {strip_md(r[cg])} "
+                            f"{strip_md(r[ct])} {seg[:300]}", "monitor": mon(grp, h, k, c2), "row": text,
+                            "display": True, "ui_use": ""}
+                    if val is not None:
+                        rule["validated"] = val
+                    if cls == "RECALIBRATE" and c2 == "CALIBRATED":
+                        rule["note"] = "C3 repair in CV only; labelled context until a live monitor confirms it"
+                    if cls == "RECALIBRATE" and val is False:
+                        rule["note"] = "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+                    rules.append(rule)
+    return rules, unparsed
+
+
 def build(map_text, live_text=""):
     live_ids = set(re.findall(r"^###\s+(D\d+)\b", live_text, flags=re.M))
     rules, unparsed = [], []
@@ -236,6 +338,12 @@ def build(map_text, live_text=""):
         sec = next((sid for sid, rx in SECTIONS if re.search(rx, head.lower())), None)
         if sec is None:
             continue
+        if sec == "release":
+            rr, uu = parse_release(body, live_ids)
+            if rr:
+                rules += rr
+                unparsed += uu
+                continue
         for ti, (hdr, rows) in enumerate(md_tables(body)):
             ch, cl, ca, cc = _col(hdr, "horizon"), _col(hdr, "level"), _col(hdr, "asset", "group"), _col(hdr, "class")
             cs = _col(hdr, "signal")

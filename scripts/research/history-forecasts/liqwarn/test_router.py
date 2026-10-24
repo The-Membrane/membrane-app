@@ -56,6 +56,23 @@ RELEASE = f"""
 """
 
 
+REAL_RELEASE = f"""
+## Release grading under the correct+informative bar (2026-10-24)
+
+| Group | T | Class by level (R; slope; BSS vs (a); BSS vs (e); AUC; pos) |
+|---|---|---|
+| ETH/BTC | 6h | CALIBRATED-WARN {M}2, {M}10%: R 0.86…0.92, pos 48…2295<br>HISTORY COUNT {M}15, {M}20, {M}30% (pos 0…8) |
+| ETH/BTC | 3d | CALIBRATED-WARN {M}10%: R 0.93<br>DO NOT SHOW {M}20%: R 0.84<br>HISTORY COUNT {M}30% (pos 21) |
+| Altcoins | 1h | RECALIBRATE {M}2, {M}5%: R 1.03…1.07; C3 repair in CV at {M}5% |
+| Altcoins | 12h | RECALIBRATE {M}15%: R 1.1; C3 repair in CV at {M}15% |
+
+- **Cells repaired in walk-forward CV:** altcoins 1 h {M}5%; 12 h {M}15%.
+- **Out-of-sample transfer check:** the repair holds at **1 cell only**: altcoins 1 h {M}5%. More text.
+
+**Live monitors needed.** D12 (in deployment) covers ETH/BTC and large caps at {M}10% 6 h–7 d and {M}20% 1 d–7 d. Other text.
+"""
+
+
 def table_of(md, live=""):
     rules, unparsed, live_ids = G.build(md, live)
     return {"schema": G.SCHEMA, "version": "test", "map_sha256": "x", "rules": rules, "unparsed": unparsed,
@@ -184,6 +201,37 @@ class TestReleaseGrading(unittest.TestCase):
         o = self.r.route("large", 168, -0.30)
         self.assertEqual((o["source"], o["class"]), ("history_count", "RECALIBRATE"))
         self.assertFalse(o["shows_number"])
+
+
+class TestRealReleaseFormat(unittest.TestCase):
+    def setUp(self):
+        self.r = RT.Router(table_of(MINI_MAP + REAL_RELEASE, "### D12 — monitor\n"))
+
+    def test_d12_cell_warn_with_monitor(self):
+        o = self.r.route("btc_eth", 6, -0.10)
+        self.assertEqual((o["source"], o["class"], o["monitor"]["id"], o["monitor"]["status"]),
+                         ("raw_fH", "CALIBRATED-WARN", "D12", "deployed"))
+        self.assertEqual(o["display_class"], "CALIBRATED-WARN")
+
+    def test_warn_without_monitor_is_context(self):
+        o = self.r.route("btc_eth", 6, -0.02)
+        self.assertEqual(o["class"], "CALIBRATED-WARN")
+        self.assertTrue(o["monitor_missing"])
+        self.assertTrue(o["display_class"].startswith("CALIBRATED (labelled context"))
+
+    def test_release_overrides_borrower_table(self):
+        o = self.r.route("btc_eth", 72, -0.20)            # borrower table said CALIBRATED-WARN (1 d-7 d -20%)
+        self.assertEqual((o["source"], o["class"], o["section"]), ("history_count", "DO NOT SHOW", "release"))
+        o = self.r.route("btc_eth", 72, -0.30)
+        self.assertEqual(o["class"], "HISTORY COUNT")
+
+    def test_recal_transfer_confirmed_vs_cv_only_vs_none(self):
+        o = self.r.route("alt", 1, -0.05)
+        self.assertEqual((o["source"], o["class"], o["shows_number"]), ("recal_fH", "RECALIBRATE", True))
+        o = self.r.route("alt", 12, -0.15)
+        self.assertEqual((o["source"], o["class"]), ("recal_fH", "CALIBRATED"))
+        o = self.r.route("alt", 1, -0.02)
+        self.assertEqual((o["source"], o["class"], o["shows_number"]), ("history_count", "RECALIBRATE", False))
 
 
 class TestGeneratedTable(unittest.TestCase):

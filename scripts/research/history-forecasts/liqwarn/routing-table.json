@@ -1,13 +1,14 @@
 {
- "version": "2ef1ee1a6eb2057e",
- "generated_utc": "2026-10-24T05:14:31Z",
+ "version": "805e8819d970b8c2",
+ "generated_utc": "2026-10-24T05:38:54Z",
  "schema": "liqwarn-routing/1",
- "map_sha256": "3a93896fb8cac067b2d73b23ca4d7b20ccf5a27e51fa1cdc51f642ab5926d791",
- "release_grading_present": false,
+ "map_sha256": "eb6e3c6ac16ff56f2b008354eb0f51705147502d93426b73ce6571fe39efa7e4",
+ "release_grading_present": true,
  "live_monitors_deployed": [
   "D1",
   "D10",
   "D11",
+  "D12",
   "D2",
   "D3",
   "D4",
@@ -602,7 +603,7 @@
    "evidence": "Raw (fH): R 0.87–0.96 (ETH/BTC), slope CI contains 1 (ETH 12 h under-confident, 1.63); BSS vs (a) and (e) +0.04 to +0.11, all CIs > 0 (D-R19.2-review)",
    "monitor": {
     "id": "D12",
-    "status": "planned"
+    "status": "deployed"
    },
    "row": "6 h–7 d | −10% | ETH, BTC, large caps | **CALIBRATED-WARN** | Raw (fH): R 0.87–0.96 (ETH/BTC), slope CI contains 1 (ETH 12 h under-confident, 1.63); BSS vs (a) and (e) +0.04 to +0.11, all CIs > 0 (D-R19.2-review) | Borrower warning odds. 6 h is also SKILL",
    "ui_use": "Borrower warning odds. 6 h is also SKILL",
@@ -634,7 +635,7 @@
    "evidence": "Raw (fH): R 0.76–0.93 point (CIs contain 1); BSS vs (a) +0.03 to +0.05, CIs > 0",
    "monitor": {
     "id": "D12",
-    "status": "planned"
+    "status": "deployed"
    },
    "row": "1 d–7 d | −20% | ETH, BTC, large caps | **CALIBRATED-WARN** | Raw (fH): R 0.76–0.93 point (CIs contain 1); BSS vs (a) +0.03 to +0.05, CIs > 0 | Borrower warning odds",
    "ui_use": "Borrower warning odds",
@@ -732,6 +733,4943 @@
    "row": "7 d | −30% | ETH, BTC | CALIBRATED context | R 1.12 (wide CI 0.73–2.58), 51 positives | Context, not a trigger, until the live monitor confirms it",
    "ui_use": "Context, not a trigger, until the live monitor confirms it",
    "display": true
+  },
+  {
+   "id": "release-0-0-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1h CALIBRATED-WARN -2, -3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.034…+0.046, AUC 0.81…0.84, pos 117…296",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 1h | CALIBRATED-WARN −2, −3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.034…+0.046, AUC 0.81…0.84, pos 117…296<br>RECALIBRATE −5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.019, AUC 0.87, pos 35; no C3 repair",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-0-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1h CALIBRATED-WARN -2, -3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.034…+0.046, AUC 0.81…0.84, pos 117…296",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 1h | CALIBRATED-WARN −2, −3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.034…+0.046, AUC 0.81…0.84, pos 117…296<br>RECALIBRATE −5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.019, AUC 0.87, pos 35; no C3 repair",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-0-1-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1h RECALIBRATE -5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.019, AUC 0.87, pos 35; no C3 repair",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 1h | CALIBRATED-WARN −2, −3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.034…+0.046, AUC 0.81…0.84, pos 117…296<br>RECALIBRATE −5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.019, AUC 0.87, pos 35; no C3 repair",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-1-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3h CALIBRATED-WARN -2, -3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-1-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3h CALIBRATED-WARN -2, -3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-1-1-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3h RECALIBRATE -5, -7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-1-1-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3h RECALIBRATE -5, -7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-2-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-2-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-2-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-2-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-2-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-2-1-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h HISTORY COUNT -15, -20, -30% (pos 0…8)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-2-1-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h HISTORY COUNT -15, -20, -30% (pos 0…8)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-2-1-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h HISTORY COUNT -15, -20, -30% (pos 0…8)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-3-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-3-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-3-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-3-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-3-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-3-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-3-1-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h HISTORY COUNT -20, -30% (pos 1…10)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-3-1-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h HISTORY COUNT -20, -30% (pos 1…10)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-4-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-4-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-4-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-4-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-4-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-4-1-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d RECALIBRATE -15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-4-2-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d HISTORY COUNT -20, -30% (pos 1…22)",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-4-2-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d HISTORY COUNT -20, -30% (pos 1…22)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-5-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-5-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-5-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-5-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-5-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-5-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-5-1-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d DO NOT SHOW -20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-5-2-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "HISTORY COUNT",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d HISTORY COUNT -30% (pos 21)",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-6-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-6-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-6-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-6-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-6-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-6-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-6-1-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d DO NOT SHOW -20, -30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-6-1-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d DO NOT SHOW -20, -30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-7-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) -0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) −0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-7-0-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) -0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) −0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-7-0-25",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.25
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) -0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) −0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-7-0-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) -0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) −0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-7-0-40",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "btc_eth"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.4
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) -0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) −0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-8-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1h CALIBRATED-WARN -2, -3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 1h | CALIBRATED-WARN −2, −3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504<br>DO NOT SHOW −5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.032, AUC 0.82, pos 1008",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-8-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1h CALIBRATED-WARN -2, -3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 1h | CALIBRATED-WARN −2, −3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504<br>DO NOT SHOW −5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.032, AUC 0.82, pos 1008",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-8-1-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1h DO NOT SHOW -5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.032, AUC 0.82, pos 1008",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 1h | CALIBRATED-WARN −2, −3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504<br>DO NOT SHOW −5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.032, AUC 0.82, pos 1008",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-9-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3h CALIBRATED-WARN -3, -5, -7%: R 0.94…1.05, slope 0.94…0.97, BSS(a) +0.054…+0.116, BSS(e) +0.045…+0.099, AUC 0.76…0.82, pos 1642…13873",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 3h | CALIBRATED-WARN −3, −5, −7%: R 0.94…1.05, slope 0.94…0.97, BSS(a) +0.054…+0.116, BSS(e) +0.045…+0.099, AUC 0.76…0.82, pos 1642…13873<br>RECALIBRATE −2%: R 0.93, slope 0.95, BSS(a) +0.129, BSS(e) +0.118, AUC 0.74, pos 28772; C3 repair in CV at −2%",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-9-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3h CALIBRATED-WARN -3, -5, -7%: R 0.94…1.05, slope 0.94…0.97, BSS(a) +0.054…+0.116, BSS(e) +0.045…+0.099, AUC 0.76…0.82, pos 1642…13873",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 3h | CALIBRATED-WARN −3, −5, −7%: R 0.94…1.05, slope 0.94…0.97, BSS(a) +0.054…+0.116, BSS(e) +0.045…+0.099, AUC 0.76…0.82, pos 1642…13873<br>RECALIBRATE −2%: R 0.93, slope 0.95, BSS(a) +0.129, BSS(e) +0.118, AUC 0.74, pos 28772; C3 repair in CV at −2%",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-9-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3h CALIBRATED-WARN -3, -5, -7%: R 0.94…1.05, slope 0.94…0.97, BSS(a) +0.054…+0.116, BSS(e) +0.045…+0.099, AUC 0.76…0.82, pos 1642…13873",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 3h | CALIBRATED-WARN −3, −5, −7%: R 0.94…1.05, slope 0.94…0.97, BSS(a) +0.054…+0.116, BSS(e) +0.045…+0.099, AUC 0.76…0.82, pos 1642…13873<br>RECALIBRATE −2%: R 0.93, slope 0.95, BSS(a) +0.129, BSS(e) +0.118, AUC 0.74, pos 28772; C3 repair in CV at −2%",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-9-1-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Large caps 3h RECALIBRATE -2%: R 0.93, slope 0.95, BSS(a) +0.129, BSS(e) +0.118, AUC 0.74, pos 28772; C3 repair in CV at -2%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 3h | CALIBRATED-WARN −3, −5, −7%: R 0.94…1.05, slope 0.94…0.97, BSS(a) +0.054…+0.116, BSS(e) +0.045…+0.099, AUC 0.76…0.82, pos 1642…13873<br>RECALIBRATE −2%: R 0.93, slope 0.95, BSS(a) +0.129, BSS(e) +0.118, AUC 0.74, pos 28772; C3 repair in CV at −2%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-10-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 6h CALIBRATED-WARN -3, -5, -7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-10-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 6h CALIBRATED-WARN -3, -5, -7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-10-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 6h CALIBRATED-WARN -3, -5, -7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-10-1-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Large caps 6h RECALIBRATE -2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-10-2-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -10, -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.052, BSS(e) -0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-10-2-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -10, -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.052, BSS(e) -0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-10-2-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -10, -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.052, BSS(e) -0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-10-2-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -10, -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.052, BSS(e) -0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-11-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-11-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-11-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-11-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-11-1-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Large caps 12h RECALIBRATE -5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-11-2-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 12h DO NOT SHOW -15, -20, -30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) -0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-11-2-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 12h DO NOT SHOW -15, -20, -30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) -0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-11-2-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 12h DO NOT SHOW -15, -20, -30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) -0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-12-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-12-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-12-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-12-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-12-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-12-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-12-1-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1d DO NOT SHOW -20, -30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-12-1-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 1d DO NOT SHOW -20, -30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-13-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-13-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-13-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-13-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-13-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-13-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-13-1-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3d DO NOT SHOW -20, -30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-13-1-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 3d DO NOT SHOW -20, -30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-14-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-14-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-14-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-14-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-14-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-14-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-14-0-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-14-1-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 7d DO NOT SHOW -30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-15-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 30d CALIBRATED-WARN -15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Large caps | 30d | CALIBRATED-WARN −15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206<br>DO NOT SHOW −20, −25, −30, −40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) −0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-15-1-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 30d DO NOT SHOW -20, -25, -30, -40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) -0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 30d | CALIBRATED-WARN −15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206<br>DO NOT SHOW −20, −25, −30, −40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) −0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-15-1-25",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.25
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 30d DO NOT SHOW -20, -25, -30, -40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) -0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 30d | CALIBRATED-WARN −15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206<br>DO NOT SHOW −20, −25, −30, −40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) −0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-15-1-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 30d DO NOT SHOW -20, -25, -30, -40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) -0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 30d | CALIBRATED-WARN −15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206<br>DO NOT SHOW −20, −25, −30, −40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) −0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-15-1-40",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.4
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 30d DO NOT SHOW -20, -25, -30, -40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) -0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Large caps | 30d | CALIBRATED-WARN −15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206<br>DO NOT SHOW −20, −25, −30, −40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) −0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-16-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1h RECALIBRATE -2, -3, -5%: R 1.03…1.07, slope 0.92…0.94, BSS(a) +0.060…+0.095, BSS(e) +0.058…+0.096, AUC 0.77…0.83, pos 29155…143206; C3 repair in CV at -5%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 1h | RECALIBRATE −2, −3, −5%: R 1.03…1.07, slope 0.92…0.94, BSS(a) +0.060…+0.095, BSS(e) +0.058…+0.096, AUC 0.77…0.83, pos 29155…143206; C3 repair in CV at −5%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-16-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1h RECALIBRATE -2, -3, -5%: R 1.03…1.07, slope 0.92…0.94, BSS(a) +0.060…+0.095, BSS(e) +0.058…+0.096, AUC 0.77…0.83, pos 29155…143206; C3 repair in CV at -5%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 1h | RECALIBRATE −2, −3, −5%: R 1.03…1.07, slope 0.92…0.94, BSS(a) +0.060…+0.095, BSS(e) +0.058…+0.096, AUC 0.77…0.83, pos 29155…143206; C3 repair in CV at −5%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-16-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     1.0,
+     1.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1h RECALIBRATE -2, -3, -5%: R 1.03…1.07, slope 0.92…0.94, BSS(a) +0.060…+0.095, BSS(e) +0.058…+0.096, AUC 0.77…0.83, pos 29155…143206; C3 repair in CV at -5%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 1h | RECALIBRATE −2, −3, −5%: R 1.03…1.07, slope 0.92…0.94, BSS(a) +0.060…+0.095, BSS(e) +0.058…+0.096, AUC 0.77…0.83, pos 29155…143206; C3 repair in CV at −5%",
+   "display": true,
+   "ui_use": "",
+   "validated": true
+  },
+  {
+   "id": "release-0-17-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-17-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-17-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-17-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     3.0,
+     3.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
+   "display": true,
+   "ui_use": "",
+   "validated": true
+  },
+  {
+   "id": "release-0-18-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-18-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-18-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-18-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-18-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": true
+  },
+  {
+   "id": "release-0-18-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-18-0-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-18-0-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-19-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-19-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-19-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-19-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-19-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-19-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-19-0-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-19-0-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     12.0,
+     12.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-20-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1d RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at -2, -3, -20%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 1d | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at −2, −3, −20%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-20-0-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1d RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at -2, -3, -20%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 1d | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at −2, −3, −20%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-20-0-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1d RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at -2, -3, -20%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 1d | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at −2, −3, −20%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-20-0-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1d RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at -2, -3, -20%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 1d | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at −2, −3, −20%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-20-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1d RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at -2, -3, -20%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 1d | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at −2, −3, −20%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-20-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1d RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at -2, -3, -20%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 1d | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at −2, −3, −20%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-20-0-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1d RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at -2, -3, -20%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 1d | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at −2, −3, −20%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-20-0-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     24.0,
+     24.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 1d RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at -2, -3, -20%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 1d | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.00…1.20, slope 0.62…0.93, BSS(a) +0.037…+0.109, BSS(e) +0.039…+0.140, AUC 0.71…0.82, pos 3778…390328; C3 repair in CV at −2, −3, −20%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-21-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3d CALIBRATED-WARN -2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-21-1-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-21-1-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-21-1-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-21-1-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-21-1-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-21-1-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-21-1-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     72.0,
+     72.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-22-0-2",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.02
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Altcoins 7d CALIBRATED-WARN -2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-22-1-3",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.03
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-22-1-5",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.05
+    ]
+   },
+   "class": "CALIBRATED",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "display": true,
+   "ui_use": "",
+   "validated": true,
+   "note": "C3 repair in CV only; labelled context until a live monitor confirms it"
+  },
+  {
+   "id": "release-0-22-1-7",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.07
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-22-1-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-22-1-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-22-1-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-22-1-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     168.0,
+     168.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "monitor": {
+    "id": null,
+    "status": "needed"
+   },
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "display": true,
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+  },
+  {
+   "id": "release-0-23-0-15",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.15
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-23-0-20",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.2
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-23-0-25",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.25
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-23-0-30",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.3
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-23-0-40",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "alt"
+   ],
+   "horizon": [
+    [
+     720.0,
+     720.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.4
+    ]
+   },
+   "class": "DO NOT SHOW",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "monitor": {
+    "id": null,
+    "status": "none"
+   },
+   "row": "Altcoins | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "display": true,
+   "ui_use": ""
   },
   {
    "id": "oracle-0-0",

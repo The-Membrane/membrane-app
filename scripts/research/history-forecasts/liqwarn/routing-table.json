@@ -1,8 +1,8 @@
 {
- "version": "34e8dbcc21484a98",
- "generated_utc": "2026-10-24T06:34:06Z",
+ "version": "22dc7da7b5fcf4e1",
+ "generated_utc": "2026-10-24T06:57:44Z",
  "schema": "liqwarn-routing/1",
- "map_sha256": "366aed2dabc6a4d7e91d258fce495e4db924f8af0e2bca1aa1ea0c4568b92429",
+ "map_sha256": "5943002074f88c877ed06022ab202df3d3bdca971539f26a908300f00a9739d2",
  "release_grading_present": true,
  "live_monitors_deployed": [
   "D1",
@@ -1234,12 +1234,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3% (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3% (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −5, −7, −10%: Binance R 1.21–1.29 (−10% 2021+ slope 1.39)<br>HISTORY COUNT −15, −20, −30% (−15%: 26 positives on Binance)",
    "display": true,
    "ui_use": ""
   },
@@ -1265,17 +1265,17 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3% (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3% (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −5, −7, −10%: Binance R 1.21–1.29 (−10% 2021+ slope 1.39)<br>HISTORY COUNT −15, −20, −30% (−15%: 26 positives on Binance)",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-3-0-5",
+   "id": "release-0-3-1-5",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1294,19 +1294,21 @@
      -0.05
     ]
    },
-   "class": "CALIBRATED-WARN",
-   "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h RECALIBRATE -5, -7, -10%: Binance R 1.21–1.29 (-10% 2021+ slope 1.39)",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3% (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −5, −7, −10%: Binance R 1.21–1.29 (−10% 2021+ slope 1.39)<br>HISTORY COUNT −15, −20, −30% (−15%: 26 positives on Binance)",
    "display": true,
-   "ui_use": ""
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
   },
   {
-   "id": "release-0-3-0-7",
+   "id": "release-0-3-1-7",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1325,19 +1327,21 @@
      -0.07
     ]
    },
-   "class": "CALIBRATED-WARN",
-   "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h RECALIBRATE -5, -7, -10%: Binance R 1.21–1.29 (-10% 2021+ slope 1.39)",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3% (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −5, −7, −10%: Binance R 1.21–1.29 (−10% 2021+ slope 1.39)<br>HISTORY COUNT −15, −20, −30% (−15%: 26 positives on Binance)",
    "display": true,
-   "ui_use": ""
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
   },
   {
-   "id": "release-0-3-0-10",
+   "id": "release-0-3-1-10",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1356,19 +1360,21 @@
      -0.1
     ]
    },
-   "class": "CALIBRATED-WARN",
-   "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h RECALIBRATE -5, -7, -10%: Binance R 1.21–1.29 (-10% 2021+ slope 1.39)",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3% (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −5, −7, −10%: Binance R 1.21–1.29 (−10% 2021+ slope 1.39)<br>HISTORY COUNT −15, −20, −30% (−15%: 26 positives on Binance)",
    "display": true,
-   "ui_use": ""
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
   },
   {
-   "id": "release-0-3-0-15",
+   "id": "release-0-3-2-15",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1387,19 +1393,19 @@
      -0.15
     ]
    },
-   "class": "CALIBRATED-WARN",
+   "class": "HISTORY COUNT",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h HISTORY COUNT -15, -20, -30% (-15%: 26 positives on Binance)",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "none"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3% (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −5, −7, −10%: Binance R 1.21–1.29 (−10% 2021+ slope 1.39)<br>HISTORY COUNT −15, −20, −30% (−15%: 26 positives on Binance)",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-3-1-20",
+   "id": "release-0-3-2-20",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1420,17 +1426,17 @@
    },
    "class": "HISTORY COUNT",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h HISTORY COUNT -20, -30% (pos 1…10)",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h HISTORY COUNT -15, -20, -30% (-15%: 26 positives on Binance)",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3% (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −5, −7, −10%: Binance R 1.21–1.29 (−10% 2021+ slope 1.39)<br>HISTORY COUNT −15, −20, −30% (−15%: 26 positives on Binance)",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-3-1-30",
+   "id": "release-0-3-2-30",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1451,12 +1457,12 @@
    },
    "class": "HISTORY COUNT",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h HISTORY COUNT -20, -30% (pos 1…10)",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h HISTORY COUNT -15, -20, -30% (-15%: 26 positives on Binance)",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3% (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −5, −7, −10%: Binance R 1.21–1.29 (−10% 2021+ slope 1.39)<br>HISTORY COUNT −15, −20, −30% (−15%: 26 positives on Binance)",
    "display": true,
    "ui_use": ""
   },
@@ -1482,12 +1488,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.18 (-10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.18 (−10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>HISTORY COUNT −20, −30% (−20%: 19 positives, Binance R 1.48)",
    "display": true,
    "ui_use": ""
   },
@@ -1513,12 +1519,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.18 (-10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.18 (−10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>HISTORY COUNT −20, −30% (−20%: 19 positives, Binance R 1.48)",
    "display": true,
    "ui_use": ""
   },
@@ -1544,12 +1550,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.18 (-10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.18 (−10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>HISTORY COUNT −20, −30% (−20%: 19 positives, Binance R 1.48)",
    "display": true,
    "ui_use": ""
   },
@@ -1575,12 +1581,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.18 (-10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.18 (−10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>HISTORY COUNT −20, −30% (−20%: 19 positives, Binance R 1.48)",
    "display": true,
    "ui_use": ""
   },
@@ -1606,17 +1612,17 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.18 (-10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.18 (−10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>HISTORY COUNT −20, −30% (−20%: 19 positives, Binance R 1.48)",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-4-1-15",
+   "id": "release-0-4-0-15",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1635,21 +1641,19 @@
      -0.15
     ]
    },
-   "class": "RECALIBRATE",
-   "source": "recal_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d RECALIBRATE -15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair",
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.18 (-10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.18 (−10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>HISTORY COUNT −20, −30% (−20%: 19 positives, Binance R 1.48)",
    "display": true,
-   "ui_use": "",
-   "validated": false,
-   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
+   "ui_use": ""
   },
   {
-   "id": "release-0-4-2-20",
+   "id": "release-0-4-1-20",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1670,17 +1674,17 @@
    },
    "class": "HISTORY COUNT",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d HISTORY COUNT -20, -30% (pos 1…22)",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d HISTORY COUNT -20, -30% (-20%: 19 positives, Binance R 1.48)",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.18 (−10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>HISTORY COUNT −20, −30% (−20%: 19 positives, Binance R 1.48)",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-4-2-30",
+   "id": "release-0-4-1-30",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1701,12 +1705,12 @@
    },
    "class": "HISTORY COUNT",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d HISTORY COUNT -20, -30% (pos 1…22)",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d HISTORY COUNT -20, -30% (-20%: 19 positives, Binance R 1.48)",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.18 (−10% R 1.18, CI 1.01–1.44, mild over-warn) (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>HISTORY COUNT −20, −30% (−20%: 19 positives, Binance R 1.48)",
    "display": true,
    "ui_use": ""
   },
@@ -1732,12 +1736,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1763,12 +1767,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1794,12 +1798,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1825,12 +1829,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1856,17 +1860,17 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-5-0-15",
+   "id": "release-0-5-1-15",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1885,19 +1889,21 @@
      -0.15
     ]
    },
-   "class": "CALIBRATED-WARN",
-   "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d RECALIBRATE -15%: Binance slope 0.70 (0.42–0.96)",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
    "display": true,
-   "ui_use": ""
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
   },
   {
-   "id": "release-0-5-0-20",
+   "id": "release-0-5-2-20",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1916,19 +1922,19 @@
      -0.2
     ]
    },
-   "class": "CALIBRATED-WARN",
+   "class": "CALIBRATED",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED -20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-5-1-30",
+   "id": "release-0-5-3-30",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1949,12 +1955,12 @@
    },
    "class": "HISTORY COUNT",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d HISTORY COUNT -30% (pos 21)",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d HISTORY COUNT -30%",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1980,12 +1986,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>CALIBRATED −20%: labelled context, Binance R 1.22, slope 0.54 (0.08–1.01); ETH alone R 1.27<br>DO NOT SHOW −30%",
    "display": true,
    "ui_use": ""
   },
@@ -2011,12 +2017,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>CALIBRATED −20%: labelled context, Binance R 1.22, slope 0.54 (0.08–1.01); ETH alone R 1.27<br>DO NOT SHOW −30%",
    "display": true,
    "ui_use": ""
   },
@@ -2042,12 +2048,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>CALIBRATED −20%: labelled context, Binance R 1.22, slope 0.54 (0.08–1.01); ETH alone R 1.27<br>DO NOT SHOW −30%",
    "display": true,
    "ui_use": ""
   },
@@ -2073,12 +2079,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>CALIBRATED −20%: labelled context, Binance R 1.22, slope 0.54 (0.08–1.01); ETH alone R 1.27<br>DO NOT SHOW −30%",
    "display": true,
    "ui_use": ""
   },
@@ -2104,12 +2110,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>CALIBRATED −20%: labelled context, Binance R 1.22, slope 0.54 (0.08–1.01); ETH alone R 1.27<br>DO NOT SHOW −30%",
    "display": true,
    "ui_use": ""
   },
@@ -2135,17 +2141,17 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>CALIBRATED −20%: labelled context, Binance R 1.22, slope 0.54 (0.08–1.01); ETH alone R 1.27<br>DO NOT SHOW −30%",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-6-0-20",
+   "id": "release-0-6-1-20",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -2164,19 +2170,19 @@
      -0.2
     ]
    },
-   "class": "CALIBRATED-WARN",
+   "class": "CALIBRATED",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED -20%: labelled context, Binance R 1.22, slope 0.54 (0.08–1.01); ETH alone R 1.27",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>CALIBRATED −20%: labelled context, Binance R 1.22, slope 0.54 (0.08–1.01); ETH alone R 1.27<br>DO NOT SHOW −30%",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-6-1-30",
+   "id": "release-0-6-2-30",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -2197,12 +2203,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d DO NOT SHOW -30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d DO NOT SHOW -30%",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: Binance R 0.95–1.09 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>CALIBRATED −20%: labelled context, Binance R 1.22, slope 0.54 (0.08–1.01); ETH alone R 1.27<br>DO NOT SHOW −30%",
    "display": true,
    "ui_use": ""
   },

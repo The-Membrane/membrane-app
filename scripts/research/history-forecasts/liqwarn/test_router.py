@@ -322,5 +322,116 @@ class TestLiveD12Classes(unittest.TestCase):
             self.assertEqual(RT.Router(out).route("large", 72, -0.10)["class"], "CALIBRATED")
 
 
+def d13_classes(downgraded=(), surfaced=False):
+    """A classes.json shaped like q26_live_d13.write_summary: target (b) cells, not surfaced."""
+    cells = {}
+    for g in ("ETHBTC", "LARGE"):
+        for T, tl in ((12, "12h"), (72, "3d")):
+            for k in (-0.05, -0.10, -0.20):
+                key = f"{g} {tl} {int(round(k * 100))}%"
+                dg = key in downgraded
+                dflt = "DO NOT SHOW" if (g, T, k) == ("ETHBTC", 72, -0.20) else "CALIBRATED-WARN"
+                cls = "CALIBRATED" if (dg and dflt == "CALIBRATED-WARN") else dflt
+                cells[key] = {"group": g, "horizon": tl, "horizon_h": T, "level": k, "target": "oracle",
+                              "class": cls, "defaultClass": dflt, "defaultSource": "R19.5 III-on-(b) grading",
+                              "eventLabel": "Binance-proxy oracle event (no pool basis check)" if g == "LARGE" else "x",
+                              "downgraded": dg, "downgradedAt": "2027-03-01" if dg else None,
+                              "monitors": [f"{tl} {int(round(k * 100))}% {g}"], "lastObserved": "2027-03-01",
+                              "pathUnavailable": {"devShare": 0.2, "liveCrossings": 0, "liveFlagged": 0}}
+    return {"schema": "q26-touch-live/d13/1/classes", "surfaced": surfaced, "uiNote": "show oracle distance",
+            "lastLedgerDate": "2027-03-01", "cells": cells}
+
+
+class TestLiveD13Classes(unittest.TestCase):
+    def table(self, downgraded=(), surfaced=False, d12=None):
+        rules, unparsed, live_ids = G.build(MINI_MAP + REAL_RELEASE, "", d12, d13_classes(downgraded, surfaced))
+        return RT.Router({"schema": G.SCHEMA, "version": "test", "map_sha256": "x", "rules": rules,
+                          "unparsed": unparsed, "live_monitors_deployed": live_ids, "section_rank": G.SECTION_RANK})
+
+    def test_oracle_target_routes_d13_class_not_surfaced(self):
+        r = self.table()
+        o = r.route("large", 12, -0.10, {"target": "oracle"})
+        self.assertEqual((o["class"], o["section"], o["model_source"], o["monitor"]["id"]),
+                         ("CALIBRATED-WARN", "d13", "raw_fH_twap", "D13"))
+        self.assertFalse(o["shows_number"])
+        self.assertEqual(o["source"], "history_count")
+        self.assertTrue(o["not_surfaced"])
+        self.assertIn("not surfaced", o["display_class"])
+        self.assertIn("Binance-proxy", o["event_label"])
+
+    def test_spot_routing_unchanged_by_d13(self):
+        base = RT.Router(table_of(MINI_MAP + REAL_RELEASE, "### D12 — monitor\n"))
+        r = self.table()
+        for ac, h, k in (("large", 12, -0.10), ("btc_eth", 72, -0.20), ("btc_eth", 24, -0.10), ("alt", 6, -0.05)):
+            a, b = base.route(ac, h, k), r.route(ac, h, k)
+            self.assertEqual((a["class"], a["rule_id"], a["shows_number"]), (b["class"], b["rule_id"], b["shows_number"]))
+            self.assertNotEqual(b.get("section"), "d13")
+
+    def test_downgraded_d13_cell_and_neighbour(self):
+        r = self.table(downgraded=("LARGE 3d -10%",))
+        o = r.route("large", 72, -0.10, {"target": "oracle"})
+        self.assertEqual((o["class"], o["section"]), ("CALIBRATED", "d13"))
+        self.assertIn("2027-03-01", o["evidence"])
+        self.assertEqual(r.route("large", 72, -0.05, {"target": "oracle"})["class"], "CALIBRATED-WARN")
+        self.assertEqual(r.route("btc_eth", 72, -0.10, {"target": "oracle"})["class"], "CALIBRATED-WARN")
+
+    def test_do_not_show_cell_and_no_rule(self):
+        r = self.table()
+        o = r.route("btc_eth", 72, -0.20, {"target": "oracle"})
+        self.assertEqual((o["class"], o["shows_number"]), ("DO NOT SHOW", False))
+        o = r.route("large", 24, -0.10, {"target": "oracle"})      # no D13 cell at 1 d in this fixture
+        self.assertEqual((o["class"], o["rule_id"], o["shows_number"]), ("HISTORY COUNT", None, False))
+        o = r.route("alt", 12, -0.10, {"target": "oracle"})        # altcoins are not in D13
+        self.assertEqual(o["rule_id"], None)
+
+    def test_surfaced_true_shows_number(self):
+        r = self.table(surfaced=True)
+        o = r.route("large", 12, -0.10, {"target": "oracle"})
+        self.assertTrue(o["shows_number"])
+        self.assertEqual((o["source"], o["display_class"]), ("raw_fH_twap", "CALIBRATED-WARN"))
+
+    def test_oracle_through_still_first(self):
+        r = self.table()
+        o = r.route("alt", 1, -0.02, {"target": "oracle", "oracle_through": True})
+        self.assertEqual(o["source"], "imminent_oracle")
+
+    def test_datasets_roundtrip_with_d12_and_d13(self):
+        with tempfile.TemporaryDirectory() as d:
+            mp = os.path.join(d, "map.md")
+            with open(mp, "w") as f:
+                f.write(MINI_MAP + REAL_RELEASE)
+            for rel, doc in ((G.D12_CLASSES_REL, d12_classes()), (G.D13_CLASSES_REL, d13_classes(("ETHBTC 12h -5%",)))):
+                cp = os.path.join(d, "ds", rel)
+                os.makedirs(os.path.dirname(cp))
+                with open(cp, "w") as f:
+                    json.dump(doc, f)
+            out = os.path.join(d, "t.json")
+            sys.argv = ["gen_table.py", "--map", mp, "--datasets", os.path.join(d, "ds"), "--out", out]
+            G.main()
+            t = json.load(open(out))
+            self.assertEqual(t["d13_classes"]["downgraded"], ["ETHBTC 12h -5%"])
+            self.assertFalse(t["d13_classes"]["surfaced"])
+            self.assertIn("D13", t["live_monitors_deployed"])
+            rt = RT.Router(out)
+            self.assertEqual(rt.route("btc_eth", 12, -0.05, {"target": "oracle"})["class"], "CALIBRATED")
+            self.assertEqual(rt.route("btc_eth", 6, -0.02)["class"], "CALIBRATED-WARN")   # D12 spot routing intact
+
+    def test_without_d13_file_oracle_target_has_no_rule(self):
+        with tempfile.TemporaryDirectory() as d:
+            mp = os.path.join(d, "map.md")
+            with open(mp, "w") as f:
+                f.write(MINI_MAP + REAL_RELEASE)
+            cp = os.path.join(d, "ds", G.D12_CLASSES_REL)
+            os.makedirs(os.path.dirname(cp))
+            with open(cp, "w") as f:
+                json.dump(d12_classes(), f)
+            out = os.path.join(d, "t.json")
+            sys.argv = ["gen_table.py", "--map", mp, "--datasets", os.path.join(d, "ds"), "--out", out]
+            G.main()
+            t = json.load(open(out))
+            self.assertIsNone(t["d13_classes"])
+            self.assertIsNone(RT.Router(out).route("large", 12, -0.10, {"target": "oracle"})["rule_id"])
+
+
 if __name__ == "__main__":
     unittest.main()

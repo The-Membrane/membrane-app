@@ -11,6 +11,11 @@ Live D12 classes (HISTORY_TOUCH_LIVE.md D12-A2): with --datasets, the live monit
 sentence), and every cell the live monitor has downgraded (live class CALIBRATED, downgraded = true) gets a "live"
 rule ranked above every map section, so the router shows it as CALIBRATED (labelled context, not a warning).
 
+Live D13 classes (HISTORY_TOUCH_LIVE.md D13): with --datasets, when <datasets>/forecasts/q26-touch-live/d13/classes.json
+exists, every D13 cell becomes an "oracle_target" rule (context "oracle_target", section "d13"). These rules route only a
+query whose context has target = "oracle" (the 1 h TWAP crossing measured from G(t0)); default routing (the spot-touch
+classes of the map) is unchanged. While classes.json says surfaced = false, the router never shows a D13 number.
+
 Sections read (in precedence order, highest first):
   "Release grading" (written by the R19.3 regrade; read when present, any table with horizon/level/class columns)
   "Borrower liquidation warnings"
@@ -31,8 +36,9 @@ import re
 SCHEMA = "liqwarn-routing/1"
 SECTIONS = [("release", r"release grading"), ("borrower", r"borrower liquidation warnings"),
             ("oracle", r"oracle and liquidation-proximity"), ("touch", r"price-touch odds")]
-SECTION_RANK = {"live": -1, "release": 0, "borrower": 1, "oracle": 2, "touch": 3}
+SECTION_RANK = {"d13": -2, "live": -1, "release": 0, "borrower": 1, "oracle": 2, "touch": 3}
 D12_CLASSES_REL = "forecasts/q26-touch-live/d12/classes.json"
+D13_CLASSES_REL = "forecasts/q26-touch-live/d13/classes.json"
 D12_GROUP = {"ETHBTC": "btc_eth", "LARGE": "large"}
 CLASSES = ["SKILL", "CALIBRATED-WARN", "RECALIBRATE", "CALIBRATED", "PENDING", "SCENARIO", "HISTORY COUNT",
            "DO NOT SHOW"]
@@ -374,7 +380,28 @@ def live_rules(classes):
     return rules
 
 
-def build(map_text, live_text="", d12_classes=None):
+def d13_rules(classes):
+    """One 'oracle_target' rule per D13 cell (classes.json of q26_live_d13.write_summary). Routed only for target =
+    oracle. surfaced = false keeps every number hidden until the owner rules."""
+    rules = []
+    surfaced = bool((classes or {}).get("surfaced", False))
+    for (g, h, k), c in sorted(d12_cells(classes).items()):
+        rules.append({"id": f"d13-{g}-{int(h)}h-{int(round(-100 * k))}", "section": "d13", "rank": SECTION_RANK["d13"],
+                      "context": "oracle_target", "assets": [g], "horizon": [[h, h]],
+                      "levels": {"kind": "set", "values": [k]}, "class": c.get("class"), "source": "raw_fH_twap",
+                      "evidence": (f"D13 live monitor, target (b) oracle crossing; default {c.get('defaultClass')} "
+                                   f"({c.get('defaultSource')})"
+                                   + (f"; downgraded on {c.get('downgradedAt')}" if c.get("downgraded") else "")),
+                      "monitor": {"id": "D13", "status": "deployed"}, "row": "", "display": surfaced,
+                      "surfaced": surfaced, "ui_use": (classes or {}).get("uiNote", ""),
+                      "event_label": c.get("eventLabel"), "downgraded": bool(c.get("downgraded")),
+                      "path_unavailable_dev_share": (c.get("pathUnavailable") or {}).get("devShare"),
+                      "note": "oracle-target odds (1 h TWAP from G(t0)); show oracle distance; path-unavailable "
+                              "flag reported separately and never lowers the odds"})
+    return rules
+
+
+def build(map_text, live_text="", d12_classes=None, d13_classes=None):
     live_ids = set(re.findall(r"^###\s+(D\d+)\b", live_text, flags=re.M))
     d12_cov = set(d12_cells(d12_classes)) if d12_classes is not None else None
     if not d12_cov:                                  # a pre-A2 classes.json (no horizon_h): keep the board sentence
@@ -449,6 +476,9 @@ def build(map_text, live_text="", d12_classes=None):
                 rules.append(rule)
     if d12_classes is not None:
         rules = apply_live(rules, d12_classes)
+    if d13_classes is not None and d12_cells(d13_classes):
+        rules += d13_rules(d13_classes)
+        live_ids.add("D13")
     return rules, unparsed, sorted(live_ids)
 
 
@@ -489,10 +519,18 @@ def main():
         d12_meta = {"path": D12_CLASSES_REL, "sha256": hashlib.sha256(craw).hexdigest(),
                     "lastLedgerDate": d12.get("lastLedgerDate"),
                     "downgraded": sorted(k for k, c in d12.get("cells", {}).items() if c.get("downgraded"))}
-    rules, unparsed, live_ids = build(raw.decode("utf-8"), live, d12)
+    d13, d13_meta = None, None
+    if a.datasets and os.path.exists(os.path.join(a.datasets, D13_CLASSES_REL)):
+        with open(os.path.join(a.datasets, D13_CLASSES_REL), "rb") as f:
+            craw = f.read()
+        d13 = json.loads(craw)
+        d13_meta = {"path": D13_CLASSES_REL, "sha256": hashlib.sha256(craw).hexdigest(),
+                    "lastLedgerDate": d13.get("lastLedgerDate"), "surfaced": bool(d13.get("surfaced", False)),
+                    "downgraded": sorted(k for k, c in d13.get("cells", {}).items() if c.get("downgraded"))}
+    rules, unparsed, live_ids = build(raw.decode("utf-8"), live, d12, d13)
     has_release = any(r["section"] == "release" for r in rules)
     core = {"schema": SCHEMA, "map_sha256": hashlib.sha256(raw).hexdigest(), "release_grading_present": has_release,
-            "live_monitors_deployed": live_ids, "d12_classes": d12_meta, "section_rank": SECTION_RANK, "rules": rules, "unparsed": unparsed}
+            "live_monitors_deployed": live_ids, "d12_classes": d12_meta, "d13_classes": d13_meta, "section_rank": SECTION_RANK, "rules": rules, "unparsed": unparsed}
     version = hashlib.sha256(json.dumps(core, sort_keys=True).encode()).hexdigest()[:16]
     doc = {"version": version, "generated_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
            **core}

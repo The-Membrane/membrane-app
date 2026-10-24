@@ -6,12 +6,15 @@ pointer and live-monitor id. The routing table is data: a versioned JSON written
 
 Asset classes: btc_eth, large, alt, young (an altcoin listing aged 85-364 days), steth.
 Context keys (all optional): oracle_through (bool: spot is through the line and the 1 h TWAP oracle is not yet),
-listing_age_days (int), asset (str, informational).
+listing_age_days (int), asset (str, informational), target ("oracle": the D13 oracle-crossing event, distance measured
+from G(t0), the 1 h TWAP at origin; absent or "spot": the map's spot-touch classes).
 
 Sources: raw_fH, recal_fH (slot for the R19.3 frozen recalibration), gru, reg2_young, imminent_oracle, chain,
 history_count (fallback), plus research-only ids parsed from the map (linear_pool, recal_r131, ...).
 
 Routing rule (fixed in code, the table supplies the cells):
+  0. target = "oracle" (after the oracle_through check) -> only D13 "oracle_target" rules route; no rule -> history_count.
+     A D13 rule with surfaced = false never shows a number (owner surfacing decision pending).
   1. oracle_through -> the matching imminent-oracle rule, if any.
   2. young listing (asset class alt with 85 <= age <= 364, or class young) -> a matching reg2 rule, if any.
   3. Candidate rules match asset class, horizon (hours, inclusive) and distance (negative fraction; a set level
@@ -100,6 +103,9 @@ class Router:
         cls, src = rule["class"], rule["source"]
         # a warning class needs a deployed live monitor; until then the UI shows it as labelled context
         shows = cls in SHOWS_NUMBER or (cls == "RECALIBRATE" and src == "recal_fH" and rule.get("validated", False))
+        not_surfaced = rule.get("surfaced") is False
+        if not_surfaced:
+            shows = False                                 # D13: monitor only until the owner surfaces it
         if not shows:
             src_out = "history_count"
         else:
@@ -111,12 +117,13 @@ class Router:
                 "monitor_missing": bool(shows and cls in ("CALIBRATED-WARN", "RECALIBRATE")
                                         and rule["monitor"].get("status") != "deployed"),
                 "also_matching": also, "reason": reason, "context": context or {},
-                "note": rule.get("note")}
+                "note": rule.get("note"), "not_surfaced": not_surfaced, "event_label": rule.get("event_label")}
 
     # ------------------------------------------------------------------------------------------------------------
     def route(self, asset_class, horizon_h, distance, context=None):
         o = self._route(asset_class, horizon_h, distance, context)
         o["display_class"] = ("CALIBRATED (labelled context; live monitor missing)" if o.get("monitor_missing")
+                              else f"{o['class']} (D13 monitor only; not surfaced)" if o.get("not_surfaced")
                               else o["class"])
         return o
 
@@ -140,6 +147,15 @@ class Router:
                 best = min(cand, key=self._key)
                 return self._out(best, asset_class, horizon_h, distance, ctx, [r["id"] for r in cand if r is not best],
                                  "oracle_through context")
+        # 0. the oracle-crossing target (D13): only oracle_target rules
+        if ctx.get("target") == "oracle":
+            cand = [r for r in self.rules if r.get("context") == "oracle_target" and asset_class in r["assets"]
+                    and self._h_match(r, horizon_h) and self._lv_match(r, distance)]
+            if not cand:
+                return self._out(None, asset_class, horizon_h, distance, ctx, [], "no oracle-target (D13) rule")
+            best = min(cand, key=self._key)
+            return self._out(best, asset_class, horizon_h, distance, ctx, [r["id"] for r in cand if r is not best],
+                             "oracle-target rule (D13)")
         # 2. young listing
         if young:
             cand = [r for r in self.rules if r.get("context") == "young_listing" and self._h_match(r, horizon_h)

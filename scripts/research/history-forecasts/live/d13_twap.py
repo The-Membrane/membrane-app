@@ -74,6 +74,14 @@ def hour_bars(G, j0=0, j1=None):
     return lo, hi, cl
 
 
+def g10_points(G, j0=0, j1=None):
+    """G at the 10-minute points of each hour (slots 60 j + 9, + 19, ..., + 59, i.e. TWAPs at hh:10 .. hh+1:00), round10,
+    None where G is null. -> list of 6-lists per hour j0 .. j1-1 (the D13 anchor flag, owner spec: 600 s updates)."""
+    nh = len(G) // W
+    j1 = nh if j1 is None else min(j1, nh)
+    return [[None if G[j * W + q] is None else round10(G[j * W + q]) for q in range(9, W, 10)] for j in range(j0, j1)]
+
+
 def bars_from_closes(closes, j0=0, j1=None):
     """closes per minute slot from an hour boundary (float or None) -> hour bars (low, high, close)."""
     return hour_bars(minute_G(ln_closes(closes)), j0, j1)

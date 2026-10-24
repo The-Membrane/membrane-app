@@ -88,7 +88,7 @@ def build_grid(args):
     t0 = st - STEP                                           # one hour of look-back before the first grid hour
     nmin = (L.GRID_END - t0) // 60
     closes = [None] * nmin
-    shas, nrows, dup = {}, 0, 0
+    shas, nrows, dup, offgrid = {}, 0, 0, 0
     y, m = int(C.iso(st)[:4]), int(C.iso(st)[5:7])
     files = []
     while (y, m) <= MONTHS_TO:
@@ -104,14 +104,23 @@ def build_grid(args):
             continue
         shas[name] = hashlib.sha256(raw).hexdigest()
         for o, c in parse_zip(raw):
+            # Floor to the minute slot, as R19.5 did: 2017-12-04 06:00:20 .. 2017-12-18 the files' open times sit
+            # 20 s off the minute grid. A later row in the same slot replaces an earlier one (R19.5: last write wins).
             j = (o - t0) // 60
-            if (o - t0) % 60 or not (0 <= j < nmin) or not (c > 0):
+            if not (0 <= j < nmin) or not (c > 0):
                 continue
+            if (o - t0) % 60:
+                offgrid += 1
             if closes[j] is not None:
                 dup += 1
             closes[j] = c
             nrows += 1
-    lo, hi, cl = TW.bars_from_closes(closes, 1, None)        # hour 0 of the minute slots is the look-back hour
+    Gm = TW.minute_G(TW.ln_closes(closes))
+    lo, hi, cl = TW.hour_bars(Gm, 1, None)                    # hour 0 of the minute slots is the look-back hour
+    g10 = np.array([[np.nan if v is None else v for v in r] for r in TW.g10_points(Gm, 1, None)], float)
+    os.makedirs(os.path.join(out, "g10"), exist_ok=True)
+    np.save(os.path.join(out, "g10", f"g10-{sym}.npy"), g10)   # development only (anchor flag share); not published
+    del Gm
     n = (L.GRID_END - st) // STEP
     assert len(cl) == n
     gd = os.path.join(out, "grids")
@@ -127,7 +136,7 @@ def build_grid(args):
     tail = closes[tail0:]
     return sym, {"path": os.path.basename(p), "sha256": C.sha256_file(p), "count": n,
                  "finiteClose": sum(v is not None for v in cl), "nullLow": sum(v is None for v in lo),
-                 "minuteRows": nrows, "duplicateMinutes": dup, "files": shas,
+                 "minuteRows": nrows, "duplicateMinutes": dup, "offGridMinutes": offgrid, "files": shas,
                  "tailFromTs": int(L.TAIL_START), "tailCloses": tail}
 
 
@@ -181,20 +190,22 @@ def cmd_rows(a):
     for e in S:
         sym = e["symbol"]
         st, g = L.read_grid(os.path.join(a.out, "grids", f"III-{sym}-1h.json.gz"))
+        g10 = np.load(os.path.join(a.out, "g10", f"g10-{sym}.npy"))
         for T in L.TS:
             for inp in ("III", "I"):
                 R = res[(inp, sym)].get(T)
                 if R is None:
                     continue
-                yb, fl, S0 = [], [], []
+                yb, fl, flh, S0 = [], [], [], []
                 for t in R["ts"]:
                     i = (int(t) - st) // STEP
                     s0 = g["close"][i - 1] if i >= 1 else np.nan
                     lab = L.label_b(g["low"][i:i + T], s0, T) if np.isfinite(s0) else None
                     yb.append([-1] * len(L.L8) if lab is None else lab)
-                    fl.append(L.anchor_flags(g["close"], g["low"], i, T, s0) if lab is not None else [0] * len(L.L8))
+                    fl.append(L.anchor_flags10(g10, g["low"], i, T, s0) if lab is not None else [0] * len(L.L8))
+                    flh.append(L.anchor_flags(g["close"], g["low"], i, T, s0) if lab is not None else [0] * len(L.L8))
                     S0.append(s0)
-                yb, fl = np.array(yb, np.int8), np.array(fl, np.int8)
+                yb, fl, flh = np.array(yb, np.int8), np.array(fl, np.int8), np.array(flh, np.int8)
                 if inp == "III":
                     ok = yb[:, 0] >= 0
                     stats["censoredStrict"] += int((~ok).sum())
@@ -204,6 +215,7 @@ def cmd_rows(a):
                     arr[f"{inp}|{sym}|{T}|{c}"] = v
                 arr[f"{inp}|{sym}|{T}|yb"] = yb
                 arr[f"{inp}|{sym}|{T}|flag"] = fl
+                arr[f"{inp}|{sym}|{T}|flagH"] = flh
     np.savez_compressed(os.path.join(a.out, "rows-d13.npz"), **arr)
     meta = {"code": C_git(), "finished": C.iso(int(time.time())), **stats}
     json.dump(meta, open(os.path.join(a.out, "rows-d13-meta.json"), "w"), indent=1)
@@ -264,7 +276,7 @@ def cmd_universe(a):
     with open(gp, "w") as f:
         json.dump(golden, f, indent=0, sort_keys=True)
         f.write("\n")
-    clim, v0, table, share, ratio = {}, {}, {}, {}, {}
+    clim, v0, table, share, shareH, ratio = {}, {}, {}, {}, {}, {}
     for key, T, js, g in L.monitor_units():
         ts, p, y = unit_rows(L, R, S, g, T, js)
         Rd = float(p.sum() / y.sum()) if y.sum() > 0 else 1.0
@@ -276,7 +288,7 @@ def cmd_universe(a):
             k = L.L8[js[0]]
             clim[key] = float(y.mean())
             # path-unavailable share among (b) crossings (development, report only)
-            fl, yy = [], []
+            fl, flh, yy = [], [], []
             for e in S:
                 D = R.get(("III", e["symbol"], T))
                 if e["group"] != g or D is None:
@@ -284,10 +296,14 @@ def cmd_universe(a):
                 ok = D["yb"][:, 0] >= 0
                 yy.append(D["yb"][ok][:, js[0]])
                 fl.append(D["flag"][ok][:, js[0]])
-            yy, fl = np.concatenate(yy), np.concatenate(fl)
+                flh.append(D["flagH"][ok][:, js[0]])
+            yy, fl, flh = np.concatenate(yy), np.concatenate(fl), np.concatenate(flh)
             share[key] = {"crossings": int(yy.sum()), "flagged": int(fl.sum()),
                           "share": float(fl.sum() / yy.sum()) if yy.sum() else None}
+            shareH[key] = {"crossings": int(yy.sum()), "flagged": int(flh.sum()),
+                           "share": float(flh.sum() / yy.sum()) if yy.sum() else None}
             table[key]["pathUnavailableShare"] = share[key]["share"]
+            table[key]["pathUnavailableShareHourly"] = shareH[key]["share"]
             # ratio arm (report only): kline (fH) sums on (b) by resolution time
             tsI, pI, yI = unit_rows(L, R, S, g, T, js, inp="I")
             res_t = tsI + T * STEP
@@ -310,7 +326,7 @@ def cmd_universe(a):
                  "STORE_START to GRID_END in the development files (splice check of the live store). climatology = "
                  "development frequency of target (b) per cell unit. v0 = plug-in prior variance per unit and side "
                  "(development days, p rescaled to pooled R = 1). ratioSums = kline (fH) and (b) sums of the ratio arm.",
-         "series": series, "climatology": clim, "v0": v0, "devTable": table, "pathUnavailableDev": share,
+         "series": series, "climatology": clim, "v0": v0, "devTable": table, "pathUnavailableDev": share, "pathUnavailableDevHourly": shareH,
          "ratioSums": ratio, "goldenSha256": C.sha256_file(gp), "gridsManifestCode": man["code"], "code": C_git()}
     with open(os.path.join(HERE, "d13_universe.json"), "w") as f:
         json.dump(U, f, indent=1)

@@ -21,9 +21,11 @@ Issue (q26_live_d13.py issue; inside the existing 00:17Z run):
 Score (q26_live_d13.py score; inside the existing 00:47Z run):
   truth (b) y = 1 iff min over hours h in (t, t + T] of the III hour low <= G(t) (1 + k), G(t) = the III close of the
             hour ending at t (oracle distance from G(t0), not spot). Any null III hour in the window censors the row.
-  flag      liquidation path unavailable (report only, never lowers the odds): simulated Oracle anchor (hourly commit
-            of the hour-end G; a move of more than 5% is clamped to 5% of the anchor; Oracle.sol commitMedianPrice), and
-            a crossing is flagged when (A - level) / level > 5% at the first crossing hour (Oracle.sol _deviationPct).
+  flag      liquidation path unavailable (report only, never lowers the odds): a simulated Oracle anchor; a commit
+            re-anchors to G if within 5%, else moves 5% of the anchor toward it (Oracle.sol commitMedianPrice). A
+            crossing is flagged when (A - level) / level > 5% at the crossing (Oracle.sol _deviationPct). PRIMARY rule
+            (owner spec, board ruling 2026-10-24): a commit every 600 s, at the 10-minute TWAP points. SECONDARY rule
+            (as coded, Oracle.sol:190 ANCHOR_UPDATE_INTERVAL = 3600): a commit at every hour end.
   monitor   the D12-A2 rule unchanged (q26_live_d12.monitor_step): per-cell two-sided e-processes for every D13 cell,
             plus the pooled -2..-10% monitor per horizon and group. Downgrade CALIBRATED-WARN -> CALIBRATED (terminal).
 No address, key or secret is read or written. Public endpoints only.
@@ -76,7 +78,8 @@ CLASS_DNS, CLASS_CAL = "DO NOT SHOW", "CALIBRATED"
 REPLAY_ORIGINS = L12.REPLAY_ORIGINS
 LOOKAHEAD_N = 5
 ANCHOR_DEV = 0.05                                     # Oracle maxDeviationPct (DeployFullSystem.s.sol: 5%)
-ANCHOR_WARM = 48                                      # hours of anchor simulation before the origin
+ANCHOR_WARM = 48                                      # hours of hourly-rule anchor simulation before the origin
+ANCHOR_WARM_10M = 3                                   # hours of 600 s-rule anchor simulation before the origin
 LABEL_LARGE = "Binance-proxy oracle event (no pool basis check)"
 LABEL_ETHBTC = "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)"
 TARGET = "(b) the 1 h TWAP crosses G(t0) (1 + k) within T; distance measured from G(t0), the oracle proxy at origin"
@@ -340,9 +343,9 @@ def anchor_at(close, i):
 
 
 def anchor_flags(close, low, i, T, S):
-    """Per L8 level: 1 if the first (b) crossing hour h has (A_h - level) / level > 5%, A_h the anchor in force in
-    hour h (hourly commits of the hour-end G from hour i - 48). The crossing value is taken as the level itself.
-    0 if no crossing or no anchor. Report only: never used to change a probability."""
+    """SECONDARY (as-coded hourly rule). Per L8 level: 1 if the first (b) crossing hour h has (A_h - level) / level >
+    5%, A_h the anchor in force in hour h (hourly commits of the hour-end G from hour i - 48). The crossing value is
+    taken as the level itself. 0 if no crossing or no anchor. Report only: never used to change a probability."""
     out = []
     A = anchor_at(close, i)
     cross = {}
@@ -369,6 +372,64 @@ def anchor_flags(close, low, i, T, S):
     return out
 
 
+def _points(g10, b0, b1):
+    """((hour, q), value) of the finite 10-minute TWAP points of hours b0 .. b1 - 1, in time order."""
+    out = []
+    for b in range(max(0, b0), min(b1, len(g10))):
+        for q in range(6):
+            v = g10[b][q]
+            if v is not None and np.isfinite(v):
+                out.append(((b, q), float(v)))
+    return out
+
+
+def anchor10_at(g10, i):
+    """PRIMARY (600 s rule): the simulated anchor at the origin (after the commit at the origin's 10-minute point),
+    from the points of hours i - 3 .. i - 1. None if no point."""
+    A = None
+    for _, v in _points(g10, i - ANCHOR_WARM_10M, i):
+        A = v if A is None else anchor_commit(A, v)
+    return A
+
+
+def anchor_flags10(g10, low, i, T, S):
+    """PRIMARY (owner spec: a commit every 600 s, at each 10-minute TWAP point from hour i - 3). Per L8 level: the
+    crossing time tau is the first 10-minute point of the first crossing hour h with G <= level, or the hour's last
+    point when G dipped below the level only between points. Flag 1 if (A - level) / level > 5%, A the anchor after
+    the commits strictly before tau; the crossing value is taken as the level. 0 if no crossing or no anchor."""
+    out = []
+    for k in L8:
+        lvl = S * (1 + k)
+        h = next((b for b in range(i, min(i + T, len(low))) if np.isfinite(low[b]) and low[b] <= lvl), None)
+        if h is None or h >= len(g10):
+            out.append(0)
+            continue
+        qs = [q for q in range(6) if g10[h][q] is not None and np.isfinite(g10[h][q]) and g10[h][q] <= lvl]
+        tau = (h, qs[0] if qs else 5)
+        A = None
+        for t_, v in _points(g10, i - ANCHOR_WARM_10M, h + 1):
+            if t_ >= tau:
+                break
+            A = v if A is None else anchor_commit(A, v)
+        out.append(0 if A is None else int((A - lvl) / lvl > ANCHOR_DEV))
+    return out
+
+
+def store_g10(st, rows, upto):
+    """(n, 6) array of 10-minute TWAP points per grid hour st .. upto - 1 h from the 1 m store (NaN before the store)."""
+    n = (upto - st) // HOUR
+    out = np.full((max(n, 0), 6), np.nan)
+    if not rows or upto <= STORE_START:
+        return out
+    G = TW.minute_G(TW.ln_closes(store_closes(rows, upto)))
+    j0 = (STORE_START - st) // HOUR
+    for jj, r in enumerate(TW.g10_points(G)):
+        j = j0 + jj
+        if 0 <= j < n:
+            out[j] = [np.nan if v is None else v for v in r]
+    return out
+
+
 # =====================================================================================================================
 # issue
 # =====================================================================================================================
@@ -382,8 +443,8 @@ def compute_series(e, origin, datasets, ldir, garble=False):
         if res is None:
             return None, why
         i = (origin - st) // HOUR
-        A = anchor_at(g["close"], i)
-        res["anchor"] = A
+        res["anchor"] = anchor10_at(store_g10(st, rows, origin), i)       # primary, 600 s rule
+        res["anchorHourly"] = anchor_at(g["close"], i)                    # secondary, as coded
         return res, None
     except Exception as ex:  # noqa: BLE001  (one series failing never stops the block; recorded as not issued)
         return None, f"error {type(ex).__name__}: {str(ex)[:160]}"
@@ -564,7 +625,7 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
             r = res[s_]
             ca = cov.get(s_, 0) < origin
             kr = kres.get(s_)
-            row.update({"issued": True, "S": r["S"], "anchor": r["anchor"],
+            row.update({"issued": True, "S": r["S"], "anchor": r["anchor"], "anchorHourly": r["anchorHourly"],
                         "anchorGapLog": (math.log(r["S"] / r["anchor"]) if r["anchor"] else None),
                         "fH": {TL[T]: f32(r["T"][T]["fH"]) for T in TS},
                         "f": {TL[T]: f32(r["T"][T]["f"]) for T in TS},
@@ -572,6 +633,9 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
                         "fHfallback": {TL[T]: r["T"][T]["fallback"] for T in TS},
                         "pathUnavailableShareDev": {TL[T]: [share[gkey(T, k, e["group"])]["share"] if k in LV else None
                                                             for k in L8] for T in TS},
+                        "pathUnavailableShareDevHourly": {TL[T]: [U["pathUnavailableDevHourly"][gkey(T, k, e["group"])]
+                                                                  ["share"] if k in LV else None for k in L8]
+                                                          for T in TS},
                         "censorAll": ca, "censorWhy": ("1 m store not fetched through the origin" if ca else None)})
             if kr is not None:
                 row["fHkline"] = {TL[T]: f32(kr["T"][T]["fH"]) for T in TS}
@@ -635,16 +699,18 @@ def read_outcomes(ldir):
 
 
 def labels_for(entry, datasets, ldir, origin, S, T, cov):
-    """(y list over L8 or None, flags list) or 'wait' when the store has not been fetched through origin + T."""
+    """(y list over L8 or None, primary flags, secondary flags) or 'wait' when the store has not been fetched through
+    origin + T."""
     sym = entry["symbol"]
     if cov.get(sym, 0) < origin + T * HOUR:
         return "wait"
-    st, _, _, g = series_grid(entry, datasets, ldir, origin + T * HOUR)
+    st, _, rows, g = series_grid(entry, datasets, ldir, origin + T * HOUR)
     i = (origin - st) // HOUR
     y = label_b(g["low"][i:i + T], S, T)
     if y is None:
-        return None, None
-    return y, anchor_flags(g["close"], g["low"], i, T, S)
+        return None, None, None
+    return (y, anchor_flags10(store_g10(st, rows, origin + T * HOUR), g["low"], i, T, S),
+            anchor_flags(g["close"], g["low"], i, T, S))
 
 
 def initial_state():
@@ -695,18 +761,18 @@ def score(a, U, log=print, clock=time.time, http_get=None):
             if now < t + T * HOUR + RESOLVE_MARGIN:
                 n_pend += 1
                 break
-            ys, fls, waiting = {}, {}, False
+            ys, fls, flh, waiting = {}, {}, {}, False
             for r in doc["series"]:
                 if not r["issued"]:
                     continue
                 e = [x for x in U["series"] if x["symbol"] == r["symbol"]][0]
-                lab = (None, None) if r.get("censorAll") else labels_for(e, a.datasets, ldir, t, r["S"], T, cov)
+                lab = (None, None, None) if r.get("censorAll") else labels_for(e, a.datasets, ldir, t, r["S"], T, cov)
                 if lab == "wait":
                     if now < t + T * HOUR + GIVE_UP:
                         waiting = True
                         break
-                    lab = (None, None)
-                ys[r["symbol"]], fls[r["symbol"]] = lab
+                    lab = (None, None, None)
+                ys[r["symbol"]], fls[r["symbol"]], flh[r["symbol"]] = lab
             if waiting:
                 n_pend += 1
                 break
@@ -716,6 +782,7 @@ def score(a, U, log=print, clock=time.time, http_get=None):
                     continue
                 series_out.append({"symbol": r["symbol"], "group": r["group"], "fH": r["fH"][TL[T]],
                                    "a": r["a"][TL[T]], "y": ys[r["symbol"]], "pathUnavailable": fls[r["symbol"]],
+                                   "pathUnavailableHourly": flh[r["symbol"]],
                                    "fHkline": (r["fHkline"] or {}).get(TL[T]) if r.get("fHkline") else None,
                                    "fHratio": (r["fHratio"] or {}).get(TL[T]) if r.get("fHratio") else None})
             oraw = (json.dumps(C.clean({"date": doc["date"], "origin": t, "T": TL[T], "series": series_out}),
@@ -795,9 +862,10 @@ def write_summary(ldir, U, led, state):
                 continue
             for k in LV:
                 j = L8.index(k)
-                c = flagged.setdefault(gkey(T, k, r["group"]), [0, 0])
+                c = flagged.setdefault(gkey(T, k, r["group"]), [0, 0, 0])
                 c[0] += r["y"][j]
                 c[1] += (r.get("pathUnavailable") or [0] * len(L8))[j]
+                c[2] += (r.get("pathUnavailableHourly") or [0] * len(L8))[j]
     classes = {"schema": SCHEMA + "/classes", "prereg": PREREG, "target": TARGET, "surfaced": False,
                "uiNote": UI_NOTE,
                "rule": ("D13: each cell starts at its default class (R19.5 III-on-(b) grading; ETH/BTC -15/-20% keep "
@@ -819,7 +887,7 @@ def write_summary(ldir, U, led, state):
         units = units_of(g, T, k, state)
         last = [state[u]["lastObserved"] for u in units if state[u]["lastObserved"]]
         name = f"{g} {TL[T]} {int(round(k * 100))}%"
-        fl = flagged.get(gkey(T, k, g), [0, 0])
+        fl = flagged.get(gkey(T, k, g), [0, 0, 0])
         classes["cells"][name] = {
             "group": g, "assets": [e["symbol"] for e in U["series"] if e["group"] == g], "horizon": TL[T],
             "horizon_h": T, "level": k, "target": "oracle", "class": eff[name], "defaultClass": default_class(g, T, k),
@@ -829,8 +897,12 @@ def write_summary(ldir, U, led, state):
             "downgraded": any(state[u]["downgraded"] for u in units),
             "downgradedAt": min([state[u]["downgradedAt"] for u in units if state[u]["downgradedAt"]], default=None),
             "lastObserved": max(last) if last else None,
-            "pathUnavailable": {"devShare": U["pathUnavailableDev"][gkey(T, k, g)]["share"],
-                                "liveCrossings": fl[0], "liveFlagged": fl[1]}}
+            "pathUnavailable": {"rule": "primary: anchor commit every 600 s (owner spec)",
+                                "devShare": U["pathUnavailableDev"][gkey(T, k, g)]["share"],
+                                "liveCrossings": fl[0], "liveFlagged": fl[1]},
+            "pathUnavailableHourly": {"rule": "secondary: as coded, commit every 3600 s (Oracle.sol:190)",
+                                      "devShare": U["pathUnavailableDevHourly"][gkey(T, k, g)]["share"],
+                                      "liveFlagged": fl[2]}}
     C.write_atomic(os.path.join(ldir, D13_SUB, "classes.json"), C.dumps(classes))
     clim = U["climatology"]
     acc, accr = {}, {}
@@ -849,7 +921,8 @@ def write_summary(ldir, U, led, state):
                     accr.setdefault(gk, []).append((week, r["fHratio"][j], r["a"][j], clim[gk], r["y"][j]))
     summ = {"schema": SCHEMA + "/summary", "display": "report only; the UI reads classes.json (not surfaced)",
             "ledgerLines": len(led), "lastDate": classes["lastLedgerDate"], "groups": {}, "ratioArm": {},
-            "pathUnavailable": {k_: {"crossings": v[0], "flagged": v[1]} for k_, v in flagged.items()}}
+            "pathUnavailable": {k_: {"crossings": v[0], "flagged600s": v[1], "flaggedHourly": v[2]}
+                                for k_, v in flagged.items()}}
     for key, T, js, g in monitor_units():
         s_ = state[key]
         summ["groups"][key] = {"class": s_["class"], "downgraded": s_["downgraded"],

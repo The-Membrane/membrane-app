@@ -56,6 +56,13 @@ MARKETS = {
              "end_ts": int(dt.datetime(2026, 10, 1, tzinfo=dt.timezone.utc).timestamp()),
              "usdc": ["0x2791bca1f2de4661ed88a30c99a7a9449aa84174", "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359"],
              "span": 100_000, "first_day": "2022-03-15", "pap": "0xa97684ead0e402dc232d5a977953df7ecbab3cdb"},
+    # R11.1-v5 blind confirmation set SV2-L (D-R11.1r): Pool code from block 11,970,506 (2022-03-11); one USDC
+    # reserve (native USDC); no PriceOracleSentinel. Avalanche log endpoints omit blockTimestamp (filled from headers)
+    "avax": {"chain": "avalanche", "pool": "0x794a61358d6845594f94dc1db02a252b5b4814ad",
+             "oracle": "0xebd36016b3ed09d4693ed4251c67bd858c3c7c9c", "start": 11_970_506,
+             "end_ts": int(dt.datetime(2026, 10, 1, tzinfo=dt.timezone.utc).timestamp()),
+             "usdc": ["0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"],
+             "span": 100_000, "first_day": "2022-03-15", "pap": "0xa97684ead0e402dc232d5a977953df7ecbab3cdb"},
 }
 T = {
     "Mint": X.topic("Mint(address,address,uint256,uint256,uint256)"),
@@ -101,6 +108,20 @@ def npsave(path, **arrs):
 def words(data):
     raw = bytes.fromhex(data[2:])
     return [int.from_bytes(raw[i:i + 32], "big") for i in range(0, len(raw), 32)]
+
+
+# R11.1-v5 (D-R11.1r): on Avalanche no log endpoint returns blockTimestamp; an AnswerUpdated log carries updatedAt,
+# which both aggregator types set to block.timestamp, so it is used as the log's timestamp (checked against headers
+# on a seeded sample by r111v5_gate.py integrity)
+ANSWER_TS_CHAINS = {"avalanche"}
+
+
+def answer_updated_ts(logs):
+    for x in logs:
+        if not x.get("blockTimestamp"):
+            u = int(x["data"][2:66] or "0", 16)
+            if u > 0:
+                x["blockTimestamp"] = hex(u)
 
 
 def log_ts(lg):
@@ -411,7 +432,8 @@ def phase_oracle(mk, work):
         p = os.path.join(od, f"{s}.npz")
         if os.path.exists(p):
             return
-        lg = lc.logs(aggs, [T["Answer"]], s, min(s + span - 1, hi))
+        lg = lc.logs(aggs, [T["Answer"]], s, min(s + span - 1, hi),
+                     pre_fill=answer_updated_ts if m["chain"] in ANSWER_TS_CHAINS else None)
         npsave(p, block=np.array([int(x["blockNumber"], 16) for x in lg], np.int64),
                lidx=np.array([int(x["logIndex"], 16) for x in lg], np.int32),
                ts=np.array([log_ts(x) for x in lg], np.int64),

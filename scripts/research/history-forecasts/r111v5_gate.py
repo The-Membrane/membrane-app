@@ -39,6 +39,36 @@ def jl(p):
         return json.load(f)
 
 
+# R11.1-v5 blind chain SV2-L (D-R11.1r)
+V.MK["avax"] = {"chain": "avalanche", "usdc": ["0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"],
+                "gas": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",                      # WAVAX
+                "pd_assets": ["0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab",              # WETH.e
+                              "0x50b7545627a5162f82a992c33b87adc75187b218"],             # WBTC.e
+                "pd_assets_reported": ["0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab",
+                                       "0x50b7545627a5162f82a992c33b87adc75187b218",
+                                       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7"],
+                "first": dt.date(2022, 3, 15), "last": dt.date(2026, 9, 30)}
+
+
+def cmd_counts(a):
+    """Counts only (D-R11.1r): USDC-debt LiquidationCall events and event days on gate days. Reads the debt reserve
+    and the timestamp of each locked row; no amount is decoded or printed."""
+    rows = jl(os.path.join(a.work, "liq-LOCKED.json.gz"))["rows"]
+    usdc = set(V.MK[a.mk]["usdc"])
+    gd = set(V.mk_days(a.mk))
+    allq = set(V.mk_days(a.mk, True))
+    evd = [dt.datetime.fromtimestamp(r["ts"], dt.timezone.utc).date().isoformat() for r in rows if r["debt"] in usdc]
+    res = {"stage": f"counts-only ({a.mk})", "liquidation_logs_all": len(rows), "usdc_debt_events_all": len(evd),
+           "non_positive_ts": sum(1 for r in rows if not r["ts"] or r["ts"] <= 0),
+           "gate_days": len(gd), "q2_days_reported_only": len(allq) - len(gd),
+           "usdc_debt_events_on_gate_days": sum(1 for d in evd if d in gd),
+           "gate_days_with_a_usdc_debt_event": len(set(evd) & gd),
+           "event_day_share": len(set(evd) & gd) / len(gd), "utc": G.utcnow()}
+    os.makedirs(a.out, exist_ok=True)
+    G.jdump(os.path.join(a.out, f"counts-{a.mk}.json"), res)
+    print(json.dumps(res, indent=1))
+
+
 def conf_metas(work):
     d = os.path.join(work, "meta-conf")
     if not os.path.isdir(d):
@@ -231,7 +261,7 @@ def main():
     ap.add_argument("--v4", action="store_true")
     ap.add_argument("--resume", action="store_true")
     a = ap.parse_args()
-    {"window": cmd_window, "kar": cmd_kar, "devrun": cmd_devrun}[a.cmd](a)
+    {"window": cmd_window, "kar": cmd_kar, "devrun": cmd_devrun, "counts": cmd_counts}[a.cmd](a)
 
 
 if __name__ == "__main__":

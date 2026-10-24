@@ -20,6 +20,9 @@ ENDPOINTS = {
     # Polygon PoS (R11.1-v4, D-R11.1k): the Tenderly gateway serves logs with blockTimestamp, 100,000-block spans and
     # archive state from the Aave V3 Pool deployment (block 25,826,028); publicnode refuses archive reads (HTTP 403)
     "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"],
+    # Avalanche C-Chain (R11.1-v5, D-R11.1r): logs with 100,000-block spans on Tenderly; no endpoint returns
+    # blockTimestamp, so every timestamp comes from a block header (Client.fill_ts)
+    "avalanche": ["https://avalanche.gateway.tenderly.co", "https://avalanche.api.onfinality.io/public/ext/bc/C/rpc"],
 }
 # archive eth_call: arb1.arbitrum.io holds no archive state (D-R11.9a inventory note)
 CALL_ENDPOINTS = {
@@ -28,15 +31,24 @@ CALL_ENDPOINTS = {
     # the Tenderly gateway misses state at some blocks (e.g. 45,638,983: getStateObject error); drpc and quiknode serve them
     "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon",
                 "https://polygon.drpc.org", "https://rpc-mainnet.matic.quiknode.pro"],
+    "avalanche": ["https://avalanche.gateway.tenderly.co", "https://api.avax.network/ext/bc/C/rpc",
+                  "https://avalanche.api.onfinality.io/public/ext/bc/C/rpc", "https://avax.api.pocket.network"],
 }
 # hourly reads spread over more keyless archive endpoints (no batch on nodies); block headers from the full nodes
 HOURLY_CALL_ENDPOINTS = {"arbitrum": ["https://arbitrum.gateway.tenderly.co", "https://gateway.tenderly.co/public/arbitrum",
                                       "https://arbitrum-one.public.blastapi.io", "https://arb-pokt.nodies.app"],
                          "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon",
-                                     "https://polygon.drpc.org", "https://rpc-mainnet.matic.quiknode.pro"]}
+                                     "https://polygon.drpc.org", "https://rpc-mainnet.matic.quiknode.pro"],
+                         "avalanche": ["https://avalanche.gateway.tenderly.co", "https://api.avax.network/ext/bc/C/rpc",
+                                       "https://avalanche.api.onfinality.io/public/ext/bc/C/rpc",
+                                       "https://avax.api.pocket.network"]}
 HEADER_ENDPOINTS = {"arbitrum": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one.publicnode.com"],
-                    "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"]}
+                    "polygon": ["https://polygon.gateway.tenderly.co", "https://gateway.tenderly.co/public/polygon"],
+                    "avalanche": ["https://api.avax.network/ext/bc/C/rpc"]}
 MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11"
+# R11.1-v5: batched header reads where logs carry no blockTimestamp (api.avax.network answers batches of 40)
+HEADER_BATCH = {"avalanche": "https://api.avax.network/ext/bc/C/rpc"}
+HEADER_BATCH_SIZE = 40
 
 # R11.1-v4 (D-R11.1m): an owner-provided free-tier key may be set in the environment (never written to code, logs or
 # outputs). When set, it serves state reads (eth_call, headers) first; log scans stay on keyless endpoints (the free
@@ -44,7 +56,7 @@ MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11"
 import os as _os
 KEYED_URLS = set()
 _KEYED = {"polygon": "Q26_POLYGON_RPC_URL", "optimism": "Q26_OP_RPC_URL", "arbitrum": "Q26_ARB_RPC_URL",
-          "ethereum": "Q26_ETH_RPC_URL"}
+          "ethereum": "Q26_ETH_RPC_URL", "avalanche": "Q26_AVAX_RPC_URL"}
 for _ch, _var in _KEYED.items():
     _u = _os.environ.get(_var)
     if _u:
@@ -66,6 +78,7 @@ class TooMany(Exception):
 
 class Client:
     def __init__(self, chain, interval=0.12, calls=False):
+        self.chain = chain
         self.urls = list((CALL_ENDPOINTS if calls else ENDPOINTS)[chain])
         self.interval = interval
         self.lock = threading.Lock()
@@ -146,7 +159,7 @@ class Client:
                 time.sleep(min(2 + 2 * k, 20))
         raise RpcError(f"batch failed after {tries}: {err}")
 
-    def logs(self, address, topics, lo, hi):
+    def logs(self, address, topics, lo, hi, pre_fill=None):
         """All logs in [lo, hi], splitting on result caps. Returns the raw log dicts in chain order."""
         out = []
         stack = [(lo, hi)]
@@ -173,8 +186,35 @@ class Client:
                 self.stats["logs"] += len(res)
             out.extend(res)
         out.sort(key=lambda x: (int(x["blockNumber"], 16), int(x["logIndex"], 16)))
+        if pre_fill is not None:
+            pre_fill(out)
         self.fill_ts(out)
         return out
+
+    def _header_batch(self, url, blocks, tries=8):
+        payload = json.dumps([{"jsonrpc": "2.0", "id": i, "method": "eth_getBlockByNumber", "params": [hex(b), False]}
+                              for i, b in enumerate(blocks)]).encode()
+        for k in range(tries):
+            try:
+                body = self._post(url, payload, timeout=60)
+                if not isinstance(body, list):
+                    raise RpcError(str(body)[:200])
+                got = {}
+                for x in body:
+                    h = x.get("result") or {}
+                    ts = int(h.get("timestamp") or "0x0", 16)
+                    if ts > 0 and int(h.get("number") or "0x0", 16) == blocks[x["id"]]:
+                        got[blocks[x["id"]]] = ts
+                with self.lock:
+                    self._hdr_ts.update(got)
+                    self.stats["requests"] += 1
+                    self.stats["ts_filled"] += len(got)
+                return
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ConnectionError, RpcError,
+                    json.JSONDecodeError, OSError, KeyError, IndexError):
+                with self.lock:
+                    self.stats["errors"] += 1
+                time.sleep(min(1 + 2 * k, 20))
 
     def header_ts(self, block):
         """Block timestamp from the block header (cached). Raises on a missing or zero timestamp."""
@@ -189,7 +229,16 @@ class Client:
 
     def fill_ts(self, logs):
         """R11.1-v4 (D-R11.1j/k): some keyless endpoints omit blockTimestamp. Never default it to 0: fill every
-        missing one from the block header, then check that every log carries a positive timestamp."""
+        missing one from the block header, then check that every log carries a positive timestamp.
+        R11.1-v5 (D-R11.1r): on a chain with a header batch endpoint (Avalanche: no endpoint returns blockTimestamp)
+        the missing headers are first read in batches of HEADER_BATCH_SIZE; any block still missing falls back to the
+        single read."""
+        hb = HEADER_BATCH.get(getattr(self, "chain", None))
+        if hb:
+            need = sorted({int(x["blockNumber"], 16) for x in logs
+                           if (not x.get("blockTimestamp") or int(x["blockTimestamp"], 16) <= 0)} - set(self._hdr_ts))
+            for i in range(0, len(need), HEADER_BATCH_SIZE):
+                self._header_batch(hb, need[i:i + HEADER_BATCH_SIZE])
         for x in logs:
             if not x.get("blockTimestamp") or int(x["blockTimestamp"], 16) <= 0:
                 x["blockTimestamp"] = hex(self.header_ts(int(x["blockNumber"], 16)))

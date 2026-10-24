@@ -460,6 +460,15 @@ def acq_sym(sym, out, y0=2017, y1=2026, m1=9):
         return sym, "none"
     t = np.concatenate(t_list)
     c = np.concatenate(c_list)
+    hour_ts, gmin, gend, _ = g_summary(t, c)
+    np.savez_compressed(fn, hour_ts=hour_ts, gmin=gmin, gend=gend)
+    json.dump(shas, open(os.path.join(out, f"g1m-{sym}-sha256.json"), "w"), indent=0)
+    return sym, f"{len(shas)} months, {len(hour_ts)} hours"
+
+
+def g_summary(t, c):
+    """minute open times t (s) and closes c -> hour open ts, min over the hour's minutes of G, G at the hour's last
+    minute, and G per minute (G(m) = exp(mean ln close of the 60 bars ending at m), >= 50 present)."""
     t0 = (t.min() // STEP) * STEP
     nmin = (t.max() - t0) // 60 + 1
     lc = np.full(nmin, np.nan)
@@ -478,9 +487,7 @@ def acq_sym(sym, out, y0=2017, y1=2026, m1=9):
     allok = np.isfinite(Gh).all(axis=1)
     gmin = np.where(allok, np.nanmin(np.where(np.isfinite(Gh), Gh, np.inf), axis=1), np.nan)
     gend = Gh[:, -1]                                          # G at the last minute of the hour (= at hour end)
-    np.savez_compressed(fn, hour_ts=(t0 + STEP * np.arange(nh)).astype(np.int64), gmin=gmin, gend=gend)
-    json.dump(shas, open(os.path.join(out, f"g1m-{sym}-sha256.json"), "w"), indent=0)
-    return sym, f"{len(shas)} months, {nh} hours"
+    return (t0 + STEP * np.arange(nh)).astype(np.int64), gmin, gend, G
 
 
 def cmd_acq1m(a):
@@ -847,7 +854,7 @@ def asset_stats(p1, p0, y, sel, blk):
     return {"rows": int(m.sum()), "pos": int(yy.sum()), "bss": float(1 - e1.sum() / e0.sum()), "z": bt["z"],
             "p_pct": bt["p_pct"], "R1": float(p1[m].sum() / yy.sum()), "R0": float(p0[m].sum() / yy.sum()),
             "pos_blocks": int(len(np.unique(blk[m][yy == 1]))), "mean_d": float(d.mean()),
-            "sd_mean_d": bt["sd"]}
+            "sd_mean_d": bt["sd"], "blocks": int(len(np.unique(blk[m]))), "mean_e0": float(e0.mean())}
 
 
 def assemble(out_dir):
@@ -941,6 +948,7 @@ def cmd_score(a):
     btcm = X["sid"] == keys.index("dev:BTC")
     largem = X["grp"] == "large"
     arms = ("iA", "iB", "ii")
+    SAVE = {}
     for T in TS_B:
         r = X["T"] == T
         sidT, tsT, blkT, gT = X["sid"][r], X["ts"][r], blk[r], X["grp"][r]
@@ -956,6 +964,10 @@ def cmd_score(a):
             for arm in arms:
                 P[arm] = X["p_" + arm][r]
             Pc = {nm: recal(P[nm], Y, tsT, T, folds) for nm in ("fH", "iA", "iB", "ii")}
+            if lab == "spot":
+                SAVE[T] = {"sid": sidT, "ts": tsT, "y": Y, "ft": FT, "grp": gT,
+                           **{f"raw_{nm}": P[nm] for nm in ("fH", "iA", "ii")},
+                           **{f"cal_{nm}": Pc[nm] for nm in ("fH", "iA", "ii")}}
             tw = None
             for c, k in enumerate(LV_B):
                 cell = f"{TL[T]} {int(round(k * 100))}%"
@@ -1017,7 +1029,208 @@ def cmd_score(a):
     np.savez_compressed(os.path.join(a.out, "score-forecasts.npz"), T=X["T"], sid=X["sid"], ts=X["ts"],
                         p_iA=X["p_iA"].astype(np.float32), p_iB=X["p_iB"].astype(np.float32),
                         p_ii=X["p_ii"].astype(np.float32))
+    np.savez_compressed(os.path.join(a.out, "spot-forecasts.npz"),
+                        **{f"T{T}_{k}": v for T, dd in SAVE.items() for k, v in dd.items()})
     print(now(), "END score", flush=True)
+
+
+# =====================================================================================================================
+# verdicts (R19.2d DEV-SKILL with Holm; R19.2e transfer)
+# =====================================================================================================================
+def devskill(cells, comp, names, lab="spot"):
+    rows = []
+    for nm in names:
+        st = cells.get(nm, {}).get(lab, {}).get(comp)
+        if not st or "z" not in st or st.get("z") is None:
+            rows.append((nm, 1.0, st))
+            continue
+        rows.append((nm, max(st["p_centred"], st["p_pct"]) if st["bss"] > 0 else 1.0, st))
+    m = len(rows)
+    order = sorted(range(m), key=lambda i: rows[i][1])
+    holm_ok, alive = {}, True
+    for j, i in enumerate(order):
+        alive = alive and rows[i][1] <= 0.05 / (m - j)
+        holm_ok[rows[i][0]] = alive
+    out = {}
+    for nm, p, st in rows:
+        if not st or "z" not in st:
+            out[nm] = {"pass": False, "why": "no positives or no stats"}
+            continue
+        legs = {"holm": bool(holm_ok[nm]), "ltk": st["ltk"]["mean_after"] is not None and st["ltk"]["mean_after"] < 0,
+                "event": st["event"]["mean_after"] < 0, "Rband": R_BAND[0] <= st["R1"] <= R_BAND[1],
+                "pos_blocks": st["pos_blocks"] >= MIN_POS_BLOCKS}
+        flag = None
+        if st["z"] is not None and st["cgm_z"] is not None and (st["z"] < 0) != (st["cgm_z"] < 0):
+            flag = "two-way and CGM signs disagree"
+        out[nm] = {"pass": all(legs.values()), "legs": legs, "p": p, "bss": st["bss"], "z": st["z"],
+                   "cgm_z": st["cgm_z"], "R1": st["R1"], "R0": st["R0"], "flag": flag}
+    return out
+
+
+def transfer(st):
+    from scipy.stats import norm  # noqa: F401
+    eb, lg_ = st.get("ETHBTC", {}), st.get("groups", {}).get("large", {})
+    if "bss" not in eb or "bss" not in lg_:
+        return {"verdict": "UNDETERMINED", "why": "no positives in a group"}
+    v = "UNDETERMINED"
+    if eb["bss"] > 0 and eb["z"] is not None and eb["z"] <= -1.645:
+        v = "CARRIES"
+    elif eb["bss"] < 0 and eb["z"] is not None and eb["z"] >= 1.645:
+        v = "CONTRADICTED"
+    out = {"verdict": v, "bss_ethbtc": eb["bss"], "z_ethbtc": eb["z"], "bss_large": lg_["bss"], "z_large": lg_["z"],
+           "ratio": eb["bss"] / lg_["bss"] if lg_["bss"] not in (0, None) else None}
+    if v == "UNDETERMINED" and lg_["bss"] > 0 and eb.get("sd_mean_d"):
+        dass = lg_["bss"] * eb["mean_e0"]
+        out["blocks_needed_80"] = float(eb["blocks"] * ((1.645 + 0.8416) * eb["sd_mean_d"] / dass) ** 2)
+        out["blocks_have"] = eb["blocks"]
+    return out
+
+
+def cmd_verdict(a):
+    sc = json.load(open(os.path.join(a.out, "score-r192.json")))
+    cells = sc["cells"]
+    allc = [f"{TL[T]} {int(round(k * 100))}%" for T in TS_B for k in LV_B]
+    direct_i = [f"{TL[T]} {int(round(k * 100))}%" for T in TS_B for k in (-0.05, -0.10)]
+    res = {"code": D.git_sha(), "label": "DEVELOPMENT ONLY (seen data)"}
+    for lab in ("spot", "or1m", "orlag"):
+        res[lab] = {"ii_recal": devskill(cells, "ii_recal_vs_fHrecal", allc, lab),
+                    "ii_raw": devskill(cells, "ii_raw_vs_fH", allc, lab),
+                    "iA_recal": devskill(cells, "iA_recal_vs_fHrecal", direct_i, lab),
+                    "iA_raw": devskill(cells, "iA_raw_vs_fH", direct_i, lab)}
+    res["transfer"] = {}
+    for comp in ("ii_recal_vs_fHrecal", "iA_recal_vs_fHrecal", "ii_raw_vs_fH"):
+        for lab in ("spot", "or1m"):
+            res["transfer"][f"{comp}|{lab}"] = {c: transfer(cells[c][lab][comp]) for c in allc
+                                                if lab in cells.get(c, {}) and comp in cells[c][lab]}
+    cand = [c for c, v in res["spot"]["ii_recal"].items() if v["pass"]]
+    arm = "ii"
+    if not cand:
+        cand = [c for c, v in res["spot"]["iA_recal"].items() if v["pass"]]
+        arm = "iA"
+    res["candidates"], res["arm"] = cand, arm
+    json.dump(res, open(os.path.join(a.out, "devskill-r192.json"), "w"), indent=1, default=float)
+    for lab in ("spot", "or1m"):
+        for k_ in ("ii_recal", "iA_recal"):
+            print(lab, k_, "DEV-SKILL:", [c for c, v in res[lab][k_].items() if v["pass"]], flush=True)
+    print("candidates", arm, cand, flush=True)
+
+
+# =====================================================================================================================
+# power (D-R13.5c rule 1 as R16.5e, with the B20a shrink)
+# =====================================================================================================================
+SHAPES = {   # name: (series, months of scorable common window, note) -- listing data only, no reserved byte read
+    "B23a": (6, 48, "Upbit/Bithumb KRW, first months 2020-02..2023-03; thin; owned by the R16.2e strict-GRU lane"),
+    "B23a+B23b": (9, 48, "as B23a plus MOC/BIOT/MVC"),
+    "P3b-b": (41, 9, "Binance 2025 listings (R13.4 hold-back); 365-day warm-up leaves <= ~9 months"),
+    "P3c": (31, 0, "Binance 2026 listings (R13.4 hold-back); no scorable month after warm-up"),
+    "B18 (published counts)": (11, 48, "Poloniex; 11-13 series pass the null rule (D-R16.5b); R16.5 family"),
+    "B22": (17, 36, "Bitget/WhiteBIT/Crypto.com; depth unknown; R16.5 reserve"),
+    "P5b": (4, 45, "Coinbase/Kraken; P5a bound had 4 eligible series; R16.1 reserve"),
+}
+
+
+def var_parts(d, sid, blk):
+    n = len(d)
+    e = d - d.mean()
+
+    def v(g):
+        _, inv = np.unique(g, return_inverse=True)
+        s_ = np.bincount(inv, weights=e)
+        return float((s_ ** 2).sum()) / n ** 2
+    return v(sid), v(blk), v(sid.astype(np.int64) * 100000 + blk.astype(np.int64))
+
+
+def power_cell(p1, p0, y, sid, ts, ft, T, S_new, B_new, C_new, alpha_m=1):
+    from scipy.stats import norm
+    m = y >= 0
+    p1, p0, y, sid, ts, ft = p1[m], p0[m], y[m].astype(float), sid[m], ts[m], ft[m]
+    blk = (ts // (28 * DAY)).astype(np.int64)
+    d = (p1 - y) ** 2 - (p0 - y) ** 2
+    tw = TW(sid, blk, B=B_BOOT, seed=BOOT_SEED)
+    bt = tw.boot(d)
+    var_b = bt["sd"] ** 2
+    Vs, Vb, Vsb = var_parts(d, sid, blk)
+    Vint = Vsb
+    c = (var_b - Vs - Vb) / Vint if Vint > 0 else 0.0
+    S_dev = len(np.unique(sid[y == 1]))
+    B_dev = len(np.unique(blk[y == 1]))
+    C_dev = len(np.unique(sid[y == 1].astype(np.int64) * 100000 + blk[y == 1]))
+    fac = (Vs * S_dev / max(S_new, 1e-9) + Vb * B_dev / max(B_new, 1e-9) + c * Vint * C_dev / max(C_new, 1e-9)) / var_b
+    fac = max(fac, 1e-9)
+    zdev = -bt["z"]                                   # gain-positive
+    zproj = SHRINK_B20A * zdev / math.sqrt(fac)
+    za = norm.ppf(1 - 0.05 / alpha_m)
+    us, inv = np.unique(sid, return_inverse=True)
+    tot = np.bincount(inv, weights=d)
+    k = max(3, math.ceil(0.025 * len(us)))
+    keep = ~np.isin(inv, np.argsort(tot)[:k])
+    z_ltk = -(tw.boot(d, keep)["z"] or 0)
+    _, kp = event_day_drop(ft, y.astype(int), ts, sid, T)
+    z_ev = -(tw.boot(d, kp)["z"] or 0)
+    sc = zproj / zdev if zdev else 0
+    p_test = norm.cdf(zproj - za)
+    p_ev = norm.cdf(z_ev * sc - za)
+    p_ltk = norm.cdf(z_ltk * sc)
+    # R band from bootstrap of ln R1
+    Sc1 = np.zeros((len(tw.us), len(tw.ub)))
+    Scy = np.zeros_like(Sc1)
+    np.add.at(Sc1, (tw.si, tw.bi), p1)
+    np.add.at(Scy, (tw.si, tw.bi), y)
+    num = np.einsum("bs,sk,bk->b", tw.ws, Sc1, tw.wb)
+    den = np.einsum("bs,sk,bk->b", tw.ws, Scy, tw.wb)
+    lr = np.log(num[den > 0] / den[den > 0])
+    lr0 = math.log(p1.sum() / y.sum())
+    sdl = float(np.std(lr)) * math.sqrt(fac)
+    p_R = norm.cdf((math.log(R_BAND[1]) - lr0) / sdl) - norm.cdf((math.log(R_BAND[0]) - lr0) / sdl)
+    joint = min(p_test, p_ev) * p_ltk * p_R
+    return {"z_dev": zdev, "factor": fac, "c": c, "z_proj_shrunk": zproj, "test": p_test, "event": p_ev,
+            "ltk": p_ltk, "Rband": p_R, "joint": joint, "S_dev": S_dev, "B_dev": B_dev, "C_dev": C_dev,
+            "S_new": S_new, "B_new": B_new, "C_new": C_new}
+
+
+def cmd_power(a):
+    Z = np.load(os.path.join(a.out, "spot-forecasts.npz"))
+    sc = json.load(open(os.path.join(a.out, "score-r192.json")))
+    sel = json.load(open(os.path.join(a.out, "devskill-r192.json")))
+    out = {"code": D.git_sha(), "rule": "D-R13.5c rule 1 (R16.5e) x B20a shrink 0.40", "shapes": SHAPES, "cells": {}}
+    cand = sel["candidates"]
+    for name in cand:
+        T_s, k_s = name.split(" ")
+        T = {v: k_ for k_, v in TL.items()}[T_s]
+        c = LV_B.index(int(k_s[:-1]) / 100)
+        arm = sel["arm"]
+        g = lambda k_: Z[f"T{T}_{k_}"]  # noqa: E731
+        y, sid, ts, ft = g("y")[:, c], g("sid"), g("ts"), g("ft")[:, c]
+        p1, p0 = g(f"cal_{arm}")[:, c], g("cal_fH")[:, c]
+        m = y >= 0
+        n_series_dev = len(np.unique(sid[m]))
+        blk = ts // (28 * DAY)
+        months_dev = (ts[m].max() - ts[m].min()) / (30.44 * DAY)
+        S_dev = len(np.unique(sid[m & (y == 1)]))
+        B_dev = len(np.unique(blk[m & (y == 1)]))
+        C_dev = len(np.unique(sid[m & (y == 1)].astype(np.int64) * 100000 + blk[m & (y == 1)]))
+        pos_s_share = S_dev / n_series_dev
+        posb_per_month = B_dev / months_dev
+        posc_per_sm = C_dev / (n_series_dev * months_dev)
+        res = {"dev": {"series": n_series_dev, "months": months_dev, "pos_series": S_dev, "pos_blocks": B_dev,
+                       "pos_cells": C_dev}, "shapes": {}}
+        for nm, (ns, mo, _) in SHAPES.items():
+            if mo <= 0:
+                res["shapes"][nm] = {"joint": 0.0, "note": "no scorable months"}
+                continue
+            res["shapes"][nm] = power_cell(p1, p0, y, sid, ts, ft, T, max(1, ns * pos_s_share),
+                                           max(1, posb_per_month * mo), max(1, posc_per_sm * ns * mo))
+        # prospective live log on the non-BTC/ETH development series: months to joint 0.80
+        live = {}
+        for mo in (6, 12, 24, 36, 60, 120, 240):
+            ns = n_series_dev - 3
+            live[str(mo)] = power_cell(p1, p0, y, sid, ts, ft, T, ns * pos_s_share, posb_per_month * mo,
+                                       posc_per_sm * ns * mo)["joint"]
+        res["live_months_joint"] = live
+        out["cells"][name] = res
+        print(now(), name, json.dumps({k_: round(v["joint"], 3) for k_, v in res["shapes"].items()}),
+              "live", json.dumps({k_: round(v, 3) for k_, v in live.items()}), flush=True)
+    json.dump(out, open(os.path.join(a.out, "power-r192.json"), "w"), indent=1, default=float)
 
 
 # =====================================================================================================================
@@ -1080,14 +1293,26 @@ def cmd_kat(a):
             top = np.argsort(tot)[:lk["k"]]
             res["ltk_rows_dropped_ok"] = bool((~np.isin(inv, top)).sum() == len(d) - days * lk["k"])
             ft = np.where(y == 1, rng.integers(0, 24, len(y)), -1)
-            day, kp = event_day_drop(ft, y, ts, sid, 24)
+            y2, ft2 = y.copy(), ft.copy()
+            inj = np.flatnonzero(((ts - 1546300800) // DAY == 500) & (sid < 30))     # a planted market-wide day
+            y2[inj], ft2[inj] = 1, 3
+            day, kp = event_day_drop(ft2, y2, ts, sid, 24)
+            res["event_day_planted_found"] = bool(day == (1546300800 // DAY) + 500)
             t0 = day * DAY
             res["event_day"] = day
             res["event_drop_ok"] = bool(((ts < t0 + DAY) & (ts + 24 * STEP > t0) == ~kp).all())
+    # 1 m geometric-mean label: a step 100 -> 80 at minute 330 crosses 90 when >= 29 of the 60 minutes are at 80
+    tt = 1546300800 + 60 * np.arange(600)
+    cc = np.where(np.arange(600) >= 330, 80.0, 100.0)
+    _, gmin_, _, Gm = g_summary(tt, cc)
+    first = int(np.argmax(Gm <= 90.0))
+    res["step_first_cross_minute"] = first
+    res["step_ok"] = bool(first == 358)               # 358 - 330 + 1 = 29 bars at 80
     res["size"] = res["null_rejections"] / 40
     res["power"] = res["gain_rejections"] / 40
     res["pass"] = bool(res["size"] <= 0.15 and res["power"] >= 0.8 and res["identity_bss"] < 1e-12
-                       and res["ltk_rows_dropped_ok"] and res["event_drop_ok"])
+                       and res["ltk_rows_dropped_ok"] and res["event_drop_ok"] and res["event_day_planted_found"]
+                       and res["step_ok"])
     json.dump(res, open(os.path.join(a.out, "kat-r192.json"), "w"), indent=1, default=float)
     print("KAT", json.dumps(res), flush=True)
 
@@ -1135,9 +1360,14 @@ def main():
     s.add_argument("--threads", type=int, default=1)
     s = sub.add_parser("kat")
     s.add_argument("--out", required=True)
+    s = sub.add_parser("power")
+    s.add_argument("--out", required=True)
+    s = sub.add_parser("verdict")
+    s.add_argument("--out", required=True)
     a = ap.parse_args()
     {"rows": cmd_rows, "check": cmd_check, "lookahead": cmd_lookahead, "acq1m": cmd_acq1m, "olabels": cmd_olabels,
-     "armi": cmd_armi, "armii": cmd_armii, "score": cmd_score, "synth": cmd_synth, "kat": cmd_kat}[a.cmd](a)
+     "armi": cmd_armi, "armii": cmd_armii, "score": cmd_score, "synth": cmd_synth, "kat": cmd_kat,
+     "power": cmd_power, "verdict": cmd_verdict}[a.cmd](a)
 
 
 if __name__ == "__main__":

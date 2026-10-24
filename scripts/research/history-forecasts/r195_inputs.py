@@ -659,7 +659,7 @@ def specs_for(datasets, out):
         g = "ETHBTC" if sym in ("ETHUSDT", "BTCUSDT") else "LARGE"
         base = os.path.join(datasets, e["path"])
         for inp in MAIN:
-            path = base if inp.startswith("I") and inp != "III" else os.path.join(out, "grids", f"{inp}-{sym}-1h.json.gz")
+            path = base if inp in ("I", "I-cc", "I-gk", "I-rs") else os.path.join(out, "grids", f"{inp}-{sym}-1h.json.gz")
             S.append({"key": f"{inp}|{sym}", "inp": inp, "sym": sym, "group": g, "kind": "grid", "path": path})
         if g == "ETHBTC":
             S.append({"key": f"II|{sym}", "inp": "II", "sym": sym, "group": g, "kind": "chain",

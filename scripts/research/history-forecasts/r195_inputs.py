@@ -816,19 +816,26 @@ def cmd_score(a):
     U = universe()
     eb = [e["symbol"] for e in U if e["symbol"] in ("ETHUSDT", "BTCUSDT")]
     lg = [e["symbol"] for e in U if e["symbol"] not in ("ETHUSDT", "BTCUSDT")]
-    out = {"code": git_sha(), "started_utc": now()}
-    for span, smin in (("full", 0), ("2021", SPAN2021)):
-        out[f"main|{span}"] = score_panel(R, {"ETHBTC": eb, "LARGE": lg}, MAIN, smin)
+    fn = os.path.join(a.out, "score-r195.json")
+    out = json.load(open(fn)) if os.path.exists(fn) else {}
+    out.setdefault("runs", []).append({"code": git_sha(), "started_utc": now(), "panels": a.panels})
+    panels = a.panels.split(",")
+    if "main" in panels:
+        for span, smin in (("full", 0), ("2021", SPAN2021)):
+            out[f"main|{span}"] = score_panel(R, {"ETHBTC": eb, "LARGE": lg}, MAIN, smin)
     # ETH/BTC panel: II and V, each on its common rows with I, III and the main-panel inputs
-    man = json.load(open(os.path.join(a.out, "grids", "grids-manifest.json")))
-    tminV = {s: man["grids"][f"V:{s}"]["splice_open_ts"] + 30 * DAY for s in eb if f"V:{s}" in man["grids"]}
-    for span, smin in (("full", 0), ("2021", SPAN2021)):
-        out[f"ebII|{span}"] = score_panel(R, {"ETHBTC": eb}, MAIN + ("II",), smin, seed_off=100000)
-        if tminV:
+    if "ebII" in panels:
+        for span, smin in (("full", 0), ("2021", SPAN2021)):
+            out[f"ebII|{span}"] = score_panel(R, {"ETHBTC": eb}, MAIN + ("II",), smin, seed_off=100000)
+    if "ebV" in panels:
+        man = json.load(open(os.path.join(a.out, "grids", "grids-manifest.json")))
+        tminV = {s: man["grids"][f"V:{s}"]["splice_open_ts"] + 30 * DAY for s in eb if f"V:{s}" in man["grids"]}
+        for span, smin in (("full", 0), ("2021", SPAN2021)):
             out[f"ebV|{span}"] = score_panel(R, {"ETHBTC": eb}, MAIN + ("V",), smin, tmin_by_sym=tminV, seed_off=200000)
-    out["finished_utc"] = now()
-    json.dump(out, open(os.path.join(a.out, "score-r195.json"), "w"))
-    summarize(out, a.out)
+    out["runs"][-1]["finished_utc"] = now()
+    json.dump(out, open(fn, "w"))
+    if "main|full" in out:
+        summarize(out, a.out)
 
 
 def summarize(S, outdir):
@@ -1240,6 +1247,7 @@ def main():
     ap.add_argument("--venues", default="coinbase,okx,bitfinex,bitstamp")
     ap.add_argument("--variant", default="registered", choices=("registered", "large", "ns"))
     ap.add_argument("--inp", default="III")
+    ap.add_argument("--panels", default="main,ebII,ebV")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     {"acq1m": cmd_acq1m, "venues": cmd_venues, "uni": cmd_uni, "grids": cmd_grids, "rows": cmd_rows,

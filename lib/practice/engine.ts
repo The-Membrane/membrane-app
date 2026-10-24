@@ -16,16 +16,24 @@
  * two walks do the same floating-point arithmetic from the crossing on. Before the
  * crossing nothing can happen (the timer returns `none`), so no arithmetic is lost.
  *
- * ONE KNOWN NON-EQUIVALENCE, stated: if the very first crossing lands past the band
- * (an `Immediate` sale with no delay), cureWalk returns `sold-at-t0` after one repay
- * and stops, while this engine keeps walking. `cureWalkInputFor` reports that case as
- * `firstCrossingPastBand: true`; no preset is built that way (tests assert it).
+ * THE PAST-THE-BAND FIRST CROSSING: if the very first crossing lands past the band (an
+ * `Immediate` sale with no delay), this engine sells and keeps walking. cureWalk used to
+ * return `sold-at-t0` after one repay and stop; since 2026-10-14 it walks on too (a sale
+ * leaves no timer, LiquidationEngine.sol:1724-1727 at 16e12329), so the two
+ * are expected to agree there as well — but no preset is built that way, so it is not
+ * tested. `cureWalkInputFor` still reports the case as `firstCrossingPastBand: true`.
  *
  * The state object is MUTABLE: `step` and `apply` change it in place and return it.
  * JSX-free and dependency-light so it runs under vitest in node.
  */
 
-import { DelayTimer, cureWalk, type CureWalkInput, type CureWalkResult } from '@/lib/position-sim/curePath'
+import {
+  DelayTimer,
+  cureWalk,
+  type CureWalkInput,
+  type CureWalkResult,
+  type SaleReason,
+} from '@/lib/position-sim/curePath'
 import {
   BORROW_LTV_GAP,
   CURE_WINDOW_SECONDS,
@@ -216,7 +224,11 @@ export const CHOICES: Choice[] = ['add-10', 'add-25', 'repay-to-borrow-line', 'r
 
 export interface SaleRecord {
   index: number
-  reason: 'band' | 'expiry'
+  /**
+   * The timer's sale reason. Practice never builds a no-delay timer, so `instant` (the
+   * no-delay class, curePath.ts clause vii) cannot occur here; the type is the shared one.
+   */
+  reason: SaleReason
   /** Debt repaid by the sale. */
   repaidUsd: number
   /** Collateral value taken (== repaid: the census charges no fee). */
@@ -306,7 +318,7 @@ export function currentLtv(st: PracticeState): number {
 }
 
 /** The exact `sell` body of cureWalk (curePath.ts:368-385), minus the unused cap. */
-function sell(st: PracticeState, i: number, r: number, reason: 'band' | 'expiry'): boolean {
+function sell(st: PracticeState, i: number, r: number, reason: SaleReason): boolean {
   const { sc } = st
   const collAt = st.collBase * r
   let repaid = membraneRepayValue(st.debt, collAt, sc.cap, sc.debtMinimumUsd)

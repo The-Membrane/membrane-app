@@ -55,7 +55,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     // Server-render the SUMMARY (meta/debt/time/byAsset, ~2KB) so a crawler and the
     // first paint both see real figures instead of a spinner — docs/SEO_RULESET.md R1.
-    // The 2,350-row cohort is deliberately NOT inlined; the client fetches it.
+    // The 2,347-row cohort is deliberately NOT inlined; the client fetches it.
     let summary: Omit<EvidenceDoc, 'cohort'> & { cohort: [] } | null = null
     try {
         const raw = fs.readFileSync(
@@ -90,7 +90,7 @@ const { variant } = resolveLandingVariant({
  * The landing page is the seniority argument.
  *
  * A stranger arriving with no wallet gets a fully populated page: where a borrower
- * sits in the loss waterfall, what that order buys them, and the 2,350 real Aave
+ * sits in the loss waterfall, what that order buys them, and the 2,347 real Aave
  * accounts liquidated on 10 Oct 2025 replayed through Membrane's own engine in the
  * close. Every factual sentence comes from components/Seniority/facts.ts with a
  * contract citation. The full filterable cohort tool lives at /[chain]/evidence; the

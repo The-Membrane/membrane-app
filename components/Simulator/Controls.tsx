@@ -17,7 +17,12 @@ import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { monoXs, tabular } from '@/components/Builder/styles'
-import { CURE_WINDOW_HOURS, MAX_LIQ_FEE, type Provenance } from '@/lib/position-sim'
+import {
+  CURE_WINDOW_HOURS,
+  MAX_LIQ_FEE,
+  MEMBRANE_LTV_INPUT_MIN,
+  type Provenance,
+} from '@/lib/position-sim'
 
 import Stamp from './Stamp'
 import { pct, usd } from './format'
@@ -140,6 +145,9 @@ export interface ControlsProps {
   assumedDeploymentNote?: string
   ltvProvenance: Provenance
   venueProvenance: Provenance
+  /** The highest line this position may carry: `positionLtvCap` of its collateral — 96%
+   *  when every leg is a no-delay stable (NO_DELAY_LTV_HARD_CAP), else 90%. */
+  ltvMax: number
 }
 
 export const Controls: React.FC<ControlsProps> = ({
@@ -151,6 +159,7 @@ export const Controls: React.FC<ControlsProps> = ({
   assumedDeploymentNote,
   ltvProvenance,
   venueProvenance,
+  ltvMax,
 }) => (
   <Box
     bg={SEMANTIC_COLORS.bgSecondary}
@@ -215,10 +224,10 @@ export const Controls: React.FC<ControlsProps> = ({
       label="Membrane max LTV"
       value={values.membraneMaxLtv}
       display={pct(values.membraneMaxLtv)}
-      min={0.3}
-      max={0.9}
+      min={MEMBRANE_LTV_INPUT_MIN}
+      max={ltvMax}
       step={0.005}
-      onChange={(v) => onChange({ membraneMaxLtv: v })}
+      onChange={(v) => onChange({ membraneMaxLtv: Math.min(v, ltvMax) })}
       note="Line this position dies past"
     />
     {unknownLtvSymbols.length > 0 && (

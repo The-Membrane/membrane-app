@@ -19,6 +19,30 @@ Window: `2025-10-10T00:00:00Z` → `2025-10-11T23:59:00Z`, 1-minute grid, 2,880 
   on-chain at mainnet block **23,543,615**; the measured Aave/Morpho liquidation repay
   distributions; the oracle-lag report; the USDe exit-liquidity summary.
 - **`manifest.json`** — window, per-series attribution, and the caveat list the UI renders.
+- **`wavefront-replay.json`** — the full-coverage Real-vs-Membrane stream for the window
+  (every liquidated position on every Aave V3 pool and the Morpho Blue singleton of mainnet,
+  Arbitrum, Optimism and Base: 3,197 = 2,421 Aave + 776 Morpho), compact columnar form of
+  stream schema v2. Built by `scripts/oct10-coverage/build-census.ts` (not by the build
+  above); read it with `lib/wavefront/stream.ts` `decodeCompact` + `applyRecord`. Canonical
+  copy, with the per-position census, in membrane-datasets `oct10-2025/coverage/`. See
+  `docs/WAVEFRONT.md`.
+- **`coverage-summary.json`** — that census's scope, coverage table, both-side totals,
+  classes, clusters, sensitivities and the cross-check against `evidence.json`.
+- **`evidence.json`** (the old census, still what the Evidence page and the landing copy
+  read; switching them to the full census is an owner decision) is NOT unchanged on this
+  branch. On 2026-10-14 a delayed account sold at t0 past the band started walking on after
+  that sale, as every other sale does (`docs/POSITION_SIMULATOR.md` §3). What moved: the
+  Membrane headline **+$13,303.43** (priced $22,191,189.76 → $22,204,493.19; all included
+  $54,158,792.83 → $54,172,096.26; one account, mainnet `0x9bafc9…`; no outcome changes) and
+  with it every figure built on it (gaps, credits, concentration shares, `stablesDelayed`,
+  `noEarlyClear`, `withExcluded`, `wstethMarketFeed`, … each by the same $13,303.43;
+  `aaveAnchored` by $13,269.85); and the sensitivities whose walks differ:
+  `meta.sensitivity.liquidityBound` **+$1,084,241.29** (priced $20,805,625.38 →
+  $21,889,866.67: a capped t0 sale used to end the walk with the remainder unsold),
+  `meta.cureModel.bandSensitivity` at a 2% band **+$145,130.49** (all included; +$145,130.48
+  priced) and at an 8% band **+$10,621.90**, `repeatSaleAccounts` 5 → 6. New:
+  `meta.sensitivity.noWalkOnAfterT0BandSale`, the old stop, published. The cure-model rule
+  text cites membrane-solidity `16e12329`.
 
 ## Provenance
 

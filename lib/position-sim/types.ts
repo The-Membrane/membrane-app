@@ -181,5 +181,8 @@ export interface Comparison {
   equityDeltaUsd: number
   /** Assets in the position that the price path could not cover, held flat. */
   unpricedSymbols: string[]
+  /** Yield-bearing stable receipts (sDAI, sUSDS, syrupUSDC, scrvUSD) held flat at the
+   *  position's own read price rather than $1.00 — known flat, not unpriced. */
+  heldAtReadPriceSymbols?: string[]
   scenarioLabel: string
 }

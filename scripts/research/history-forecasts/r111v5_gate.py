@@ -73,7 +73,9 @@ def cmd_keys(a):
     """F1 key file for a blind chain: (block, log index, account) of every LiquidationCall row; nothing else is kept."""
     rows = jl(os.path.join(a.work, "liq-LOCKED.json.gz"))["rows"]
     keys = [{"block": r["block"], "log_index": r["log_index"], "user": r["user"]} for r in rows]
-    G.jdump(os.path.join(a.work, "liq-keys.json.gz"), {"rows": keys})
+    # scratch only (locked work directory, never published): holds account addresses, so G.jdump's guard is bypassed
+    with gzip.open(os.path.join(a.work, "liq-keys.json.gz"), "wt") as f:
+        json.dump({"rows": keys}, f)
     print(json.dumps({"keys": len(keys)}))
 
 

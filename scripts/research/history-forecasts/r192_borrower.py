@@ -1151,7 +1151,9 @@ def power_cell(p1, p0, y, sid, ts, ft, T, S_new, B_new, C_new, alpha_m=1):
     var_b = bt["sd"] ** 2
     Vs, Vb, Vsb = var_parts(d, sid, blk)
     Vint = Vsb
-    c = (var_b - Vs - Vb) / Vint if Vint > 0 else 0.0
+    c_raw = (var_b - Vs - Vb) / Vint if Vint > 0 else 0.0
+    c = max(c_raw, 0.0)          # D-R19.2a: a negative interaction estimate makes the factor fall as counts fall;
+    #                              clipped at 0 (conservative: the dev factor is then (V_s + V_b) / var >= 1)
     S_dev = len(np.unique(sid[y == 1]))
     B_dev = len(np.unique(blk[y == 1]))
     C_dev = len(np.unique(sid[y == 1].astype(np.int64) * 100000 + blk[y == 1]))
@@ -1183,7 +1185,7 @@ def power_cell(p1, p0, y, sid, ts, ft, T, S_new, B_new, C_new, alpha_m=1):
     sdl = float(np.std(lr)) * math.sqrt(fac)
     p_R = norm.cdf((math.log(R_BAND[1]) - lr0) / sdl) - norm.cdf((math.log(R_BAND[0]) - lr0) / sdl)
     joint = min(p_test, p_ev) * p_ltk * p_R
-    return {"z_dev": zdev, "factor": fac, "c": c, "z_proj_shrunk": zproj, "test": p_test, "event": p_ev,
+    return {"z_dev": zdev, "factor": fac, "c": c, "c_raw": c_raw, "factor_at_dev_counts": (Vs + Vb + c * Vint) / var_b, "z_proj_shrunk": zproj, "test": p_test, "event": p_ev,
             "ltk": p_ltk, "Rband": p_R, "joint": joint, "S_dev": S_dev, "B_dev": B_dev, "C_dev": C_dev,
             "S_new": S_new, "B_new": B_new, "C_new": C_new}
 

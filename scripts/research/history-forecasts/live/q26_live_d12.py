@@ -72,6 +72,13 @@ TL = {6: "6h", 12: "12h", 24: "1d", 72: "3d", 168: "7d"}
 L8 = (-0.02, -0.03, -0.05, -0.07, -0.10, -0.15, -0.20, -0.30)   # r192_borrower.L8 (the running-minimum ladder)
 CELLS = ((6, -0.10), (12, -0.10), (24, -0.10), (72, -0.10), (168, -0.10), (24, -0.20), (72, -0.20), (168, -0.20))
 GROUPS = ("ETHBTC", "LARGE")
+POOL_LV = (-0.02, -0.03, -0.05, -0.07, -0.10)            # D12-A2: pooled shallow monitor per horizon and group
+POOL_J = tuple(L8.index(k) for k in POOL_LV)
+CLASS_RECAL, CLASS_HC = "RECALIBRATE", "HISTORY COUNT"
+# D12-A2 item 3: default classes in classes.json (the regraded Binance classes; every cell stays monitored).
+DEFAULT_CLASS = {("ETHBTC", 24, -0.20): CLASS_HC, ("ETHBTC", 12, -0.10): CLASS_RECAL,
+                 ("ETHBTC", 72, -0.20): "CALIBRATED", ("ETHBTC", 168, -0.20): "CALIBRATED",
+                 ("LARGE", 6, -0.02): CLASS_RECAL, ("LARGE", 12, -0.05): CLASS_RECAL}
 FIRST_ORIGIN = C.A.utc("2026-10-25T00:00:00Z")        # first daily origin after the D12 registration (no earlier one)
 MAX_LATE = 23 * HOUR                                  # an origin is logged only by a run starting before t + 23 h
 KLINE_HEADER = ["openTime", "open", "high", "low", "close", "volume", "closeTime"]
@@ -86,6 +93,10 @@ CLASS_WARN, CLASS_DOWN = "CALIBRATED-WARN", "CALIBRATED"
 REPLAY_ORIGINS = ("2025-03-15T00:00:00Z", "2026-01-20T00:00:00Z", "2026-09-01T00:00:00Z")
 LOOKAHEAD_N = 5
 BOOT_B, BOOT_SEED = 1000, 20261025
+
+
+def default_class(g, T, k):
+    return DEFAULT_CLASS.get((g, T, round(k, 2)), "CALIBRATED-WARN")
 
 
 def cell_name(T, k):
@@ -465,20 +476,24 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
 # =====================================================================================================================
 # the monitor (two one-sided e-processes per group, day = unit, overlap by interleaved subsequences)
 # =====================================================================================================================
-def day_sums(rows, j):
-    """rows: [(p list over L8, y list or None)] of one group and T, level index j. Sums over labelled rows; the bounds
-    use every issued row (known at the origin)."""
+def day_sums(rows, js):
+    """rows: [(p list over L8, y list or None, a list over L8, e {level index: climatology})] of one group and T;
+    js: one level index (per-cell monitor) or several (pooled monitor, D12-A2: the sums run over rows x levels on the
+    shared probability scale). Sums over labelled rows; the bounds use every issued row (known at the origin)."""
+    js = [js] if isinstance(js, int) else list(js)
     n_iss, n_lab, P, Y, BA, BB, A_ = 0, 0, 0.0, 0, 0.0, 0.0, []
     for p, y, a_, e_ in rows:
         n_iss += 1
-        BA += 1 - p[j] / R_BAND[1]
-        BB += p[j] / R_BAND[0]
+        for j in js:
+            BA += 1 - p[j] / R_BAND[1]
+            BB += p[j] / R_BAND[0]
         if y is None:
             continue
         n_lab += 1
-        P += p[j]
-        Y += y[j]
-        A_.append(((p[j] - y[j]) ** 2, (a_[j] - y[j]) ** 2, (e_ - y[j]) ** 2))
+        for j in js:
+            P += p[j]
+            Y += y[j]
+            A_.append(((p[j] - y[j]) ** 2, (a_[j] - y[j]) ** 2, (e_[j] - y[j]) ** 2))
     xa = P / R_BAND[1] - Y
     xb = Y - P / R_BAND[0]
     bs = [sum(v[q] for v in A_) for q in range(3)]
@@ -498,9 +513,10 @@ def plugin_lambda(hist, v0, B):
     return min(max(mh / vh, 0.0), CAP_FRAC / B)
 
 
-def new_group_state(T):
+def new_group_state(T, default=CLASS_WARN):
     h = h_of(T)
-    return {"class": CLASS_WARN, "downgradedAt": None, "h": h, "logKA": [0.0] * h, "logKB": [0.0] * h,
+    return {"class": default, "defaultClass": default, "downgraded": False, "downgradedAt": None,
+            "lastObserved": None, "h": h, "logKA": [0.0] * h, "logKB": [0.0] * h,
             "sumP": 0.0, "sumY": 0, "nLabelled": 0, "days": 0, "bsP": 0.0, "bsA": 0.0, "bsE": 0.0,
             "logE": 0.0, "threshold": h / ALPHA}
 
@@ -521,6 +537,7 @@ def monitor_step(st, ds, day_index, hist, v0, date):
     st["sumY"] += int(round(ds["sumY"]))
     st["nLabelled"] += ds["nLabelled"]
     st["days"] += 1
+    st["lastObserved"] = date
     for q in ("bsP", "bsA", "bsE"):
         st[q] += ds[q]
     e = [0.5 * (math.exp(a_) + math.exp(b_)) for a_, b_ in zip(st["logKA"], st["logKB"])]
@@ -530,12 +547,17 @@ def monitor_step(st, ds, day_index, hist, v0, date):
     st["Rinf"] = bool(R is not None and not math.isfinite(R))
     crossed = max(e) >= st["threshold"]
     outside = R is not None and (R > R_BAND[1] or R < R_BAND[0])
-    if crossed and st["class"] == CLASS_WARN:
+    if crossed and not st["downgraded"]:
         if outside:
-            st["class"] = CLASS_DOWN
+            st["downgraded"] = True                # terminal; a warning class becomes CALIBRATED, others keep theirs
             st["downgradedAt"] = date
             side = "over-forecast (R > 1.25)" if R > R_BAND[1] else "under-forecast (R < 0.8)"
-            events.append(f"downgrade {CLASS_WARN} -> {CLASS_DOWN}: e-value crossed h/alpha, {side}")
+            if st["class"] in (CLASS_WARN, "SKILL"):
+                events.append(f"downgrade {st['class']} -> {CLASS_DOWN}: e-value crossed h/alpha, {side}")
+                st["class"] = CLASS_DOWN
+            else:
+                events.append(f"downgrade flag ({st['class']} kept, not a warning class): e-value crossed h/alpha, "
+                              f"{side}")
         else:
             events.append("e-value crossed h/alpha but the cumulative R is inside 0.8-1.25 (no change)")
     return st, {"lamA": lamA, "lamB": lamB, "sub": j}, events
@@ -585,8 +607,23 @@ def gkey(T, k, g):
     return f"{cell_name(T, k)} {g}"
 
 
+def pkey(T, g):
+    return f"{TL[T]} pool -2..-10% {g}"
+
+
+def monitor_units():
+    """(key, T, level indices, group): the 16 per-cell monitors, then the 10 pooled shallow monitors (D12-A2)."""
+    out = [(gkey(T, k, g), T, [L8.index(k)], g) for (T, k) in CELLS for g in GROUPS]
+    out += [(pkey(T, g), T, list(POOL_J), g) for T in TS for g in GROUPS]
+    return out
+
+
 def initial_state():
-    return {gkey(T, k, g): new_group_state(T) for (T, k) in CELLS for g in GROUPS}
+    st = {gkey(T, k, g): new_group_state(T, default_class(g, T, k)) for (T, k) in CELLS for g in GROUPS}
+    for T in TS:
+        for g in GROUPS:
+            st[pkey(T, g)] = new_group_state(T, "pooled monitor")
+    return st
 
 
 def day_index_of(origin):
@@ -608,7 +645,7 @@ def score(a, U, log=print, clock=time.time, http_get=None):
             raise SystemExit(f"STOP: d12 outcome line named by the ledger for {d_['date']} {d_['T']} is missing")
     done = {(d_["origin"], d_["T"]) for d_ in led}
     state = led[-1]["state"] if led else initial_state()
-    hist = {gkey(T, k, g): [] for (T, k) in CELLS for g in GROUPS}     # (day index, XA, XB) per group, in order
+    hist = {u[0]: [] for u in monitor_units()}                          # (day index, XA, XB) per unit, in order
     for d_ in led:
         for gk, m in d_["groups"].items():
             if m.get("observed"):
@@ -651,12 +688,13 @@ def score(a, U, log=print, clock=time.time, http_get=None):
             line = {"schema": SCHEMA + "/ledger", "date": doc["date"], "origin": t, "T": TL[T], "dayIndex": di,
                     "groups": {}, "events": []}
             st_new = json.loads(json.dumps(state))
-            for k in [k_ for (T_, k_) in CELLS if T_ == T]:
-                j = L8.index(k)
-                for g in GROUPS:
-                    gk = gkey(T, k, g)
-                    rows = [(r["fH"], r["y"], r["a"], clim[gk]) for r in series_out if r["group"] == g]
-                    ds = day_sums(rows, j)
+            for gk, T_u, js, g in monitor_units():
+                if T_u != T:
+                    continue
+                if True:
+                    ecl = {jj: clim[gkey(T, L8[jj], g)] for jj in js}
+                    rows = [(r["fH"], r["y"], r["a"], ecl) for r in series_out if r["group"] == g]
+                    ds = day_sums(rows, js)
                     m = dict(ds)
                     m["observed"] = ds["nLabelled"] > 0
                     if m["observed"]:
@@ -672,7 +710,7 @@ def score(a, U, log=print, clock=time.time, http_get=None):
                         hist[gk].append((di, ds["XA"], ds["XB"]))
                     line["groups"][gk] = m
             line["state"] = st_new
-            line["classes"] = {gk: st_new[gk]["class"] for gk in st_new}
+            line["classes"] = effective_classes(st_new)
             line["prevSha256"] = prev
             line["outcomeSha256"] = C.sha256_bytes(oraw)
             raw = (json.dumps(C.clean(line), separators=(",", ":"), ensure_ascii=True, allow_nan=False) + "\n").encode()
@@ -740,18 +778,57 @@ def secondaries(rows):
     return out
 
 
+def effective_cells():
+    """(group, T, k) of every cell with a live class: the 8 per-cell cells and the pooled levels, per group."""
+    out = []
+    for g in GROUPS:
+        for T in TS:
+            for k in sorted(set(POOL_LV) | {k_ for (T_, k_) in CELLS if T_ == T}, reverse=True):
+                out.append((g, T, k))
+    return out
+
+
+def effective_classes(state):
+    """'{group} {T} {k%}' -> the live class: the default class, and CALIBRATED once a monitor covering the cell has
+    fired while the default is a warning class. A downgrade by the pooled monitor flags every pooled level."""
+    out = {}
+    for g, T, k in effective_cells():
+        units = [u for u in (gkey(T, k, g), pkey(T, g) if k in POOL_LV else None) if u and u in state]
+        cls = default_class(g, T, k)
+        if any(state[u]["downgraded"] for u in units) and cls in (CLASS_WARN, "SKILL"):
+            cls = CLASS_DOWN
+        out[f"{g} {TL[T]} {int(round(k * 100))}%"] = cls
+    return out
+
+
 def write_summary(ldir, U, led, state):
+    dates_T = {}
+    for d_ in led:
+        dates_T[d_["T"]] = max(dates_T.get(d_["T"], ""), d_["date"])
     classes = {"schema": SCHEMA + "/classes", "prereg": PREREG,
-               "rule": "CALIBRATED-WARN until the registered D12 monitor fires; then CALIBRATED (terminal)",
-               "lastLedgerDate": led[-1]["date"] if led else None, "cells": {}}
-    for (T, k) in CELLS:
-        for g in GROUPS:
-            gk = gkey(T, k, g)
-            s_ = state[gk]
-            classes["cells"][gk] = {"horizon": TL[T], "level": k, "group": g,
-                                    "assets": [e["symbol"] for e in U["series"] if e["group"] == g],
-                                    "class": s_["class"], "downgradedAt": s_["downgradedAt"],
+               "rule": ("D12 + D12-A2: each cell starts at its default class; when a monitor covering it fires "
+                        "(per-cell, or the pooled -2..-10% monitor of its horizon and group), a warning class becomes "
+                        "CALIBRATED (terminal). Other classes keep their class and carry downgraded = true."),
+               "lastLedgerDate": max(dates_T.values()) if dates_T else None, "lastLedgerDateByHorizon": dates_T,
+               "monitors": {}, "cells": {}}
+    for key, T, js, g in monitor_units():
+        s_ = state[key]
+        classes["monitors"][key] = {"horizon": TL[T], "levels": [L8[j] for j in js], "group": g,
+                                    "kind": "pooled" if len(js) > 1 else "cell", "class": s_["class"],
+                                    "defaultClass": s_["defaultClass"], "downgraded": s_["downgraded"],
+                                    "downgradedAt": s_["downgradedAt"], "lastObserved": s_["lastObserved"],
                                     "observedDays": s_["days"]}
+    eff = effective_classes(state)
+    for g, T, k in effective_cells():
+        units = [u for u in (gkey(T, k, g), pkey(T, g) if k in POOL_LV else None) if u and u in state]
+        last = [state[u]["lastObserved"] for u in units if state[u]["lastObserved"]]
+        classes["cells"][f"{g} {TL[T]} {int(round(k * 100))}%"] = {
+            "group": g, "assets": [e["symbol"] for e in U["series"] if e["group"] == g], "horizon": TL[T],
+            "horizon_h": T, "level": k, "class": eff[f"{g} {TL[T]} {int(round(k * 100))}%"],
+            "defaultClass": default_class(g, T, k), "monitors": units,
+            "downgraded": any(state[u]["downgraded"] for u in units),
+            "downgradedAt": min([state[u]["downgradedAt"] for u in units if state[u]["downgradedAt"]], default=None),
+            "lastObserved": max(last) if last else None}
     C.write_atomic(os.path.join(ldir, D12_SUB, "classes.json"), C.dumps(classes))
     outs = read_outcomes(ldir)
     clim = U["climatology"]
@@ -772,12 +849,19 @@ def write_summary(ldir, U, led, state):
                 acc.setdefault(gk, []).append(item)
                 acc.setdefault(f"{cell_name(T, k)} {r['symbol']}", []).append(item)
     summ = {"schema": SCHEMA + "/summary", "display": "report only; the UI reads classes.json",
-            "ledgerLines": len(led), "lastDate": led[-1]["date"] if led else None, "groups": {}, "perAsset": {}}
+            "ledgerLines": len(led), "lastDate": classes["lastLedgerDate"], "groups": {}, "perAsset": {}}
+    for T in TS:
+        for g in GROUPS:
+            s_ = state[pkey(T, g)]
+            summ["groups"][pkey(T, g)] = {"downgraded": s_["downgraded"], "downgradedAt": s_["downgradedAt"],
+                                          "days": s_["days"], "R_cum": s_.get("R"), "eValue": math.exp(s_["logE"]),
+                                          "threshold": s_["threshold"]}
     for (T, k) in CELLS:
         for g in GROUPS:
             gk = gkey(T, k, g)
             s_ = state[gk]
-            summ["groups"][gk] = {"class": s_["class"], "downgradedAt": s_["downgradedAt"], "days": s_["days"],
+            summ["groups"][gk] = {"class": s_["class"], "downgraded": s_["downgraded"],
+                                  "downgradedAt": s_["downgradedAt"], "days": s_["days"],
                                   "R_cum": s_.get("R"), "eValue": math.exp(s_["logE"]), "threshold": s_["threshold"],
                                   "secondaries": secondaries(acc.get(gk, []))}
         for sym in ("ETHUSDT", "BTCUSDT"):

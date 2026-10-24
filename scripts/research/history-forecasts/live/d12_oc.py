@@ -112,17 +112,15 @@ def main():
     for rho in RHOS:
         firsts[rho] = {}
         res["scenarios"][str(rho)] = {"groups": {}}
-        for (T, k) in L.CELLS:
-            jl = L.L8.index(k)
-            for g in L.GROUPS:
-                gk = L.gkey(T, k, g)
+        for gk, T, js, g in L.monitor_units():
+            if True:
                 ts, p, y = [], [], []
                 for e in S:
                     if e["group"] == g and T in rows[e["symbol"]]:
                         R_ = rows[e["symbol"]][T]
-                        ts.append(R_["ts"])
-                        p.append(R_["fH"][:, jl].astype(float))
-                        y.append(R_["y"][:, jl].astype(float))
+                        ts.append(np.repeat(R_["ts"], len(js)))
+                        p.append(R_["fH"][:, js].astype(float).ravel())
+                        y.append(R_["y"][:, js].astype(float).ravel())
                 ts, p, y = (np.concatenate(v) for v in (ts, p, y))
                 q = np.clip(p * rho / (p.sum() / y.sum()), 0, 1)
                 di = (ts - D0) // L.DAY
@@ -138,9 +136,14 @@ def main():
                 print(f"rho {rho} {gk:16s} {by} median {med if med < 1e9 else 'never'} ({time.time() - t0:.0f}s)",
                       flush=True)
         F = np.stack(list(firsts[rho].values()))
-        fam = {f"{yy}y": float(np.mean(((F >= 0) & (F < 365.25 * yy)).any(0))) for yy in (1, 2, 3, 5)}
+        nc = 2 * len(L.CELLS)
+        fam = {f"{yy}y": float(np.mean(((F[:nc] >= 0) & (F[:nc] < 365.25 * yy)).any(0))) for yy in (1, 2, 3, 5)}
+        famp = {f"{yy}y": float(np.mean(((F[nc:] >= 0) & (F[nc:] < 365.25 * yy)).any(0))) for yy in (1, 2, 3, 5)}
+        fama = {f"{yy}y": float(np.mean(((F >= 0) & (F < 365.25 * yy)).any(0))) for yy in (1, 2, 3, 5)}
         res["scenarios"][str(rho)]["family_any_of_16"] = fam
-        print(f"rho {rho} FAMILY {fam}", flush=True)
+        res["scenarios"][str(rho)]["family_any_of_10_pooled"] = famp
+        res["scenarios"][str(rho)]["family_any_of_26"] = fama
+        print(f"rho {rho} FAMILY cells {fam} pooled {famp} all {fama}", flush=True)
     with open(a.out, "w") as fo:
         json.dump(res, fo, indent=1)
 

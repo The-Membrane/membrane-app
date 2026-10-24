@@ -3,7 +3,13 @@
 The map (membrane-board knowledge/q26-ui-confidence-map.md) is the source of truth. This script parses its tables
 into rules. It never invents a class: an unparseable row is kept in "unparsed" and never routes.
 
-  python3 gen_table.py --map <q26-ui-confidence-map.md> [--live <design/HISTORY_TOUCH_LIVE.md>] --out routing-table.json
+  python3 gen_table.py --map <q26-ui-confidence-map.md> [--live <design/HISTORY_TOUCH_LIVE.md>]
+                       [--datasets <local membrane-datasets checkout>] --out routing-table.json
+
+Live D12 classes (HISTORY_TOUCH_LIVE.md D12-A2): with --datasets, the live monitor flags are read from
+<datasets>/forecasts/q26-touch-live/d12/classes.json. Its cells define the D12 coverage (instead of the board
+sentence), and every cell the live monitor has downgraded (live class CALIBRATED, downgraded = true) gets a "live"
+rule ranked above every map section, so the router shows it as CALIBRATED (labelled context, not a warning).
 
 Sections read (in precedence order, highest first):
   "Release grading" (written by the R19.3 regrade; read when present, any table with horizon/level/class columns)
@@ -19,12 +25,15 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 
 SCHEMA = "liqwarn-routing/1"
 SECTIONS = [("release", r"release grading"), ("borrower", r"borrower liquidation warnings"),
             ("oracle", r"oracle and liquidation-proximity"), ("touch", r"price-touch odds")]
-SECTION_RANK = {"release": 0, "borrower": 1, "oracle": 2, "touch": 3}
+SECTION_RANK = {"live": -1, "release": 0, "borrower": 1, "oracle": 2, "touch": 3}
+D12_CLASSES_REL = "forecasts/q26-touch-live/d12/classes.json"
+D12_GROUP = {"ETHBTC": "btc_eth", "LARGE": "large"}
 CLASSES = ["SKILL", "CALIBRATED-WARN", "RECALIBRATE", "CALIBRATED", "PENDING", "SCENARIO", "HISTORY COUNT",
            "DO NOT SHOW"]
 MONITORS = ("D12", "D11", "D10", "D9", "D8")
@@ -248,7 +257,7 @@ def _pairs(text):
     return out
 
 
-def parse_release(body, live_ids):
+def parse_release(body, live_ids, d12_cov=None):
     """The R19.3 'Release grading' section: a Group | T | 'Class by level' table, plus the recalibration transfer
     sentence and the D12 coverage sentence. -> (rules, unparsed)."""
     rules, unparsed = [], []
@@ -277,6 +286,12 @@ def parse_release(body, live_ids):
             d12.append((d12_groups, float(a) * _unit_h(ua), float(b) * _unit_h(ub), float(k) / 100))
 
     def mon(grp, h, k, cls):
+        if d12_cov is not None:                      # live classes.json coverage replaces the board sentence
+            if (grp, float(h), round(k, 4)) in d12_cov:
+                return {"id": "D12", "status": "deployed"}
+            if cls in ("CALIBRATED-WARN", "RECALIBRATE"):
+                return {"id": None, "status": "needed"}
+            return {"id": None, "status": "none"}
         for gs, lo, hi, kk in d12:
             if grp in gs and lo <= h <= hi and abs(k - kk) < 1e-9:
                 return {"id": "D12", "status": "deployed" if "D12" in live_ids else "planned"}
@@ -331,15 +346,48 @@ def parse_release(body, live_ids):
     return rules, unparsed
 
 
-def build(map_text, live_text=""):
+def d12_cells(classes):
+    """classes.json -> {(asset class, horizon h, level): cell} for the D12 cells."""
+    out = {}
+    for c in (classes or {}).get("cells", {}).values():
+        g = D12_GROUP.get(c.get("group"))
+        h = c.get("horizon_h")
+        if g is None or h is None:
+            continue
+        out[(g, float(h), round(float(c["level"]), 4))] = c
+    return out
+
+
+def live_rules(classes):
+    """A 'live' rule for every cell the D12 monitor has downgraded to CALIBRATED (ranked above every map section)."""
+    rules = []
+    for (g, h, k), c in sorted(d12_cells(classes).items()):
+        if not (c.get("downgraded") and c.get("class") == "CALIBRATED"):
+            continue
+        rules.append({"id": f"live-d12-{g}-{int(h)}h-{int(round(-100 * k))}", "section": "live",
+                      "rank": SECTION_RANK["live"], "context": None, "assets": [g], "horizon": [[h, h]],
+                      "levels": {"kind": "set", "values": [k]}, "class": "CALIBRATED", "source": "raw_fH",
+                      "evidence": f"D12 live calibration monitor downgraded this cell on {c.get('downgradedAt')} "
+                                  f"(monitors {', '.join(c.get('monitors', []))}; default {c.get('defaultClass')})",
+                      "monitor": {"id": "D12", "status": "deployed"}, "row": "", "display": True, "ui_use": "",
+                      "note": "downgraded by the D12 live monitor: labelled context, not warning odds"})
+    return rules
+
+
+def build(map_text, live_text="", d12_classes=None):
     live_ids = set(re.findall(r"^###\s+(D\d+)\b", live_text, flags=re.M))
+    d12_cov = set(d12_cells(d12_classes)) if d12_classes is not None else None
+    if not d12_cov:                                  # a pre-A2 classes.json (no horizon_h): keep the board sentence
+        d12_cov, d12_classes = None, None
+    else:
+        live_ids.add("D12")
     rules, unparsed = [], []
     for head, body in split_sections(map_text):
         sec = next((sid for sid, rx in SECTIONS if re.search(rx, head.lower())), None)
         if sec is None:
             continue
         if sec == "release":
-            rr, uu = parse_release(body, live_ids)
+            rr, uu = parse_release(body, live_ids, d12_cov)
             if rr:
                 rules += rr
                 unparsed += uu
@@ -399,13 +447,31 @@ def build(map_text, live_text=""):
                     rule["context"] = "young_listing"
                     rule["age_days"] = [85, 364]
                 rules.append(rule)
+    if d12_classes is not None:
+        rules = apply_live(rules, d12_classes)
     return rules, unparsed, sorted(live_ids)
+
+
+def apply_live(rules, classes):
+    """Add the live D12 downgrade rules, but only where the map's own routing gives a warning class (SKILL or
+    CALIBRATED-WARN). A downgrade never raises a cell the map already routes lower (e.g. DO NOT SHOW)."""
+    import router as RT
+    base = RT.Router({"schema": SCHEMA, "version": "pre-live", "map_sha256": "", "rules": rules})
+    out = list(rules)
+    for lr in live_rules(classes):
+        g, (h, _), k = lr["assets"][0], lr["horizon"][0], lr["levels"]["values"][0]
+        o = base.route(g, h, k)
+        if o["class"] in ("SKILL", "CALIBRATED-WARN"):
+            lr["evidence"] += f" || map class was {o['class']} (rule {o['rule_id']})"
+            out.insert(0, lr)
+    return out
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--map", required=True)
     ap.add_argument("--live", default=None)
+    ap.add_argument("--datasets", default=None, help="local membrane-datasets checkout (reads the live D12 classes)")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     with open(a.map, "rb") as f:
@@ -414,10 +480,19 @@ def main():
     if a.live:
         with open(a.live) as f:
             live = f.read()
-    rules, unparsed, live_ids = build(raw.decode("utf-8"), live)
+    d12, d12_meta = None, None
+    if a.datasets:
+        p = os.path.join(a.datasets, D12_CLASSES_REL)
+        with open(p, "rb") as f:
+            craw = f.read()
+        d12 = json.loads(craw)
+        d12_meta = {"path": D12_CLASSES_REL, "sha256": hashlib.sha256(craw).hexdigest(),
+                    "lastLedgerDate": d12.get("lastLedgerDate"),
+                    "downgraded": sorted(k for k, c in d12.get("cells", {}).items() if c.get("downgraded"))}
+    rules, unparsed, live_ids = build(raw.decode("utf-8"), live, d12)
     has_release = any(r["section"] == "release" for r in rules)
     core = {"schema": SCHEMA, "map_sha256": hashlib.sha256(raw).hexdigest(), "release_grading_present": has_release,
-            "live_monitors_deployed": live_ids, "section_rank": SECTION_RANK, "rules": rules, "unparsed": unparsed}
+            "live_monitors_deployed": live_ids, "d12_classes": d12_meta, "section_rank": SECTION_RANK, "rules": rules, "unparsed": unparsed}
     version = hashlib.sha256(json.dumps(core, sort_keys=True).encode()).hexdigest()[:16]
     doc = {"version": version, "generated_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
            **core}

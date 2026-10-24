@@ -258,5 +258,69 @@ class TestGeneratedTable(unittest.TestCase):
             self.assertIn(o["class"], RT.CLASS_ORDER)
 
 
+def d12_classes(downgraded=()):
+    """A classes.json shaped like q26_live_d12.write_summary (D12-A2): ETH/BTC and large caps at 6 h and 3 d."""
+    cells = {}
+    for g in ("ETHBTC", "LARGE"):
+        for T, tl in ((6, "6h"), (72, "3d")):
+            for k in (-0.02, -0.10, -0.20):
+                key = f"{g} {tl} {int(round(k * 100))}%"
+                dg = key in downgraded
+                cells[key] = {"group": g, "horizon": tl, "horizon_h": T, "level": k,
+                              "class": "CALIBRATED" if dg else "CALIBRATED-WARN", "defaultClass": "CALIBRATED-WARN",
+                              "downgraded": dg, "downgradedAt": "2027-02-03" if dg else None,
+                              "monitors": [f"{tl} pool -2..-10% {g}"], "lastObserved": "2027-02-03"}
+    return {"schema": "q26-touch-live/d12/1/classes", "lastLedgerDate": "2027-02-03", "cells": cells}
+
+
+class TestLiveD12Classes(unittest.TestCase):
+    def table(self, downgraded=()):
+        rules, unparsed, live_ids = G.build(MINI_MAP + REAL_RELEASE, "", d12_classes(downgraded))
+        return RT.Router({"schema": G.SCHEMA, "version": "test", "map_sha256": "x", "rules": rules,
+                          "unparsed": unparsed, "live_monitors_deployed": live_ids, "section_rank": G.SECTION_RANK})
+
+    def test_live_coverage_replaces_board_sentence(self):
+        r = self.table()
+        o = r.route("btc_eth", 6, -0.02)              # not in the board sentence, but in the live classes
+        self.assertEqual((o["class"], o["monitor"]["status"]), ("CALIBRATED-WARN", "deployed"))
+        self.assertFalse(o["monitor_missing"])
+        o = r.route("btc_eth", 6, -0.10)
+        self.assertEqual((o["source"], o["class"], o["display_class"]), ("raw_fH", "CALIBRATED-WARN",
+                                                                         "CALIBRATED-WARN"))
+
+    def test_downgraded_cell_routes_as_calibrated(self):
+        r = self.table(downgraded=("ETHBTC 6h -10%",))
+        o = r.route("btc_eth", 6, -0.10)
+        self.assertEqual((o["source"], o["class"], o["section"], o["display_class"]),
+                         ("raw_fH", "CALIBRATED", "live", "CALIBRATED"))
+        self.assertTrue(o["rule_id"].startswith("live-d12-btc_eth-6h-10"))
+        self.assertIn("2027-02-03", o["evidence"])
+        o = r.route("large", 6, -0.10)                  # the other group is not downgraded
+        self.assertEqual(o["class"], "CALIBRATED-WARN")
+        o = r.route("btc_eth", 6, -0.02)                # another level of the same group is not downgraded
+        self.assertEqual(o["class"], "CALIBRATED-WARN")
+
+    def test_downgrade_never_raises_a_lower_map_class(self):
+        r = self.table(downgraded=("ETHBTC 3d -20%",))   # map: DO NOT SHOW; the live rule may not show a number
+        o = r.route("btc_eth", 72, -0.20)
+        self.assertEqual((o["class"], o["section"], o["shows_number"]), ("DO NOT SHOW", "release", False))
+
+    def test_datasets_argument_roundtrip(self):
+        with tempfile.TemporaryDirectory() as d:
+            mp = os.path.join(d, "map.md")
+            with open(mp, "w") as f:
+                f.write(MINI_MAP + REAL_RELEASE)
+            cp = os.path.join(d, "ds", G.D12_CLASSES_REL)
+            os.makedirs(os.path.dirname(cp))
+            with open(cp, "w") as f:
+                json.dump(d12_classes(("LARGE 3d -10%",)), f)
+            out = os.path.join(d, "t.json")
+            sys.argv = ["gen_table.py", "--map", mp, "--datasets", os.path.join(d, "ds"), "--out", out]
+            G.main()
+            t = json.load(open(out))
+            self.assertEqual(t["d12_classes"]["downgraded"], ["LARGE 3d -10%"])
+            self.assertEqual(RT.Router(out).route("large", 72, -0.10)["class"], "CALIBRATED")
+
+
 if __name__ == "__main__":
     unittest.main()

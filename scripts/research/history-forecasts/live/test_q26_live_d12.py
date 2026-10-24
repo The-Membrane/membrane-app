@@ -38,7 +38,7 @@ def test_bet_is_predictable_and_never_ruins():
     hist = {"A": [], "B": []}
     for di in range(400):
         p, y = _rand_day(rng, 18, rng.uniform(0.3, 3))
-        rows = [([0] * 4 + [pp] + [0] * 3, [0] * 4 + [yy] + [0] * 3, [0.1] * 8, 0.1) for pp, yy in zip(p, y)]
+        rows = [([0] * 4 + [pp] + [0] * 3, [0] * 4 + [yy] + [0] * 3, [0.1] * 8, [0.1] * 8) for pp, yy in zip(p, y)]
         ds = L.day_sums(rows, 4)
         assert -ds["XA"] <= ds["BA"] + 1e-12 and -ds["XB"] <= ds["BB"] + 1e-12
         lamA = L.plugin_lambda(hist["A"], 1.0, ds["BA"])
@@ -53,7 +53,7 @@ def test_bet_is_predictable_and_never_ruins():
 
 
 def test_censored_rows_add_zero_and_keep_the_bound():
-    rows = [([0.1] * 8, None, [0.1] * 8, 0.1), ([0.2] * 8, [1] * 8, [0.1] * 8, 0.1)]
+    rows = [([0.1] * 8, None, [0.1] * 8, [0.1] * 8), ([0.2] * 8, [1] * 8, [0.1] * 8, [0.1] * 8)]
     ds = L.day_sums(rows, 4)
     assert ds["nIssued"] == 2 and ds["nLabelled"] == 1
     assert ds["sumP"] == pytest.approx(0.2) and ds["sumY"] == 1
@@ -73,7 +73,7 @@ def _sequential_first(n, P, Y, T, v0):
         hh = [x for x in hist if x[0] <= s - h]
         st, _, _ = L.monitor_step(st, ds, s, {"A": [x[1] for x in hh], "B": [x[2] for x in hh]}, v0, "d")
         hist.append((s, ds["XA"], ds["XB"]))
-        if st["class"] == L.CLASS_DOWN:
+        if st["downgraded"]:
             return s + h
     return -1
 
@@ -139,8 +139,9 @@ class World:
             series.append({"key": f"t:{sym}", "symbol": sym, "group": g, "path": p,
                            "sha256": L.C.sha256_bytes(raw), "startTs": st, "devEndOpen": self.dev_end - H})
         gk = [L.gkey(T, k, g) for (T, k) in L.CELLS for g in L.GROUPS]
-        self.U = {"series": series, "climatology": {x: 0.05 for x in gk},
-                  "v0": {x: {"A": 0.05, "B": 0.05} for x in gk}, "goldenSha256": "x"}
+        ck = gk + [L.gkey(T, k, g) for T in L.TS for k in L.POOL_LV for g in L.GROUPS]
+        self.U = {"series": series, "climatology": {x: 0.05 for x in ck},
+                  "v0": {u[0]: {"A": 0.05, "B": 0.05} for u in L.monitor_units()}, "goldenSha256": "x"}
         self.now = first_origin
 
     def http_get(self, url):
@@ -203,8 +204,9 @@ def test_issue_and_score_end_to_end(monkeypatch):
             S = G["columns"]["close"][j0 - 1]
             assert r["y"] == L.label_from_lows(np.array(G["columns"]["low"][j0:j0 + 24]), S, 24)
         cls = json.load(open(os.path.join(ldir, "d12", "classes.json")))
-        assert len(cls["cells"]) == 16
-        assert set(c["class"] for c in cls["cells"].values()) <= {L.CLASS_WARN, L.CLASS_DOWN}
+        assert len(cls["monitors"]) == 26 and len(cls["cells"]) == 2 * (5 * 5 + 3)
+        assert set(c["class"] for c in cls["cells"].values()) <= {L.CLASS_WARN, L.CLASS_DOWN, L.CLASS_RECAL,
+                                                                  L.CLASS_HC, "CALIBRATED"}
         json.load(open(os.path.join(ldir, "d12", "summary.json")))
         # rescoring changes no ledger byte
         before = open(L.ledger_path(ldir), "rb").read()
@@ -294,7 +296,76 @@ def test_universe_and_golden_files_are_consistent():
     assert L.C.sha256_file(L.golden_path()) == U["goldenSha256"]
     G = json.load(open(L.golden_path()))
     assert sum(len(v) for o in G["rows"].values() for v in o.values()) == 300
-    for (T, k) in L.CELLS:
-        for g in L.GROUPS:
-            gk = L.gkey(T, k, g)
-            assert 0 < U["climatology"][gk] < 1 and U["v0"][gk]["A"] > 0 and U["v0"][gk]["B"] > 0
+    for gk, T, js, g in L.monitor_units():
+        assert U["v0"][gk]["A"] > 0 and U["v0"][gk]["B"] > 0
+        for j in js:
+            assert 0 < U["climatology"][L.gkey(T, L.L8[j], g)] < 1
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# D12-A2
+# ---------------------------------------------------------------------------------------------------------------------
+def test_pooled_day_sums_run_over_rows_and_levels():
+    rows = [([0.3, 0.2, 0.1, 0.05, 0.02, 0.01, 0.0, 0.0], [1, 1, 0, 0, 0, 0, 0, 0], [0.1] * 8, [0.1] * 8),
+            ([0.3, 0.2, 0.1, 0.05, 0.02, 0.01, 0.0, 0.0], None, [0.1] * 8, [0.1] * 8)]
+    ds = L.day_sums(rows, list(L.POOL_J))
+    assert ds["sumP"] == pytest.approx(0.67) and ds["sumY"] == 2 and ds["nLabelled"] == 1
+    assert ds["BB"] == pytest.approx(2 * 0.67 / 0.8) and ds["BA"] == pytest.approx(2 * (5 - 0.67 / 1.25))
+    assert -ds["XA"] <= ds["BA"] and -ds["XB"] <= ds["BB"]
+
+
+def test_default_classes_and_downgrade_semantics():
+    st = L.initial_state()
+    assert st[L.gkey(24, -0.20, "ETHBTC")]["class"] == L.CLASS_HC
+    assert st[L.gkey(12, -0.10, "ETHBTC")]["class"] == L.CLASS_RECAL
+    assert st[L.gkey(72, -0.20, "ETHBTC")]["class"] == "CALIBRATED"
+    assert st[L.gkey(168, -0.20, "ETHBTC")]["class"] == "CALIBRATED"
+    assert st[L.gkey(24, -0.10, "LARGE")]["class"] == L.CLASS_WARN
+    assert len(st) == 16 + 10
+    eff = L.effective_classes(st)
+    assert eff["ETHBTC 1d -20%"] == L.CLASS_HC and eff["LARGE 6h -2%"] == L.CLASS_RECAL
+    # the pooled monitor fires: every pooled level of that horizon and group that is a warning becomes CALIBRATED
+    st[L.pkey(72, "LARGE")]["downgraded"] = True
+    st[L.pkey(72, "LARGE")]["downgradedAt"] = "2027-01-01"
+    eff = L.effective_classes(st)
+    for k in (-2, -3, -5, -7, -10):
+        assert eff[f"LARGE 3d {k}%"] == "CALIBRATED"
+    assert eff["LARGE 3d -20%"] == L.CLASS_WARN and eff["ETHBTC 3d -10%"] == L.CLASS_WARN
+    # a non-warning default keeps its class when its monitor fires
+    st[L.gkey(24, -0.20, "ETHBTC")]["downgraded"] = True
+    assert L.effective_classes(st)["ETHBTC 1d -20%"] == L.CLASS_HC
+
+
+def test_monitor_flag_on_non_warning_class_keeps_class():
+    st = L.new_group_state(24, L.CLASS_RECAL)
+    hist = {"A": [], "B": []}
+    for di in range(400):                      # forecasts 0.2, never a touch: strong over-forecast
+        rows = [([0.2] * 8, [0] * 8, [0.1] * 8, [0.1] * 8) for _ in range(18)]
+        ds = L.day_sums(rows, 4)
+        st, _, _ = L.monitor_step(st, ds, di, hist, {"A": 1.0, "B": 1.0}, f"d{di:04d}")
+        hist["A"].append(ds["XA"])
+        hist["B"].append(ds["XB"])
+        if st["downgraded"]:
+            break
+    assert st["downgraded"] and st["class"] == L.CLASS_RECAL and st["lastObserved"] == st["downgradedAt"]
+
+
+def test_classes_json_last_dates_use_the_max(monkeypatch):
+    fo = L.C.A.utc("2026-03-02T00:00:00Z")
+    with tempfile.TemporaryDirectory() as tmp:
+        w = World(tmp, fo)
+        monkeypatch.setattr(L, "FIRST_ORIGIN", fo)
+        monkeypatch.setattr(L, "ensure_ci_replay", lambda a, U, log=print: {"pass": True})
+        a = _args(w)
+        for d in range(9):
+            w.now = fo + d * DAY + 17 * 60
+            L.issue(a, w.U, log=lambda *x: None, clock=lambda: w.now, http_get=w.http_get)
+            w.now = fo + d * DAY + 47 * 60
+            L.score(a, w.U, log=lambda *x: None, clock=lambda: w.now, http_get=w.http_get)
+        cls = json.load(open(os.path.join(L.C.live_dir(w.out), "d12", "classes.json")))
+        assert cls["lastLedgerDate"] == max(cls["lastLedgerDateByHorizon"].values()) == "2026-03-09"
+        assert cls["lastLedgerDateByHorizon"]["7d"] == "2026-03-03"
+        assert len(cls["monitors"]) == 26
+        c = cls["cells"]["ETHBTC 6h -5%"]
+        assert c["lastObserved"] == "2026-03-09" and c["monitors"] == [L.pkey(6, "ETHBTC")]
+        assert cls["cells"]["ETHBTC 1d -20%"]["class"] == L.CLASS_HC

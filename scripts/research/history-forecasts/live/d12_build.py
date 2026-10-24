@@ -98,10 +98,35 @@ def main():
                 d[L.TL[T]]["y"] = [int(v) for v in R["y"][j]]
             golden["rows"][oi][e["symbol"]] = d
     gp = os.path.join(HERE, "d12_golden.json")
-    with open(gp, "w") as f:
-        json.dump(golden, f, indent=0, sort_keys=True)
-        f.write("\n")
+    if os.path.exists(gp) and json.load(open(gp))["rows"] == json.loads(json.dumps(golden["rows"])):
+        print("golden rows unchanged; d12_golden.json kept byte for byte")
+    else:
+        with open(gp, "w") as f:
+            json.dump(golden, f, indent=0, sort_keys=True)
+            f.write("\n")
     clim, v0, table = {}, {}, {}
+    for T in L.TS:                                   # D12-A2: climatology of every pooled level (secondaries only)
+        for k in L.POOL_LV:
+            for g in L.GROUPS:
+                y = np.concatenate([rows[e["symbol"]][T]["y"][:, L.L8.index(k)].astype(float) for e in S
+                                    if e["group"] == g and T in rows[e["symbol"]]])
+                clim[L.gkey(T, k, g)] = float(y.mean())
+        for g in L.GROUPS:                           # D12-A2: pooled shallow monitor prior variances
+            ts, P_, Y_ = [], [], []
+            for e in S:
+                if e["group"] == g and T in rows[e["symbol"]]:
+                    R_ = rows[e["symbol"]][T]
+                    ts.append(R_["ts"])
+                    P_.append(R_["fH"][:, list(L.POOL_J)].astype(float))
+                    Y_.append(R_["y"][:, list(L.POOL_J)].astype(float))
+            ts, P_, Y_ = np.concatenate(ts), np.concatenate(P_), np.concatenate(Y_)
+            Rp = float(P_.sum() / Y_.sum())
+            days, inv = np.unique(ts, return_inverse=True)
+            Pd, Yd = np.bincount(inv, (P_ / Rp).sum(1)), np.bincount(inv, Y_.sum(1))
+            v0[L.pkey(T, g)] = {"A": float(np.mean((Pd / L.R_BAND[1] - Yd) ** 2)),
+                                "B": float(np.mean((Yd - Pd / L.R_BAND[0]) ** 2))}
+            table[L.pkey(T, g)] = {"rows": int(len(ts)), "days": int(len(days)), "positives": int(Y_.sum()), "R": Rp}
+            print(L.pkey(T, g), json.dumps(table[L.pkey(T, g)]))
     for (T, k) in L.CELLS:
         jl = L.L8.index(k)
         for g in L.GROUPS:

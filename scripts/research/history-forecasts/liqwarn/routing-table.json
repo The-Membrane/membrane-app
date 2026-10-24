@@ -1,8 +1,8 @@
 {
- "version": "3c85b3770461ec06",
- "generated_utc": "2026-10-24T05:41:49Z",
+ "version": "ea842675e6db36a9",
+ "generated_utc": "2026-10-24T05:46:09Z",
  "schema": "liqwarn-routing/1",
- "map_sha256": "e613669fd8ea4007d0aeb0d69f3f7be2ec884d4f9fccc018f4ead0756afd035d",
+ "map_sha256": "8c7c4b483755add0f5730d7c83b61dd8c265c6f7055dfc5198c646279b3e3ec6",
  "release_grading_present": true,
  "live_monitors_deployed": [
   "D1",
@@ -756,12 +756,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1h CALIBRATED-WARN -2, -3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.034…+0.046, AUC 0.81…0.84, pos 117…296",
+   "evidence": "Release grading (R19.3): ETH/BTC 1h CALIBRATED-WARN -2, -3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.042…+0.051, AUC 0.81…0.84, pos 117…296",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 1h | CALIBRATED-WARN −2, −3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.034…+0.046, AUC 0.81…0.84, pos 117…296<br>RECALIBRATE −5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.019, AUC 0.87, pos 35; no C3 repair",
+   "row": "ETH/BTC | 1h | CALIBRATED-WARN −2, −3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.042…+0.051, AUC 0.81…0.84, pos 117…296<br>RECALIBRATE −5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.039, AUC 0.87, pos 35; no C3 repair",
    "display": true,
    "ui_use": ""
   },
@@ -787,12 +787,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1h CALIBRATED-WARN -2, -3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.034…+0.046, AUC 0.81…0.84, pos 117…296",
+   "evidence": "Release grading (R19.3): ETH/BTC 1h CALIBRATED-WARN -2, -3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.042…+0.051, AUC 0.81…0.84, pos 117…296",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 1h | CALIBRATED-WARN −2, −3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.034…+0.046, AUC 0.81…0.84, pos 117…296<br>RECALIBRATE −5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.019, AUC 0.87, pos 35; no C3 repair",
+   "row": "ETH/BTC | 1h | CALIBRATED-WARN −2, −3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.042…+0.051, AUC 0.81…0.84, pos 117…296<br>RECALIBRATE −5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.039, AUC 0.87, pos 35; no C3 repair",
    "display": true,
    "ui_use": ""
   },
@@ -818,12 +818,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1h RECALIBRATE -5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.019, AUC 0.87, pos 35; no C3 repair",
+   "evidence": "Release grading (R19.3): ETH/BTC 1h RECALIBRATE -5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.039, AUC 0.87, pos 35; no C3 repair",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 1h | CALIBRATED-WARN −2, −3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.034…+0.046, AUC 0.81…0.84, pos 117…296<br>RECALIBRATE −5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.019, AUC 0.87, pos 35; no C3 repair",
+   "row": "ETH/BTC | 1h | CALIBRATED-WARN −2, −3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.042…+0.051, AUC 0.81…0.84, pos 117…296<br>RECALIBRATE −5%: R 0.66, slope 1.12, BSS(a) +0.022, BSS(e) +0.039, AUC 0.87, pos 35; no C3 repair",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -851,12 +851,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3h CALIBRATED-WARN -2, -3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224",
+   "evidence": "Release grading (R19.3): ETH/BTC 3h CALIBRATED-WARN -2, -3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.068…+0.076, AUC 0.75…0.79, pos 519…1224",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.068…+0.076, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.044…+0.046, AUC 0.83…0.86, pos 61…154; no C3 repair",
    "display": true,
    "ui_use": ""
   },
@@ -882,12 +882,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3h CALIBRATED-WARN -2, -3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224",
+   "evidence": "Release grading (R19.3): ETH/BTC 3h CALIBRATED-WARN -2, -3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.068…+0.076, AUC 0.75…0.79, pos 519…1224",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.068…+0.076, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.044…+0.046, AUC 0.83…0.86, pos 61…154; no C3 repair",
    "display": true,
    "ui_use": ""
   },
@@ -913,12 +913,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3h RECALIBRATE -5, -7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "evidence": "Release grading (R19.3): ETH/BTC 3h RECALIBRATE -5, -7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.044…+0.046, AUC 0.83…0.86, pos 61…154; no C3 repair",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.068…+0.076, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.044…+0.046, AUC 0.83…0.86, pos 61…154; no C3 repair",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -946,12 +946,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3h RECALIBRATE -5, -7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "evidence": "Release grading (R19.3): ETH/BTC 3h RECALIBRATE -5, -7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.044…+0.046, AUC 0.83…0.86, pos 61…154; no C3 repair",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.065…+0.074, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.031…+0.039, AUC 0.83…0.86, pos 61…154; no C3 repair",
+   "row": "ETH/BTC | 3h | CALIBRATED-WARN −2, −3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.068…+0.076, AUC 0.75…0.79, pos 519…1224<br>RECALIBRATE −5, −7%: R 0.77…0.80, slope 1.06…1.08, BSS(a) +0.036…+0.051, BSS(e) +0.044…+0.046, AUC 0.83…0.86, pos 61…154; no C3 repair",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -979,12 +979,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
    "display": true,
    "ui_use": ""
   },
@@ -1010,12 +1010,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
    "display": true,
    "ui_use": ""
   },
@@ -1041,12 +1041,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
    "display": true,
    "ui_use": ""
   },
@@ -1072,12 +1072,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
    "display": true,
    "ui_use": ""
   },
@@ -1103,12 +1103,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295",
+   "evidence": "Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
    "display": true,
    "ui_use": ""
   },
@@ -1139,7 +1139,7 @@
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
    "display": true,
    "ui_use": ""
   },
@@ -1170,7 +1170,7 @@
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
    "display": true,
    "ui_use": ""
   },
@@ -1201,7 +1201,7 @@
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.038…+0.086, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
+   "row": "ETH/BTC | 6h | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295<br>HISTORY COUNT −15, −20, −30% (pos 0…8)",
    "display": true,
    "ui_use": ""
   },
@@ -1227,12 +1227,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
    "display": true,
    "ui_use": ""
   },
@@ -1258,12 +1258,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
    "display": true,
    "ui_use": ""
   },
@@ -1289,12 +1289,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
    "display": true,
    "ui_use": ""
   },
@@ -1320,12 +1320,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
    "display": true,
    "ui_use": ""
   },
@@ -1351,12 +1351,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
    "display": true,
    "ui_use": ""
   },
@@ -1382,12 +1382,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976",
+   "evidence": "Release grading (R19.3): ETH/BTC 12h CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
    "display": true,
    "ui_use": ""
   },
@@ -1418,7 +1418,7 @@
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
    "display": true,
    "ui_use": ""
   },
@@ -1449,7 +1449,7 @@
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.025…+0.090, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
+   "row": "ETH/BTC | 12h | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.86…0.95, slope 1.05…1.25, BSS(a) +0.031…+0.108, BSS(e) +0.060…+0.092, AUC 0.69…0.90, pos 34…3976<br>HISTORY COUNT −20, −30% (pos 1…10)",
    "display": true,
    "ui_use": ""
   },
@@ -1475,12 +1475,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
    "display": true,
    "ui_use": ""
   },
@@ -1506,12 +1506,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
    "display": true,
    "ui_use": ""
   },
@@ -1537,12 +1537,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
    "display": true,
    "ui_use": ""
   },
@@ -1568,12 +1568,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
    "display": true,
    "ui_use": ""
   },
@@ -1599,12 +1599,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
    "display": true,
    "ui_use": ""
   },
@@ -1630,12 +1630,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 1d RECALIBRATE -15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair",
+   "evidence": "Release grading (R19.3): ETH/BTC 1d RECALIBRATE -15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -1668,7 +1668,7 @@
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
    "display": true,
    "ui_use": ""
   },
@@ -1699,7 +1699,7 @@
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.054…+0.087, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.035, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
+   "row": "ETH/BTC | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10%: R 0.92…0.96, slope 1.02…1.14, BSS(a) +0.078…+0.099, BSS(e) +0.066…+0.091, AUC 0.67…0.79, pos 192…3081<br>RECALIBRATE −15%: R 0.78, slope 1.25, BSS(a) +0.044, BSS(e) +0.062, AUC 0.86, pos 63; no C3 repair<br>HISTORY COUNT −20, −30% (pos 1…22)",
    "display": true,
    "ui_use": ""
   },
@@ -1725,12 +1725,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
    "display": true,
    "ui_use": ""
   },
@@ -1756,12 +1756,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
    "display": true,
    "ui_use": ""
   },
@@ -1787,12 +1787,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
    "display": true,
    "ui_use": ""
   },
@@ -1818,12 +1818,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
    "display": true,
    "ui_use": ""
   },
@@ -1849,12 +1849,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
    "display": true,
    "ui_use": ""
   },
@@ -1880,17 +1880,17 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-5-1-20",
+   "id": "release-0-5-0-20",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1909,19 +1909,19 @@
      -0.2
     ]
    },
-   "class": "DO NOT SHOW",
+   "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d DO NOT SHOW -20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-5-2-30",
+   "id": "release-0-5-1-30",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -1947,7 +1947,7 @@
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.93…0.99, slope 0.95…1.20, BSS(a) +0.061…+0.079, BSS(e) +0.042…+0.070, AUC 0.64…0.74, pos 282…4810<br>DO NOT SHOW −20%: R 0.84, slope 1.05, BSS(a) +0.045, BSS(e) +0.034, AUC 0.78, pos 132<br>HISTORY COUNT −30% (pos 21)",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.84…0.99, slope 0.95…1.20, BSS(a) +0.045…+0.079, BSS(e) +0.060…+0.083, AUC 0.64…0.78, pos 132…4810<br>HISTORY COUNT −30% (pos 21)",
    "display": true,
    "ui_use": ""
   },
@@ -1973,12 +1973,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
    "display": true,
    "ui_use": ""
   },
@@ -2004,12 +2004,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
    "display": true,
    "ui_use": ""
   },
@@ -2035,12 +2035,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
    "display": true,
    "ui_use": ""
   },
@@ -2066,12 +2066,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
    "display": true,
    "ui_use": ""
   },
@@ -2097,12 +2097,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
    "display": true,
    "ui_use": ""
   },
@@ -2128,17 +2128,17 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-6-1-20",
+   "id": "release-0-6-0-20",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -2157,14 +2157,14 @@
      -0.2
     ]
    },
-   "class": "DO NOT SHOW",
+   "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d DO NOT SHOW -20, -30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
    "display": true,
    "ui_use": ""
   },
@@ -2190,12 +2190,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 7d DO NOT SHOW -20, -30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "evidence": "Release grading (R19.3): ETH/BTC 7d DO NOT SHOW -30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.96…1.02, slope 0.98…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.036…+0.059, AUC 0.62…0.69, pos 374…2937<br>DO NOT SHOW −20, −30%: R 0.93…1.12, slope 0.83…0.94, BSS(a) +0.034…+0.049, BSS(e) +0.005…+0.031, AUC 0.69…0.71, pos 51…211",
+   "row": "ETH/BTC | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.93…1.02, slope 0.94…1.28, BSS(a) +0.036…+0.070, BSS(e) +0.045…+0.076, AUC 0.62…0.69, pos 211…2937<br>DO NOT SHOW −30%: R 1.12, slope 0.83, BSS(a) +0.034, BSS(e) +0.084, AUC 0.71, pos 51",
    "display": true,
    "ui_use": ""
   },
@@ -2221,12 +2221,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) -0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) +0.077…+0.139, AUC 0.59…0.63, pos 135…1334",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) −0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) +0.077…+0.139, AUC 0.59…0.63, pos 135…1334",
    "display": true,
    "ui_use": ""
   },
@@ -2252,12 +2252,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) -0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) +0.077…+0.139, AUC 0.59…0.63, pos 135…1334",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) −0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) +0.077…+0.139, AUC 0.59…0.63, pos 135…1334",
    "display": true,
    "ui_use": ""
   },
@@ -2283,12 +2283,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) -0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) +0.077…+0.139, AUC 0.59…0.63, pos 135…1334",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) −0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) +0.077…+0.139, AUC 0.59…0.63, pos 135…1334",
    "display": true,
    "ui_use": ""
   },
@@ -2314,12 +2314,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) -0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) +0.077…+0.139, AUC 0.59…0.63, pos 135…1334",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) −0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) +0.077…+0.139, AUC 0.59…0.63, pos 135…1334",
    "display": true,
    "ui_use": ""
   },
@@ -2345,12 +2345,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) -0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "evidence": "Release grading (R19.3): ETH/BTC 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) +0.077…+0.139, AUC 0.59…0.63, pos 135…1334",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) −0.011…+0.040, AUC 0.59…0.63, pos 135…1334",
+   "row": "ETH/BTC | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.97…1.43, slope 0.56…1.10, BSS(a) +0.039…+0.062, BSS(e) +0.077…+0.139, AUC 0.59…0.63, pos 135…1334",
    "display": true,
    "ui_use": ""
   },
@@ -2381,7 +2381,7 @@
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 1h | CALIBRATED-WARN −2, −3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504<br>DO NOT SHOW −5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.032, AUC 0.82, pos 1008",
+   "row": "Large caps | 1h | CALIBRATED-WARN −2, −3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504<br>DO NOT SHOW −5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.033, AUC 0.82, pos 1008",
    "display": true,
    "ui_use": ""
   },
@@ -2412,7 +2412,7 @@
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 1h | CALIBRATED-WARN −2, −3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504<br>DO NOT SHOW −5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.032, AUC 0.82, pos 1008",
+   "row": "Large caps | 1h | CALIBRATED-WARN −2, −3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504<br>DO NOT SHOW −5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.033, AUC 0.82, pos 1008",
    "display": true,
    "ui_use": ""
   },
@@ -2438,12 +2438,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 1h DO NOT SHOW -5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.032, AUC 0.82, pos 1008",
+   "evidence": "Release grading (R19.3): Large caps 1h DO NOT SHOW -5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.033, AUC 0.82, pos 1008",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 1h | CALIBRATED-WARN −2, −3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504<br>DO NOT SHOW −5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.032, AUC 0.82, pos 1008",
+   "row": "Large caps | 1h | CALIBRATED-WARN −2, −3%: R 0.99…1.00, slope 1.03…1.05, BSS(a) +0.089…+0.125, BSS(e) +0.071…+0.103, AUC 0.80…0.82, pos 3641…9504<br>DO NOT SHOW −5%: R 0.93, slope 0.96, BSS(a) +0.038, BSS(e) +0.033, AUC 0.82, pos 1008",
    "display": true,
    "ui_use": ""
   },
@@ -2595,12 +2595,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 6h CALIBRATED-WARN -3, -5, -7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197",
+   "evidence": "Release grading (R19.3): Large caps 6h CALIBRATED-WARN -3, -5, -7, -10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7, −10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.118, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
    "display": true,
    "ui_use": ""
   },
@@ -2626,12 +2626,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 6h CALIBRATED-WARN -3, -5, -7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197",
+   "evidence": "Release grading (R19.3): Large caps 6h CALIBRATED-WARN -3, -5, -7, -10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7, −10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.118, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
    "display": true,
    "ui_use": ""
   },
@@ -2657,12 +2657,43 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 6h CALIBRATED-WARN -3, -5, -7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197",
+   "evidence": "Release grading (R19.3): Large caps 6h CALIBRATED-WARN -3, -5, -7, -10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7, −10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.118, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
+   "display": true,
+   "ui_use": ""
+  },
+  {
+   "id": "release-0-10-0-10",
+   "section": "release",
+   "rank": 0,
+   "context": null,
+   "assets": [
+    "large"
+   ],
+   "horizon": [
+    [
+     6.0,
+     6.0
+    ]
+   ],
+   "levels": {
+    "kind": "set",
+    "values": [
+     -0.1
+    ]
+   },
+   "class": "CALIBRATED-WARN",
+   "source": "raw_fH",
+   "evidence": "Release grading (R19.3): Large caps 6h CALIBRATED-WARN -3, -5, -7, -10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197",
+   "monitor": {
+    "id": "D12",
+    "status": "deployed"
+   },
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7, −10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.118, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
    "display": true,
    "ui_use": ""
   },
@@ -2688,47 +2719,16 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Large caps 6h RECALIBRATE -2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair",
+   "evidence": "Release grading (R19.3): Large caps 6h RECALIBRATE -2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.118, AUC 0.71, pos 45149; no C3 repair",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7, −10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.118, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
    "display": true,
    "ui_use": "",
    "validated": false,
    "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
-  },
-  {
-   "id": "release-0-10-2-10",
-   "section": "release",
-   "rank": 0,
-   "context": null,
-   "assets": [
-    "large"
-   ],
-   "horizon": [
-    [
-     6.0,
-     6.0
-    ]
-   ],
-   "levels": {
-    "kind": "set",
-    "values": [
-     -0.1
-    ]
-   },
-   "class": "DO NOT SHOW",
-   "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -10, -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.052, BSS(e) -0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
-   "monitor": {
-    "id": "D12",
-    "status": "deployed"
-   },
-   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
-   "display": true,
-   "ui_use": ""
   },
   {
    "id": "release-0-10-2-15",
@@ -2752,12 +2752,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -10, -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.052, BSS(e) -0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7, −10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.118, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
    "display": true,
    "ui_use": ""
   },
@@ -2783,12 +2783,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -10, -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.052, BSS(e) -0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7, −10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.118, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
    "display": true,
    "ui_use": ""
   },
@@ -2814,12 +2814,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -10, -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.052, BSS(e) -0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "evidence": "Release grading (R19.3): Large caps 6h DO NOT SHOW -15, -20, -30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) -0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7%: R 0.99…1.06, slope 0.95…0.99, BSS(a) +0.084…+0.129, BSS(e) +0.066…+0.108, AUC 0.73…0.80, pos 3951…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.117, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −10, −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.052, BSS(e) −0.005…+0.043, AUC 0.78…0.85, pos 48…1450",
+   "row": "Large caps | 6h | CALIBRATED-WARN −3, −5, −7, −10%: R 0.99…1.12, slope 0.95…1.01, BSS(a) +0.052…+0.129, BSS(e) +0.043…+0.109, AUC 0.73…0.82, pos 1450…25197<br>RECALIBRATE −2%: R 0.99, slope 0.95, BSS(a) +0.128, BSS(e) +0.118, AUC 0.71, pos 45149; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.08…1.12, slope 0.45…1.08, BSS(a) −0.005…+0.023, BSS(e) +0.001…+0.021, AUC 0.78…0.85, pos 48…469",
    "display": true,
    "ui_use": ""
   },
@@ -2845,12 +2845,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018",
+   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "display": true,
    "ui_use": ""
   },
@@ -2876,12 +2876,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018",
+   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "display": true,
    "ui_use": ""
   },
@@ -2907,12 +2907,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018",
+   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "display": true,
    "ui_use": ""
   },
@@ -2938,12 +2938,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018",
+   "evidence": "Release grading (R19.3): Large caps 12h CALIBRATED-WARN -2, -3, -7, -10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "display": true,
    "ui_use": ""
   },
@@ -2974,7 +2974,7 @@
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -3002,12 +3002,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 12h DO NOT SHOW -15, -20, -30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) -0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "evidence": "Release grading (R19.3): Large caps 12h DO NOT SHOW -15, -20, -30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "display": true,
    "ui_use": ""
   },
@@ -3033,12 +3033,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 12h DO NOT SHOW -15, -20, -30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) -0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "evidence": "Release grading (R19.3): Large caps 12h DO NOT SHOW -15, -20, -30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "display": true,
    "ui_use": ""
   },
@@ -3064,12 +3064,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 12h DO NOT SHOW -15, -20, -30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) -0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "evidence": "Release grading (R19.3): Large caps 12h DO NOT SHOW -15, -20, -30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.110, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) −0.001…+0.033, AUC 0.77…0.82, pos 132…1137",
+   "row": "Large caps | 12h | CALIBRATED-WARN −2, −3, −7, −10%: R 0.98…1.11, slope 0.95…0.97, BSS(a) +0.068…+0.122, BSS(e) +0.052…+0.111, AUC 0.69…0.78, pos 3612…66018<br>RECALIBRATE −5%: R 1.01, slope 0.94, BSS(a) +0.116, BSS(e) +0.092, AUC 0.74, pos 18861; no C3 repair<br>DO NOT SHOW −15, −20, −30%: R 1.01…1.14, slope 0.49…1.03, BSS(a) +0.000…+0.041, BSS(e) +0.008…+0.034, AUC 0.77…0.82, pos 132…1137",
    "display": true,
    "ui_use": ""
   },
@@ -3095,12 +3095,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.013…+0.027, AUC 0.77…0.80, pos 194…692",
    "display": true,
    "ui_use": ""
   },
@@ -3126,12 +3126,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.013…+0.027, AUC 0.77…0.80, pos 194…692",
    "display": true,
    "ui_use": ""
   },
@@ -3157,12 +3157,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.013…+0.027, AUC 0.77…0.80, pos 194…692",
    "display": true,
    "ui_use": ""
   },
@@ -3188,12 +3188,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.013…+0.027, AUC 0.77…0.80, pos 194…692",
    "display": true,
    "ui_use": ""
   },
@@ -3219,12 +3219,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.013…+0.027, AUC 0.77…0.80, pos 194…692",
    "display": true,
    "ui_use": ""
   },
@@ -3250,12 +3250,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396",
+   "evidence": "Release grading (R19.3): Large caps 1d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.013…+0.027, AUC 0.77…0.80, pos 194…692",
    "display": true,
    "ui_use": ""
   },
@@ -3281,12 +3281,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 1d DO NOT SHOW -20, -30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "evidence": "Release grading (R19.3): Large caps 1d DO NOT SHOW -20, -30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.013…+0.027, AUC 0.77…0.80, pos 194…692",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.013…+0.027, AUC 0.77…0.80, pos 194…692",
    "display": true,
    "ui_use": ""
   },
@@ -3312,12 +3312,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 1d DO NOT SHOW -20, -30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "evidence": "Release grading (R19.3): Large caps 1d DO NOT SHOW -20, -30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.013…+0.027, AUC 0.77…0.80, pos 194…692",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.038…+0.098, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.006…+0.025, AUC 0.77…0.80, pos 194…692",
+   "row": "Large caps | 1d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.98…1.11, slope 0.92…0.99, BSS(a) +0.050…+0.106, BSS(e) +0.039…+0.099, AUC 0.67…0.77, pos 1493…43396<br>DO NOT SHOW −20, −30%: R 0.94…1.02, slope 0.61…0.97, BSS(a) +0.008…+0.032, BSS(e) +0.013…+0.027, AUC 0.77…0.80, pos 194…692",
    "display": true,
    "ui_use": ""
   },
@@ -3343,12 +3343,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927<br>DO NOT SHOW −30%: R 0.97, slope 0.60, BSS(a) +0.022, BSS(e) +0.020, AUC 0.71, pos 924",
    "display": true,
    "ui_use": ""
   },
@@ -3374,12 +3374,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927<br>DO NOT SHOW −30%: R 0.97, slope 0.60, BSS(a) +0.022, BSS(e) +0.020, AUC 0.71, pos 924",
    "display": true,
    "ui_use": ""
   },
@@ -3405,12 +3405,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927<br>DO NOT SHOW −30%: R 0.97, slope 0.60, BSS(a) +0.022, BSS(e) +0.020, AUC 0.71, pos 924",
    "display": true,
    "ui_use": ""
   },
@@ -3436,12 +3436,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927<br>DO NOT SHOW −30%: R 0.97, slope 0.60, BSS(a) +0.022, BSS(e) +0.020, AUC 0.71, pos 924",
    "display": true,
    "ui_use": ""
   },
@@ -3467,12 +3467,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927<br>DO NOT SHOW −30%: R 0.97, slope 0.60, BSS(a) +0.022, BSS(e) +0.020, AUC 0.71, pos 924",
    "display": true,
    "ui_use": ""
   },
@@ -3498,17 +3498,17 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927<br>DO NOT SHOW −30%: R 0.97, slope 0.60, BSS(a) +0.022, BSS(e) +0.020, AUC 0.71, pos 924",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-13-1-20",
+   "id": "release-0-13-0-20",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -3527,14 +3527,14 @@
      -0.2
     ]
    },
-   "class": "DO NOT SHOW",
+   "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 3d DO NOT SHOW -20, -30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "evidence": "Release grading (R19.3): Large caps 3d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927<br>DO NOT SHOW −30%: R 0.97, slope 0.60, BSS(a) +0.022, BSS(e) +0.020, AUC 0.71, pos 924",
    "display": true,
    "ui_use": ""
   },
@@ -3560,12 +3560,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 3d DO NOT SHOW -20, -30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "evidence": "Release grading (R19.3): Large caps 3d DO NOT SHOW -30%: R 0.97, slope 0.60, BSS(a) +0.022, BSS(e) +0.020, AUC 0.71, pos 924",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15%: R 0.99…1.09, slope 0.90…1.07, BSS(a) +0.052…+0.085, BSS(e) +0.044…+0.082, AUC 0.65…0.70, pos 5754…55927<br>DO NOT SHOW −20, −30%: R 0.97…1.07, slope 0.60…0.83, BSS(a) +0.022…+0.041, BSS(e) +0.014…+0.025, AUC 0.70…0.71, pos 924…2855",
+   "row": "Large caps | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 0.99…1.09, slope 0.83…1.07, BSS(a) +0.041…+0.085, BSS(e) +0.030…+0.084, AUC 0.65…0.70, pos 2855…55927<br>DO NOT SHOW −30%: R 0.97, slope 0.60, BSS(a) +0.022, BSS(e) +0.020, AUC 0.71, pos 924",
    "display": true,
    "ui_use": ""
   },
@@ -3591,12 +3591,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.018, AUC 0.66, pos 1350",
    "display": true,
    "ui_use": ""
   },
@@ -3622,12 +3622,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.018, AUC 0.66, pos 1350",
    "display": true,
    "ui_use": ""
   },
@@ -3653,12 +3653,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.018, AUC 0.66, pos 1350",
    "display": true,
    "ui_use": ""
   },
@@ -3684,12 +3684,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.018, AUC 0.66, pos 1350",
    "display": true,
    "ui_use": ""
   },
@@ -3715,12 +3715,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.018, AUC 0.66, pos 1350",
    "display": true,
    "ui_use": ""
   },
@@ -3746,12 +3746,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.018, AUC 0.66, pos 1350",
    "display": true,
    "ui_use": ""
   },
@@ -3777,12 +3777,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186",
+   "evidence": "Release grading (R19.3): Large caps 7d CALIBRATED-WARN -2, -3, -5, -7, -10, -15, -20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.018, AUC 0.66, pos 1350",
    "display": true,
    "ui_use": ""
   },
@@ -3808,12 +3808,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 7d DO NOT SHOW -30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "evidence": "Release grading (R19.3): Large caps 7d DO NOT SHOW -30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.018, AUC 0.66, pos 1350",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.031…+0.076, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.009, AUC 0.66, pos 1350",
+   "row": "Large caps | 7d | CALIBRATED-WARN −2, −3, −5, −7, −10, −15, −20%: R 1.00…1.06, slope 0.83…1.17, BSS(a) +0.037…+0.075, BSS(e) +0.039…+0.081, AUC 0.65…0.66, pos 3922…31186<br>DO NOT SHOW −30%: R 1.10, slope 0.68, BSS(a) +0.024, BSS(e) +0.018, AUC 0.66, pos 1350",
    "display": true,
    "ui_use": ""
   },
@@ -3839,17 +3839,17 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 30d CALIBRATED-WARN -15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206",
+   "evidence": "Release grading (R19.3): Large caps 30d CALIBRATED-WARN -15, -20, -25, -30%: R 1.02…1.04, slope 0.74…1.04, BSS(a) +0.054…+0.061, BSS(e) +0.051…+0.083, AUC 0.62…0.63, pos 7451…18206",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Large caps | 30d | CALIBRATED-WARN −15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206<br>DO NOT SHOW −20, −25, −30, −40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) −0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "row": "Large caps | 30d | CALIBRATED-WARN −15, −20, −25, −30%: R 1.02…1.04, slope 0.74…1.04, BSS(a) +0.054…+0.061, BSS(e) +0.051…+0.083, AUC 0.62…0.63, pos 7451…18206<br>DO NOT SHOW −40%: R 1.07, slope 0.51, BSS(a) +0.029, BSS(e) +0.028, AUC 0.61, pos 3495",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-15-1-20",
+   "id": "release-0-15-0-20",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -3868,19 +3868,19 @@
      -0.2
     ]
    },
-   "class": "DO NOT SHOW",
+   "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 30d DO NOT SHOW -20, -25, -30, -40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) -0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "evidence": "Release grading (R19.3): Large caps 30d CALIBRATED-WARN -15, -20, -25, -30%: R 1.02…1.04, slope 0.74…1.04, BSS(a) +0.054…+0.061, BSS(e) +0.051…+0.083, AUC 0.62…0.63, pos 7451…18206",
    "monitor": {
     "id": null,
-    "status": "none"
+    "status": "needed"
    },
-   "row": "Large caps | 30d | CALIBRATED-WARN −15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206<br>DO NOT SHOW −20, −25, −30, −40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) −0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "row": "Large caps | 30d | CALIBRATED-WARN −15, −20, −25, −30%: R 1.02…1.04, slope 0.74…1.04, BSS(a) +0.054…+0.061, BSS(e) +0.051…+0.083, AUC 0.62…0.63, pos 7451…18206<br>DO NOT SHOW −40%: R 1.07, slope 0.51, BSS(a) +0.029, BSS(e) +0.028, AUC 0.61, pos 3495",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-15-1-25",
+   "id": "release-0-15-0-25",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -3899,19 +3899,19 @@
      -0.25
     ]
    },
-   "class": "DO NOT SHOW",
+   "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 30d DO NOT SHOW -20, -25, -30, -40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) -0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "evidence": "Release grading (R19.3): Large caps 30d CALIBRATED-WARN -15, -20, -25, -30%: R 1.02…1.04, slope 0.74…1.04, BSS(a) +0.054…+0.061, BSS(e) +0.051…+0.083, AUC 0.62…0.63, pos 7451…18206",
    "monitor": {
     "id": null,
-    "status": "none"
+    "status": "needed"
    },
-   "row": "Large caps | 30d | CALIBRATED-WARN −15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206<br>DO NOT SHOW −20, −25, −30, −40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) −0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "row": "Large caps | 30d | CALIBRATED-WARN −15, −20, −25, −30%: R 1.02…1.04, slope 0.74…1.04, BSS(a) +0.054…+0.061, BSS(e) +0.051…+0.083, AUC 0.62…0.63, pos 7451…18206<br>DO NOT SHOW −40%: R 1.07, slope 0.51, BSS(a) +0.029, BSS(e) +0.028, AUC 0.61, pos 3495",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-15-1-30",
+   "id": "release-0-15-0-30",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -3930,14 +3930,14 @@
      -0.3
     ]
    },
-   "class": "DO NOT SHOW",
+   "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 30d DO NOT SHOW -20, -25, -30, -40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) -0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "evidence": "Release grading (R19.3): Large caps 30d CALIBRATED-WARN -15, -20, -25, -30%: R 1.02…1.04, slope 0.74…1.04, BSS(a) +0.054…+0.061, BSS(e) +0.051…+0.083, AUC 0.62…0.63, pos 7451…18206",
    "monitor": {
     "id": null,
-    "status": "none"
+    "status": "needed"
    },
-   "row": "Large caps | 30d | CALIBRATED-WARN −15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206<br>DO NOT SHOW −20, −25, −30, −40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) −0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "row": "Large caps | 30d | CALIBRATED-WARN −15, −20, −25, −30%: R 1.02…1.04, slope 0.74…1.04, BSS(a) +0.054…+0.061, BSS(e) +0.051…+0.083, AUC 0.62…0.63, pos 7451…18206<br>DO NOT SHOW −40%: R 1.07, slope 0.51, BSS(a) +0.029, BSS(e) +0.028, AUC 0.61, pos 3495",
    "display": true,
    "ui_use": ""
   },
@@ -3963,12 +3963,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Large caps 30d DO NOT SHOW -20, -25, -30, -40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) -0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "evidence": "Release grading (R19.3): Large caps 30d DO NOT SHOW -40%: R 1.07, slope 0.51, BSS(a) +0.029, BSS(e) +0.028, AUC 0.61, pos 3495",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Large caps | 30d | CALIBRATED-WARN −15%: R 1.02, slope 1.04, BSS(a) +0.061, BSS(e) +0.059, AUC 0.63, pos 18206<br>DO NOT SHOW −20, −25, −30, −40%: R 1.02…1.07, slope 0.51…0.89, BSS(a) +0.029…+0.056, BSS(e) −0.001…+0.045, AUC 0.61…0.63, pos 3495…13923",
+   "row": "Large caps | 30d | CALIBRATED-WARN −15, −20, −25, −30%: R 1.02…1.04, slope 0.74…1.04, BSS(a) +0.054…+0.061, BSS(e) +0.051…+0.083, AUC 0.62…0.63, pos 7451…18206<br>DO NOT SHOW −40%: R 1.07, slope 0.51, BSS(a) +0.029, BSS(e) +0.028, AUC 0.61, pos 3495",
    "display": true,
    "ui_use": ""
   },
@@ -4092,12 +4092,12 @@
    },
    "class": "CALIBRATED",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
+   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.076…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
+   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.076…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
    "display": true,
    "ui_use": "",
    "validated": true,
@@ -4125,12 +4125,12 @@
    },
    "class": "CALIBRATED",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
+   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.076…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
+   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.076…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
    "display": true,
    "ui_use": "",
    "validated": true,
@@ -4158,12 +4158,12 @@
    },
    "class": "CALIBRATED",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
+   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.076…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
+   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.076…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
    "display": true,
    "ui_use": "",
    "validated": true,
@@ -4191,12 +4191,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
+   "evidence": "Release grading (R19.3): Altcoins 3h RECALIBRATE -2, -3, -5, -7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.076…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at -2, -3, -5, -7%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.075…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
+   "row": "Altcoins | 3h | RECALIBRATE −2, −3, −5, −7%: R 1.03…1.06, slope 0.89…0.90, BSS(a) +0.077…+0.112, BSS(e) +0.076…+0.128, AUC 0.74…0.83, pos 39821…312551; C3 repair in CV at −2, −3, −5, −7%",
    "display": true,
    "ui_use": "",
    "validated": true
@@ -4223,12 +4223,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4256,12 +4256,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4289,12 +4289,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4322,12 +4322,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4355,12 +4355,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
    "display": true,
    "ui_use": "",
    "validated": true
@@ -4387,12 +4387,12 @@
    },
    "class": "CALIBRATED",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
    "display": true,
    "ui_use": "",
    "validated": true,
@@ -4420,12 +4420,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4453,12 +4453,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
+   "evidence": "Release grading (R19.3): Altcoins 6h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at -10, -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.020…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
+   "row": "Altcoins | 6h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.03…1.22, slope 0.74…0.91, BSS(a) +0.020…+0.117, BSS(e) +0.021…+0.140, AUC 0.73…0.87, pos 1875…454747; C3 repair in CV at −10, −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4486,12 +4486,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4519,12 +4519,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4552,12 +4552,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4585,12 +4585,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4618,12 +4618,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4651,12 +4651,12 @@
    },
    "class": "CALIBRATED",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
    "display": true,
    "ui_use": "",
    "validated": true,
@@ -4684,12 +4684,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -4717,12 +4717,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
+   "evidence": "Release grading (R19.3): Altcoins 12h RECALIBRATE -2, -3, -5, -7, -10, -15, -20, -30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at -15%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.030…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
+   "row": "Altcoins | 12h | RECALIBRATE −2, −3, −5, −7, −10, −15, −20, −30%: R 1.02…1.22, slope 0.68…0.92, BSS(a) +0.029…+0.115, BSS(e) +0.031…+0.143, AUC 0.72…0.84, pos 3663…616181; C3 repair in CV at −15%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5014,12 +5014,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3d CALIBRATED-WARN -2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174",
+   "evidence": "Release grading (R19.3): Altcoins 3d CALIBRATED-WARN -2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.118, AUC 0.70, pos 485174",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.118, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
    "display": true,
    "ui_use": ""
   },
@@ -5045,12 +5045,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.118, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5078,12 +5078,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.118, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5111,12 +5111,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.118, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5144,12 +5144,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.118, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5177,12 +5177,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.118, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5210,12 +5210,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.118, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5243,12 +5243,12 @@
    },
    "class": "CALIBRATED",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
+   "evidence": "Release grading (R19.3): Altcoins 3d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at -30%",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.117, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.031…+0.121, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
+   "row": "Altcoins | 3d | CALIBRATED-WARN −2%: R 1.01, slope 0.94, BSS(a) +0.062, BSS(e) +0.118, AUC 0.70, pos 485174<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.99…1.12, slope 0.48…0.91, BSS(a) +0.031…+0.084, BSS(e) +0.032…+0.122, AUC 0.70…0.75, pos 13910…430472; C3 repair in CV at −30%",
    "display": true,
    "ui_use": "",
    "validated": true,
@@ -5276,12 +5276,12 @@
    },
    "class": "CALIBRATED-WARN",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Altcoins 7d CALIBRATED-WARN -2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012",
+   "evidence": "Release grading (R19.3): Altcoins 7d CALIBRATED-WARN -2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.101, AUC 0.69, pos 264012",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.101, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
    "display": true,
    "ui_use": ""
   },
@@ -5307,12 +5307,12 @@
    },
    "class": "CALIBRATED",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.101, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
    "display": true,
    "ui_use": "",
    "validated": true,
@@ -5340,12 +5340,12 @@
    },
    "class": "CALIBRATED",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.101, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
    "display": true,
    "ui_use": "",
    "validated": true,
@@ -5373,12 +5373,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.101, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5406,12 +5406,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.101, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5439,12 +5439,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.101, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5472,12 +5472,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.101, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5505,12 +5505,12 @@
    },
    "class": "RECALIBRATE",
    "source": "recal_fH",
-   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
+   "evidence": "Release grading (R19.3): Altcoins 7d RECALIBRATE -3, -5, -7, -10, -15, -20, -30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at -3, -5%",
    "monitor": {
     "id": null,
     "status": "needed"
    },
-   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.099, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.024…+0.108, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
+   "row": "Altcoins | 7d | CALIBRATED-WARN −2%: R 1.01, slope 0.92, BSS(a) +0.046, BSS(e) +0.101, AUC 0.69, pos 264012<br>RECALIBRATE −3, −5, −7, −10, −15, −20, −30%: R 0.97…1.05, slope 0.42…0.88, BSS(a) +0.031…+0.065, BSS(e) +0.026…+0.110, AUC 0.68…0.70, pos 20010…246652; C3 repair in CV at −3, −5%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -5536,16 +5536,18 @@
      -0.15
     ]
    },
-   "class": "DO NOT SHOW",
-   "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 30d RECALIBRATE -15, -20, -25%: R 0.94…0.96, slope 0.33…0.46, BSS(a) +0.028…+0.030, BSS(e) +0.037…+0.058, AUC 0.63…0.63, pos 121756…183062; no C3 repair",
    "monitor": {
     "id": null,
-    "status": "none"
+    "status": "needed"
    },
-   "row": "Altcoins | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "row": "Altcoins | 30d | RECALIBRATE −15, −20, −25%: R 0.94…0.96, slope 0.33…0.46, BSS(a) +0.028…+0.030, BSS(e) +0.037…+0.058, AUC 0.63…0.63, pos 121756…183062; no C3 repair<br>DO NOT SHOW −30, −40%: R 0.93…0.95, slope 0.29…1.44, BSS(a) +0.023…+0.029, BSS(e) +0.015…+0.029, AUC 0.63…0.64, pos 51557…94725",
    "display": true,
-   "ui_use": ""
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
   },
   {
    "id": "release-0-23-0-20",
@@ -5567,16 +5569,18 @@
      -0.2
     ]
    },
-   "class": "DO NOT SHOW",
-   "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 30d RECALIBRATE -15, -20, -25%: R 0.94…0.96, slope 0.33…0.46, BSS(a) +0.028…+0.030, BSS(e) +0.037…+0.058, AUC 0.63…0.63, pos 121756…183062; no C3 repair",
    "monitor": {
     "id": null,
-    "status": "none"
+    "status": "needed"
    },
-   "row": "Altcoins | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "row": "Altcoins | 30d | RECALIBRATE −15, −20, −25%: R 0.94…0.96, slope 0.33…0.46, BSS(a) +0.028…+0.030, BSS(e) +0.037…+0.058, AUC 0.63…0.63, pos 121756…183062; no C3 repair<br>DO NOT SHOW −30, −40%: R 0.93…0.95, slope 0.29…1.44, BSS(a) +0.023…+0.029, BSS(e) +0.015…+0.029, AUC 0.63…0.64, pos 51557…94725",
    "display": true,
-   "ui_use": ""
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
   },
   {
    "id": "release-0-23-0-25",
@@ -5598,19 +5602,21 @@
      -0.25
     ]
    },
-   "class": "DO NOT SHOW",
-   "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "class": "RECALIBRATE",
+   "source": "recal_fH",
+   "evidence": "Release grading (R19.3): Altcoins 30d RECALIBRATE -15, -20, -25%: R 0.94…0.96, slope 0.33…0.46, BSS(a) +0.028…+0.030, BSS(e) +0.037…+0.058, AUC 0.63…0.63, pos 121756…183062; no C3 repair",
    "monitor": {
     "id": null,
-    "status": "none"
+    "status": "needed"
    },
-   "row": "Altcoins | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "row": "Altcoins | 30d | RECALIBRATE −15, −20, −25%: R 0.94…0.96, slope 0.33…0.46, BSS(a) +0.028…+0.030, BSS(e) +0.037…+0.058, AUC 0.63…0.63, pos 121756…183062; no C3 repair<br>DO NOT SHOW −30, −40%: R 0.93…0.95, slope 0.29…1.44, BSS(a) +0.023…+0.029, BSS(e) +0.015…+0.029, AUC 0.63…0.64, pos 51557…94725",
    "display": true,
-   "ui_use": ""
+   "ui_use": "",
+   "validated": false,
+   "note": "no validated fix; raw (fH) may appear as labelled context, not warning odds"
   },
   {
-   "id": "release-0-23-0-30",
+   "id": "release-0-23-1-30",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -5631,17 +5637,17 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -30, -40%: R 0.93…0.95, slope 0.29…1.44, BSS(a) +0.023…+0.029, BSS(e) +0.015…+0.029, AUC 0.63…0.64, pos 51557…94725",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Altcoins | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "row": "Altcoins | 30d | RECALIBRATE −15, −20, −25%: R 0.94…0.96, slope 0.33…0.46, BSS(a) +0.028…+0.030, BSS(e) +0.037…+0.058, AUC 0.63…0.63, pos 121756…183062; no C3 repair<br>DO NOT SHOW −30, −40%: R 0.93…0.95, slope 0.29…1.44, BSS(a) +0.023…+0.029, BSS(e) +0.015…+0.029, AUC 0.63…0.64, pos 51557…94725",
    "display": true,
    "ui_use": ""
   },
   {
-   "id": "release-0-23-0-40",
+   "id": "release-0-23-1-40",
    "section": "release",
    "rank": 0,
    "context": null,
@@ -5662,12 +5668,12 @@
    },
    "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -15, -20, -25, -30, -40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "evidence": "Release grading (R19.3): Altcoins 30d DO NOT SHOW -30, -40%: R 0.93…0.95, slope 0.29…1.44, BSS(a) +0.023…+0.029, BSS(e) +0.015…+0.029, AUC 0.63…0.64, pos 51557…94725",
    "monitor": {
     "id": null,
     "status": "none"
    },
-   "row": "Altcoins | 30d | DO NOT SHOW −15, −20, −25, −30, −40%: R 0.93…0.96, slope 0.29…1.44, BSS(a) +0.023…+0.030, BSS(e) +0.004…+0.042, AUC 0.63…0.64, pos 51557…183062",
+   "row": "Altcoins | 30d | RECALIBRATE −15, −20, −25%: R 0.94…0.96, slope 0.33…0.46, BSS(a) +0.028…+0.030, BSS(e) +0.037…+0.058, AUC 0.63…0.63, pos 121756…183062; no C3 repair<br>DO NOT SHOW −30, −40%: R 0.93…0.95, slope 0.29…1.44, BSS(a) +0.023…+0.029, BSS(e) +0.015…+0.029, AUC 0.63…0.64, pos 51557…94725",
    "display": true,
    "ui_use": ""
   },

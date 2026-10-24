@@ -17,17 +17,23 @@ Issue (q26_live_d13.py issue; inside the existing 00:17Z run):
   (fH)      raw (fH) exactly as D12 (q26_live_d12.series_origin = r192_borrower.task at one origin) on the III bars.
   ratio arm report only: kline (fH) (q26_live_d12.compute_series on the D12 kline grid + D12 kline store, read only)
             times a walk-forward ratio Sum y_b / Sum p per cell and group, refit at each quarter start from every row
-            resolved before it (development rows, then D13 live rows), capped at 1, running minimum over the ladder.
+            resolved before (quarter start - RATIO_MARGIN) (development rows, then D13 live rows), frozen at the first
+            issue of the quarter (d13/ratio/<YYYY>Q<n>.json; D13-A2), capped at 1, running minimum over the ladder.
 Score (q26_live_d13.py score; inside the existing 00:47Z run):
   truth (b) y = 1 iff min over hours h in (t, t + T] of the III hour low <= G(t) (1 + k), G(t) = the III close of the
             hour ending at t (oracle distance from G(t0), not spot). Any null III hour in the window censors the row.
   flag      liquidation path unavailable (report only, never lowers the odds): a simulated Oracle anchor; a commit
             re-anchors to G if within 5%, else moves 5% of the anchor toward it (Oracle.sol commitMedianPrice). A
-            crossing is flagged when (A - level) / level > 5% at the crossing (Oracle.sol _deviationPct). PRIMARY rule
+            crossing is flagged when |A - level| / min(A, level) > 5% at the crossing (Oracle.sol _deviationPct; two-sided
+            from D13-A2). PRIMARY rule
             (owner spec, board ruling 2026-10-24): a commit every 600 s, at the 10-minute TWAP points. SECONDARY rule
             (as coded, Oracle.sol:190 ANCHOR_UPDATE_INTERVAL = 3600): a commit at every hour end.
   monitor   the D12-A2 rule unchanged (q26_live_d12.monitor_step): per-cell two-sided e-processes for every D13 cell,
             plus the pooled -2..-10% monitor per horizon and group. Downgrade CALIBRATED-WARN -> CALIBRATED (terminal).
+D13-A2 (should-fixes): the ratio-arm quarter freeze, the two-sided flag, a clock margin on the unfinished-kline guard,
+and a per-run runtime golden check (a full replay whenever the runner fingerprint changes). The primary forecast path
+(input III, raw (fH), target (b), monitor) is unchanged bit for bit. D13-A1: the report-only input arms (d13_arms.py)
+run after the primary and never change its exit status.
 No address, key or secret is read or written. Public endpoints only.
 """
 from __future__ import annotations
@@ -56,7 +62,8 @@ HOUR, DAY = C.HOUR, C.DAY
 D13_SUB = "d13"
 SCHEMA = "q26-touch-live/d13/1"
 PREREG = {"repo": "triccs/membrane-board", "path": "design/HISTORY_TOUCH_LIVE.md", "deviation": "D13",
-          "approval": "owner 2026-10-24, 'Deploy D13' (design/Q26_ROUND19_PREREG.md D-R19.5-review)"}
+          "approval": "owner 2026-10-24, 'Deploy D13' (design/Q26_ROUND19_PREREG.md D-R19.5-review)",
+          "amendments": ["D13-A1 (input arms, report only)", "D13-A2 (should-fixes)"]}
 TS, TL, L8 = L12.TS, L12.TL, L12.L8
 LV = (-0.02, -0.03, -0.05, -0.07, -0.10, -0.15, -0.20)          # D13 cell levels (R19.5c)
 CELLS = tuple((T, k) for T in TS for k in LV)
@@ -80,6 +87,9 @@ LOOKAHEAD_N = 5
 ANCHOR_DEV = 0.05                                     # Oracle maxDeviationPct (DeployFullSystem.s.sol: 5%)
 ANCHOR_WARM = 48                                      # hours of hourly-rule anchor simulation before the origin
 ANCHOR_WARM_10M = 3                                   # hours of 600 s-rule anchor simulation before the origin
+RATIO_MARGIN = 4 * DAY                                # D13-A2: live ratio rows must resolve 4 d before the quarter start
+KLINE_CLOCK_MARGIN_MS = 5000                          # D13-A2: a kline closing < 5 s before our clock is left for later
+RUNTIME_CHECK_SYMBOL = "ETHUSDT"                      # D13-A2: per-run golden check (one series, last replay origin)
 LABEL_LARGE = "Binance-proxy oracle event (no pool basis check)"
 LABEL_ETHBTC = "oracle-proxy event: 1 h TWAP of Binance 1 m closes (R19.5: within -17/+15 bp of the ETH pool TWAP)"
 TARGET = "(b) the 1 h TWAP crosses G(t0) (1 + k) within T; distance measured from G(t0), the oracle proxy at origin"
@@ -249,8 +259,8 @@ def update_m1(ldir, entry, http_get=None, clock=time.time):
         batch = []
         for k in data:
             o, c = int(k[0]), int(k[6])
-            if o <= last_open or c >= fetched_ms:
-                continue                   # an open (unfinished) kline is never stored
+            if o <= last_open or c + KLINE_CLOCK_MARGIN_MS >= fetched_ms:
+                continue                   # an open (unfinished) kline is never stored (D13-A2: 5 s clock margin)
             if o % 60000:
                 raise ValueError(f"binance {sym}: kline off the minute grid {o}")
             batch.append([str(o), str(k[4])])
@@ -331,6 +341,12 @@ def anchor_commit(A, m):
     return A * (1 + ANCHOR_DEV) if m > A else A * (1 - ANCHOR_DEV)
 
 
+def blocked(A, lvl):
+    """Oracle.sol _deviationPct(level, anchor) > maxDeviationPct: |A - level| / min(A, level) > 5%. Two-sided from
+    D13-A2 (a level more than 5% above the anchor is flagged too). For A > level this is (A - level) / level > 5%."""
+    return abs(A - lvl) / min(A, lvl) > ANCHOR_DEV
+
+
 def anchor_at(close, i):
     """Simulated anchor in force during hour i (after the commit at the end of hour i - 1). None if no start value."""
     A = None
@@ -343,9 +359,12 @@ def anchor_at(close, i):
 
 
 def anchor_flags(close, low, i, T, S):
-    """SECONDARY (as-coded hourly rule). Per L8 level: 1 if the first (b) crossing hour h has (A_h - level) / level >
-    5%, A_h the anchor in force in hour h (hourly commits of the hour-end G from hour i - 48). The crossing value is
-    taken as the level itself. 0 if no crossing or no anchor. Report only: never used to change a probability."""
+    """SECONDARY (as-coded hourly rule). Per L8 level: 1 if the first (b) crossing hour h has |A_h - level| /
+    min(A_h, level) > 5% (two-sided, D13-A2), A_h the anchor in force in hour h (hourly commits of the hour-end G from
+    hour i - 48). The crossing value is taken as the level itself. 0 if no crossing or no anchor. Report only: never
+    used to change a probability. A keeper that commits at every allowed time is approximately the most responsive
+    keeper, so the flagged share is an approximate lower bound on the blocked share, not a strict one (D13-A2: the
+    review found 7/227, 14/436 and 4/188 counterexamples against a 2 h keeper)."""
     out = []
     A = anchor_at(close, i)
     cross = {}
@@ -368,7 +387,7 @@ def anchor_flags(close, low, i, T, S):
         if h is None or anchors.get(h) is None:
             out.append(0)
         else:
-            out.append(int((anchors[h] - lvl) / lvl > ANCHOR_DEV))
+            out.append(int(blocked(anchors[h], lvl)))
     return out
 
 
@@ -395,8 +414,10 @@ def anchor10_at(g10, i):
 def anchor_flags10(g10, low, i, T, S):
     """PRIMARY (owner spec: a commit every 600 s, at each 10-minute TWAP point from hour i - 3). Per L8 level: the
     crossing time tau is the first 10-minute point of the first crossing hour h with G <= level, or the hour's last
-    point when G dipped below the level only between points. Flag 1 if (A - level) / level > 5%, A the anchor after
-    the commits strictly before tau; the crossing value is taken as the level. 0 if no crossing or no anchor."""
+    point when G dipped below the level only between points. Flag 1 if |A - level| / min(A, level) > 5% (two-sided,
+    D13-A2), A the anchor after the commits strictly before tau; the crossing value is taken as the level. 0 if no
+    crossing or no anchor. Approximately the most responsive keeper: an approximate lower bound on the blocked share
+    (not strict; see anchor_flags)."""
     out = []
     for k in L8:
         lvl = S * (1 + k)
@@ -411,7 +432,7 @@ def anchor_flags10(g10, low, i, T, S):
             if t_ >= tau:
                 break
             A = v if A is None else anchor_commit(A, v)
-        out.append(0 if A is None else int((A - lvl) / lvl > ANCHOR_DEV))
+        out.append(0 if A is None else int(blocked(A, lvl)))
     return out
 
 
@@ -527,15 +548,15 @@ def quarter_start(ts):
     return L12.quarter_start(ts)[0]
 
 
-def ratio_for(U, outs, g, T, k, origin):
-    """Walk-forward ratio Sum y_b / Sum p_kline for (g, T, k), from every row resolved before the start of the quarter
-    that contains the origin: development rows (universe ratioSums), then D13 live outcome rows. 1.0 if no positive."""
-    qs = quarter_start(origin)
+def ratio_for(U, outs, g, T, k, qs):
+    """Walk-forward ratio Sum y_b / Sum p_kline for (g, T, k) for the quarter starting at qs: development rows (universe
+    ratioSums, resolved before qs) and D13 live outcome rows resolved at or before qs - RATIO_MARGIN (D13-A2). 1.0 if
+    no positive."""
     rs = U["ratioSums"][gkey(T, k, g)]
     P, Y = rs["before2026Q4"] if qs <= Q4_2026 else rs["all"]
     j = L8.index(k)
     for o in outs.values():
-        if o["T"] != TL[T] or o["origin"] + T * HOUR > qs:
+        if o["T"] != TL[T] or o["origin"] + T * HOUR > qs - RATIO_MARGIN:
             continue
         for r in o["series"]:
             if r["group"] == g and r.get("y") is not None and r.get("fHkline") is not None:
@@ -544,16 +565,31 @@ def ratio_for(U, outs, g, T, k, origin):
     return (Y / P) if (P > 0 and Y > 0) else 1.0
 
 
-def ratio_arm(U, outs, g, T, p_kline, origin, cache):
+def ratio_path(ldir, qs):
+    y, q = L12.quarter_start(qs)[1]
+    return os.path.join(ldir, D13_SUB, "ratio", f"{y}Q{q}.json")
+
+
+def ratio_frozen(ldir, U, outs, origin, now):
+    """D13-A2: the ratios of the quarter that contains the origin, computed once at the first issue of the quarter and
+    frozen in d13/ratio/<YYYY>Q<n>.json (written once). Later issues of the quarter read the file."""
+    qs = quarter_start(origin)
+    p = ratio_path(ldir, qs)
+    if os.path.exists(p):
+        return json.load(open(p))
+    doc = {"quarterStart": qs, "quarterStartIso": C.iso(qs), "liveCutoff": qs - RATIO_MARGIN,
+           "liveCutoffIso": C.iso(qs - RATIO_MARGIN), "frozenAtIssue": C.utc_date(origin), "frozenAt": now,
+           "rule": "development rows resolved before the quarter start, then D13 live rows resolved at or before the "
+                   "quarter start - 4 d; computed at the first issue of the quarter and frozen (D13-A2)",
+           "ratios": {gkey(T, k, g): ratio_for(U, outs, g, T, k, qs) for g in GROUPS for T in TS for k in LV}}
+    C.write_exclusive(p, C.dumps(doc))
+    return doc
+
+
+def ratio_arm(frozen, g, T, p_kline):
     out = []
     for jj, k in enumerate(L8):
-        if k in LV:
-            key = (g, T, k, quarter_start(origin))
-            if key not in cache:
-                cache[key] = ratio_for(U, outs, g, T, k, origin)
-            r = cache[key]
-        else:
-            r = cache.get((g, T, -0.20, quarter_start(origin)), 1.0)     # -30% (not a cell) uses the -20% ratio
+        r = frozen["ratios"][gkey(T, k if k in LV else -0.20, g)]     # -30% (not a cell) uses the -20% ratio
         out.append(min(1.0, p_kline[jj] * r))
     return f32(np.minimum.accumulate(np.asarray(out, float)))
 
@@ -580,12 +616,21 @@ def splice_status(ldir, U, datasets):
     return rec
 
 
-def issue(a, U, log=print, clock=time.time, http_get=None):
+def issue(a, U, log=print, clock=time.time, http_get=None, arms=True):
+    rc = _issue_primary(a, U, log=log, clock=clock, http_get=http_get)
+    if arms:
+        import d13_arms                                      # D13-A1: report only; never changes the exit status
+        d13_arms.run_arms("issue", a, log=log, clock=clock)
+    return rc
+
+
+def _issue_primary(a, U, log=print, clock=time.time, http_get=None):
     datasets, ldir = a.datasets, C.live_dir(a.out)
     now = int(clock())
     origin = now - now % DAY
     check_universe(U, datasets)
     ensure_ci_replay(a, U, log=log)
+    ensure_runtime(a, U, log=log)
     update_all(ldir, U, http_get=http_get, clock=clock, log=log)
     spl = splice_status(ldir, U, datasets)
     log(f"d13 splice: {sum(v['pass'] for v in spl.values())} of {len(U['series'])} series pass")
@@ -615,7 +660,8 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
             res[s_], why[s_] = None, "store splice check not passed"
     share = U["pathUnavailableDev"]
     outs = read_outcomes(ldir)
-    cache, series = {}, []
+    frozen = ratio_frozen(ldir, U, outs, origin, now)
+    series = []
     for e in U["series"]:
         s_ = e["symbol"]
         row = {"symbol": s_, "key": e["key"], "group": e["group"]}
@@ -640,8 +686,7 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
             if kr is not None:
                 row["fHkline"] = {TL[T]: f32(kr["T"][T]["fH"]) for T in TS}
                 row["klineS"] = kr["S"]
-                row["fHratio"] = {TL[T]: ratio_arm(U, outs, e["group"], T, kr["T"][T]["fH"], origin, cache)
-                                  for T in TS}
+                row["fHratio"] = {TL[T]: ratio_arm(frozen, e["group"], T, kr["T"][T]["fH"]) for T in TS}
             else:
                 row["fHkline"], row["fHratio"], row["klineWhy"] = None, None, kwhy.get(s_, "?")
         series.append(row)
@@ -651,7 +696,8 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
            "target": TARGET, "date": C.utc_date(origin), "origin": origin, "originIso": C.iso(origin),
            "issuedAt": now, "issuedAtIso": C.iso(now), "code": a.code, "levels": list(L8),
            "cells": [cell_name(*c) for c in CELLS], "universeSha256": C.sha256_file(universe_path()),
-           "ratioArm": {f"{g} {cell_name(T, k)}": v for (g, T, k, _q), v in cache.items()},
+           "ratioArm": {"quarter": C.iso(frozen["quarterStart"]), "frozenAtIssue": frozen["frozenAtIssue"],
+                        "liveCutoff": frozen["liveCutoffIso"], "ratios": frozen["ratios"]},
            "prevSha256": prev, "nIssued": n_iss, "modelSeconds": round(time.time() - t0, 1), "series": series}
     C.write_exclusive(os.path.join(issue_dir(ldir), name), gz_json(doc))
     log(f"d13 issue: {n_iss} series issued, {len(series) - n_iss} not issued")
@@ -725,10 +771,19 @@ def day_index_of(origin):
     return (origin - FIRST_ORIGIN) // DAY
 
 
-def score(a, U, log=print, clock=time.time, http_get=None):
+def score(a, U, log=print, clock=time.time, http_get=None, arms=True):
+    rc = _score_primary(a, U, log=log, clock=clock, http_get=http_get)
+    if arms:
+        import d13_arms                                      # D13-A1: report only; never changes the exit status
+        d13_arms.run_arms("score", a, log=log, clock=clock)
+    return rc
+
+
+def _score_primary(a, U, log=print, clock=time.time, http_get=None):
     ldir = C.live_dir(a.out)
     check_universe(U, a.datasets, klines=False)
     ensure_ci_replay(a, U, log=log)
+    ensure_runtime(a, U, log=log)
     update_all(ldir, U, http_get=http_get, clock=clock, log=log)
     splice_status(ldir, U, a.datasets)
     now = int(clock())
@@ -1029,10 +1084,83 @@ def ensure_ci_replay(a, U, log=print):
     return rec
 
 
+def runtime_fingerprint(a):
+    """D13-A2: what can change libm or numpy results between runs: the runner image, Python, numpy, libc, machine."""
+    import platform
+    return {"imageOS": os.environ.get("ImageOS"), "imageVersion": os.environ.get("ImageVersion"),
+            "python": sys.version.split()[0], "numpy": np.__version__, "libc": "-".join(platform.libc_ver()),
+            "machine": platform.machine(), "code": (a.code or {}).get("commit")}
+
+
+def quick_golden(datasets, U):
+    """D13-A2 per-run golden check: one series at the last replay origin (raw (fH), (f), (a) and the label) and the TWAP
+    rule on that series' development 1 m tail. -> (rows compared, rows equal, TWAP values compared, equal)."""
+    G = json.load(open(golden_path()))
+    oi = REPLAY_ORIGINS[-1]
+    e = [x for x in U["series"] if x["symbol"] == RUNTIME_CHECK_SYMBOL][0]
+    origin = C.A.utc(oi)
+    r, _ = compute_series(e, origin, datasets, None)
+    st, cols = read_grid(os.path.join(datasets, e["gridPath"]))
+    j0 = (origin - st) // HOUR
+    n_cmp = n_eq = 0
+    for T in TS:
+        g = G["rows"][oi][e["symbol"]].get(TL[T])
+        if g is None:
+            continue
+        n_cmp += 1
+        ok = r is not None and all(np.array_equal(np.asarray(r["T"][T][nm], np.float32), np.asarray(g[nm], np.float32))
+                                   for nm in ("fH", "f", "a"))
+        want = None if g["yb"][0] < 0 else g["yb"]
+        n_eq += int(ok and label_b(cols["low"][j0:j0 + T], r["S"], T) == want)
+    lo, hi, cl = TW.bars_from_closes(e["tailCloses"])
+    jg0 = (TAIL_START - st) // HOUR
+    tw_cmp = tw_eq = 0
+    for jj in range(1, len(cl)):
+        for c, v in (("close", cl[jj]), ("low", lo[jj]), ("high", hi[jj])):
+            g = cols[c][jg0 + jj]
+            tw_cmp += 1
+            tw_eq += int((v is None and not np.isfinite(g)) or (v is not None and v == g))
+    return n_cmp, n_eq, tw_cmp, tw_eq
+
+
+def ensure_runtime(a, U, log=print):
+    """D13-A2: every run checks a cheap golden (quick_golden). When the runner fingerprint differs from the last
+    recorded one (image version, Python, numpy, libc, machine or code commit), the full replay runs again. Every check
+    is appended to d13/checks/runtime.jsonl. A failure stops the block (fail closed)."""
+    p = os.path.join(C.live_dir(a.out), D13_SUB, "checks", "runtime.jsonl")
+    fp = runtime_fingerprint(a)
+    last = None
+    if os.path.exists(p):
+        with open(p) as f:
+            for line in f:
+                if line.strip():
+                    d = json.loads(line)
+                    if d.get("pass") and d.get("kind") == "full":
+                        last = d
+    n_cmp, n_eq, tw_cmp, tw_eq = quick_golden(a.datasets, U)
+    ok = n_cmp > 0 and n_eq == n_cmp and tw_cmp > 0 and tw_eq == tw_cmp
+    full = last is None or last.get("fingerprint") != fp
+    rec = {"kind": "full" if full else "quick", "at": C.iso(int(time.time())), "fingerprint": fp,
+           "quick": {"rows": n_cmp, "rowsEqual": n_eq, "twap": tw_cmp, "twapEqual": tw_eq}}
+    if full and ok:
+        rr = replay(a.datasets, U, workers=a.workers, log=log)
+        rec["full"] = {k: rr[k] for k in ("compared", "rowsEqual", "labelsCompared", "labelsEqual", "noLookAhead_equal",
+                                          "twapValuesCompared", "twapValuesEqual", "mismatches")}
+        ok = ok and rr["pass"]
+    rec["pass"] = bool(ok)
+    C.append_bytes(p, (json.dumps(C.clean(rec), separators=(",", ":"), sort_keys=True) + "\n").encode())
+    log(f"d13 runtime: {n_eq} of {n_cmp} golden rows equal, {tw_eq} of {tw_cmp} TWAP values equal, full replay "
+        f"{'ran' if full else 'not needed'}")
+    if not ok:
+        raise SystemExit("STOP: d13 runtime golden check failed (record written; the block stays closed)")
+    return rec
+
+
 # =====================================================================================================================
 # CLI
 # =====================================================================================================================
 D13_FILES = ("live/q26_live_d13.py", "live/d13_twap.py", "live/d13_universe.json", "live/d13_golden.json",
+             "live/d13_arms.py", "live/d13a1_universe.json", "live/d13a1_golden.json",
              "live/q26_live_d12.py", "live/d12_universe.json", "live/q26_live_common.py",
              "a2_touch.py", "a3_touch.py", "a6_touch.py", "a_touch.py", "r12_tail.py")
 

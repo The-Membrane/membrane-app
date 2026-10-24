@@ -20,6 +20,7 @@ sys.path.insert(0, HERE)
 import d13_twap as TW  # noqa: E402
 import q26_live_d12 as L12  # noqa: E402
 import q26_live_d13 as L  # noqa: E402
+import d13_arms as AR  # noqa: E402
 
 H, DAY = 3600, 86400
 
@@ -145,6 +146,8 @@ class World:
         mp.setattr(L, "TAIL_START", self.grid_end - 26 * H)
         mp.setattr(L, "FIRST_ORIGIN", first_origin)
         mp.setattr(L12, "FIRST_ORIGIN", first_origin)
+        mp.setattr(L, "ensure_runtime", lambda a, U, log=print: {"pass": True})   # D13-A2 check (tested separately)
+        mp.setattr(AR, "run_arms", lambda *x, **k: None)                          # D13-A1 arms (test_d13_arms.py)
         self.t0 = st - H
         nmin = (first_origin + 30 * DAY - self.t0) // 60
         self.min = {}
@@ -335,3 +338,87 @@ def test_universe_and_golden_files_are_consistent():
     assert set(U["climatology"]) == {L.gkey(T, k, g) for (T, k) in L.CELLS for g in L.GROUPS}
     assert all(len(e["tailCloses"]) == (L.GRID_END - L.TAIL_START) // 60 for e in U["series"])
     assert all(e["gridPath"].startswith(L.GRID_DIR) for e in U["series"])
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# D13-A2 (should-fixes)
+# ---------------------------------------------------------------------------------------------------------------------
+def test_flag_is_two_sided_and_equal_below():
+    """|A - level| / min(A, level) > 5% (Oracle.sol _deviationPct). Below the anchor it equals the old one-sided rule."""
+    for A, lvl in ((100.0, 90.0), (100.0, 95.5), (100.0, 95.2380952), (97.0, 96.0)):
+        assert L.blocked(A, lvl) == ((A - lvl) / lvl > L.ANCHOR_DEV)
+    assert L.blocked(100.0, 105.01) and not L.blocked(100.0, 104.99)        # level above the anchor
+    g10 = np.full((10, 6), 100.0)                                            # anchor 100 at the origin
+    low = np.full(10, 200.0)
+    low[5] = 106.0
+    g10[5] = [107.0, 106.0, 106.5, 107.0, 107.0, 107.0]
+    fl = L.anchor_flags10(g10, low, 4, 6, 106.0 / 1.0)                      # S = 106: level at -2% = 103.88
+    assert fl[0] == 0                                                        # within 5% of the anchor
+    fl = L.anchor_flags10(g10, low, 4, 6, 106.0 / 0.98 * 1.03)               # level -2% of S = 109.2 > 105
+    assert fl[0] == 1
+
+
+def test_ratio_frozen_at_first_issue_with_margin(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmp:
+        ldir = os.path.join(tmp, "live")
+        cells = [L.gkey(T, k, g) for (T, k) in L.CELLS for g in L.GROUPS]
+        U = {"ratioSums": {x: {"before2026Q4": [10.0, 5.0], "all": [10.0, 5.0]} for x in cells}}
+        qs = L.C.A.utc("2027-01-01T00:00:00Z")
+        y1 = [1] * len(L.L8)
+        p1 = [0.5] * len(L.L8)
+
+        def out(origin, T):
+            return {"origin": origin, "T": L.TL[T], "series": [{"group": "ETHBTC", "y": y1, "fHkline": p1}]}
+        outs = {"a": out(qs - 5 * DAY, 24),                 # resolved 4 d before qs: counted
+                "b": out(qs - 4 * DAY + 3600, 24)}           # resolved inside the margin: not counted
+        r = L.ratio_for(U, outs, "ETHBTC", 24, -0.02, qs)
+        assert r == (5.0 + 1) / (10.0 + 0.5)
+        f1 = L.ratio_frozen(ldir, U, outs, qs + 3600, now=qs + 3600)
+        outs["c"] = out(qs - 10 * DAY, 24)                   # a late outcome line arrives after the first issue
+        f2 = L.ratio_frozen(ldir, U, outs, qs + 5 * DAY, now=qs + 5 * DAY)
+        assert f1["ratios"] == f2["ratios"] and f2["frozenAtIssue"] == "2027-01-01"
+        assert os.path.exists(L.ratio_path(ldir, qs))
+        pr = L.ratio_arm(f1, "ETHBTC", 24, np.array([0.9] * len(L.L8), np.float32))
+        assert pr[0] == L.f32([min(1.0, 0.9 * r)])[0]
+
+
+def test_unfinished_kline_clock_margin():
+    """A kline that closes less than 5 s before our clock is not stored; it is stored by the next run."""
+    with tempfile.TemporaryDirectory() as tmp:
+        ldir = os.path.join(tmp, "live")
+        o0 = L.STORE_START
+        now = [o0 + 120 + 2.0]                               # minute 2 closes at o0 + 120 - 0.001 s: 2 s ago
+
+        def get(url):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+            o = int(q["startTime"][0]) // 1000
+            return json.dumps([[t * 1000, "0", "0", "0", "1.5", "1", (t + 60) * 1000 - 1]
+                               for t in range(o, int(now[0]) + 60, 60)]).encode()
+        e = {"symbol": "ETHUSDT"}
+        r = L.update_m1(ldir, e, http_get=get, clock=lambda: now[0])
+        assert r["appended"] == 1                            # minute 0 only (minute 1 closed 2 s ago)
+        now[0] = o0 + 120 + 6.0
+        r = L.update_m1(ldir, e, http_get=get, clock=lambda: now[0])
+        assert r["appended"] == 1                            # minute 1 now
+
+
+def test_runtime_check_full_replay_on_fingerprint_change(monkeypatch):
+    with tempfile.TemporaryDirectory() as tmp:
+        a = types.SimpleNamespace(datasets=tmp, out=tmp, workers=1, code={"commit": "c1"})
+        calls = []
+        monkeypatch.setattr(L, "quick_golden", lambda ds, U: (5, 5, 75, 75))
+        monkeypatch.setattr(L, "replay", lambda ds, U, workers=1, log=print: calls.append(1) or {
+            "pass": True, "compared": 300, "rowsEqual": 300, "labelsCompared": 300, "labelsEqual": 300,
+            "noLookAhead_equal": True, "twapValuesCompared": 1500, "twapValuesEqual": 1500, "mismatches": []})
+        monkeypatch.setenv("ImageVersion", "20261020.1")
+        L.ensure_runtime(a, {}, log=lambda *x: None)
+        L.ensure_runtime(a, {}, log=lambda *x: None)
+        assert len(calls) == 1                               # same fingerprint: quick check only
+        monkeypatch.setenv("ImageVersion", "20261027.1")
+        L.ensure_runtime(a, {}, log=lambda *x: None)
+        assert len(calls) == 2                               # image changed: full replay again
+        monkeypatch.setattr(L, "quick_golden", lambda ds, U: (5, 4, 75, 75))
+        with pytest.raises(SystemExit):
+            L.ensure_runtime(a, {}, log=lambda *x: None)
+        recs = [json.loads(x) for x in open(os.path.join(L.C.live_dir(tmp), "d13", "checks", "runtime.jsonl"))]
+        assert [r["kind"] for r in recs] == ["full", "quick", "full", "quick"] and recs[-1]["pass"] is False

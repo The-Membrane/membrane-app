@@ -54,6 +54,17 @@ MIN_POS = 30
 RECAL_MIN_ROWS, RECAL_MIN_POS = 1000, 20
 W_C3, KAPPA_C3 = 90, 50.0
 PCLIP = 1e-4
+EKEY = "bss_e_asof"          # D-R19.3c (parent decision): primary (e) = walk-forward as-of group base rate
+
+
+def asof_rate(ts, T, y):
+    """as-of group base rate: for each row, (sum y + 0.5) / (n + 1) over the group's rows with ts' + T <= ts
+    (labels a user could know at forecast time), pooled over every series in the group."""
+    o = np.argsort(ts + T * STEP, kind="mergesort")
+    rt = (ts + T * STEP)[o]
+    cy = np.r_[0.0, np.cumsum(y[o].astype(float))]
+    k = np.searchsorted(rt, ts, side="right")
+    return (cy[k] + 0.5) / (k + 1.0)
 
 
 def now():
@@ -311,7 +322,7 @@ def logit_fit(n, sy, x, iters=40):
     return b_, a_
 
 
-def cell_stats(p, pa, y, sid, blk, time_only, B=B_BOOT, seed=0, extra=None):
+def cell_stats(p, pa, y, sid, blk, time_only, B=B_BOOT, seed=0, extra=None, pe=None):
     """R, slope, BSS vs (a), BSS vs (e), AUC with percentile 95% intervals. extra: {name: p2} -> Brier/AUC/R/slope of
     p2 and the paired Brier change p2 - p (for the recalibration validation)."""
     from scipy import sparse
@@ -344,7 +355,7 @@ def cell_stats(p, pa, y, sid, blk, time_only, B=B_BOOT, seed=0, extra=None):
                 "Mn": mat(bx, nbx, one), "My": mat(bx, nbx, y), "Mx": mat(bx, nbx, x),
                 "Pp": mat(bp, nbp, y), "Pn": mat(bp, nbp, 1 - y)}
 
-    def stats_from(Wr, fp, sea, base_):
+    def stats_from(Wr, fp, sea, base_, seae=None):
         """Wr: (D, P) weights (D draws, or one row of ones for the point estimate)."""
         n = Wr @ base_["n"]
         sy = Wr @ base_["sy"]
@@ -366,11 +377,15 @@ def cell_stats(p, pa, y, sid, blk, time_only, B=B_BOOT, seed=0, extra=None):
         d = {"R": r, "slope": slope, "auc": auc, "bss_e": bss_e, "brier": se / n}
         if sea is not None:
             d["bss_a"] = bss_a
+        if seae is not None:
+            with np.errstate(invalid="ignore", divide="ignore"):
+                d["bss_e_asof"] = 1 - se / seae
         return d
     fp = forecast_parts(p)
     fa = agg((pa - y) ** 2)
+    fe = agg((pe - y) ** 2) if pe is not None else None
     one_w = np.ones((1, P))
-    pt = stats_from(one_w, fp, one_w @ fa, base)
+    pt = stats_from(one_w, fp, one_w @ fa, base, None if fe is None else one_w @ fe)
     bt = {k_: [] for k_ in pt}
     ext = {}
     if extra:
@@ -379,7 +394,7 @@ def cell_stats(p, pa, y, sid, blk, time_only, B=B_BOOT, seed=0, extra=None):
         btx = {nm: {k_: [] for k_ in ptx[nm]} | {"dbrier_rel": []} for nm in fx}
     for c0 in range(0, B, 100):
         Wr = W[c0:c0 + 100]
-        s_ = stats_from(Wr, fp, Wr @ fa, base)
+        s_ = stats_from(Wr, fp, Wr @ fa, base, None if fe is None else Wr @ fe)
         for k_ in bt:
             bt[k_].append(s_[k_])
         if extra:
@@ -410,7 +425,7 @@ def classify(st):
     """R19.3d class rule."""
     if not st.get("estimable") or st["pos"] < MIN_POS:
         return "HISTORY COUNT"
-    if not (st["bss_a"][1] > 0 and st["bss_e"][1] > 0):
+    if not (st["bss_a"][1] > 0 and st[EKEY if EKEY in st else "bss_e"][1] > 0):
         return "DO NOT SHOW"
     if R_BAND[0] <= st["R"][0] <= R_BAND[1] and st["slope"][1] <= 1 <= st["slope"][2]:
         return "CALIBRATED-WARN"
@@ -420,7 +435,7 @@ def classify(st):
 def classify_lenient(st):
     if not st.get("estimable") or st["pos"] < MIN_POS:
         return "HISTORY COUNT"
-    if not (st["bss_a"][1] > 0 and st["bss_e"][1] > 0):
+    if not (st["bss_a"][1] > 0 and st[EKEY if EKEY in st else "bss_e"][1] > 0):
         return "DO NOT SHOW"
     if st["R"][1] <= R_BAND[1] and st["R"][2] >= R_BAND[0] and st["slope"][1] <= 1 <= st["slope"][2]:
         return "CALIBRATED-WARN"
@@ -445,8 +460,9 @@ def cmd_grade(a):
                 m = R["grp"] == g
                 for j, k in enumerate(GRID[T]):
                     seed += 1
+                    pe = asof_rate(R["ts"][m], T, R["y"][m, j])
                     st = cell_stats(R["fH"][m, j], R["a"][m, j], R["y"][m, j], R["sid"][m], blk[m], g == "btc_eth",
-                                    seed=seed)
+                                    seed=seed, pe=pe)
                     if g == "btc_eth":
                         for nm in ("dev:ETH", "dev:BTC"):
                             mm = m & (R["sid"] == R["keys"].index(nm))
@@ -459,7 +475,7 @@ def cmd_grade(a):
                     res["cells"][key] = st
                     print(now(), key, st["pos"], st["class"],
                           *(f"{n_}={st[n_][0]:.3f}[{st[n_][1]:.3f},{st[n_][2]:.3f}]" for n_ in
-                            ("R", "slope", "bss_a", "bss_e", "auc") if n_ in st), flush=True)
+                            ("R", "slope", "bss_a", "bss_e", "bss_e_asof", "auc") if n_ in st), flush=True)
             del R
         json.dump(res, open(os.path.join(a.out, "grade-r193.json"), "w"), indent=1)
     # young-listing supplement: development altcoin rows with series age 85-364 days at the origin (r162 'age')

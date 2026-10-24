@@ -1,0 +1,434 @@
+{
+ "schema": "q26-touch-live/d12-universe/1",
+ "what": "D12 universe: Binance ETHUSDT and BTCUSDT (group ETHBTC) and the 18 A2/A3 large caps of the R16.2/R19.2 development pool (group LARGE). Paths are membrane-datasets development grids (sha256 checked at every run). climatology = development frequency (e) per monitor group. v0 = plug-in prior variance per monitor group and side (development days, p rescaled to pooled R = 1).",
+ "series": [
+  {
+   "key": "binance:ETHUSDT",
+   "symbol": "ETHUSDT",
+   "group": "ETHBTC",
+   "path": "binance-klines/ETHUSDT-1h.json",
+   "sha256": "d5c5532a9e32550066edaf0e40b3995d00b8ee54d8d0a64451bc4de0420442db",
+   "startTs": 1502942400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "binance:BTCUSDT",
+   "symbol": "BTCUSDT",
+   "group": "ETHBTC",
+   "path": "binance-klines/BTCUSDT-1h.json",
+   "sha256": "f01e2fbfd0b39939985106de3e53b94fd395893a90b823da626ae85a684f59bd",
+   "startTs": 1502942400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:AAVEUSDT",
+   "symbol": "AAVEUSDT",
+   "group": "LARGE",
+   "path": "final-blind-prices/binance-AAVEUSDT-1h.json",
+   "sha256": "2ab52f6bd10b4dfb7eb7158478d4cf3a6f0bc610fa3a6896064af368d292344a",
+   "startTs": 1602730800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:ADAUSDT",
+   "symbol": "ADAUSDT",
+   "group": "LARGE",
+   "path": "binance-klines/ADAUSDT-1h.json",
+   "sha256": "19658a51526fc5c93f9794fc5bfd961c9070a551aa43f8d400f86a42305c5803",
+   "startTs": 1523937600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:AVAXUSDT",
+   "symbol": "AVAXUSDT",
+   "group": "LARGE",
+   "path": "binance-klines/AVAXUSDT-1h.json",
+   "sha256": "a20470208a313bfeae7c2e65d3c9e1db566e4bc9cbc40073ef2ae6de6e47c64c",
+   "startTs": 1600754400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:BATUSDT",
+   "symbol": "BATUSDT",
+   "group": "LARGE",
+   "path": "final-blind-prices/binance-BATUSDT-1h.json",
+   "sha256": "681185503f7ccdac4972e7bef920c55b5e1db209c4212f37995ae4c5b308cd8a",
+   "startTs": 1551693600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:BNBUSDT",
+   "symbol": "BNBUSDT",
+   "group": "LARGE",
+   "path": "binance-klines/BNBUSDT-1h.json",
+   "sha256": "9b66f92ee6d37fe5ad9e99761595cd631050ee72b513f062b21298ea7522dc28",
+   "startTs": 1509937200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:DOGEUSDT",
+   "symbol": "DOGEUSDT",
+   "group": "LARGE",
+   "path": "binance-klines/DOGEUSDT-1h.json",
+   "sha256": "2a977c971762469a9aaf088c73601e4ecf89cc40c2f10a447da6b4eda60a652a",
+   "startTs": 1562328000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:DOTUSDT",
+   "symbol": "DOTUSDT",
+   "group": "LARGE",
+   "path": "final-blind-prices/binance-DOTUSDT-1h.json",
+   "sha256": "8d6e7f9797580e6ecbdb600befab34b8471ed1e4320c9cacfd450e2532cf67df",
+   "startTs": 1597791600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:FILUSDT",
+   "symbol": "FILUSDT",
+   "group": "LARGE",
+   "path": "final-blind-prices/binance-FILUSDT-1h.json",
+   "sha256": "551aae34c0b47768b7ed3cd21cb34a2a8d6bb75acf53cc3ee4d17f7f2373d354",
+   "startTs": 1602781200,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:INJUSDT",
+   "symbol": "INJUSDT",
+   "group": "LARGE",
+   "path": "final-blind-prices/binance-INJUSDT-1h.json",
+   "sha256": "1664a760f26af20e7a6fbaf394ac8f0216429d2bb2171e4f7b89fe7b1709fb5d",
+   "startTs": 1603252800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:LINKUSDT",
+   "symbol": "LINKUSDT",
+   "group": "LARGE",
+   "path": "binance-klines/LINKUSDT-1h.json",
+   "sha256": "e282390a984f1ceac8fbb4606049d22ac2f278d8496975ee802ae18c79c7e969",
+   "startTs": 1547632800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:LTCUSDT",
+   "symbol": "LTCUSDT",
+   "group": "LARGE",
+   "path": "binance-klines/LTCUSDT-1h.json",
+   "sha256": "adcdd4c3654b6e5c5192b025234b5e345efca51c5c2d71e9a460620d1545da37",
+   "startTs": 1513134000,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:NEARUSDT",
+   "symbol": "NEARUSDT",
+   "group": "LARGE",
+   "path": "final-blind-prices/binance-NEARUSDT-1h.json",
+   "sha256": "06d76a240de3cf3128f9c4226df47fd0b4be3c2f1b04f8ea93e7960c7dcdeb24",
+   "startTs": 1602651600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:QNTUSDT",
+   "symbol": "QNTUSDT",
+   "group": "LARGE",
+   "path": "final-blind-prices/binance-QNTUSDT-1h.json",
+   "sha256": "9755005d8bf3ade2cbf69b16c5a4eae0ea9f6c5b5b2deddc9937e65ed10a4e63",
+   "startTs": 1627538400,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:SOLUSDT",
+   "symbol": "SOLUSDT",
+   "group": "LARGE",
+   "path": "binance-klines/SOLUSDT-1h.json",
+   "sha256": "076649c6ce5233b8e5fd5ce30273c6e5eb9db08f126612c8e886f99c3f5fdb31",
+   "startTs": 1597125600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:TRXUSDT",
+   "symbol": "TRXUSDT",
+   "group": "LARGE",
+   "path": "final-blind-prices/binance-TRXUSDT-1h.json",
+   "sha256": "e7e13d5daf1c30eff3258e3531fc54928c2af346d3407b2de0aa477d57826bf4",
+   "startTs": 1528714800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:UNIUSDT",
+   "symbol": "UNIUSDT",
+   "group": "LARGE",
+   "path": "final-blind-prices/binance-UNIUSDT-1h.json",
+   "sha256": "912565f749e3e690513fe50365ff49b15377a900762cd009ce31eaf046e67bb7",
+   "startTs": 1600311600,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A2:XRPUSDT",
+   "symbol": "XRPUSDT",
+   "group": "LARGE",
+   "path": "binance-klines/XRPUSDT-1h.json",
+   "sha256": "20d400a4d37afec5cab54a7fd975d845edddde1448d476ece56f058f752f3b74",
+   "startTs": 1525420800,
+   "devEndOpen": 1791252000
+  },
+  {
+   "key": "A3:ZECUSDT",
+   "symbol": "ZECUSDT",
+   "group": "LARGE",
+   "path": "final-blind-prices/binance-ZECUSDT-1h.json",
+   "sha256": "b3d482465e31c011a43a536564459dd4ae736da7635cc051fb22f2a647484250",
+   "startTs": 1553140800,
+   "devEndOpen": 1791252000
+  }
+ ],
+ "climatology": {
+  "6h -10% ETHBTC": 0.005681818181818182,
+  "6h -10% LARGE": 0.010843340833310743,
+  "12h -10% ETHBTC": 0.01209103840682788,
+  "12h -10% LARGE": 0.023083600065100636,
+  "1d -10% ETHBTC": 0.030717329545454544,
+  "1d -10% LARGE": 0.05856685999241151,
+  "3d -10% ETHBTC": 0.10709194583036351,
+  "3d -10% LARGE": 0.18745076735026484,
+  "7d -10% ETHBTC": 0.2201280227596017,
+  "7d -10% LARGE": 0.35548118520937066,
+  "1d -20% ETHBTC": 0.0033735795454545455,
+  "1d -20% LARGE": 0.008509946338554935,
+  "3d -20% ETHBTC": 0.020669992872416252,
+  "3d -20% LARGE": 0.038652723074833625,
+  "7d -20% ETHBTC": 0.059743954480796585,
+  "7d -20% LARGE": 0.10671237722090714
+ },
+ "v0": {
+  "6h -10% ETHBTC": {
+   "A": 0.016744412891291374,
+   "B": 0.016690363060462125
+  },
+  "6h -10% LARGE": {
+   "A": 1.1897398819473675,
+   "B": 1.1974060627201324
+  },
+  "12h -10% ETHBTC": {
+   "A": 0.03331762893271374,
+   "B": 0.03301479684845099
+  },
+  "12h -10% LARGE": {
+   "A": 2.5147797552405464,
+   "B": 2.502201962870506
+  },
+  "1d -10% ETHBTC": {
+   "A": 0.08469539411119503,
+   "B": 0.08452646946983379
+  },
+  "1d -10% LARGE": {
+   "A": 6.054267954755972,
+   "B": 6.071744123715068
+  },
+  "3d -10% ETHBTC": {
+   "A": 0.2923953574515755,
+   "B": 0.29505566866912397
+  },
+  "3d -10% LARGE": {
+   "A": 17.90818277562373,
+   "B": 18.313396171320004
+  },
+  "7d -10% ETHBTC": {
+   "A": 0.5328999301504149,
+   "B": 0.5400818313633735
+  },
+  "7d -10% LARGE": {
+   "A": 27.678959638546612,
+   "B": 28.3492118475082
+  },
+  "1d -20% ETHBTC": {
+   "A": 0.00921306312198719,
+   "B": 0.009154010626431227
+  },
+  "1d -20% LARGE": {
+   "A": 0.9687305171864921,
+   "B": 0.9709233825819501
+  },
+  "3d -20% ETHBTC": {
+   "A": 0.05851082125876392,
+   "B": 0.058868108276709116
+  },
+  "3d -20% LARGE": {
+   "A": 4.903379082737827,
+   "B": 4.9433987711991
+  },
+  "7d -20% ETHBTC": {
+   "A": 0.17370872253191164,
+   "B": 0.17539216428639157
+  },
+  "7d -20% LARGE": {
+   "A": 12.10184985132491,
+   "B": 12.251914083438383
+  }
+ },
+ "devTable": {
+  "6h -10% ETHBTC": {
+   "rows": 5632,
+   "days": 2816,
+   "positives": 32,
+   "R": 1.0466041369286359,
+   "BSS_vs_a": 0.05992650115708409,
+   "BSS_vs_e": 0.055214047622129114,
+   "first": "2018-10-01T00:00:00Z",
+   "last": "2026-09-30T00:00:00Z"
+  },
+  "6h -10% LARGE": {
+   "rows": 36889,
+   "days": 2725,
+   "positives": 400,
+   "R": 1.007227408064034,
+   "BSS_vs_a": 0.06065393968355648,
+   "BSS_vs_e": 0.05272316119548759,
+   "first": "2019-01-01T00:00:00Z",
+   "last": "2026-09-30T00:00:00Z"
+  },
+  "12h -10% ETHBTC": {
+   "rows": 5624,
+   "days": 2812,
+   "positives": 68,
+   "R": 1.2128551557745648,
+   "BSS_vs_a": 0.08963666834528494,
+   "BSS_vs_e": 0.07139838578027324,
+   "first": "2018-10-01T00:00:00Z",
+   "last": "2026-09-30T00:00:00Z"
+  },
+  "12h -10% LARGE": {
+   "rows": 36866,
+   "days": 2722,
+   "positives": 851,
+   "R": 1.1711324281533522,
+   "BSS_vs_a": 0.08256326227204414,
+   "BSS_vs_e": 0.06375427296090153,
+   "first": "2019-01-01T00:00:00Z",
+   "last": "2026-09-30T00:00:00Z"
+  },
+  "1d -10% ETHBTC": {
+   "rows": 5632,
+   "days": 2816,
+   "positives": 173,
+   "R": 1.1763137429204418,
+   "BSS_vs_a": 0.09525915963011045,
+   "BSS_vs_e": 0.061866599129664857,
+   "first": "2018-10-01T00:00:00Z",
+   "last": "2026-09-30T00:00:00Z"
+  },
+  "1d -10% LARGE": {
+   "rows": 36898,
+   "days": 2726,
+   "positives": 2161,
+   "R": 1.0804400590796828,
+   "BSS_vs_a": 0.09338826525116195,
+   "BSS_vs_e": 0.06886685534555392,
+   "first": "2019-01-01T00:00:00Z",
+   "last": "2026-09-30T00:00:00Z"
+  },
+  "3d -10% ETHBTC": {
+   "rows": 5612,
+   "days": 2806,
+   "positives": 601,
+   "R": 1.1068370228950182,
+   "BSS_vs_a": 0.09579096653563812,
+   "BSS_vs_e": 0.053898977599095566,
+   "first": "2018-10-01T00:00:00Z",
+   "last": "2026-09-28T00:00:00Z"
+  },
+  "3d -10% LARGE": {
+   "rows": 36815,
+   "days": 2717,
+   "positives": 6901,
+   "R": 1.0142988604585883,
+   "BSS_vs_a": 0.08476850195316099,
+   "BSS_vs_e": 0.06608216347459084,
+   "first": "2019-01-01T00:00:00Z",
+   "last": "2026-09-28T00:00:00Z"
+  },
+  "7d -10% ETHBTC": {
+   "rows": 5624,
+   "days": 2812,
+   "positives": 1238,
+   "R": 1.0893511983170288,
+   "BSS_vs_a": 0.08985899777537609,
+   "BSS_vs_e": 0.05579541892820472,
+   "first": "2018-10-01T00:00:00Z",
+   "last": "2026-09-24T00:00:00Z"
+  },
+  "7d -10% LARGE": {
+   "rows": 36753,
+   "days": 2720,
+   "positives": 13065,
+   "R": 1.0029599367923463,
+   "BSS_vs_a": 0.07491088985614691,
+   "BSS_vs_e": 0.06884677537860551,
+   "first": "2019-01-01T00:00:00Z",
+   "last": "2026-09-24T00:00:00Z"
+  },
+  "1d -20% ETHBTC": {
+   "rows": 5632,
+   "days": 2816,
+   "positives": 19,
+   "R": 1.4778505231218955,
+   "BSS_vs_a": 0.04465625950123964,
+   "BSS_vs_e": 0.031841735037252406,
+   "first": "2018-10-01T00:00:00Z",
+   "last": "2026-09-30T00:00:00Z"
+  },
+  "1d -20% LARGE": {
+   "rows": 36898,
+   "days": 2726,
+   "positives": 314,
+   "R": 1.1224353653965697,
+   "BSS_vs_a": 0.0345646698397567,
+   "BSS_vs_e": 0.025667250814477183,
+   "first": "2019-01-01T00:00:00Z",
+   "last": "2026-09-30T00:00:00Z"
+  },
+  "3d -20% ETHBTC": {
+   "rows": 5612,
+   "days": 2806,
+   "positives": 116,
+   "R": 1.1714021933435264,
+   "BSS_vs_a": 0.04784348154294327,
+   "BSS_vs_e": 0.022159356505052963,
+   "first": "2018-10-01T00:00:00Z",
+   "last": "2026-09-28T00:00:00Z"
+  },
+  "3d -20% LARGE": {
+   "rows": 36815,
+   "days": 2717,
+   "positives": 1423,
+   "R": 1.0769462326176624,
+   "BSS_vs_a": 0.042357508805601074,
+   "BSS_vs_e": 0.026193288128369074,
+   "first": "2019-01-01T00:00:00Z",
+   "last": "2026-09-28T00:00:00Z"
+  },
+  "7d -20% ETHBTC": {
+   "rows": 5624,
+   "days": 2812,
+   "positives": 336,
+   "R": 1.2171496446949495,
+   "BSS_vs_a": 0.06354303199565892,
+   "BSS_vs_e": 0.014634574478594065,
+   "first": "2018-10-01T00:00:00Z",
+   "last": "2026-09-24T00:00:00Z"
+  },
+  "7d -20% LARGE": {
+   "rows": 36753,
+   "days": 2720,
+   "positives": 3922,
+   "R": 1.0599355509218906,
+   "BSS_vs_a": 0.051821120568283696,
+   "BSS_vs_e": 0.03147295602338995,
+   "first": "2019-01-01T00:00:00Z",
+   "last": "2026-09-24T00:00:00Z"
+  }
+ },
+ "goldenSha256": "cbf8813aa51a4d281e5cdb606fc2c11c5777e5018a16f78da7da294ec95680f0",
+ "code": "b79b3de1"
+}

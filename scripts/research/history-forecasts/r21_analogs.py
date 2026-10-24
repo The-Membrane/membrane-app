@@ -1045,6 +1045,100 @@ def cmd_transfer(a):
 
 
 # =============================================================================================
+# placebo (POST HOC, reported only; added after the transfer result was seen): does any added 7th class help
+# through dilution alone? P1 = A0 + a duplicate of the modern B3 dev equity rows (2000-2026) as class 6.
+# Same seeds, cells and pooled statistic as cmd_transfer. Not part of the registered menu.
+# =============================================================================================
+def placebo_rows(a, hh):
+    import r16_diag as D
+    R = r16_rows(a, hh)
+    mk = R.cls == 1
+    off = len(R.keys)
+    for k in D.FIELDS:
+        v = getattr(R, k)
+        add = v[mk].copy()
+        if k == "cls":
+            add[:] = 6
+        if k == "sid":
+            add = add + off
+        setattr(R, k, np.concatenate([v, add]))
+    R.keys = np.concatenate([R.keys, np.array([f"placebo:{x}" for x in R.keys])])
+    R.subs = np.concatenate([R.subs, np.array(["placebo"] * off)])
+    R.n = len(R.depth)
+    R.m0 = R.depth / np.exp(R.lns0)
+    R.week = L4.week_of(R.day)
+    R.block = (R.week // BLOCK_WEEKS).astype(np.int64)
+    R.vstate = (R.lns1 - 0.5 * R.lnLR).astype(np.float64)
+    return R
+
+
+def cmd_placebo(a):
+    import r16_diag as D
+    import r16_diag_an as AN
+    log = lambda s: print(f"{now_iso()} {s}", flush=True)  # noqa: E731
+    FH = np.load(a.fh)
+    res = {"created_utc": now_iso(), "code_sha": L4.git_sha(), "post_hoc": True, "cells": {}, "pooled": {}}
+    pooled = {"d": [], "si": [], "bi": [], "y": []}
+    lv = np.array(LEVELS_T)
+    for hh in (1, 3):
+        T = 24 * hh
+        kid = {k: i for i, k in enumerate(np.unique(FH[f"T{T}_key"]))}
+        code = np.array([kid[k] for k in FH[f"T{T}_key"]], np.int64) * 10 ** 6 + FH[f"T{T}_ts"] // DAY
+        lut = dict(zip(code.tolist(), range(len(code))))
+        set_classes(6)
+        R0 = r16_rows(a, hh)
+        set_classes(7)
+        R1 = placebo_rows(a, hh)
+        for scored in ("b12", "b9"):
+            P = {}
+            for nm, R, ncl in (("A0", R0, 6), ("P1", R1, 7)):
+                set_classes(ncl)
+                ids = np.where(R.subs == scored)[0]
+                insc = (R.cls == 0) & np.isin(R.sid, ids)
+                tr = ~insc
+                idx = np.where(insc)[0]
+                mk_ = np.array([kid.get(R.keys[s_], -1) for s_ in R.sid[idx]], np.int64)
+                cc = mk_ * 10 ** 6 + (R.day[idx].astype(np.int64) + 1)
+                hit = np.array([lut.get(c_, -1) if m_ >= 0 else -1 for c_, m_ in zip(cc.tolist(), mk_.tolist())])
+                okh = hit >= 0
+                idx, hit = idx[okh], hit[okh]
+                if nm == "A0":
+                    P["fH"] = FH[f"T{T}_pH"][hit].astype(float)
+                    Y = (R.depth[idx][:, None] <= np.log1p(lv)[None, :]).astype(np.int8)
+                    si0, bi0 = R.sid[idx].copy(), R.block[idx].copy()
+                P[nm] = AN.fix_predict(R, tr, idx, "V0", "reg2", LEVELS_T)
+            for j, k in enumerate(LEVELS_T):
+                ok = np.isfinite(P["fH"][:, j])
+                y = Y[ok, j].astype(float)
+                si, bi = si0[ok], bi0[ok]
+                d = (P["P1"][ok, j] - y) ** 2 - (P["A0"][ok, j] - y) ** 2
+                b0 = float(np.mean((P["A0"][ok, j] - y) ** 2))
+                v2 = float(np.var(D.twoway_var(si, bi, d, np.ones(len(d)), a.nb, AN.gkey("r21t", hh, scored, k,
+                                                                                           "A1", "A0"))))
+                ent = {"bss_P1_vs_A0": float(-d.mean() / b0), "z_two": float(d.mean() / math.sqrt(v2)) if v2 > 0 else None,
+                       "R_P1": float(P["P1"][ok, j].sum() / max(y.sum(), 1)),
+                       "R_A0": float(P["A0"][ok, j].sum() / max(y.sum(), 1))}
+                res["cells"][f"h{hh}/{scored}/{k}"] = ent
+                if k in PRIMARY:
+                    pooled["d"].append(d / b0)
+                    pooled["si"].append(si)
+                    pooled["bi"].append(bi)
+                    pooled["y"].append(y)
+                log(f"  h={hh} {scored} k={k}: P1 vs A0 BSS {ent['bss_P1_vs_A0']:+.4f} z {ent['z_two'] or 0:+.2f} "
+                    f"R A0 {ent['R_A0']:.2f} P1 {ent['R_P1']:.2f}")
+        del R0, R1
+    d = np.concatenate(pooled["d"])
+    si = np.concatenate(pooled["si"])
+    bi = np.concatenate(pooled["bi"])
+    v2 = float(np.var(D.twoway_var(si, bi, d, np.ones(len(d)), a.nb, AN.gkey("r21pool", "A1"))))
+    nwin = sum(1 for kk, c in res["cells"].items() if float(kk.split("/")[2]) in PRIMARY and c["bss_P1_vs_A0"] > 0)
+    res["pooled"] = {"mean": float(d.mean()), "z_two": float(d.mean() / math.sqrt(v2)), "z_cgm": cgm_z(d, si, bi),
+                     "cells_bss_pos": nwin}
+    log(f"placebo pooled P1 vs A0: {res['pooled']}")
+    write_json(os.path.join(a.work, "placebo-r21.json"), res)
+
+
+# =============================================================================================
 # main
 # =============================================================================================
 def main():
@@ -1053,7 +1147,7 @@ def main():
     p = sub.add_parser("acquire")
     p.add_argument("--work", default=WORK)
     p.add_argument("--skip-b3", action="store_true")
-    for nm in ("resegment", "encode-hl", "encode-cp", "similarity", "neff", "transfer"):
+    for nm in ("resegment", "encode-hl", "encode-cp", "similarity", "neff", "transfer", "placebo"):
         p = sub.add_parser(nm)
         p.add_argument("--work", default=WORK)
         p.add_argument("--datasets", default="/home/user/membrane-datasets")
@@ -1068,7 +1162,7 @@ def main():
         p.add_argument("--nb", type=int, default=NB)
     a = ap.parse_args()
     {"acquire": cmd_acquire, "resegment": cmd_resegment, "encode-hl": cmd_encode_hl, "encode-cp": cmd_encode_cp,
-     "similarity": cmd_similarity, "neff": cmd_neff, "transfer": cmd_transfer}[a.cmd](a)
+     "similarity": cmd_similarity, "neff": cmd_neff, "transfer": cmd_transfer, "placebo": cmd_placebo}[a.cmd](a)
 
 
 if __name__ == "__main__":

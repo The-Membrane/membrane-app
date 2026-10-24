@@ -4,8 +4,9 @@ import type { Comparison, SimRun } from './types'
  * The one-line outcome — "liquidated there, survived here" — derived from the two runs.
  *
  * Only `kind === 'liquidation'` events count: a Membrane 'recall' or 'cure' repays from
- * venue capital with nothing sold and no fee, which is exactly the survival the line is
- * meant to show. `wiped` (no collateral left) is named as such — it is worse than
+ * venue capital with nothing sold, which is exactly the survival the line is meant to
+ * show. (It is not free: on the recall-only lane, LiquidationEngine.sol:1603-1658, the
+ * keeper's fee still comes out of collateral — that is a fee, not a sale.) `wiped` (no collateral left) is named as such — it is worse than
  * liquidated and the line must not soften it.
  */
 

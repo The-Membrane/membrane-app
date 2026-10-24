@@ -10,7 +10,7 @@ import { Box, Text } from '@chakra-ui/react'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import { GUARANTEE } from '@/lib/position-sim'
+import { GUARANTEE, MODELLED_FOOTNOTE } from '@/lib/position-sim'
 import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
 
 const SCALE = CORPUS_SCALE_LINE.partial ? OCT10_SCALE_LINE : CORPUS_SCALE_LINE
@@ -23,7 +23,12 @@ const SCALE_TAIL = CORPUS_SCALE_LINE.partial
 const WINDOW_FIGURE = CORPUS_SCALE_LINE.partial ? '1' : String(CORPUS_SCALE_LINE.years)
 const WINDOW_UNIT = CORPUS_SCALE_LINE.partial ? 'day measured' : 'years measured'
 
-export const GuaranteeBlock: React.FC = () => (
+/**
+ * `noWindow`: the run on screen holds collateral that gets no 8-hour window (stablecoins,
+ * or a line above 90%), so the claim's 8 hours do not apply to all of it and the exception
+ * is printed beside the limit, with its † and the modelled footnote under it.
+ */
+export const GuaranteeBlock: React.FC<{ noWindow?: boolean }> = ({ noWindow = false }) => (
   <Box
     data-testid="sim-guarantee"
     border="1px solid"
@@ -157,6 +162,22 @@ export const GuaranteeBlock: React.FC = () => (
         alignSelf="center"
       >
         {GUARANTEE.limit}
+        {noWindow && (
+          <>
+            <br />
+            {GUARANTEE.noWindow}
+            {/* The one footer line for the † on the line above (and on "why it held"). */}
+            <Text
+              as="span"
+              display="block"
+              mt={SPACING.sm}
+              fontSize={TYPOGRAPHY.xs}
+              color={SEMANTIC_COLORS.textTertiary}
+            >
+              {MODELLED_FOOTNOTE}
+            </Text>
+          </>
+        )}
       </Text>
     </Box>
   </Box>

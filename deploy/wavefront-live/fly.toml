@@ -1,0 +1,30 @@
+# Wavefront live engine on Fly.io — PENDING OWNER APPROVAL. NOT DEPLOYED.
+# No Fly app exists for this; the name below is a placeholder to be chosen by the owner.
+# Nothing in this repository runs `fly deploy`. See docs/WAVEFRONT_LIVE_ENGINE.md.
+#
+# Owner steps (only after approval): fly apps create <name>; fly volumes create wavefront_data
+# --size 1; (keyed RPC, recommended) fly secrets set WAVEFRONT_RPC_MAINNET=<url[,url]>
+# WAVEFRONT_RPC_ARBITRUM=... WAVEFRONT_RPC_OPTIMISM=... WAVEFRONT_RPC_BASE=... (only hostnames are
+# ever printed); (Postgres sink) fly secrets set DATABASE_URL=... after applying the pending
+# migration (and its db:push note); fly deploy -c deploy/wavefront-live/fly.toml
+app = "REPLACE-WITH-OWNER-CHOSEN-NAME"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# A worker: no HTTP service, one always-on machine (the minute loop is stateful; never two).
+[processes]
+  worker = "--mode live --out /data/stream.jsonl --stats /data/stats.json"
+
+[[mounts]]
+  source = "wavefront_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"   # crash-day peak measured at 340 MB RSS (docs §8)
+  processes = ["worker"]
+
+[deploy]
+  strategy = "immediate"

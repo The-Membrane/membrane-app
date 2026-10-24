@@ -2,7 +2,7 @@
 //
 // The old hero tried to animate thousands of per-minute points. It was visually tall,
 // slow to settle, and made the important comparison hard to read. This is the measured
-// cohort instead: the same 2,350 Aave accounts, the same day, and the debt each engine
+// cohort instead: the same 2,347 Aave accounts, the same day, and the debt each engine
 // would have closed. The constants are re-derived from the evidence JSON in unit tests.
 
 import React from 'react'

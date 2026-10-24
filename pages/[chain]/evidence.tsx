@@ -28,7 +28,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     // Server-render the SUMMARY (meta/debt/time/byAsset, ~2KB) so a crawler and the
     // first paint both see real figures instead of a spinner — docs/SEO_RULESET.md R1.
-    // The 2,350-row cohort is deliberately NOT inlined; the client fetches it.
+    // The 2,347-row cohort is deliberately NOT inlined; the client fetches it.
     let summary: Omit<EvidenceDoc, 'cohort'> & { cohort: [] } | null = null
     try {
         const raw = fs.readFileSync(

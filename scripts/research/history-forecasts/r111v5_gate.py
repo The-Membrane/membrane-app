@@ -69,6 +69,155 @@ def cmd_counts(a):
     print(json.dumps(res, indent=1))
 
 
+def cmd_keys(a):
+    """F1 key file for a blind chain: (block, log index, account) of every LiquidationCall row; nothing else is kept."""
+    rows = jl(os.path.join(a.work, "liq-LOCKED.json.gz"))["rows"]
+    keys = [{"block": r["block"], "log_index": r["log_index"], "user": r["user"]} for r in rows]
+    G.jdump(os.path.join(a.work, "liq-keys.json.gz"), {"rows": keys})
+    print(json.dumps({"keys": len(keys)}))
+
+
+READINGS_AVAX = {
+    "P-1": "Subject: LiquidationCall with debt native USDC (the market's only USDC reserve) on Aave V3 Avalanche; USD = "
+           "debtToCover / 1e6 x the reserve's oracle price at the hourly read of the hour holding the block timestamp; "
+           "UTC day of the block timestamp.",
+    "P-2": "Gate days 2022-03-15..2026-09-30 minus 2025-10-10/11; 2026Q2 reported only.",
+    "P-3": "Thresholds X in {0.5M, 1M, 2.5M} x (USDC total debt at the day's anchor, USD) / 530,255,152.",
+    "P-4": "Sim class = v5 daily simulated USDC-debt repay >= X; E = real on the previous calendar day >= X; PD = max over "
+           "WETH.e and WBTC.e of the 24 h drawdown of the hourly oracle price ending in the day >= x_pd (6%); "
+           "probabilities: online class frequency, prior = Polygon v5 development frequencies (10 pseudo-days).",
+    "P-5": "Classifier pass: per threshold H >= 0.60 and J > J_E; mean J > mean J_PD; pooled Brier DM (NW lag 7, HLN, "
+           "one-sided) p < 0.05 vs climatology, E and PD.",
+    "P-6": "Magnitude gate: Spearman (days max >= $10k) >= 0.50 and > E-rank; USD-weighted abs log error < E; sim/real in "
+           "[0.5, 2]; sim <= USDC total debt every gate day (before the outcome read).",
+    "P-7": "Cost: (hour base fee + 1 gwei priority) x 686,675 gas x WAVAX price; no builder payment; dust $6.43 gross bonus. "
+           "PriceOracleSentinel from the walks.",
+    "P-8": "b_h = the last held event block with header timestamp < h; daily anchor = the same rule at 00:00Z. Engine v5 "
+           "(F1 key file, F2 configurator metas).",
+}
+
+
+def cmd_integrity(a):
+    """D-R11.1r integrity (inputs only): the v4 checks (r111v4_gate.cmd_integrity) plus configurator timestamps and
+    AnswerUpdated updatedAt vs block headers on a seeded sample."""
+    import r111v3_rpc as X
+    V.cmd_integrity(a)
+    res = json.load(open(os.path.join(a.out, "integrity.json")))
+    cm = conf_metas(a.work)
+    ev = jl(os.path.join(a.work, "conf-events.json.gz"))["rows"]
+    inp = E.Inputs(a.work)
+    inp.load_oracle()
+    rng = np.random.default_rng(20261024)
+    pick = rng.choice(len(inp.ora["ts"]), size=min(300, len(inp.ora["ts"])), replace=False)
+    cl = X.Client(V.MK[a.mk]["chain"], interval=0.2)
+    keys = inp.ora["key"][pick]
+    bad = 0
+    for k, t in zip(keys.tolist(), inp.ora["ts"][pick].tolist()):
+        if cl.header_ts(int(k // 1_000_000)) != int(t):
+            bad += 1
+    res["v5_extra"] = {"conf_logs": len(ev), "conf_blocks": len(cm),
+                       "conf_non_positive_ts": sum(1 for r in ev if r["ts"] <= 0) + sum(1 for m in cm if m["ts"] <= 0),
+                       "answer_updated_ts_vs_header_sample": len(pick), "answer_updated_ts_mismatch": bad}
+    res["pass"] = bool(res["pass"] and res["v5_extra"]["conf_non_positive_ts"] == 0 and bad == 0)
+    G.jdump(os.path.join(a.out, "integrity.json"), res)
+    print(json.dumps({"v5_extra": res["v5_extra"], "pass": res["pass"]}))
+
+
+def cmd_freeze(a):
+    sha, dirty = G.git_sha()
+    if dirty:
+        raise SystemExit("worktree dirty: freeze from a clean committed checkout")
+    path = os.path.join(a.out, f"frozen-r111v5-{a.mk}.json")
+    if os.path.exists(path):
+        raise SystemExit("frozen config exists")
+    integ = json.load(open(os.path.join(a.integrity, "integrity.json")))
+    if not integ["pass"]:
+        raise SystemExit("integrity checks did not pass: no freeze")
+    pw = json.load(open(a.power))
+    v4f = json.load(open(a.frozen))
+    cfg = {"item": "Q26 R11.1-v5 blind gate on Aave V3 Avalanche USDC debt (SV2-L; design/Q26_ROUND11_PREREG.md D-R11.1r)",
+           "code_sha": sha, "utc_created": G.utcnow(), "rule": json.load(open(a.rule)), "priors": pw["priors_for_blind"],
+           "x_pd": v4f["x_pd"], "pd_assets": ["WETH.e", "WBTC.e"], "power": pw["power"],
+           "power_sha256": G.sha256_file(a.power), "integrity_sha256": G.sha256_file(os.path.join(a.integrity, "integrity.json")),
+           "thresholds_core": G.THRESH_CORE, "ref_core_usdc_debt": G.REF_CORE_DEBT, "prior_pseudo_days": G.PRIOR_A,
+           "nw_lag": G.NW_LAG, "cand_hf": E.CAND_HF, "magnitude_bars": V.MAG, "gate_days": len(V.mk_days(a.mk)),
+           "exclude": sorted(V.EXCLUDE), "readings": READINGS_AVAX, "engine": "r111v3_engine.Replay(v5=True)",
+           "inputs_sha256": G.l1_input_digests(a.work),
+           "v5_inputs_sha256": {n: G.sha256_file(os.path.join(a.work, n)) for n in ("conf-events.json.gz", "liq-keys.json.gz")},
+           "meta_conf_digest": G.dir_digest(os.path.join(a.work, "meta-conf"))}
+    os.makedirs(a.out, exist_ok=True)
+    G.jdump(path, cfg)
+    print(json.dumps({"frozen": path, "sha256": G.sha256_file(path), "utc_created": cfg["utc_created"], "code_sha": sha}))
+
+
+def cmd_run(a):
+    """One blind run (D-R11.1r). The simulation reads the F1 key file only; the locked outcome file is opened after
+    the simulation and the volume <= debt bound."""
+    t0 = G.utcnow()
+    path = os.path.join(a.out, f"frozen-r111v5-{a.mk}.json")
+    cfg = json.load(open(path))
+    sha, dirty = G.git_sha()
+    if dirty or sha != cfg["code_sha"]:
+        raise SystemExit(f"code {sha} dirty={dirty} != frozen {cfg['code_sha']}")
+    if cfg["power"] < 0.80:
+        raise SystemExit("power < 0.80: no blind run (D-R11.1r)")
+    started = os.path.join(a.out, "run-started")
+    if os.path.exists(os.path.join(a.out, "r111v5-results.json")):
+        raise SystemExit("one run only: results exist")
+    if os.path.exists(started) and not a.resume:
+        raise SystemExit("one run only: a started marker exists (continue it with --resume)")
+    if a.resume and not os.path.exists(started):
+        raise SystemExit("--resume without a started run")
+    if G.l1_input_digests(a.work) != cfg["inputs_sha256"] or any(
+            G.sha256_file(os.path.join(a.work, n)) != v for n, v in cfg["v5_inputs_sha256"].items()) or (
+            G.dir_digest(os.path.join(a.work, "meta-conf")) != cfg["meta_conf_digest"]):
+        raise SystemExit("input digests differ from the frozen config")
+    open(started, "a").write(("resume " if a.resume else "") + t0 + "\n")
+    print(f"run {'resume' if a.resume else 'start'} {t0} frozen sha256 {G.sha256_file(path)}", flush=True)
+    t0 = open(started).read().split("\n")[0].strip()
+    os.makedirs(a.scratch, exist_ok=True)
+    inp, metas, hours, liq, cm = load(a.mk, a.work)
+    rp = mk_replay(a.mk, inp, metas, hours, cfg["rule"], liq, cm, record=False, v5=True)
+    rp.checkpoint = os.path.join(a.scratch, f"ckpt-r111v5-{a.mk}.pkl")
+    sim = rp.run()
+    days = V.mk_days(a.mk)
+    debt = V.debt_usd(a.mk, a.work, metas)
+    viol = [d for d in days if sim.get(d, 0.0) > debt.get(d, 0.0)]
+    t_sim = G.utcnow()
+    if viol:
+        res = {"item": cfg["item"], "stopped": "simulated daily volume > USDC total debt before any outcome read",
+               "days_sim_gt_debt": len(viol), "utc_start": t0, "utc_sim_end": t_sim}
+        G.jdump(os.path.join(a.out, "r111v5-bound-stop.json"), res)
+        raise SystemExit(json.dumps(res))
+    print(f"volume <= debt bound holds on all {len(days)} gate days at {t_sim}; opening the locked outcome file", flush=True)
+    res, real, debt, dd = gate_stats(a.mk, a.work, inp, metas, hours, sim, cfg)
+    q2 = [x for x in V.mk_days(a.mk, True) if x not in set(days)]
+    scale = {k: v / G.REF_CORE_DEBT for k, v in debt.items()}
+    cls_q2, pooled_q2 = V.classify4(q2, sim, real, scale, dd, cfg["x_pd"], priors=cfg["priors"])
+    by_year = {}
+    for y in sorted({x[:4] for x in days}):
+        dy = [x for x in days if x[:4] == y]
+        c, _ = V.classify4(dy, sim, real, scale, dd, cfg["x_pd"], priors=cfg["priors"])
+        by_year[y] = {X: {k: v[k] for k in ("positive_days", "H", "F", "J", "J_E", "J_PD")} for X, v in c.items()}
+    res.update({"item": cfg["item"], "frozen_sha256": G.sha256_file(path), "code_sha": sha,
+                "reported_only": {"q2_2026": {"classification": cls_q2, "pooled_dm": pooled_q2}, "by_year": by_year},
+                "engine": {"hours": rp.rec["hours"], "evals": rp.rec["evals"], "episodes": rp.rec.get("episodes")},
+                "utc_start": t0, "utc_sim_end": t_sim, "utc_end": G.utcnow()})
+    G.jdump(os.path.join(a.out, "r111v5-results.json"), res)
+    with open(os.path.join(a.out, "r111v5-daily.csv"), "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["date", "sim_usdc_usd", "real_usdc_usd", "usdc_debt_usd", "pd_drawdown", "gate_day", "q2_reported_only"])
+        for x in V.mk_days(a.mk, True):
+            w.writerow([x, f"{sim.get(x, 0.0):.2f}", f"{real.get(x, 0.0):.2f}", f"{debt.get(x, 0.0):.2f}",
+                        f"{dd.get(x, 0.0):.5f}", int(x in set(days)), int(x in set(q2))])
+    for n in os.listdir(a.out):
+        if n.endswith((".json", ".csv")) and G.ADDR_RE.search(open(os.path.join(a.out, n)).read()):
+            raise SystemExit(f"address pattern in {n}")
+    print(json.dumps({"verdict": res["verdict"], "magnitude": {k: res["magnitude"][k] for k in ("sim_over_real_total", "checks")},
+                      "classification": {X: {k: v[k] for k in ("positive_days", "H", "F", "J", "J_E", "J_PD")}
+                                         for X, v in res["classification"].items()}}, indent=1, default=float))
+
+
 def conf_metas(work):
     d = os.path.join(work, "meta-conf")
     if not os.path.isdir(d):
@@ -92,7 +241,12 @@ def load(mk, work, with_liq=True, with_conf=True):
     inp.load_oracle()
     metas = G.arb_metas(work)
     hours = G.arb_hours(inp, work)
-    liq = E.liq_rows_with_uid(inp, jl(os.path.join(work, "liq-LOCKED.json.gz"))["rows"]) if with_liq else []
+    kp = os.path.join(work, "liq-keys.json.gz")
+    if with_liq and os.path.exists(kp):
+        # blind chain: (block, log index, account) only, never an amount or a debt asset (D-R11.1q F1)
+        liq = E.liq_rows_with_uid(inp, jl(kp)["rows"])
+    else:
+        liq = E.liq_rows_with_uid(inp, jl(os.path.join(work, "liq-LOCKED.json.gz"))["rows"]) if with_liq else []
     return inp, metas, hours, liq, (conf_metas(work) if with_conf else [])
 
 
@@ -255,13 +409,14 @@ def cmd_devrun(a):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd")
-    for k in ("mk", "work", "out", "rule", "start", "end", "frozen", "scratch"):
+    for k in ("mk", "work", "out", "rule", "start", "end", "frozen", "scratch", "integrity", "power"):
         ap.add_argument(f"--{k}")
     ap.add_argument("--win", nargs="*")
     ap.add_argument("--v4", action="store_true")
     ap.add_argument("--resume", action="store_true")
     a = ap.parse_args()
-    {"window": cmd_window, "kar": cmd_kar, "devrun": cmd_devrun, "counts": cmd_counts}[a.cmd](a)
+    {"window": cmd_window, "kar": cmd_kar, "devrun": cmd_devrun, "counts": cmd_counts, "keys": cmd_keys,
+     "integrity": cmd_integrity, "freeze": cmd_freeze, "run": cmd_run}[a.cmd](a)
 
 
 if __name__ == "__main__":

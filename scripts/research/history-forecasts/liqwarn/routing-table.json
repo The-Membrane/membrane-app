@@ -1,8 +1,8 @@
 {
- "version": "805e8819d970b8c2",
- "generated_utc": "2026-10-24T05:38:54Z",
+ "version": "3c85b3770461ec06",
+ "generated_utc": "2026-10-24T05:41:49Z",
  "schema": "liqwarn-routing/1",
- "map_sha256": "eb6e3c6ac16ff56f2b008354eb0f51705147502d93426b73ce6571fe39efa7e4",
+ "map_sha256": "e613669fd8ea4007d0aeb0d69f3f7be2ec884d4f9fccc018f4ead0756afd035d",
  "release_grading_present": true,
  "live_monitors_deployed": [
   "D1",

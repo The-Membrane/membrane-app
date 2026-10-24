@@ -1,8 +1,10 @@
 // THE BORROWER-MODE DEMO IS A REAL LIQUIDATION, AND IT HAS TO STAY ONE.
 //
 // /[chain]/simulator opens on a wallet Aave V3 actually liquidated on 10 Oct 2025,
-// selected out of public/data/oct10-2025/evidence.json. Three ways that can rot, and
-// one test each:
+// selected out of the full on-chain census of 10-11 Oct 2025 (membrane-datasets
+// oct10-2025/coverage/census.json, served as public/data/oct10-2025/evidence-census.json;
+// re-selected 2026-10-16 when the pages moved to it). Three ways that can rot, and one
+// test each:
 //
 //  1. The fixture is hand-edited into something that no longer parses as a position.
 //  2. The reconstructed position drifts off the MEASURED row — the collateral token
@@ -89,7 +91,10 @@ function oct10Run(venue: VenueRecall | null = toVenueRecall(demoBorrowerDetectio
 describe('the borrower demo wallet', () => {
   it('parses, and carries the fields the page reads', () => {
     expect(fixture.provenance).toBe('measured wallet · no deployment')
-    expect(fixture.source).toBe('public/data/oct10-2025/evidence.json')
+    // 2026-10-16: the fixture is selected from the full census, not the old evidence.json.
+    expect(fixture.source).toBe(
+      'membrane-datasets oct10-2025/coverage/census.json (served as public/data/oct10-2025/evidence-census.json)',
+    )
     expect(fixture.address).toMatch(/^0x[0-9a-fA-F]{40}$/)
     expect(typeof fixture.readAt).toBe('string')
     expect(fixture.row).toBeTruthy()

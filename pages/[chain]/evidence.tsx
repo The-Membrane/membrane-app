@@ -5,7 +5,8 @@ import type { GetServerSideProps } from 'next'
 
 import PageSeo from '@/components/PageSeo'
 import { Evidence } from '@/components/Evidence'
-import type { EvidenceDoc } from '@/components/Evidence'
+import { evidenceDescription } from '@/components/Evidence/seo'
+import { summaryOf, type EvidenceDoc, type EvidenceFile } from '@/components/Evidence/types'
 import { supportedChains, DEFAULT_CHAIN } from '@/config/chains'
 import { FINDING_OG_IMAGE_PATH } from '@/lib/share/permalink'
 
@@ -26,17 +27,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         return { redirect: { destination: `/${DEFAULT_CHAIN}/evidence`, permanent: false } }
     }
 
-    // Server-render the SUMMARY (meta/debt/time/byAsset, ~2KB) so a crawler and the
-    // first paint both see real figures instead of a spinner — docs/SEO_RULESET.md R1.
-    // The 2,350-row cohort is deliberately NOT inlined; the client fetches it.
-    let summary: Omit<EvidenceDoc, 'cohort'> & { cohort: [] } | null = null
+    // Server-render the SUMMARY (everything but the cohort) so a crawler and the first paint
+    // both see real figures instead of a spinner — docs/SEO_RULESET.md R1. The 3,197-row
+    // cohort is deliberately NOT inlined; the client fetches it.
+    let summary: EvidenceDoc | null = null
     try {
         const raw = fs.readFileSync(
-            path.join(process.cwd(), 'public/data/oct10-2025/evidence.json'),
+            path.join(process.cwd(), 'public/data/oct10-2025/evidence-census.json'),
             'utf8',
         )
-        const { cohort, ...rest } = JSON.parse(raw) as EvidenceDoc
-        summary = { ...rest, cohort: [] }
+        summary = summaryOf(JSON.parse(raw) as EvidenceFile)
     } catch {
         // Missing/unreadable dataset must not 500 the page. The component falls back
         // to its client fetch, and to its error state if that fails too.
@@ -47,8 +47,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 }
 
 /**
- * The counterfactual tool, in full: every account Aave liquidated on 10 Oct 2025,
- * filterable, including the ones where Membrane does worse.
+ * The counterfactual tool, in full: every position Aave and Morpho liquidated on 10-11 Oct
+ * 2025 on four chains, filterable, including the ones where Membrane does worse.
  *
  * seoClass is `indexable` — this is a surface a stranger should be able to find and
  * check. `path` is passed explicitly so the canonical + og:url resolve to the chain
@@ -62,7 +62,7 @@ const EvidencePage = ({ summary }: { summary: EvidenceDoc | null }) => {
                 path={`/${DEFAULT_CHAIN}/evidence`}
                 image={FINDING_OG_IMAGE_PATH}
                 title="Membrane: What our engine would have done"
-                description="Every account Aave liquidated on 10 October 2025, replayed through Membrane's liquidation engine on the same measured prices. Aave closed a median 71% of each loan; Membrane's partial repay-to-cap closes 17.8%. Includes the accounts where Membrane does worse."
+                description={evidenceDescription(summary)}
             />
             <Evidence initialDoc={summary} />
         </>

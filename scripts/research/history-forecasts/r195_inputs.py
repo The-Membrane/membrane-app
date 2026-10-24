@@ -936,6 +936,54 @@ def cmd_tables(a):
     print(f"wrote {len(txt)} blocks")
 
 
+def cmd_poolcheck(a):
+    """REPORT ONLY (not registered): ETH/BTC forecasts scored against the Uniswap pool label, i.e. the label of input V
+    (1 h pool TWAP at 10-minute points crossing TWAP(t) (1 + k)), on origins >= the pool splice + 30 days."""
+    import r193_regrade as G
+    R = load_rows(a.out)
+    man = json.load(open(os.path.join(a.out, "grids", "grids-manifest.json")))
+    inps = ("I", "III", "IV", "II", "V")
+    res = {"what": "report only: target = label of input V (Uniswap V3 pool TWAP path)", "code": git_sha(), "cells": {}}
+    for span, smin in (("pool", 0), ("2023", 1672531200)):
+        for T in TS_B:
+            parts = []
+            for si, sym in enumerate(("ETHUSDT", "BTCUSDT")):
+                tmin = max(smin, man["grids"][f"V:{sym}"]["splice_open_ts"] + 30 * DAY)
+                keys = None
+                for i in inps:
+                    k_ = set(R[(i, sym, T)]["ts"].tolist())
+                    keys = k_ if keys is None else keys & k_
+                ts = np.array(sorted(keys), np.int64)
+                ts = ts[ts >= tmin]
+
+                def pick(i, c):
+                    d = R[(i, sym, T)]
+                    return d[c][np.searchsorted(d["ts"], ts)]
+                y = pick("V", "y")
+                pa = pick("V", "a").astype(float)
+                P = {i: pick(i, "fH").astype(float) for i in inps}
+                fin = (y >= 0).all(axis=1)
+                for i in inps:
+                    fin &= np.isfinite(P[i]).all(axis=1)
+                parts.append((ts[fin], y[fin], pa[fin], {i: v[fin] for i, v in P.items()}, np.full(fin.sum(), si)))
+            ts = np.concatenate([q[0] for q in parts])
+            y = np.concatenate([q[1] for q in parts])
+            pa = np.concatenate([q[2] for q in parts])
+            sid = np.concatenate([q[4] for q in parts])
+            blk = G.block_of(ts, T)
+            for jj, (j, k) in enumerate(zip(JL, LV)):
+                yy = y[:, j].astype(float)
+                pe = G.asof_rate(ts, T, yy)
+                for i in inps:
+                    p = np.concatenate([q[3][i] for q in parts])[:, j]
+                    st_ = G.cell_stats(np.clip(p, 0, 1), pa[:, j], yy, sid, blk, time_only=True, B=B_BOOT,
+                                       seed=400000 + 1000 * T + 10 * jj, pe=pe)
+                    st_["class"] = G.classify(st_)
+                    res["cells"][f"{span}|{i}|{TL[T]}|{int(round(k * 100))}"] = st_
+            print(now(), span, TL[T], len(ts), flush=True)
+    json.dump(res, open(os.path.join(a.out, "poolcheck-r195.json"), "w"))
+
+
 def cmd_secondary(a):
     """R19.5c secondary for one input: the R19.2 or1m form (line S (1 + k), S the Binance close at t; minimum of the
     1 h TWAP path over (t, t + T]; rows whose G(t) is already at or below the line dropped as imminent)."""
@@ -1251,7 +1299,7 @@ def main():
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     {"acq1m": cmd_acq1m, "venues": cmd_venues, "uni": cmd_uni, "grids": cmd_grids, "rows": cmd_rows,
-     "score": cmd_score, "tables": cmd_tables, "secondary": cmd_secondary, "checks": cmd_checks, "synth": cmd_synth}[a.cmd](a)
+     "score": cmd_score, "tables": cmd_tables, "secondary": cmd_secondary, "poolcheck": cmd_poolcheck, "checks": cmd_checks, "synth": cmd_synth}[a.cmd](a)
 
 
 if __name__ == "__main__":

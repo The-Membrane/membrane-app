@@ -29,27 +29,26 @@ export interface HeadlineCopy {
   draft: string | null
 }
 
+/**
+ * OWNER'S W.O.W. HEADLINES (ruling 2026-10-25, replaces the framework drafts). Who:
+ * borrowers who don't want to babysit a loan. Outcome: keep more of the position through
+ * a crash, with time to repay before anything is sold. Without: no manual action; the
+ * 8h window opens on its own. The owner chose these, so the copy-budget 12-word H1 limit
+ * gives way to 20 for this set (tests/unit/landing.test.ts).
+ */
+const OWNER_1 = 'Borrow without babysitting. If price breaks your line, you get 8 hours to repay — automatically.'
+const OWNER_2 = 'A crash shouldn’t sell your loan at 2am. Membrane waits 8 hours on its own — nothing to set, nothing to watch.'
+const OWNER_3 = 'Keep more of your borrow when the market wicks. An automatic 8-hour window, no monitoring.'
+
 export const HEADLINES: Record<HeadlineKey, HeadlineCopy> = {
-  default: {
-    headline: 'Your borrow, replayed through 10 Oct 2025 on your venue and Membrane.',
-    draft: null,
-  },
-  a: {
-    headline: 'Paste your wallet. Replay your loop through October 10th.',
-    draft: 'Paste your wallet. See if your loop survives the next October 10th.',
-  },
-  b: {
-    headline: 'Your position, replayed through the 10 Oct 2025 crash. Free, no deposit.',
-    draft: 'Your position, replayed through the worst day in DeFi lending. Free, no deposit.',
-  },
-  c: {
-    headline: 'What a 2am wick would have done to your borrow.',
-    draft: 'Find out what your borrow does at 2am — before 2am finds out for you.',
-  },
+  default: { headline: OWNER_1, draft: null },
+  a: { headline: OWNER_1, draft: null },
+  b: { headline: OWNER_2, draft: null },
+  c: { headline: OWNER_3, draft: null },
 }
 
 /** The one-line mechanism under the H1. Framework subhead, rewritten to the ruling. */
-export const SUBHEAD = 'We run your position through measured 10 Oct 2025 prices, on your venue and on Membrane.'
+export const SUBHEAD = 'Paste your wallet to see your own position replayed through October 10th, on your venue and on Membrane.'
 
 /** The one button. Framework: "Run my forecast". This runs a replay, so it says so. */
 export const RUN_LABEL = 'Run my replay'

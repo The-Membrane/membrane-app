@@ -16,6 +16,8 @@ export default defineConfig({
       exclude: ['**/*.d.ts', '**/codegen/**'],
     },
   },
+  // tsconfig keeps jsx: preserve for Next; tests that render components need it compiled.
+  oxc: { jsx: { runtime: 'automatic' } },
   resolve: {
     // Mirrors the `@/*` -> `./*` alias in tsconfig.json.
     alias: { '@': path.resolve(__dirname, '.') },

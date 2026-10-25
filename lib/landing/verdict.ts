@@ -149,3 +149,60 @@ export function armedWindows(cmp: Comparison, pathCount: number, cureMinutes: nu
   }
   return out
 }
+
+// ------------------------------------------------------------------ STORY beats
+
+/**
+ * T (TROUBLE), above the chart, in the visitor's numbers: what the venue did and when.
+ * Measured when the position is a census row (the demo), modelled otherwise and labelled.
+ * `clock` formats a unix-seconds time in the reader's zone.
+ */
+export function troubleLine(
+  cmp: Comparison,
+  whose: 'this' | 'your',
+  measured: (MeasuredSide & { t0Index?: number }) | null,
+  clock: (ts: number) => string,
+): string {
+  const venue = cmp.position.label.split(' · ')[0]
+  const first = cmp.source.events.find((e) => e.kind === 'liquidation') ?? null
+  if (measured) {
+    const at = first ? ` at ${clock(first.ts)}` : ''
+    return `${venue} liquidated ${usd(measured.aaveClosedUsd)} of ${whose} loan${at} (measured). No warning, no time.`
+  }
+  if (!first) return `${venue} would have sold nothing of ${whose} position on this replay (modelled).`
+  const closed = closedTotals(cmp).venueClosedUsd
+  return `${venue} would have liquidated ${usd(closed)} of ${whose} loan at ${clock(first.ts)} (modelled). No warning, no time.`
+}
+
+/**
+ * O (OUTCOME), after the chart, in the user's terms: the time the window gave them and
+ * how it ended, what Membrane would have closed (simulator), and that nothing was asked
+ * of them. It never claims 8 hours the replay did not give: a window that broke after
+ * four minutes says so.
+ */
+export function outcomeBeat(
+  cmp: Comparison,
+  measured: MeasuredSide | null,
+  windows: ArmedWindow[],
+  clock: (ts: number) => string,
+  opts: { cureHours: number; bandPct: number; stepSeconds: number },
+): string {
+  const mem = measured ? measured.membraneClosedUsd : closedTotals(cmp).membraneClosedUsd
+  const closes = mem >= 0.5 ? `Membrane would have closed ${usd(mem)} of the loan (simulator)` : 'Membrane would have sold nothing (simulator)'
+  const w = windows[0]
+  if (!w) {
+    if (mem < 0.5) return 'On Membrane no window was needed and nothing was sold (simulator).'
+    return `Already past the ${opts.bandPct}% band, so no window opened. ${closes}.`
+  }
+  const opened = clock(cmp.membrane.events.find((e) => e.kind === 'breach')?.ts ?? 0)
+  const mins = Math.max(1, Math.round(((w.end - w.start) * opts.stepSeconds) / 60))
+  const fullWindow = w.end - w.start >= Math.round((opts.cureHours * 3600) / opts.stepSeconds)
+  const how = w.priceCured
+    ? `price came back after ${mins} min`
+    : w.end >= cmp.membrane.equitySeries.length
+      ? 'the price data ended inside it'
+      : fullWindow
+      ? `still over the line at ${opts.cureHours}h`
+      : `price fell through the ${opts.bandPct}% band ${mins} min later`
+  return `The ${opts.cureHours}h window opened at ${opened}; ${how}. ${closes}. Nothing required of you.`
+}

@@ -77,7 +77,7 @@ const DelayDetails: React.FC<{ census: CensusSummary }> = ({ census }) => (
 )
 
 export const ObjectionCards: React.FC<{ census: CensusSummary | null }> = ({ census }) => (
-  <Box as="section" aria-labelledby="landing-objections" display="grid" gap={SPACING.md}>
+  <Box as="section" aria-labelledby="landing-objections" data-story="Y" display="grid" gap={SPACING.md}>
     <Text id="landing-objections" as="h2" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={{ base: '22px', md: '28px' }} fontWeight={TYPOGRAPHY.normal}>
       Yes, but…
     </Text>

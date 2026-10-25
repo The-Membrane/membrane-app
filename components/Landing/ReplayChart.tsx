@@ -17,7 +17,8 @@ import { usd } from '@/components/Simulator/format'
 import { CURE_WINDOW_HOURS, CURE_WINDOW_SECONDS, MAX_THRESHOLD_TO_DELAY, type Comparison, type ProtocolPosition } from '@/lib/position-sim'
 import { positionKey } from '@/lib/landing/replay'
 import { depthRegistry, skewLines, skewNote, type UsdeExitLiquidity } from '@/lib/landing/sizeSkew'
-import { armedWindows, eventMarks, verdictOf, type MeasuredSide } from '@/lib/landing/verdict'
+import { armedWindows, eventMarks, outcomeBeat, troubleLine, verdictOf, type MeasuredSide } from '@/lib/landing/verdict'
+import { fmtLocalClock, useLocalZone } from '@/components/Simulator/localClock'
 import type { CensusRow } from '@/lib/landing/census'
 import type { DelayStep, Slot } from '@/lib/landing/forecastLayer'
 import { firstShown } from '@/lib/landing/forecastLayer'
@@ -80,6 +81,8 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
   measured,
   addressCensus,
 }) => {
+  const zone = useLocalZone()
+  const clock = (ts: number) => fmtLocalClock(ts, zone)
   const registry = useMemo(() => depthRegistry(usdeExit), [usdeExit])
   const skews = useMemo(() => (comparison ? skewLines(comparison, registry) : []), [comparison, registry])
   const ghosts = useMemo<ChartGhost[]>(
@@ -159,20 +162,27 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
       )}
 
       {!comparison ? (
-        <Box h={{ base: '260px', md: '380px' }} borderTop={rule} display="grid" placeItems="center">
-          <Text {...small}>Loading the measured price path…</Text>
-        </Box>
+        <>
+          <Box as="section" data-story="T" minH="36px" />
+          <Box h={{ base: '260px', md: '380px' }} borderTop={rule} display="grid" placeItems="center">
+            <Text {...small}>Loading the measured price path…</Text>
+          </Box>
+          <Box as="section" data-story="O" minH="36px" />
+        </>
       ) : (
         <>
+          {/* T — TROUBLE: what the venue did, in the visitor's numbers, above the chart. */}
           <Text
+            as="section"
             id="landing-replay-head"
-            data-testid="landing-verdict"
+            data-story="T"
+            data-testid="landing-trouble"
             fontFamily={TYPOGRAPHY.fontDisplay}
             fontSize={{ base: '22px', md: '30px' }}
             lineHeight={1.2}
             color={SEMANTIC_COLORS.textPrimary}
           >
-            {verdictOf(comparison, whose, measured).headline}
+            {troubleLine(comparison, whose, measured, clock)}
           </Text>
           <Text {...credit} textAlign="left" data-testid="landing-stamp">
             {measured ? 'Aave measured' : `${comparison.position.label.split(' · ')[0]} modelled`} · oracle 1-min
@@ -203,6 +213,23 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
               }
             />
           )}
+
+          {/* O — OUTCOME: time to act, what Membrane would have done, nothing asked of
+              the user. The debt-gap verdict follows, second. */}
+          <Box as="section" data-story="O" data-testid="landing-outcome" display="grid" gap={SPACING.xs}>
+            <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={{ base: '19px', md: '24px' }} lineHeight={1.25} color={SEMANTIC_COLORS.textPrimary}>
+              {stepSeconds !== null
+                ? outcomeBeat(comparison, measured, windows, clock, {
+                    cureHours: CURE_WINDOW_HOURS,
+                    bandPct: Math.round(MAX_THRESHOLD_TO_DELAY * 100),
+                    stepSeconds,
+                  })
+                : null}
+            </Text>
+            <Text {...small} {...tabularNums} color={SEMANTIC_COLORS.textPrimary} data-testid="landing-verdict">
+              {verdictOf(comparison, whose, measured).headline}
+            </Text>
+          </Box>
 
           {!sizeFirst && skewBlock}
 

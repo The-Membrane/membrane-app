@@ -23,7 +23,7 @@ import AddressBar from '@/components/Simulator/AddressBar'
 import { usdSigned } from '@/components/Simulator/format'
 import { useSimHistory } from '@/components/Simulator/hooks/useSimHistory'
 import { DEMO_BORROWER_DATE } from '@/lib/position-sim/demoBorrower'
-import { intentFrom, type Door, type DoorHandlers, type PositionIntent } from '@/lib/landing/doors'
+import { doorSet, intentFrom, type Door, type DoorHandlers, type PositionIntent } from '@/lib/landing/doors'
 import { HEADLINES, RUN_LABEL, SUBHEAD, type HeadlineKey } from '@/lib/landing/headline'
 import { PROSE } from '@/lib/landing/prose'
 import { track } from '@/lib/landing/instrumentation'
@@ -37,7 +37,14 @@ import { CAPS, deck, kicker, rule, ruleStrong, small, tabularNums } from './styl
 import Doors from './Doors'
 import Details, { DetailLine } from './Details'
 
-const ChartSkeleton = () => <Box h={{ base: '420px', md: '560px' }} borderTop={rule} />
+/** Server render and first paint: the T and O beats hold their place in the STORY order. */
+const ChartSkeleton = () => (
+  <>
+    <Box as="section" data-story="T" minH="36px" />
+    <Box h={{ base: '380px', md: '520px' }} borderTop={rule} />
+    <Box as="section" data-story="O" minH="36px" />
+  </>
+)
 const ReplayDesk = dynamic(() => import('./ReplayDesk'), { ssr: false, loading: ChartSkeleton })
 const ManualPositionForm = dynamic(() => import('./ManualPositionForm'), { ssr: false, loading: () => <Box minH="160px" /> })
 const DoorSheet = dynamic(() => import('./DoorSheet'), { ssr: false })
@@ -77,7 +84,7 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   const [manualOpen, setManualOpen] = useState(false)
-  const [sheet, setSheet] = useState<{ door: Door; intent: PositionIntent } | null>(null)
+  const [sheet, setSheet] = useState<{ door: Door; intent: PositionIntent | null } | null>(null)
   const [copied, setCopied] = useState<'idle' | 'copied' | 'failed'>('idle')
 
   // The address's own liquidation history feeds forecast use (b).
@@ -106,10 +113,18 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
     [r.selected, r.mode, r.shownAddress, r.membraneLine, r.scenarioId],
   )
   const open = useCallback(
-    (door: Door) => (i: PositionIntent) => {
-      track({ name: 'deploy_click', headline, door, isDemo: r.isDemo, address: i.address, protocol: i.protocol, debtUsd: i.debt.reduce((a, d) => a + d.valueUsd, 0) })
-      const custom = door === 'migrate' ? doors?.onMigrate : doors?.onDeployFresh
-      if (custom) custom(i)
+    (door: Door) => (i: PositionIntent | null) => {
+      track({
+        name: 'deploy_click',
+        headline,
+        door,
+        isDemo: r.isDemo,
+        address: i?.address,
+        protocol: i?.protocol ?? 'none',
+        debtUsd: i ? i.debt.reduce((a, d) => a + d.valueUsd, 0) : 0,
+      })
+      if (door === 'migrate' && doors?.onMigrate && i) doors.onMigrate(i)
+      else if (door === 'fresh' && doors?.onDeployFresh) doors.onDeployFresh(i)
       else setSheet({ door, intent: i })
     },
     [headline, r.isDemo, doors],
@@ -134,6 +149,14 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
   const sizeFirst = r.visitState === 'changed'
 
   const coming = SCENARIOS.filter((x) => x.status === 'coming')
+  const hasBorrow = r.positions.some((p) => p.totalDebtUsd > 0)
+  const focusInput = () => {
+    const el = typeof document !== 'undefined' ? (document.getElementById('landing-address-input') as HTMLInputElement | null) : null
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.focus()
+    }
+  }
   const shareRow = (
         <Box display="flex" flexWrap="wrap" gap={SPACING.md} alignItems="center" data-testid="share-row">
           <Button {...LINK_BTN} onClick={onCopy} data-testid="share-copy">
@@ -157,6 +180,7 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
   return (
     <Box maxW="1180px" mx="auto" px={{ base: SPACING.base, md: SPACING.lg }} pt={SPACING.xl} pb={SPACING['2xl']} color={SEMANTIC_COLORS.textPrimary} display="grid" gap={SPACING.xl} minW={0}>
       {/* S — ABOVE THE FOLD: one H1, one subhead, the input and one button. */}
+      <Box as="section" data-story="S" display="grid" gap={SPACING.base} minW={0}>
       <Box as="header" data-testid="landing-hero" display="grid" gap={SPACING.base} minW={0}>
         <Text
           as="h1"
@@ -193,6 +217,7 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
           {manualOpen ? 'Hide' : 'Enter by hand'}
         </Button>
         {manualOpen && <ManualPositionForm protocols={r.protocols} initial={r.manual} onSubmit={r.submitManual} error={r.manualError} />}
+      </Box>
       </Box>
 
       {/* RETURN VISIT */}
@@ -266,7 +291,13 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
       </Box>
 
       {/* R — THE REVEAL AND THE TWO DOORS */}
-      <Doors intent={intent} onMigrate={open('migrate')} onDeployFresh={open('fresh')} />
+      <Doors
+        intent={intent}
+        buttons={doorSet(r.mode, hasBorrow)}
+        onMigrate={open('migrate')}
+        onDeployFresh={open('fresh')}
+        onFocusInput={focusInput}
+      />
 
       {/* Y — OBJECTIONS */}
       <ObjectionCards census={census} />

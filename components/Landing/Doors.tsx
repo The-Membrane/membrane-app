@@ -9,9 +9,8 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import type { DoorHandlers, PositionIntent } from '@/lib/landing/doors'
+import type { DoorButton, DoorHandlers, PositionIntent } from '@/lib/landing/doors'
 
-import { DOOR_TITLE } from './DoorSheet'
 import { CAPS } from './styles'
 
 export const REVEAL_LINE = 'This is a replay. Membrane is the live version.'
@@ -37,20 +36,33 @@ const DOOR_BTN = {
 
 export interface DoorsProps extends DoorHandlers {
   intent: PositionIntent | null
+  buttons: DoorButton[]
+  /** "Paste your wallet": focus the address input. */
+  onFocusInput: () => void
 }
 
-export const Doors: React.FC<DoorsProps> = ({ intent, onMigrate, onDeployFresh }) => (
-  <Box as="section" aria-labelledby="landing-reveal" data-testid="landing-reveal" display="grid" gap={SPACING.md}>
+export const Doors: React.FC<DoorsProps> = ({ intent, buttons, onMigrate, onDeployFresh, onFocusInput }) => (
+  <Box as="section" aria-labelledby="landing-reveal" data-testid="landing-reveal" data-story="R" display="grid" gap={SPACING.md}>
     <Text id="landing-reveal" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={{ base: '24px', md: '32px' }} lineHeight={1.15}>
       {REVEAL_LINE}
     </Text>
     <Box display="flex" flexWrap="wrap" gap={SPACING.md}>
-      <Button {...DOOR_BTN} data-testid="door-migrate" isDisabled={!intent} onClick={() => intent && onMigrate(intent)}>
-        {DOOR_TITLE.migrate}
-      </Button>
-      <Button {...DOOR_BTN} data-testid="door-fresh" isDisabled={!intent} onClick={() => intent && onDeployFresh(intent)}>
-        {DOOR_TITLE.fresh}
-      </Button>
+      {buttons.map((b) => (
+        <Button
+          key={b.action}
+          {...DOOR_BTN}
+          {...(b.primary ? { bg: SEMANTIC_COLORS.textPrimary, color: SEMANTIC_COLORS.bgPrimary, _hover: { bg: SEMANTIC_COLORS.textPrimary, opacity: 0.9 } } : {})}
+          data-testid={`door-${b.action}`}
+          isDisabled={b.action === 'migrate' && !intent}
+          onClick={() => {
+            if (b.action === 'focus-input') onFocusInput()
+            else if (b.action === 'migrate') intent && onMigrate(intent)
+            else onDeployFresh(intent)
+          }}
+        >
+          {b.label}
+        </Button>
+      ))}
     </Box>
   </Box>
 )

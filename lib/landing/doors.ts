@@ -51,7 +51,8 @@ export type DoorHandler = (intent: PositionIntent) => void
 
 export interface DoorHandlers {
   onMigrate: DoorHandler
-  onDeployFresh: DoorHandler
+  /** Null when there is no position to prefill (a wallet with no borrow): a blank sheet. */
+  onDeployFresh: (intent: PositionIntent | null) => void
 }
 
 export function intentFrom(
@@ -72,4 +73,35 @@ export function intentFrom(
     scenarioId: opts.scenarioId,
     position: p,
   }
+}
+
+// -------------------------------------------------------------- which doors
+
+export type DoorAction = 'focus-input' | 'migrate' | 'fresh'
+
+export interface DoorButton {
+  action: DoorAction
+  label: string
+  /** Solid, first. At most one per set. */
+  primary: boolean
+}
+
+/**
+ * WHICH DOORS SHOW (owner ruling 2026-10-25). "Migrate this position" exists only when a
+ * real wallet with a detected borrow is on screen: there is nothing to migrate from the
+ * demo wallet, a hand-entered position, or a wallet with no borrow.
+ */
+export function doorSet(mode: 'demo' | 'address' | 'manual', hasBorrow: boolean): DoorButton[] {
+  if (mode === 'demo')
+    return [
+      { action: 'focus-input', label: 'Paste your wallet', primary: true },
+      { action: 'fresh', label: 'Open a position', primary: false },
+    ]
+  if (mode === 'manual') return [{ action: 'fresh', label: 'Open a position with these numbers', primary: true }]
+  if (hasBorrow)
+    return [
+      { action: 'migrate', label: 'Migrate this position', primary: true },
+      { action: 'fresh', label: 'Open a position', primary: false },
+    ]
+  return [{ action: 'fresh', label: 'Open a position', primary: true }]
 }

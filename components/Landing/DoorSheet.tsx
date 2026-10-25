@@ -37,7 +37,7 @@ export interface DoorSheetProps {
 
 export const DOOR_TITLE: Record<Door, string> = {
   migrate: 'Migrate this position',
-  fresh: 'Deploy fresh',
+  fresh: 'Open a position',
 }
 
 const DOOR_LINE: Record<Door, string> = {
@@ -56,7 +56,7 @@ const Row: React.FC<{ k: string; v: string; testId?: string }> = ({ k, v, testId
 
 export const DoorSheet: React.FC<DoorSheetProps> = ({ door, intent, onClose }) => {
   const { isWalletConnected, address } = useDemoMode()
-  const open = door !== null && intent !== null
+  const open = door !== null
   return (
     <Modal isOpen={open} onClose={onClose} size={{ base: 'full', md: 'lg' }} scrollBehavior="inside">
       <ModalOverlay />
@@ -69,13 +69,14 @@ export const DoorSheet: React.FC<DoorSheetProps> = ({ door, intent, onClose }) =
         borderColor={SEMANTIC_COLORS.borderSubtle}
         boxShadow={`3px 3px 0 ${SEMANTIC_COLORS.borderStrong}`}
       >
-        {door && intent && (
+        {door && (
           <>
             <ModalHeader id="door-sheet-title" fontFamily={TYPOGRAPHY.fontDisplay} fontWeight={TYPOGRAPHY.normal} fontSize={TYPOGRAPHY.h2}>
               {DOOR_TITLE[door]}
             </ModalHeader>
             <ModalCloseButton _focus={FOCUS_STYLES.ring} borderRadius={0} />
             <ModalBody pb={SPACING_PATTERNS.modalPadding} display="grid" gap={SPACING.md} alignContent="start">
+              {intent && (
               <Box>
                 <Text {...credit} textAlign="left" mb={SPACING.xs}>
                   {intent.source === 'demo' ? 'Demo — not yours' : intent.source === 'manual' ? 'Entered by hand' : 'From the replay'}
@@ -92,6 +93,7 @@ export const DoorSheet: React.FC<DoorSheetProps> = ({ door, intent, onClose }) =
                 <Row k={`${intent.venueLabel} line`} v={pct(intent.venueLine)} />
                 <Row k="Membrane line (modelled)" v={pct(intent.membraneLine)} />
               </Box>
+              )}
               <Details>
                 <DetailLine>{DOOR_LINE[door]}</DetailLine>
                 <DetailLine>Membrane is pre-launch, so there is nothing to sign yet. Connecting keeps this sheet and its rows.</DetailLine>
@@ -100,7 +102,7 @@ export const DoorSheet: React.FC<DoorSheetProps> = ({ door, intent, onClose }) =
               {isWalletConnected ? (
                 <Box borderTop={rule} pt={SPACING.sm} data-testid="door-not-live">
                   <Text {...small} color={SEMANTIC_COLORS.textPrimary}>Not live yet · pre-launch</Text>
-                  {address && intent.address && address.toLowerCase() !== intent.address.toLowerCase() && (
+                  {address && intent?.address && address.toLowerCase() !== intent.address.toLowerCase() && (
                     <Text {...small}>Connected {shortAddress(address)} is not the replayed wallet.</Text>
                   )}
                 </Box>

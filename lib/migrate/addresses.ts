@@ -18,8 +18,6 @@
  *                the flash repay needs reverts there (TransmuterNotWired).
  */
 
-import localDeployment from '@/contracts/migrator/deployments/local.json'
-
 import type { Address } from './types'
 
 export interface MigrateChainConfig {
@@ -118,10 +116,15 @@ function fromLocal(j: Partial<LocalJson>): MigrateChainConfig | null {
 }
 
 const REGISTRY: Record<number, MigrateChainConfig> = { 1: MAINNET }
-/** Review L-5: the local anvil stack is dev/test only. A production build leaves it out unless
- *  NEXT_PUBLIC_MIGRATE_LOCAL=1 is set explicitly. */
-const LOCAL_ENABLED = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_MIGRATE_LOCAL === '1'
-const local = LOCAL_ENABLED ? fromLocal(localDeployment as Partial<LocalJson>) : null
+/** Review L-5 + refuting review: the local anvil stack is dev/test only, and a production build
+ *  must not even CONTAIN local.json. The condition is written inline so DefinePlugin turns it into
+ *  a constant and webpack drops the require in production (a `const` flag would not be folded).
+ *  The relative path resolves under webpack and under vitest's require alike. */
+const local: MigrateChainConfig | null =
+  process.env.NODE_ENV !== 'production'
+    ? // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+      fromLocal(require('../../contracts/migrator/deployments/local.json') as Partial<LocalJson>)
+    : null
 if (local) REGISTRY[31337] = local
 
 export function migrateConfig(chainId: number | undefined): MigrateChainConfig | null {

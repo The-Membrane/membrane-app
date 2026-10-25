@@ -44,8 +44,10 @@ export type Phase =
   | { k: 'sim-failed'; reason: string; detail?: string }
   | { k: 'signing'; id: string; index: number; total: number }
   | { k: 'submitted'; hash: `0x${string}`; id: string }
-  | { k: 'settled'; hash: `0x${string}`; note?: string; revoke?: 'idle' | 'running' | 'done' | 'failed' }
-  | { k: 'failed'; reason: string; detail?: string; hash: `0x${string}` | null }
+  | { k: 'settled'; hash: `0x${string}`; note?: string; revoke?: RevokeState; leftovers?: string[] }
+  | { k: 'failed'; reason: string; detail?: string; hash: `0x${string}` | null; revoke?: RevokeState; leftovers?: string[] }
+
+export type RevokeState = 'idle' | 'running' | 'done' | 'failed'
 
 /** ≤ 12 words: the custom error in plain language, with its name. Unknown reasons are cut to 12
  *  words; the full text goes to Details via the phase's `detail`. */
@@ -57,6 +59,8 @@ export function explainRevert(reason: string): string {
     [/PayoutMismatch/, 'Membrane payout differed; nothing moved.'],
     [/NotPegPaired|TransmuterNotWired/, 'Membrane here can’t pay out USDC.'],
     [/User rejected|denied/i, 'Wallet prompt rejected.'],
+    [/did not settle atomically/, 'Wallet did not run the batch atomically.'],
+    [/Wallet is on chain/, 'Wallet on another network. Switch and retry.'],
   ]
   const hit = named.find(([re]) => re.test(reason))
   if (hit) return hit[1]
@@ -232,21 +236,34 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
           : runMigration({ client: env.publicClient, wallet: env.walletClient, cfg, source: position, r: resolved.current as ResolvedMigration, onEvent })
         : runDeploy({ client: env.publicClient, wallet: env.walletClient, cfg, d: resolved.current as ResolvedDeploy, path: deployPath.current, onEvent, send: env.sendBatch })
     go.then(
-      (res) =>
+      (res) => {
+        // read back after the run (exec readLeftovers): anything that differs from before it
+        const left = res.leftovers?.map((l) => l.label) ?? []
+        const leftovers = left.length ? left : undefined
         setPhase(
           res.ok && res.bundleHash
             ? {
                 k: 'settled',
                 hash: res.bundleHash,
-                // the atomic batch revokes its own grants; nothing is left to revoke
-                revoke: kind === 'migrate' && !atomic ? 'idle' : undefined,
+                // the atomic batch revokes and restores its own grants; offer a revoke only when
+                // the per-prompt path left the grant standing or the read-back found something
+                revoke: kind === 'migrate' && (!atomic || leftovers) ? 'idle' : undefined,
+                leftovers,
                 note:
                   res.sourceDebtAfter !== undefined && res.sourceDebtAfter > 0n
                     ? `Venue dust debt left: ${res.sourceDebtAfter.toString()} units. Repay it there.`
                     : undefined,
               }
-            : { k: 'failed', reason: explainRevert(res.reason ?? 'failed'), detail: res.reason, hash: res.bundleHash },
-        ),
+            : {
+                k: 'failed',
+                reason: explainRevert(res.reason ?? 'failed'),
+                detail: res.reason,
+                hash: res.bundleHash,
+                leftovers,
+                revoke: leftovers ? 'idle' : undefined,
+              },
+        )
+      },
       (err) => {
         const msg = err instanceof Error ? (err as { shortMessage?: string }).shortMessage ?? err.message : String(err)
         setPhase({ k: 'failed', reason: explainRevert(msg), detail: msg, hash: null })
@@ -256,16 +273,18 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
     })
   }, [phase.k, cfg, env.publicClient, env.walletClient, env.sendBatch, kind, position, atomic])
 
-  /** OPTIONAL after settle: revoke the standing grants (not counted in the prompts). */
+  /** OPTIONAL after a run: revoke the standing grants and restore the allowances (not counted in
+   *  the prompts). Offered after a settle, and after a failure whose read-back found leftovers. */
   const revoke = useCallback(() => {
-    if (phase.k !== 'settled' || phase.revoke !== 'idle' || !cfg || !env.publicClient || !env.walletClient || !env.address) return
+    if ((phase.k !== 'settled' && phase.k !== 'failed') || phase.revoke !== 'idle' || !cfg || !env.publicClient || !env.walletClient || !env.address) return
     const venue = basePlan.venue ?? 'aave-v3'
+    const r = kind === 'migrate' ? (resolved.current as ResolvedMigration | null) ?? undefined : undefined
     setPhase({ ...phase, revoke: 'running' })
-    runRevoke({ client: env.publicClient, wallet: env.walletClient, cfg, owner: env.address, venue }).then(
-      (r) => setPhase({ ...phase, revoke: r.ok ? 'done' : 'failed' }),
+    runRevoke({ client: env.publicClient, wallet: env.walletClient, cfg, owner: env.address, venue, r }).then(
+      (res) => setPhase({ ...phase, revoke: res.ok ? 'done' : 'failed', leftovers: res.ok ? undefined : phase.leftovers }),
       () => setPhase({ ...phase, revoke: 'failed' }),
     )
-  }, [phase, cfg, env.publicClient, env.walletClient, env.address, basePlan.venue])
+  }, [phase, cfg, env.publicClient, env.walletClient, env.address, basePlan.venue, kind])
 
   useEffect(() => {
     if (env.autoStart && phase.k === 'simulated') start()
@@ -287,7 +306,7 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
   }, [cfg, kind])
 
   useEffect(() => {
-    if (env.autoRevoke && phase.k === 'settled' && phase.revoke === 'idle') revoke()
+    if (env.autoRevoke && (phase.k === 'settled' || phase.k === 'failed') && phase.revoke === 'idle') revoke()
   }, [env.autoRevoke, phase, revoke])
 
   return { env, plan, readOnChain, phase, start, revoke, promptIds, addresses }

@@ -280,8 +280,8 @@ export function batchStep(venue: MigrateVenue | null): SignatureStep {
     short: 'Migrate batch',
     label: 'One atomic batch (EIP-5792 wallet_sendCalls)',
     why: morpho
-      ? 'setAuthorization(GeneralAdapter1, true) · approve USDC to the adapter (exact) · grant the adapter · Bundler3.multicall · revoke the adapter · setAuthorization(GeneralAdapter1, false). All or nothing; no grant or allowance stays afterwards.'
-      : 'approve aTokens to GeneralAdapter1 (exact) · approve USDC to the adapter (exact) · grant the adapter · Bundler3.multicall · revoke the adapter. All or nothing; no grant or allowance stays afterwards.',
+      ? 'setAuthorization(GeneralAdapter1, true) · approve USDC to the adapter (exact) · grant the adapter · Bundler3.multicall · revoke the adapter · setAuthorization(GeneralAdapter1, false) · restore your earlier USDC allowance. All or nothing; afterwards every grant and allowance is what it was before.'
+      : 'approve aTokens to GeneralAdapter1 (exact) · approve USDC to the adapter (exact) · grant the adapter · Bundler3.multicall · revoke the adapter · restore your earlier aToken and USDC allowances. All or nothing; afterwards every grant and allowance is what it was before.',
     skippedWhen: null,
   }
 }

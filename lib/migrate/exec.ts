@@ -17,11 +17,13 @@
 import {
   BaseError,
   decodeErrorResult,
+  defineChain,
   encodeAbiParameters,
   keccak256,
   maxUint256,
   parseAbi,
   parseEventLogs,
+  type Chain,
   type PublicClient,
   type WalletClient,
 } from 'viem'
@@ -159,6 +161,10 @@ export interface ResolvedMigration {
   morphoParams: MorphoMarketParams | null
   operatorGranted: boolean
   morphoAuthorized: boolean
+  /** The owner's allowances BEFORE the run (review: the batch's exact approvals overwrite them;
+   *  the batch ends by restoring these, and the leftover read compares against them). */
+  prevVenueAllowance: bigint
+  prevProceedsAllowance: bigint
   blockTime: bigint
   blockNumber: bigint
   collateralDecimals: number
@@ -272,6 +278,12 @@ export async function resolveMigration(
   }
   if (debtWei === 0n) return { error: `No ${debtSym} debt for this wallet on ${venue} on ${cfg.label}.` }
   if (collateralWei === 0n) return { error: `No ${collSym} collateral for this wallet on ${venue} on ${cfg.label}.` }
+  const [prevVenueAllowance, prevProceedsAllowance] = await Promise.all([
+    venueToken
+      ? client.readContract({ address: venueToken, abi: permitTokenAbi, functionName: 'allowance', args: [owner, cfg.generalAdapter1!] })
+      : Promise.resolve(0n),
+    client.readContract({ address: debtToken, abi: permitTokenAbi, functionName: 'allowance', args: [owner, cfg.membraneAdapter!] }),
+  ])
 
   const flashAmount = flashAmountFor(debtWei, ACCRUAL_BUFFER_BPS)
   const capWad = maxLtvOnchainWad > BORROW_LTV_GAP_WAD + LTV_MARGIN_WAD ? maxLtvOnchainWad - BORROW_LTV_GAP_WAD - LTV_MARGIN_WAD : 0n
@@ -293,6 +305,8 @@ export async function resolveMigration(
     morphoParams,
     operatorGranted,
     morphoAuthorized,
+    prevVenueAllowance,
+    prevProceedsAllowance,
     blockTime: block.timestamp,
     blockNumber: block.number,
     collateralDecimals: Number(collateralDecimals),
@@ -461,6 +475,44 @@ export interface RunResult {
   reason?: string
   /** Read after a settled migration (review L-2): the venue debt left, in debt-token wei. */
   sourceDebtAfter?: bigint
+  /** Read back after the run: grants and allowances that differ from before it (see readLeftovers). */
+  leftovers?: Leftover[]
+}
+
+/** Something the run left standing, and the call that puts it back. */
+export interface Leftover {
+  id: 'operator' | 'morpho-auth' | 'venue-allowance' | 'proceeds-allowance'
+  /** ≤ 3 words, for the sheet. */
+  label: string
+  undo: SimCall
+}
+
+/**
+ * Reads the operator grant, the Morpho authorization and the two allowances, and returns each one
+ * that differs from the state before the run (`r`, read by resolveMigration). The undo restores the
+ * earlier value: revoke a grant the owner did not have, re-set an allowance to what it was.
+ */
+export async function readLeftovers(client: PublicClient, cfg: MigrateChainConfig, r: ResolvedMigration): Promise<Leftover[]> {
+  const [operator, morphoAuth, venueAllowance, proceedsAllowance] = await Promise.all([
+    client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionOperator', args: [r.owner, cfg.membraneAdapter!] }),
+    r.venue === 'morpho-blue'
+      ? client.readContract({ address: cfg.morpho!, abi: morphoAbi, functionName: 'isAuthorized', args: [r.owner, cfg.generalAdapter1!] })
+      : Promise.resolve(false),
+    r.venueToken
+      ? client.readContract({ address: r.venueToken, abi: permitTokenAbi, functionName: 'allowance', args: [r.owner, cfg.generalAdapter1!] })
+      : Promise.resolve(0n),
+    client.readContract({ address: r.debtToken, abi: permitTokenAbi, functionName: 'allowance', args: [r.owner, cfg.membraneAdapter!] }),
+  ])
+  const out: Leftover[] = []
+  if (operator && !r.operatorGranted) out.push({ id: 'operator', label: 'adapter grant', undo: operatorCall(cfg, false) })
+  if (morphoAuth && !r.morphoAuthorized) out.push({ id: 'morpho-auth', label: 'Morpho auth', undo: morphoAuthCall(cfg, false) })
+  if (r.venueToken && venueAllowance !== r.prevVenueAllowance) {
+    out.push({ id: 'venue-allowance', label: 'aToken allowance', undo: approveCall(r.venueToken, cfg.generalAdapter1!, r.prevVenueAllowance, 'restore-atoken', 'restore aToken allowance') })
+  }
+  if (proceedsAllowance !== r.prevProceedsAllowance) {
+    out.push({ id: 'proceeds-allowance', label: 'USDC allowance', undo: approveCall(r.debtToken, cfg.membraneAdapter!, r.prevProceedsAllowance, 'restore-proceeds', 'restore USDC allowance') })
+  }
+  return out
 }
 
 async function send(
@@ -559,22 +611,24 @@ export async function runMigration(p: {
   if (!r.operatorGranted) {
     prompt('operator')
     const g = await send(client, wallet, r.owner, operatorCall(cfg, true), emit)
-    if (!g.ok) return { ok: false, bundleHash: null, reason: 'the operator grant reverted' }
+    if (!g.ok) return { ok: false, bundleHash: null, reason: 'the operator grant reverted', leftovers: await readLeftovers(client, cfg, r) }
   }
   prompt('bundle')
   const b = await send(client, wallet, r.owner, bundleCall(cfg, bundle), emit)
-  if (!b.ok) return { ok: false, bundleHash: b.hash, reason: 'the bundle reverted on-chain' }
+  if (!b.ok) return { ok: false, bundleHash: b.hash, reason: 'the bundle reverted on-chain', leftovers: await readLeftovers(client, cfg, r) }
   const sourceDebtAfter = await readSourceDebt(client, cfg, r)
   return { ok: true, bundleHash: b.hash, sourceDebtAfter }
 }
 
-/** OPTIONAL after a settled migration: revoke the standing grants (one tx each). */
+/** OPTIONAL after a run: revoke the standing grants (one tx each). With `r` (the pre-run read)
+ *  it also puts back every allowance readLeftovers finds changed. */
 export async function runRevoke(p: {
   client: PublicClient
   wallet: WalletClient
   cfg: MigrateChainConfig
   owner: Address
   venue: MigrateVenue
+  r?: ResolvedMigration
   onEvent?: (e: RunEvent) => void
 }): Promise<RunResult> {
   const { client, wallet, cfg, owner } = p
@@ -584,7 +638,10 @@ export async function runRevoke(p: {
     calls.push(operatorCall(cfg, false))
   }
   if (p.venue === 'morpho-blue' && (await client.readContract({ address: cfg.morpho!, abi: morphoAbi, functionName: 'isAuthorized', args: [owner, cfg.generalAdapter1!] }))) {
-    calls.push({ to: cfg.morpho!, abi: setAuthorizationAbi, functionName: 'setAuthorization', args: [cfg.generalAdapter1!, false], id: 'revoke-morpho', label: 'revoke Morpho' })
+    calls.push(morphoAuthCall(cfg, false))
+  }
+  if (p.r) {
+    for (const l of await readLeftovers(client, cfg, p.r)) if (l.id === 'venue-allowance' || l.id === 'proceeds-allowance') calls.push(l.undo)
   }
   let last: `0x${string}` | null = null
   for (let i = 0; i < calls.length; i++) {
@@ -757,7 +814,7 @@ export async function runDeploy(p: {
     emit({ kind: 'simulated', result: sim })
     if (!sim.ok) return { ok: false, bundleHash: null, reason: sim.reason }
     emit({ kind: 'prompt', id: 'batch', index: 1, total: 1 })
-    const res = await (p.send ?? sendBatch5792)({ client, wallet, owner: d.owner, calls })
+    const res = await (p.send ?? sendBatch5792)({ client, wallet, owner: d.owner, calls, chain: chainFor(cfg) })
     emit({ kind: 'mined', id: 'batch', hash: res.hash, status: res.ok ? 'success' : 'reverted' })
     return res.ok ? { ok: true, bundleHash: res.hash } : { ok: false, bundleHash: res.hash, reason: 'the batch reverted' }
   }
@@ -816,37 +873,52 @@ export async function detectAtomic(wallet: WalletClient | undefined, chainId: nu
   }
 }
 
-const approveCall = (token: Address, spender: Address, amount: bigint, id: string, label: string): SimCall => ({
+const morphoAuthCall = (cfg: MigrateChainConfig, on: boolean): SimCall => ({
+  to: cfg.morpho!,
+  abi: setAuthorizationAbi,
+  functionName: 'setAuthorization',
+  args: [cfg.generalAdapter1!, on],
+  id: on ? 'morpho-auth' : 'revoke-morpho',
+  label: on ? 'Morpho auth' : 'revoke Morpho',
+})
+
+function approveCall(token: Address, spender: Address, amount: bigint, id: string, label: string): SimCall {
+  return {
   to: token,
   abi: permitTokenAbi,
   functionName: 'approve',
-  args: [spender, amount],
-  id,
-  label,
-})
+    args: [spender, amount],
+    id,
+    label,
+  }
+}
 
 /**
  * The whole migration as ONE atomic batch: exact approvals in place of the permits, the grants
  * and their revokes inside the same batch, so nothing stays standing afterwards. A grant the
  * owner already had is left as it was (neither re-granted nor revoked).
  *   Aave    approve(aToken→GA1, A) · approve(USDC→adapter, P) · grant · Bundler3.multicall · revoke
+ *           · approve(aToken→GA1, prev) · approve(USDC→adapter, prev)
  *   Morpho  setAuthorization(GA1, true) · approve(USDC→adapter, P) · grant · multicall · revoke ·
- *           setAuthorization(GA1, false)
+ *           setAuthorization(GA1, false) · approve(USDC→adapter, prev)
+ * The exact approvals OVERWRITE any allowance the owner already gave the same spender, and the
+ * proceeds pull can leave P − received behind. So the batch ENDS by re-setting each allowance to
+ * the value read before the run (`prev*Allowance`): afterwards both equal what they were before.
  */
 export function batchCallsFor(cfg: MigrateChainConfig, r: ResolvedMigration): SimCall[] {
   const calls: SimCall[] = []
   const morphoAuth = r.venue === 'morpho-blue' && !r.morphoAuthorized
   if (morphoAuth) {
-    calls.push({ to: cfg.morpho!, abi: setAuthorizationAbi, functionName: 'setAuthorization', args: [cfg.generalAdapter1!, true], id: 'morpho-auth', label: 'Morpho auth' })
+    calls.push(morphoAuthCall(cfg, true))
   }
   if (r.venue !== 'morpho-blue') calls.push(approveCall(r.venueToken!, cfg.generalAdapter1!, r.venueTokenAmount, 'atoken-approve', 'aToken approve'))
   calls.push(approveCall(r.debtToken, cfg.membraneAdapter!, r.flashAmount, 'proceeds-approve', 'USDC approve'))
   if (!r.operatorGranted) calls.push(operatorCall(cfg, true))
   calls.push(bundleCall(cfg, bundleFor(cfg, r, { venuePermit: null, proceedsPermit: null, morphoAuth: null })))
   if (!r.operatorGranted) calls.push(operatorCall(cfg, false))
-  if (morphoAuth) {
-    calls.push({ to: cfg.morpho!, abi: setAuthorizationAbi, functionName: 'setAuthorization', args: [cfg.generalAdapter1!, false], id: 'revoke-morpho', label: 'revoke Morpho' })
-  }
+  if (morphoAuth) calls.push(morphoAuthCall(cfg, false))
+  if (r.venue !== 'morpho-blue') calls.push(approveCall(r.venueToken!, cfg.generalAdapter1!, r.prevVenueAllowance, 'restore-atoken', 'restore aToken allowance'))
+  calls.push(approveCall(r.debtToken, cfg.membraneAdapter!, r.prevProceedsAllowance, 'restore-proceeds', 'restore USDC allowance'))
   return calls
 }
 
@@ -856,19 +928,53 @@ export function simulateBatch(client: PublicClient, owner: Address, calls: SimCa
 }
 
 /** How a batch reaches the chain. The default is the wallet's EIP-5792 wallet_sendCalls with
- *  forceAtomic; tests inject an EIP-7702 delegation instead (anvil has no wallet_sendCalls). */
-export type SendBatch = (p: { client: PublicClient; wallet: WalletClient; owner: Address; calls: SimCall[] }) => Promise<{ hash: `0x${string}`; ok: boolean }>
+ *  forceAtomic; tests inject an EIP-7702 delegation instead (anvil has no wallet_sendCalls).
+ *  `chain` is built from the plan's config (chainFor), never taken from the wallet. */
+export type SendBatch = (p: { client: PublicClient; wallet: WalletClient; owner: Address; calls: SimCall[]; chain: Chain }) => Promise<{ hash: `0x${string}`; ok: boolean }>
 
-export const sendBatch5792: SendBatch = async ({ wallet, owner, calls }) => {
+/** The viem chain for a config: the batch is sent for THIS chain id or not at all. */
+export function chainFor(cfg: MigrateChainConfig): Chain {
+  return defineChain({ id: cfg.chainId, name: cfg.label, nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: { default: { http: [] } } })
+}
+
+/** The fields of a wallet_getCallsStatus result the settlement check reads. */
+export interface CallsStatusLike {
+  id?: string
+  atomic?: boolean
+  status?: string
+  receipts?: { status?: string; transactionHash?: `0x${string}` }[]
+}
+
+/**
+ * Settled only when the wallet says the batch ran ATOMICALLY (`atomic === true`), says it
+ * succeeded, and returned at least one receipt with every receipt `success`. The legacy
+ * `CONFIRMED` status counts only under the same receipt check. Anything else is a failure, and
+ * the caller reads back what was left standing.
+ */
+export function batchSettlement(res: CallsStatusLike): { ok: boolean; hash: `0x${string}` } {
+  const receipts = res.receipts ?? []
+  const hash = (receipts[receipts.length - 1]?.transactionHash ?? res.id ?? '0x') as `0x${string}`
+  const said = res.status === 'success' || res.status === 'CONFIRMED'
+  const allOk = receipts.length > 0 && receipts.every((x) => x.status === 'success' || x.status === '0x1')
+  return { ok: res.atomic === true && said && allOk, hash }
+}
+
+/** Refuses unless the wallet is on `chain` (eth_chainId, not the client's cached chain). */
+export async function assertWalletChain(wallet: WalletClient, chain: Chain): Promise<void> {
+  const id = await wallet.getChainId()
+  if (id !== chain.id) throw new Error(`Wallet is on chain ${id}, the plan is for chain ${chain.id} (${chain.name}). Switch network.`)
+}
+
+export const sendBatch5792: SendBatch = async ({ wallet, owner, calls, chain }) => {
+  await assertWalletChain(wallet, chain)
   const { id } = await sendCalls(wallet, {
     account: owner,
-    chain: wallet.chain,
+    chain,
     forceAtomic: true,
     calls: calls.map((c) => ({ to: c.to, abi: c.abi, functionName: c.functionName, args: c.args })),
   } as Parameters<typeof sendCalls>[1])
   const res = await waitForCallsStatus(wallet, { id })
-  const hash = (res.receipts?.[res.receipts.length - 1]?.transactionHash ?? id) as `0x${string}`
-  return { hash, ok: res.status === 'success' }
+  return batchSettlement({ ...(res as CallsStatusLike), id })
 }
 
 /** The one-prompt path: fresh read + cap check (as runMigration), simulate the batch, one prompt. */
@@ -894,9 +1000,18 @@ export async function runMigrationBatch(p: {
   emit({ kind: 'simulated', result: sim })
   if (!sim.ok) return { ok: false, bundleHash: null, reason: sim.reason }
   emit({ kind: 'prompt', id: 'batch', index: 1, total: 1 })
-  const res = await (p.send ?? sendBatch5792)({ client, wallet, owner: r.owner, calls })
+  let res: { hash: `0x${string}`; ok: boolean }
+  try {
+    res = await (p.send ?? sendBatch5792)({ client, wallet, owner: r.owner, calls, chain: chainFor(cfg) })
+  } catch (err) {
+    // a rejected prompt or a wrong chain usually moves nothing; read it back anyway
+    const leftovers = await readLeftovers(client, cfg, r).catch(() => undefined)
+    if (leftovers?.length) return { ok: false, bundleHash: null, reason: err instanceof Error ? err.message : String(err), leftovers }
+    throw err
+  }
   emit({ kind: 'mined', id: 'batch', hash: res.hash, status: res.ok ? 'success' : 'reverted' })
-  if (!res.ok) return { ok: false, bundleHash: res.hash, reason: 'the batch reverted' }
+  const leftovers = await readLeftovers(client, cfg, r)
+  if (!res.ok) return { ok: false, bundleHash: res.hash, reason: 'the batch did not settle atomically', leftovers }
   const sourceDebtAfter = await readSourceDebt(client, cfg, r)
-  return { ok: true, bundleHash: res.hash, sourceDebtAfter }
+  return { ok: true, bundleHash: res.hash, sourceDebtAfter, leftovers }
 }

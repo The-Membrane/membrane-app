@@ -7,14 +7,14 @@
 // Without the env var every test is skipped. Each test runs inside evm_snapshot / evm_revert.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createPublicClient, createWalletClient, http, parseAbi, type PublicClient } from 'viem'
+import { createPublicClient, createWalletClient, http, parseAbi, type Abi, type PublicClient } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 
 import { anvil } from '@/config/evm/chains'
 import local from '@/contracts/migrator/deployments/local.json'
 import { cdpOperatorAbi } from '@/lib/migrate/abis'
 import { migrateConfig } from '@/lib/migrate/addresses'
-import { deployPathFor, runMigrationBatch, borrowLtvWad, readiness, resolveDeploy, resolveMigration, runDeploy, runMigration, runRevoke, simulateDeploy, simulatePreSign, type ResolvedDeploy, type ResolvedMigration, type RunEvent } from '@/lib/migrate/exec'
+import { deployPathFor, readLeftovers, runMigrationBatch, type SendBatch, borrowLtvWad, readiness, resolveDeploy, resolveMigration, runDeploy, runMigration, runRevoke, simulateDeploy, simulatePreSign, type ResolvedDeploy, type ResolvedMigration, type RunEvent } from '@/lib/migrate/exec'
 import { morphoAbi, permitTokenAbi } from '@/lib/migrate/abis'
 import { sendBatch7702 } from '@/lib/migrate/sendBatch7702'
 import { buildDeployPlan } from '@/lib/migrate/plan'
@@ -168,6 +168,49 @@ run('migrate on local anvil', () => {
     expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionDebt', args: [pid] })).toBe(r.borrowCdt)
     expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionOperator', args: [account.address, cfg.membraneAdapter!] })).toBe(false)
     expect(await client.readContract({ address: local.usdc as `0x${string}`, abi: permitTokenAbi, functionName: 'allowance', args: [account.address, cfg.membraneAdapter!] })).toBe(0n)
+  })
+
+  it('review item 3: an allowance the owner had before the batch is restored, not zeroed', async () => {
+    const account = privateKeyToAccount(KEY_AAVE)
+    const wallet = createWalletClient({ account, chain, transport: http(RPC) })
+    const usdc = local.usdc as `0x${string}`
+    const a = await wallet.writeContract({ address: usdc, abi: permitTokenAbi, functionName: 'approve', args: [cfg.membraneAdapter!, 777n] })
+    await client.waitForTransactionReceipt({ hash: a })
+    const r = (await resolveMigration(client, cfg, source('aave-v3'), 'aave-v3', account.address)) as ResolvedMigration
+    expect(r.prevProceedsAllowance).toBe(777n)
+    const res = await runMigrationBatch({ client, wallet, cfg, source: source('aave-v3'), r, send })
+    expect(res.ok).toBe(true)
+    expect(res.leftovers).toEqual([])
+    expect(await client.readContract({ address: usdc, abi: permitTokenAbi, functionName: 'allowance', args: [account.address, cfg.membraneAdapter!] })).toBe(777n)
+  })
+
+  it('review item 1: a wallet that runs part of the batch — the read-back lists what is left, and revoke clears it', async () => {
+    const account = privateKeyToAccount(KEY_AAVE)
+    const wallet = createWalletClient({ account, chain, transport: http(RPC) })
+    // a misbehaving wallet: the first three calls (approvals + grant) one by one, then "failed"
+    const partial: SendBatch = async ({ calls, chain: c }) => {
+      let hash: `0x${string}` = '0x'
+      for (const x of calls.slice(0, 3)) {
+        hash = await wallet.writeContract({ account, chain: c, address: x.to, abi: x.abi as Abi, functionName: x.functionName, args: x.args as never })
+        await client.waitForTransactionReceipt({ hash })
+      }
+      return { hash, ok: false }
+    }
+    const r = (await resolveMigration(client, cfg, source('aave-v3'), 'aave-v3', account.address)) as ResolvedMigration
+    const res = await runMigrationBatch({ client, wallet, cfg, source: source('aave-v3'), r, send: partial })
+    expect(res.ok).toBe(false)
+    expect(res.leftovers?.map((l) => l.id)).toEqual(['operator', 'venue-allowance', 'proceeds-allowance'])
+    const rv = await runRevoke({ client, wallet, cfg, owner: account.address, venue: 'aave-v3', r })
+    expect(rv.ok).toBe(true)
+    expect(await readLeftovers(client, cfg, r)).toEqual([])
+  })
+
+  it('review item 2: a batch for another chain id is refused before any prompt', async () => {
+    const account = privateKeyToAccount(KEY_AAVE)
+    const wallet = createWalletClient({ account, chain, transport: http(RPC) })
+    const r = (await resolveMigration(client, cfg, source('aave-v3'), 'aave-v3', account.address)) as ResolvedMigration
+    await expect(runMigrationBatch({ client, wallet, cfg: { ...cfg, chainId: 1 }, source: source('aave-v3'), r, send })).rejects.toThrow(/chain 31337.*chain 1/)
+    expect(await readLeftovers(client, cfg, r)).toEqual([])
   })
 
   it('Morpho batch: one prompt, the Morpho authorization is revoked inside it', async () => {

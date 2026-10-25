@@ -6,7 +6,7 @@ import { createWalletClient, custom } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 
 import { migrateConfig, type MigrateChainConfig } from '@/lib/migrate/addresses'
-import { batchCallsFor, deployPathFor, detectAtomic, type ResolvedDeploy, type ResolvedMigration } from '@/lib/migrate/exec'
+import { batchCallsFor, batchSettlement, chainFor, deployPathFor, detectAtomic, sendBatch5792, type ResolvedDeploy, type ResolvedMigration } from '@/lib/migrate/exec'
 import { buildDeployPlan, buildMigrationPlan } from '@/lib/migrate/plan'
 import { demoBorrowerPosition } from '@/lib/position-sim/demoBorrower'
 
@@ -72,6 +72,8 @@ const resolved = (over: Partial<ResolvedMigration> = {}): ResolvedMigration => (
   morphoParams: cfg.morphoMarket,
   operatorGranted: false,
   morphoAuthorized: false,
+  prevVenueAllowance: 0n,
+  prevProceedsAllowance: 0n,
   blockTime: 0n,
   blockNumber: 1n,
   collateralDecimals: 18,
@@ -82,7 +84,7 @@ const resolved = (over: Partial<ResolvedMigration> = {}): ResolvedMigration => (
 describe('batchCallsFor — one prompt, nothing left standing', () => {
   it('Aave: exact approvals, grant, multicall, revoke — in that order', () => {
     const calls = batchCallsFor(cfg, resolved())
-    expect(calls.map((c) => c.id)).toEqual(['atoken-approve', 'proceeds-approve', 'operator', 'bundle', 'revoke-operator'])
+    expect(calls.map((c) => c.id)).toEqual(['atoken-approve', 'proceeds-approve', 'operator', 'bundle', 'revoke-operator', 'restore-atoken', 'restore-proceeds'])
     expect(calls[0]).toMatchObject({ to: A(0xa7), functionName: 'approve', args: [cfg.generalAdapter1, 10n * 10n ** 18n] })
     expect(calls[1]).toMatchObject({ to: cfg.pairedAsset, functionName: 'approve', args: [cfg.membraneAdapter, 12_002_400_000n] })
     expect(calls[2]).toMatchObject({ to: cfg.cdp, functionName: 'setPositionOperator', args: [cfg.membraneAdapter, true] })
@@ -94,13 +96,80 @@ describe('batchCallsFor — one prompt, nothing left standing', () => {
   })
   it('Morpho: authorization first and revoked last', () => {
     const calls = batchCallsFor(cfg, resolved({ venue: 'morpho-blue', venueToken: null, venueTokenAmount: 0n }))
-    expect(calls.map((c) => c.id)).toEqual(['morpho-auth', 'proceeds-approve', 'operator', 'bundle', 'revoke-operator', 'revoke-morpho'])
+    expect(calls.map((c) => c.id)).toEqual(['morpho-auth', 'proceeds-approve', 'operator', 'bundle', 'revoke-operator', 'revoke-morpho', 'restore-proceeds'])
     expect(calls[0]).toMatchObject({ functionName: 'setAuthorization', args: [cfg.generalAdapter1, true] })
     expect(calls[5]).toMatchObject({ functionName: 'setAuthorization', args: [cfg.generalAdapter1, false] })
   })
   it('a grant the owner already had is neither re-granted nor revoked', () => {
     const calls = batchCallsFor(cfg, resolved({ operatorGranted: true }))
-    expect(calls.map((c) => c.id)).toEqual(['atoken-approve', 'proceeds-approve', 'bundle'])
+    expect(calls.map((c) => c.id)).toEqual(['atoken-approve', 'proceeds-approve', 'bundle', 'restore-atoken', 'restore-proceeds'])
+  })
+  it('review item 3: the batch ends by restoring the allowances the owner had before', () => {
+    const calls = batchCallsFor(cfg, resolved({ prevVenueAllowance: 7n, prevProceedsAllowance: 5_000_000n }))
+    expect(calls.at(-2)).toMatchObject({ to: A(0xa7), functionName: 'approve', args: [cfg.generalAdapter1, 7n] })
+    expect(calls.at(-1)).toMatchObject({ to: cfg.pairedAsset, functionName: 'approve', args: [cfg.membraneAdapter, 5_000_000n] })
+  })
+})
+
+describe('batchSettlement — review item 1', () => {
+  const rc = (status: string) => ({ status, transactionHash: '0xaa' as `0x${string}` })
+  it('atomic + success + every receipt success → settled', () => {
+    expect(batchSettlement({ atomic: true, status: 'success', receipts: [rc('success')] }).ok).toBe(true)
+  })
+  it('status success but not atomic → NOT settled', () => {
+    expect(batchSettlement({ atomic: false, status: 'success', receipts: [rc('success'), rc('success')] }).ok).toBe(false)
+    expect(batchSettlement({ status: 'success', receipts: [rc('success')] }).ok).toBe(false)
+  })
+  it('one reverted receipt (a partial batch) → NOT settled', () => {
+    expect(batchSettlement({ atomic: true, status: 'success', receipts: [rc('success'), rc('reverted')] }).ok).toBe(false)
+  })
+  it("legacy 'CONFIRMED' counts only when the receipts confirm it", () => {
+    expect(batchSettlement({ atomic: true, status: 'CONFIRMED', receipts: [rc('0x1')] }).ok).toBe(true)
+    expect(batchSettlement({ atomic: true, status: 'CONFIRMED', receipts: [] }).ok).toBe(false)
+    expect(batchSettlement({ atomic: true, status: 'CONFIRMED' }).ok).toBe(false)
+    expect(batchSettlement({ atomic: true, status: 'CONFIRMED', receipts: [rc('0x0')] }).ok).toBe(false)
+  })
+  it('failure status → NOT settled even with success receipts', () => {
+    expect(batchSettlement({ atomic: true, status: 'failure', receipts: [rc('success')] }).ok).toBe(false)
+  })
+})
+
+describe('sendBatch5792 — review item 2 (chain)', () => {
+  function wallet5792(chainIdHex: string, status: Record<string, unknown>) {
+    const seen: { method: string; params: unknown }[] = []
+    const w = createWalletClient({
+      account,
+      transport: custom({
+        async request({ method, params }) {
+          seen.push({ method, params })
+          if (method === 'eth_chainId') return chainIdHex
+          if (method === 'wallet_sendCalls') return { id: '0xbatch' }
+          if (method === 'wallet_getCallsStatus') return { version: '2.0.0', id: '0xbatch', chainId: chainIdHex, ...status }
+          throw new Error(`unexpected ${method}`)
+        },
+      }),
+    })
+    return { w, seen }
+  }
+  const calls = () => batchCallsFor(cfg, resolved())
+  const okStatus = { atomic: true, status: 200, receipts: [{ status: '0x1', transactionHash: `0x${'ab'.repeat(32)}`, blockHash: `0x${'cd'.repeat(32)}`, blockNumber: '0x1', gasUsed: '0x1', logs: [] }] }
+  it('refuses before any prompt when the wallet is on another chain', async () => {
+    const { w, seen } = wallet5792('0x1', okStatus)
+    await expect(sendBatch5792({ client: undefined as never, wallet: w, owner: account.address, calls: calls(), chain: chainFor(cfg) })).rejects.toThrow(/chain 1.*chain 31337/)
+    expect(seen.some((x) => x.method === 'wallet_sendCalls')).toBe(false)
+  })
+  it('sends for the config chain id and settles on an atomic, all-success status', async () => {
+    const { w, seen } = wallet5792('0x7a69', okStatus)
+    const res = await sendBatch5792({ client: undefined as never, wallet: w, owner: account.address, calls: calls(), chain: chainFor(cfg) })
+    expect(res.ok).toBe(true)
+    const sent = seen.find((x) => x.method === 'wallet_sendCalls')!.params as { chainId: string; atomicRequired: boolean }[]
+    expect(sent[0].chainId).toBe('0x7a69')
+    expect(sent[0].atomicRequired).toBe(true)
+  })
+  it('a non-atomic success from the wallet is reported as NOT settled', async () => {
+    const { w } = wallet5792('0x7a69', { ...okStatus, atomic: false })
+    const res = await sendBatch5792({ client: undefined as never, wallet: w, owner: account.address, calls: calls(), chain: chainFor(cfg) })
+    expect(res.ok).toBe(false)
   })
 })
 

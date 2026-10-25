@@ -210,7 +210,11 @@ function detailLines(p: SlipViewProps): string[] {
     lines.push(`Flash loan: ${FLASH_SOURCE}; borrowed and repaid inside one transaction, so no extra capital is needed.`)
     lines.push(`Accrual buffer: ${ACCRUAL_BUFFER_BPS} bps over the debt read. It is borrowed; what the venue did not need comes back to you.`)
     lines.push(`LTV margin: ${(LTV_MARGIN * 100).toFixed(1)}pp under the borrow LTV. The adapter re-checks the LTV on-chain at Membrane’s price; above it the whole transaction reverts.`)
-    lines.push('Permits are for exact amounts and are used up in the transaction; nothing stays approved.')
+    lines.push(
+      p.promptIds?.includes('batch')
+        ? 'Batch: exact approvals replace the permits; the batch ends by restoring your earlier allowances to GA1 and the adapter.'
+        : 'Permits are for exact amounts and are used up in the transaction; nothing stays approved.',
+    )
     lines.push('Simulation: the exact transaction runs through eth_simulateV1 before any prompt; the operator grant is sent only after the signed bundle simulates.')
     if (plan.venue) for (const r of revokeSteps(plan.venue)) lines.push(`Optional after settling: ${r.label}. ${r.why}`)
   } else {
@@ -241,6 +245,11 @@ const Body: React.FC<SlipViewProps & { details: boolean }> = (p) => {
           {phase.k === 'settled' ? 'Settled' : 'Pending'} {shortHash(phase.hash)}
         </Text>
       )}
+      {(phase.k === 'settled' || phase.k === 'failed') && phase.leftovers && phase.revoke !== 'done' && (
+        <Text {...mono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.warning} data-testid="slip-leftovers">
+          Left standing: {phase.leftovers.join(', ')}
+        </Text>
+      )}
       <Collapse in={p.details} animateOpacity>
         <VStack spacing={SPACING.xs} align="stretch" pt={SPACING.sm} borderTop="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} data-testid="slip-details">
           {detailLines(p).map((l) => (
@@ -265,9 +274,11 @@ const Footer: React.FC<SlipViewProps & { details: boolean; toggle: () => void }>
     _focus: FOCUS_STYLES.ring,
     ...mono,
   }
-  const revokable = p.phase.k === 'settled' && p.phase.revoke !== undefined
+  const revokable = (p.phase.k === 'settled' || p.phase.k === 'failed') && p.phase.revoke !== undefined
   const revokeLabel =
-    p.phase.k === 'settled' ? { idle: 'Revoke adapter', running: 'Revoking…', done: 'Revoked', failed: 'Revoke failed' }[p.phase.revoke ?? 'idle'] : ''
+    p.phase.k === 'settled' || p.phase.k === 'failed'
+      ? { idle: p.phase.k === 'failed' ? 'Revoke leftovers' : 'Revoke adapter', running: 'Revoking…', done: 'Revoked', failed: 'Revoke failed' }[p.phase.revoke ?? 'idle']
+      : ''
   return (
     <VStack align="stretch" spacing={SPACING.xs} w="100%">
       <Stack direction={{ base: 'column-reverse', sm: 'row' }} spacing={SPACING_PATTERNS.buttonGroupGap} align={{ base: 'stretch', sm: 'center' }} w="100%">
@@ -297,7 +308,7 @@ const Footer: React.FC<SlipViewProps & { details: boolean; toggle: () => void }>
             {p.kind === 'migrate' ? 'Migrate' : 'Deploy'}
           </DemoAwareCta>
         ) : revokable ? (
-          <Button variant="outline" onClick={p.onRevoke} isDisabled={p.phase.k === 'settled' && p.phase.revoke !== 'idle'} w={{ base: '100%', sm: 'auto' }} data-testid="slip-revoke-button" {...common}>
+          <Button variant="outline" onClick={p.onRevoke} isDisabled={(p.phase.k === 'settled' || p.phase.k === 'failed') && p.phase.revoke !== 'idle'} w={{ base: '100%', sm: 'auto' }} data-testid="slip-revoke-button" {...common}>
             {revokeLabel}
           </Button>
         ) : (

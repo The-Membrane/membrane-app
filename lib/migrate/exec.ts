@@ -25,10 +25,11 @@ import {
   type PublicClient,
   type WalletClient,
 } from 'viem'
-import { simulateCalls } from 'viem/actions'
+import { getCapabilities, sendCalls, simulateCalls, waitForCallsStatus } from 'viem/actions'
 
 import { cdpAbi } from '@/contracts/abis/cdp'
 import { membraneBundlerAdapterAbi } from '@/contracts/abis/membraneBundlerAdapter'
+import { cdpRouterAbi } from '@/contracts/abis/cdpRouter'
 
 import { bundler3Abi, cdpOperatorAbi, collateralLtvAbi, membraneOracleAbi, morphoAbi, permitTokenAbi } from './abis'
 import type { MigrateChainConfig } from './addresses'
@@ -611,6 +612,10 @@ export interface ResolvedDeploy {
   membranePriceWad: bigint
   maxLtvOnchainWad: bigint
   blockNumber: bigint
+  /** CdpRouter's operator grant from this owner; null when no router is deployed on the chain. */
+  routerOperator: boolean | null
+  /** The owner's collateral allowance to CdpRouter (0 without a router). */
+  routerAllowance: bigint
 }
 
 /** Reads the wallet and Membrane for a deploy-fresh plan: the deposit is the replay's collateral
@@ -635,9 +640,14 @@ export async function resolveDeploy(
     client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'oracle' }),
     client.getBlock(),
   ])
-  const [[membranePriceWad], maxLtvOnchainWad] = await Promise.all([
+  const router = cfg.cdpRouter
+  const [[membranePriceWad], maxLtvOnchainWad, routerOperator, routerAllowance] = await Promise.all([
     client.readContract({ address: oracle, abi: membraneOracleAbi, functionName: 'getPrice', args: [denom] }),
     readMaxLtv(client, cfg, denom),
+    router
+      ? client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionOperator', args: [owner, router] })
+      : Promise.resolve(null),
+    router ? client.readContract({ address: token, abi: permitTokenAbi, functionName: 'allowance', args: [owner, router] }) : Promise.resolve(0n),
   ])
   // the Cdp gates only on max LTV (review H-1): cap the fresh borrow at max − 3pp − margin, on-chain
   const openCapWad = maxLtvOnchainWad > BORROW_LTV_GAP_WAD + LTV_MARGIN_WAD ? maxLtvOnchainWad - BORROW_LTV_GAP_WAD - LTV_MARGIN_WAD : 0n
@@ -651,7 +661,61 @@ export async function resolveDeploy(
   const depositUsdWad = (depositWei * membranePriceWad) / scale
   // floor to whole bps of LTV and whole CDT so the borrow never rounds above the target
   const borrowCdt = ((depositUsdWad * ltvWad) / WAD / WAD) * WAD
-  return { owner, collateralToken: token, collateralDecimals: Number(decimals), denom, prefillWei, walletWei, depositWei, borrowCdt, allowance, membranePriceWad, maxLtvOnchainWad, blockNumber: block.number }
+  return {
+    owner, collateralToken: token, collateralDecimals: Number(decimals), denom, prefillWei, walletWei, depositWei, borrowCdt,
+    allowance, membranePriceWad, maxLtvOnchainWad, blockNumber: block.number, routerOperator, routerAllowance,
+  }
+}
+
+/**
+ * Which deploy path has the fewest prompts without leaving a new standing grant:
+ *   batch-router  wallet batches atomically and a CdpRouter exists:
+ *                 [approve(router) · grant router · depositAndBorrow · revoke router] = 1 prompt
+ *   router        the router's operator grant is ALREADY standing: [approve when short] + depositAndBorrow
+ *                 = 2 prompts (1 when the allowance covers it)
+ *   direct        otherwise: [approve when short] + deposit + borrow = 3 (2). The router would need
+ *                 its own operator grant (CdpRouter.sol RouterNotApprovedOperator) — also 3 prompts
+ *                 and a grant left standing — so the direct path wins the tie.
+ */
+export type DeployPath = 'batch-router' | 'router' | 'direct'
+
+export function deployPathFor(d: ResolvedDeploy, atomic: boolean): DeployPath {
+  if (d.routerOperator === null) return 'direct'
+  if (atomic) return 'batch-router'
+  return d.routerOperator ? 'router' : 'direct'
+}
+
+const routerCall = (cfg: MigrateChainConfig, d: ResolvedDeploy): SimCall => ({
+  to: cfg.cdpRouter!,
+  abi: cdpRouterAbi,
+  functionName: 'depositAndBorrow',
+  args: [0n, [{ denom: d.denom, amount: d.depositWei }], d.denom, d.borrowCdt, []],
+  id: 'router',
+  label: 'deposit + borrow',
+})
+
+const routerGrant = (cfg: MigrateChainConfig, approved: boolean): SimCall => ({
+  to: cfg.cdp!,
+  abi: cdpOperatorAbi,
+  functionName: 'setPositionOperator',
+  args: [cfg.cdpRouter!, approved],
+  id: approved ? 'router-grant' : 'router-revoke',
+  label: approved ? 'router grant' : 'router revoke',
+})
+
+export function deployCallsFor(cfg: MigrateChainConfig, d: ResolvedDeploy, path: DeployPath, nextPositionId: bigint): SimCall[] {
+  if (path === 'direct') return deployCalls(cfg, d, nextPositionId)
+  const calls: SimCall[] = []
+  if (path === 'batch-router') {
+    calls.push(approveCall(d.collateralToken, cfg.cdpRouter!, d.depositWei, 'approve', 'approve'))
+    if (!d.routerOperator) calls.push(routerGrant(cfg, true))
+    calls.push(routerCall(cfg, d))
+    if (!d.routerOperator) calls.push(routerGrant(cfg, false))
+    return calls
+  }
+  if (d.routerAllowance < d.depositWei) calls.push(approveCall(d.collateralToken, cfg.cdpRouter!, d.depositWei, 'approve', 'approve'))
+  calls.push(routerCall(cfg, d))
+  return calls
 }
 
 const depositEventAbi = parseAbi(['event Deposit(address indexed owner, uint256 indexed positionId, bytes32 asset, uint256 amount)'])
@@ -668,9 +732,9 @@ export function deployCalls(cfg: MigrateChainConfig, d: ResolvedDeploy, nextPosi
   return calls
 }
 
-export async function simulateDeploy(client: PublicClient, cfg: MigrateChainConfig, d: ResolvedDeploy): Promise<SimResult> {
+export async function simulateDeploy(client: PublicClient, cfg: MigrateChainConfig, d: ResolvedDeploy, path: DeployPath = 'direct'): Promise<SimResult> {
   const next = await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'currentPositionId' })
-  return simulate(client, d.owner, deployCalls(cfg, d, next))
+  return simulate(client, d.owner, deployCallsFor(cfg, d, path, next))
 }
 
 /** Sends approve (when short), deposit, borrow — one prompt each. */
@@ -679,13 +743,25 @@ export async function runDeploy(p: {
   wallet: WalletClient
   cfg: MigrateChainConfig
   d: ResolvedDeploy
+  path?: DeployPath
   onEvent?: (e: RunEvent) => void
+  send?: SendBatch
 }): Promise<RunResult> {
   const { client, wallet, cfg, d } = p
+  const path = p.path ?? 'direct'
   const emit = p.onEvent ?? (() => {})
   const next = await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'currentPositionId' })
-  const calls = deployCalls(cfg, d, next)
-  const ids = calls.map((c) => (c.functionName === 'approve' ? 'approve' : c.functionName === 'deposit' ? 'deposit' : 'borrow'))
+  const calls = deployCallsFor(cfg, d, path, next)
+  if (path === 'batch-router') {
+    const sim = await simulate(client, d.owner, calls)
+    emit({ kind: 'simulated', result: sim })
+    if (!sim.ok) return { ok: false, bundleHash: null, reason: sim.reason }
+    emit({ kind: 'prompt', id: 'batch', index: 1, total: 1 })
+    const res = await (p.send ?? sendBatch5792)({ client, wallet, owner: d.owner, calls })
+    emit({ kind: 'mined', id: 'batch', hash: res.hash, status: res.ok ? 'success' : 'reverted' })
+    return res.ok ? { ok: true, bundleHash: res.hash } : { ok: false, bundleHash: res.hash, reason: 'the batch reverted' }
+  }
+  const ids = calls.map((c) => c.id ?? (c.functionName === 'approve' ? 'approve' : c.functionName === 'deposit' ? 'deposit' : 'borrow'))
   let last: `0x${string}` | null = null
   let pid: bigint | null = null
   for (let i = 0; i < calls.length; i++) {
@@ -717,4 +793,110 @@ export async function runDeploy(p: {
     }
   }
   return { ok: true, bundleHash: last }
+}
+
+// ------------------------------------------------------------------ EIP-5792 one-prompt batch
+
+/**
+ * True only when the wallet reports atomic batching as `supported` on `chainId` (EIP-5792
+ * wallet_getCapabilities). `ready` (an EIP-7702 account upgrade the wallet would ask for first)
+ * and any error count as not supported, so the sheet falls back to the per-prompt flow — the
+ * same rule feat/q27-lever-exec settled on. The legacy `atomicBatch.supported` shape is accepted.
+ */
+export async function detectAtomic(wallet: WalletClient | undefined, chainId: number | undefined): Promise<boolean> {
+  if (!wallet || chainId === undefined) return false
+  try {
+    const caps = (await getCapabilities(wallet, { account: wallet.account, chainId })) as Record<string, unknown>
+    const atomic = caps?.atomic as { status?: string } | undefined
+    if (atomic?.status) return atomic.status === 'supported'
+    const legacy = caps?.atomicBatch as { supported?: boolean } | undefined
+    return legacy?.supported === true
+  } catch {
+    return false
+  }
+}
+
+const approveCall = (token: Address, spender: Address, amount: bigint, id: string, label: string): SimCall => ({
+  to: token,
+  abi: permitTokenAbi,
+  functionName: 'approve',
+  args: [spender, amount],
+  id,
+  label,
+})
+
+/**
+ * The whole migration as ONE atomic batch: exact approvals in place of the permits, the grants
+ * and their revokes inside the same batch, so nothing stays standing afterwards. A grant the
+ * owner already had is left as it was (neither re-granted nor revoked).
+ *   Aave    approve(aToken→GA1, A) · approve(USDC→adapter, P) · grant · Bundler3.multicall · revoke
+ *   Morpho  setAuthorization(GA1, true) · approve(USDC→adapter, P) · grant · multicall · revoke ·
+ *           setAuthorization(GA1, false)
+ */
+export function batchCallsFor(cfg: MigrateChainConfig, r: ResolvedMigration): SimCall[] {
+  const calls: SimCall[] = []
+  const morphoAuth = r.venue === 'morpho-blue' && !r.morphoAuthorized
+  if (morphoAuth) {
+    calls.push({ to: cfg.morpho!, abi: setAuthorizationAbi, functionName: 'setAuthorization', args: [cfg.generalAdapter1!, true], id: 'morpho-auth', label: 'Morpho auth' })
+  }
+  if (r.venue !== 'morpho-blue') calls.push(approveCall(r.venueToken!, cfg.generalAdapter1!, r.venueTokenAmount, 'atoken-approve', 'aToken approve'))
+  calls.push(approveCall(r.debtToken, cfg.membraneAdapter!, r.flashAmount, 'proceeds-approve', 'USDC approve'))
+  if (!r.operatorGranted) calls.push(operatorCall(cfg, true))
+  calls.push(bundleCall(cfg, bundleFor(cfg, r, { venuePermit: null, proceedsPermit: null, morphoAuth: null })))
+  if (!r.operatorGranted) calls.push(operatorCall(cfg, false))
+  if (morphoAuth) {
+    calls.push({ to: cfg.morpho!, abi: setAuthorizationAbi, functionName: 'setAuthorization', args: [cfg.generalAdapter1!, false], id: 'revoke-morpho', label: 'revoke Morpho' })
+  }
+  return calls
+}
+
+/** eth_simulateV1 of the whole batch, in sequence, from the owner — before the one prompt. */
+export function simulateBatch(client: PublicClient, owner: Address, calls: SimCall[]): Promise<SimResult> {
+  return simulate(client, owner, calls)
+}
+
+/** How a batch reaches the chain. The default is the wallet's EIP-5792 wallet_sendCalls with
+ *  forceAtomic; tests inject an EIP-7702 delegation instead (anvil has no wallet_sendCalls). */
+export type SendBatch = (p: { client: PublicClient; wallet: WalletClient; owner: Address; calls: SimCall[] }) => Promise<{ hash: `0x${string}`; ok: boolean }>
+
+export const sendBatch5792: SendBatch = async ({ wallet, owner, calls }) => {
+  const { id } = await sendCalls(wallet, {
+    account: owner,
+    chain: wallet.chain,
+    forceAtomic: true,
+    calls: calls.map((c) => ({ to: c.to, abi: c.abi, functionName: c.functionName, args: c.args })),
+  } as Parameters<typeof sendCalls>[1])
+  const res = await waitForCallsStatus(wallet, { id })
+  const hash = (res.receipts?.[res.receipts.length - 1]?.transactionHash ?? id) as `0x${string}`
+  return { hash, ok: res.status === 'success' }
+}
+
+/** The one-prompt path: fresh read + cap check (as runMigration), simulate the batch, one prompt. */
+export async function runMigrationBatch(p: {
+  client: PublicClient
+  wallet: WalletClient
+  cfg: MigrateChainConfig
+  source: MigrateSource
+  r: ResolvedMigration
+  onEvent?: (e: RunEvent) => void
+  send?: SendBatch
+}): Promise<RunResult> {
+  const { client, wallet, cfg } = p
+  const emit = p.onEvent ?? (() => {})
+  const fresh = await resolveMigration(client, cfg, p.source, p.r.venue, p.r.owner)
+  if ('error' in fresh) return { ok: false, bundleHash: null, reason: fresh.error }
+  const r = fresh
+  if (borrowLtvWad(r) > r.maxLtvWad) {
+    return { ok: false, bundleHash: null, reason: `LtvAboveCap(${borrowLtvWad(r)}, ${r.maxLtvWad}) — the price or the debt moved since the plan; re-open the sheet` }
+  }
+  const calls = batchCallsFor(cfg, r)
+  const sim = await simulateBatch(client, r.owner, calls)
+  emit({ kind: 'simulated', result: sim })
+  if (!sim.ok) return { ok: false, bundleHash: null, reason: sim.reason }
+  emit({ kind: 'prompt', id: 'batch', index: 1, total: 1 })
+  const res = await (p.send ?? sendBatch5792)({ client, wallet, owner: r.owner, calls })
+  emit({ kind: 'mined', id: 'batch', hash: res.hash, status: res.ok ? 'success' : 'reverted' })
+  if (!res.ok) return { ok: false, bundleHash: res.hash, reason: 'the batch reverted' }
+  const sourceDebtAfter = await readSourceDebt(client, cfg, r)
+  return { ok: true, bundleHash: res.hash, sourceDebtAfter }
 }

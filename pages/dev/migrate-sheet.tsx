@@ -15,6 +15,8 @@ import { DeploySheet, MigrateSheet } from '@/components/Migrate'
 import { MigrateHarness, type MigrateEnv } from '@/components/Migrate/harness'
 
 import { demoBorrowerPosition } from '@/lib/position-sim/demoBorrower'
+import { sendBatch7702 } from '@/lib/migrate/sendBatch7702'
+import local from '@/contracts/migrator/deployments/local.json'
 
 /**
  * DEV ONLY (404 in production). Renders the real migrate / deploy sheets in each state for the
@@ -24,7 +26,8 @@ import { demoBorrowerPosition } from '@/lib/position-sim/demoBorrower'
  *   - wallet states use public anvil test keys through MigrateHarness, because a headless
  *     browser has no injected wallet.
  *
- * ?state= demo | wrong-chain | mainnet | ready | trim | simulated | settled   &sheet=deploy
+ * ?state= demo | wrong-chain | mainnet | ready | trim | simulated | settled | batch | batch-settled   &sheet=deploy
+ *   batch*: the wallet reports atomic batching; the batch runs through an EIP-7702 delegation on anvil
  * &rpc= the anvil RPC (default http://127.0.0.1:8545)
  */
 
@@ -62,7 +65,9 @@ function useHarness(state: string, rpc: string): MigrateEnv | null {
       publicClient: createPublicClient({ chain, transport: http(rpc) }) as PublicClient,
       walletClient: createWalletClient({ account, chain, transport: http(rpc) }),
       holdBeforeSimulate: state === 'ready',
-      autoStart: state === 'settled',
+      autoStart: state === 'settled' || state === 'batch-settled',
+      atomic: state.startsWith('batch'),
+      sendBatch: sendBatch7702(local.batchExecutor as `0x${string}`),
     }
   }, [state, rpc])
 }

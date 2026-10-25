@@ -265,6 +265,52 @@ export interface PlanOptions {
   /** The collateral's live max LTV read on-chain (Collateral.currentMaxLTV). Overrides the
    *  modelled table when present. */
   onchainMaxLtv?: number | null
+  /** The wallet batches atomically (EIP-5792): the migration is ONE prompt. */
+  atomic?: boolean
+  /** Deploy fresh: which path runs (lib/migrate/exec.ts deployPathFor). */
+  deployPath?: 'batch-router' | 'router' | 'direct'
+}
+
+/** The one prompt of the atomic path. Its calls are listed in Details. */
+export function batchStep(venue: MigrateVenue | null): SignatureStep {
+  const morpho = venue === 'morpho-blue'
+  return {
+    id: 'batch',
+    kind: 'tx',
+    short: 'Migrate batch',
+    label: 'One atomic batch (EIP-5792 wallet_sendCalls)',
+    why: morpho
+      ? 'setAuthorization(GeneralAdapter1, true) · approve USDC to the adapter (exact) · grant the adapter · Bundler3.multicall · revoke the adapter · setAuthorization(GeneralAdapter1, false). All or nothing; no grant or allowance stays afterwards.'
+      : 'approve aTokens to GeneralAdapter1 (exact) · approve USDC to the adapter (exact) · grant the adapter · Bundler3.multicall · revoke the adapter. All or nothing; no grant or allowance stays afterwards.',
+    skippedWhen: null,
+  }
+}
+
+/** Deploy-fresh prompts for the chosen path. */
+export function deploySteps(path: 'batch-router' | 'router' | 'direct'): SignatureStep[] {
+  if (path === 'batch-router') {
+    return [
+      {
+        id: 'batch',
+        kind: 'tx',
+        short: 'Deploy batch',
+        label: 'One atomic batch (EIP-5792 wallet_sendCalls)',
+        why: 'approve the collateral to CdpRouter (exact) · grant CdpRouter · CdpRouter.depositAndBorrow · revoke CdpRouter. All or nothing; nothing stays granted.',
+        skippedWhen: null,
+      },
+    ]
+  }
+  if (path === 'router') {
+    return [
+      { id: 'approve', kind: 'tx', short: 'Approve', label: 'Approve the collateral to CdpRouter', why: 'CdpRouter pulls exactly the deposit.', skippedWhen: 'the allowance already covers it' },
+      { id: 'router', kind: 'tx', short: 'Open position', label: 'CdpRouter.depositAndBorrow', why: 'One transaction: opens a new position owned by you and borrows; CDT lands on you. Uses your standing CdpRouter grant.', skippedWhen: null },
+    ]
+  }
+  return [
+    { id: 'approve', kind: 'tx', short: 'Approve', label: 'Approve the collateral to Membrane', why: 'Cdp.deposit pulls the collateral from you.', skippedWhen: 'the allowance already covers it' },
+    { id: 'deposit', kind: 'tx', short: 'Deposit', label: 'Deposit', why: 'Cdp.deposit opens a new position owned by you.', skippedWhen: null },
+    { id: 'borrow', kind: 'tx', short: 'Borrow', label: 'Borrow', why: 'Cdp.increaseDebt mints CDT to you.', skippedWhen: null },
+  ]
 }
 
 function gasRow(steps: GasStep[] | null | undefined): PlanRow {
@@ -375,7 +421,7 @@ export function buildMigrationPlan(source: MigrateSource, opts: PlanOptions = {}
     trim,
     blocked,
     blockedShort: blocker?.short ?? null,
-    signatures: venue && !blocked ? signatureSteps(venue) : [],
+    signatures: venue && !blocked ? (opts.atomic ? [batchStep(venue)] : signatureSteps(venue)) : [],
     rows,
   }
 }
@@ -449,13 +495,7 @@ export function buildDeployPlan(source: MigrateSource, opts: PlanOptions = {}): 
         ? 'Nothing to prefill from.'
         : `${unknown?.symbol} isn't listed on Membrane.`
       : null,
-    signatures: blocked
-      ? []
-      : [
-          { id: 'approve', kind: 'tx', short: 'Approve', label: 'Approve the collateral to Membrane', why: 'Cdp.deposit pulls the collateral from you.', skippedWhen: 'the allowance already covers it' },
-          { id: 'deposit', kind: 'tx', short: 'Deposit', label: 'Deposit', why: 'Cdp.deposit opens a new position owned by you.', skippedWhen: null },
-          { id: 'borrow', kind: 'tx', short: 'Borrow', label: 'Borrow', why: 'Cdp.increaseDebt mints CDT to you.', skippedWhen: null },
-        ],
+    signatures: blocked ? [] : deploySteps(opts.deployPath ?? 'direct'),
     rows,
   }
 }

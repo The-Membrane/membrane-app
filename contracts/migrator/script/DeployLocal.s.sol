@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {Script, console2} from "forge-std/Script.sol";
 
 import {MembraneStack} from "./MembraneStack.sol";
+import {BatchExecutor} from "../test/mocks/BatchExecutor.sol";
 
 /// @notice LOCAL ANVIL ONLY. Stands up MembraneStack (see there) and seeds three anvil accounts.
 ///
@@ -12,6 +13,8 @@ import {MembraneStack} from "./MembraneStack.sol";
 ///
 /// Writes deployments/local.json.
 contract DeployLocal is Script, MembraneStack {
+    address internal batchExecutor;
+
     // anvil default accounts (public test keys)
     uint256 constant PK0 = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80; // deployer / owner
     uint256 constant PK2 = 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a; // Aave looper
@@ -22,6 +25,8 @@ contract DeployLocal is Script, MembraneStack {
         address owner = vm.addr(PK0);
         vm.startBroadcast(PK0);
         S memory s = _deployStack(owner);
+        // dev/test only: the EIP-7702 delegate the app's anvil runs use to emulate a 5792 batch wallet
+        batchExecutor = address(new BatchExecutor());
         s.weth.mint(vm.addr(PK2), 20e18);
         s.weth.mint(vm.addr(PK3), 20e18);
         s.weth.mint(vm.addr(PK4), 20e18);
@@ -65,6 +70,8 @@ contract DeployLocal is Script, MembraneStack {
         vm.serializeAddress(k, "cdp", address(s.cdp));
         vm.serializeAddress(k, "transmuter", address(s.transmuter));
         vm.serializeAddress(k, "membraneAdapter", address(s.mAdapter));
+        vm.serializeAddress(k, "cdpRouter", address(s.router));
+        vm.serializeAddress(k, "batchExecutor", batchExecutor);
         vm.serializeAddress(k, "usdc", address(s.usdc));
         vm.serializeAddress(k, "cdt", address(s.cdt));
         vm.serializeAddress(k, "weth", address(s.weth));

@@ -11,7 +11,13 @@ import {
   resolveMigration,
   runDeploy,
   runMigration,
+  runMigrationBatch,
   runRevoke,
+  batchCallsFor,
+  simulateBatch,
+  detectAtomic,
+  deployPathFor,
+  type DeployPath,
   planOptsFor,
   borrowLtvWad,
   simulateDeploy,
@@ -101,6 +107,25 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
   const [readOnChain, setReadOnChain] = useState<MigrateFlow['readOnChain']>(null)
   const [promptIds, setPromptIds] = useState<string[] | null>(null)
   const resolved = useRef<ResolvedMigration | ResolvedDeploy | null>(null)
+  const deployPath = useRef<DeployPath>('direct')
+  // EIP-5792: ask the wallet once per wallet/chain; a harness may pin it
+  const [atomic, setAtomic] = useState<boolean | null>(null)
+  useEffect(() => {
+    let off = false
+    setAtomic(null)
+    if (env.atomic !== undefined) {
+      setAtomic(env.atomic)
+      return
+    }
+    if (env.isDemo || !env.walletClient) {
+      setAtomic(false)
+      return
+    }
+    detectAtomic(env.walletClient, env.chainId).then((a) => !off && setAtomic(a))
+    return () => {
+      off = true
+    }
+  }, [env.atomic, env.isDemo, env.walletClient, env.chainId])
   const running = useRef(false)
 
   // ---- gate + read + pre-signature simulation, re-run whenever the wallet/chain changes
@@ -123,7 +148,7 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
     if (!ready.ok) {
       return setPhase({ k: 'no-deployment', reason: cfg.chainId === 1 ? 'Not on mainnet yet' : 'No Membrane here yet', detail: ready.reason })
     }
-    if (!env.publicClient || !env.address) return setPhase({ k: 'reading' })
+    if (!env.publicClient || !env.address || atomic === null) return setPhase({ k: 'reading' })
     const client = env.publicClient
     const owner = env.address
     setPhase({ k: 'reading' })
@@ -134,13 +159,15 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
           if (cancelled) return
           if ('error' in r) return setPhase({ k: 'blocked', reason: r.error })
           resolved.current = r
-          const p = buildMigrationPlan(onchainSource(position, r, cfg.label), planOptsFor(r))
+          const p = buildMigrationPlan(onchainSource(position, r, cfg.label), { ...planOptsFor(r), atomic })
           setPlan(p)
           setReadOnChain({ block: r.blockNumber, chainLabel: cfg.label })
           setPromptIds(
-            p.signatures
-              .filter((s) => !(s.id === 'operator' && r.operatorGranted) && !(s.id === 'morpho-auth' && r.morphoAuthorized))
-              .map((s) => s.id),
+            atomic
+              ? ['batch']
+              : p.signatures
+                  .filter((s) => !(s.id === 'operator' && r.operatorGranted) && !(s.id === 'morpho-auth' && r.morphoAuthorized))
+                  .map((s) => s.id),
           )
           if (!p.trim && borrowLtvWad(r) > r.maxLtvWad) {
             return setPhase({
@@ -152,10 +179,10 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
           if (p.trim) return setPhase({ k: 'trim', reason: p.trim.short, detail: p.trim.reason })
           if (env.holdBeforeSimulate) return setPhase({ k: 'ready' })
           setPhase({ k: 'simulating' })
-          const sim = await simulatePreSign(client, cfg, r)
+          const sim = atomic ? await simulateBatch(client, owner, batchCallsFor(cfg, r)) : await simulatePreSign(client, cfg, r)
           if (cancelled) return
           if (!sim.ok) return setPhase({ k: 'sim-failed', reason: explainRevert(sim.reason), detail: sim.reason })
-          setPlan(buildMigrationPlan(onchainSource(position, r, cfg.label), { ...planOptsFor(r), gasSteps: sim.steps }))
+          setPlan(buildMigrationPlan(onchainSource(position, r, cfg.label), { ...planOptsFor(r), atomic, gasSteps: sim.steps }))
           setPhase({ k: 'simulated', gas: sim.bufferedGas })
         } else {
           const d = await resolveDeploy(client, cfg, position, owner, basePlan.membrane.ltv)
@@ -163,15 +190,23 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
           if ('error' in d) return setPhase({ k: 'blocked', reason: d.error })
           resolved.current = d
           const deployed = deploySource(position, d)
-          setPlan(buildDeployPlan(deployed, { onchainMaxLtv: Number(d.maxLtvOnchainWad) / 1e18 }))
+          const path = deployPathFor(d, atomic)
+          deployPath.current = path
+          setPlan(buildDeployPlan(deployed, { onchainMaxLtv: Number(d.maxLtvOnchainWad) / 1e18, deployPath: path }))
           setReadOnChain({ block: d.blockNumber, chainLabel: cfg.label })
-          setPromptIds([...(d.allowance < d.depositWei ? ['approve'] : []), 'deposit', 'borrow'])
+          setPromptIds(
+            path === 'batch-router'
+              ? ['batch']
+              : path === 'router'
+                ? [...(d.routerAllowance < d.depositWei ? ['approve'] : []), 'router']
+                : [...(d.allowance < d.depositWei ? ['approve'] : []), 'deposit', 'borrow'],
+          )
           if (env.holdBeforeSimulate) return setPhase({ k: 'ready' })
           setPhase({ k: 'simulating' })
-          const sim = await simulateDeploy(client, cfg, d)
+          const sim = await simulateDeploy(client, cfg, d, path)
           if (cancelled) return
           if (!sim.ok) return setPhase({ k: 'sim-failed', reason: explainRevert(sim.reason), detail: sim.reason })
-          setPlan(buildDeployPlan(deployed, { onchainMaxLtv: Number(d.maxLtvOnchainWad) / 1e18, gasSteps: sim.steps }))
+          setPlan(buildDeployPlan(deployed, { onchainMaxLtv: Number(d.maxLtvOnchainWad) / 1e18, deployPath: path, gasSteps: sim.steps }))
           setPhase({ k: 'simulated', gas: sim.bufferedGas })
         }
       } catch (err) {
@@ -181,7 +216,7 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
     return () => {
       cancelled = true
     }
-  }, [env.isDemo, env.chainId, env.address, env.publicClient, env.chainLabel, env.holdBeforeSimulate, cfg, basePlan, kind, position])
+  }, [env.isDemo, env.chainId, env.address, env.publicClient, env.chainLabel, env.holdBeforeSimulate, atomic, cfg, basePlan, kind, position])
 
   const start = useCallback(() => {
     if (running.current || phase.k !== 'simulated' || !cfg || !env.publicClient || !env.walletClient || !resolved.current) return
@@ -192,8 +227,10 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
     }
     const go =
       kind === 'migrate'
-        ? runMigration({ client: env.publicClient, wallet: env.walletClient, cfg, source: position, r: resolved.current as ResolvedMigration, onEvent })
-        : runDeploy({ client: env.publicClient, wallet: env.walletClient, cfg, d: resolved.current as ResolvedDeploy, onEvent })
+        ? atomic
+          ? runMigrationBatch({ client: env.publicClient, wallet: env.walletClient, cfg, source: position, r: resolved.current as ResolvedMigration, onEvent, send: env.sendBatch })
+          : runMigration({ client: env.publicClient, wallet: env.walletClient, cfg, source: position, r: resolved.current as ResolvedMigration, onEvent })
+        : runDeploy({ client: env.publicClient, wallet: env.walletClient, cfg, d: resolved.current as ResolvedDeploy, path: deployPath.current, onEvent, send: env.sendBatch })
     go.then(
       (res) =>
         setPhase(
@@ -201,7 +238,8 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
             ? {
                 k: 'settled',
                 hash: res.bundleHash,
-                revoke: kind === 'migrate' ? 'idle' : undefined,
+                // the atomic batch revokes its own grants; nothing is left to revoke
+                revoke: kind === 'migrate' && !atomic ? 'idle' : undefined,
                 note:
                   res.sourceDebtAfter !== undefined && res.sourceDebtAfter > 0n
                     ? `Venue dust debt left: ${res.sourceDebtAfter.toString()} units. Repay it there.`
@@ -216,7 +254,7 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
     ).finally(() => {
       running.current = false
     })
-  }, [phase.k, cfg, env.publicClient, env.walletClient, kind, position])
+  }, [phase.k, cfg, env.publicClient, env.walletClient, env.sendBatch, kind, position, atomic])
 
   /** OPTIONAL after settle: revoke the standing grants (not counted in the prompts). */
   const revoke = useCallback(() => {

@@ -19,6 +19,7 @@ import {Transmuter} from "membrane/contracts/Transmuter.sol";
 import {CapController} from "membrane/contracts/CapController.sol";
 import {RevenueDistributor} from "membrane/contracts/RevenueDistributor.sol";
 import {FounderRevenue} from "membrane/contracts/FounderRevenue.sol";
+import {CdpRouter} from "membrane/contracts/periphery/CdpRouter.sol";
 
 import {Bundler3} from "bundler3/Bundler3.sol";
 import {GeneralAdapter1} from "bundler3/adapters/GeneralAdapter1.sol";
@@ -68,6 +69,7 @@ abstract contract MembraneStack is StdCheatsSafe {
         AaveV3MigrationAdapter aaveAdapter;
         MockAaveV3Pool aave;
         MembraneBundlerAdapter mAdapter;
+        CdpRouter router;
     }
 
     function _deployStack(address owner) internal returns (S memory s) {
@@ -233,6 +235,8 @@ abstract contract MembraneStack is StdCheatsSafe {
         s.aave = new MockAaveV3Pool();
         s.aaveAdapter = new AaveV3MigrationAdapter(address(s.bundler), address(s.aave));
         s.mAdapter = new MembraneBundlerAdapter(address(s.bundler), address(s.cdp), address(s.ga1));
+        // the existing periphery router (membrane-solidity contracts/periphery/CdpRouter.sol), for deploy-fresh
+        s.router = new CdpRouter(address(s.cdp), address(s.cdt));
         s.aave.addReserve(address(s.weth), 2000e18, 8600);
         s.aave.addReserve(address(s.usdc), 1e18, 0);
     }

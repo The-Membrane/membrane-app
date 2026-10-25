@@ -37,6 +37,8 @@ export interface MigrateChainConfig {
   /** Membrane. null = no Membrane deployment on this chain. */
   cdp: Address | null
   membraneAdapter: Address | null
+  /** membrane-solidity's periphery CdpRouter (deploy fresh). null = not deployed on this chain. */
+  cdpRouter: Address | null
   /** The Transmuter's paired asset (the only debt token the peg borrow can repay). */
   pairedAsset: Address | null
   /** Membrane denom per collateral token address (lower-case). */
@@ -60,6 +62,7 @@ const MAINNET: MigrateChainConfig = {
   sparkPool: '0xC13e21B648A5Ee794902342038FF3aDAB66BE987',
   cdp: null,
   membraneAdapter: null,
+  cdpRouter: null,
   pairedAsset: null,
   denoms: {},
   tokens: {
@@ -79,6 +82,7 @@ interface LocalJson {
   aavePool: Address
   cdp: Address
   membraneAdapter: Address
+  cdpRouter: Address
   usdc: Address
   weth: Address
   wethDenom: `0x${string}`
@@ -101,6 +105,7 @@ function fromLocal(j: Partial<LocalJson>): MigrateChainConfig | null {
     sparkPool: null,
     cdp: j.cdp,
     membraneAdapter: j.membraneAdapter ?? null,
+    cdpRouter: j.cdpRouter ?? null,
     pairedAsset: j.usdc ?? null,
     denoms: j.weth && j.wethDenom ? { [j.weth.toLowerCase()]: j.wethDenom } : {},
     tokens: j.weth && j.usdc ? { WETH: j.weth, ETH: j.weth, USDC: j.usdc } : {},

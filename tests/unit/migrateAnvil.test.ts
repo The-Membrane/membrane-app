@@ -14,8 +14,9 @@ import { anvil } from '@/config/evm/chains'
 import local from '@/contracts/migrator/deployments/local.json'
 import { cdpOperatorAbi } from '@/lib/migrate/abis'
 import { migrateConfig } from '@/lib/migrate/addresses'
-import { borrowLtvWad, readiness, resolveDeploy, resolveMigration, runDeploy, runMigration, runRevoke, simulateDeploy, simulatePreSign, type ResolvedDeploy, type ResolvedMigration, type RunEvent } from '@/lib/migrate/exec'
+import { deployPathFor, runMigrationBatch, borrowLtvWad, readiness, resolveDeploy, resolveMigration, runDeploy, runMigration, runRevoke, simulateDeploy, simulatePreSign, type ResolvedDeploy, type ResolvedMigration, type RunEvent } from '@/lib/migrate/exec'
 import { morphoAbi, permitTokenAbi } from '@/lib/migrate/abis'
+import { sendBatch7702 } from '@/lib/migrate/sendBatch7702'
 import { buildDeployPlan } from '@/lib/migrate/plan'
 import { demoBorrowerPosition } from '@/lib/position-sim/demoBorrower'
 import type { MigrateSource } from '@/lib/migrate/types'
@@ -147,5 +148,74 @@ run('migrate on local anvil', () => {
     expect(events.filter((e) => e.kind === 'prompt').map((e) => (e as { id: string }).id)).toEqual(['approve', 'deposit', 'borrow'])
     const pid = await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'userPositionIds', args: [account.address, 0n] })
     expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionDebt', args: [pid] })).toBe(d.borrowCdt)
+  })
+
+  // ---------------------------------------------------------------- EIP-5792 batch, emulated by EIP-7702
+  // anvil has no wallet_sendCalls; the owner's EOA delegates to BatchExecutor and runs the exact
+  // batch in ONE transaction — what a 7702 smart-account wallet does behind wallet_sendCalls.
+  const send = sendBatch7702(local.batchExecutor as `0x${string}`)
+
+  it('Aave batch: one prompt, settles, nothing left granted or approved', async () => {
+    const account = privateKeyToAccount(KEY_AAVE)
+    const wallet = createWalletClient({ account, chain, transport: http(RPC) })
+    const r = (await resolveMigration(client, cfg, source('aave-v3'), 'aave-v3', account.address)) as ResolvedMigration
+    const events: RunEvent[] = []
+    const res = await runMigrationBatch({ client, wallet, cfg, source: source('aave-v3'), r, onEvent: (e) => events.push(e), send })
+    expect(res.ok).toBe(true)
+    expect(res.sourceDebtAfter).toBe(0n)
+    expect(events.filter((e) => e.kind === 'prompt')).toHaveLength(1)
+    const pid = await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'userPositionIds', args: [account.address, 0n] })
+    expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionDebt', args: [pid] })).toBe(r.borrowCdt)
+    expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionOperator', args: [account.address, cfg.membraneAdapter!] })).toBe(false)
+    expect(await client.readContract({ address: local.usdc as `0x${string}`, abi: permitTokenAbi, functionName: 'allowance', args: [account.address, cfg.membraneAdapter!] })).toBe(0n)
+  })
+
+  it('Morpho batch: one prompt, the Morpho authorization is revoked inside it', async () => {
+    const account = privateKeyToAccount(KEY_MORPHO)
+    const wallet = createWalletClient({ account, chain, transport: http(RPC) })
+    const r = (await resolveMigration(client, cfg, source('morpho-blue'), 'morpho-blue', account.address)) as ResolvedMigration
+    const res = await runMigrationBatch({ client, wallet, cfg, source: source('morpho-blue'), r, send })
+    expect(res.ok).toBe(true)
+    expect(await client.readContract({ address: cfg.morpho!, abi: morphoAbi, functionName: 'isAuthorized', args: [account.address, cfg.generalAdapter1!] })).toBe(false)
+  })
+
+  it('82% batch: the batch simulation fails before the prompt', async () => {
+    const account = privateKeyToAccount(KEY_HOT)
+    const wallet = createWalletClient({ account, chain, transport: http(RPC) })
+    const r = (await resolveMigration(client, cfg, source('aave-v3'), 'aave-v3', account.address)) as ResolvedMigration
+    const events: RunEvent[] = []
+    const res = await runMigrationBatch({ client, wallet, cfg, source: source('aave-v3'), r, onEvent: (e) => events.push(e), send })
+    expect(res.ok).toBe(false)
+    expect(events.filter((e) => e.kind === 'prompt')).toHaveLength(0)
+  })
+
+  it('deploy fresh via CdpRouter batch: one prompt, router grant not left standing', async () => {
+    const account = privateKeyToAccount(KEY_AAVE)
+    const wallet = createWalletClient({ account, chain, transport: http(RPC) })
+    const src = source('aave-v3')
+    const d = (await resolveDeploy(client, cfg, src, account.address, buildDeployPlan(src).membrane.ltv)) as ResolvedDeploy
+    const path = deployPathFor(d, true)
+    expect(path).toBe('batch-router')
+    expect((await simulateDeploy(client, cfg, d, path)).ok).toBe(true)
+    const events: RunEvent[] = []
+    const res = await runDeploy({ client, wallet, cfg, d, path, onEvent: (e) => events.push(e), send })
+    expect(res.ok).toBe(true)
+    expect(events.filter((e) => e.kind === 'prompt')).toHaveLength(1)
+    expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionOperator', args: [account.address, cfg.cdpRouter!] })).toBe(false)
+  })
+
+  it('deploy fresh via CdpRouter with its grant standing: approve + 1 tx', async () => {
+    const account = privateKeyToAccount(KEY_AAVE)
+    const wallet = createWalletClient({ account, chain, transport: http(RPC) })
+    const g = await wallet.writeContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'setPositionOperator', args: [cfg.cdpRouter!, true] })
+    await client.waitForTransactionReceipt({ hash: g })
+    const src = source('aave-v3')
+    const d = (await resolveDeploy(client, cfg, src, account.address, buildDeployPlan(src).membrane.ltv)) as ResolvedDeploy
+    const path = deployPathFor(d, false)
+    expect(path).toBe('router')
+    const events: RunEvent[] = []
+    const res = await runDeploy({ client, wallet, cfg, d, path, onEvent: (e) => events.push(e) })
+    expect(res.ok).toBe(true)
+    expect(events.filter((e) => e.kind === 'prompt').map((e) => (e as { id: string }).id)).toEqual(['approve', 'router'])
   })
 })

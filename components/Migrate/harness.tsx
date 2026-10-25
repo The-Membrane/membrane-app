@@ -1,6 +1,7 @@
 import React, { createContext, useContext } from 'react'
 import type { PublicClient, WalletClient } from 'viem'
 
+import type { SendBatch } from '@/lib/migrate/exec'
 import type { Address } from '@/lib/migrate/types'
 
 /**
@@ -23,6 +24,10 @@ export interface MigrateEnv {
   autoStart?: boolean
   /** Dev harness: press the optional revoke once settled. */
   autoRevoke?: boolean
+  /** Dev/test: the wallet's atomic-batch capability, instead of asking the wallet. */
+  atomic?: boolean
+  /** Dev/test: how a batch reaches the chain (anvil has no wallet_sendCalls). */
+  sendBatch?: SendBatch
 }
 
 const HarnessContext = createContext<MigrateEnv | null>(null)

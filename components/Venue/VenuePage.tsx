@@ -2,6 +2,7 @@ import React from 'react'
 import { Box, Grid, HStack, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import NextLink from 'next/link'
+import dynamic from 'next/dynamic'
 
 import { Card } from '@/components/ui/Card'
 import {
@@ -20,6 +21,27 @@ import { SPACING } from '@/config/spacing'
 import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
+
+// A curator reading a venue sees curator exits and the oracle-gap state. Split out (the
+// card pulls in the feed module) and mounted only after hydration: the server and the
+// hydrating client both render the empty slot, which reserves the card's height.
+const CuratorFeedCard = dynamic(
+  () => import('@/components/CuratorFeed/CuratorFeed').then((m) => m.CuratorFeedCard),
+  { ssr: false },
+)
+const noSubscribe = () => () => {}
+const CuratorFeedSlot: React.FC = () => {
+  const hydrated = React.useSyncExternalStore(
+    noSubscribe,
+    () => true,
+    () => false,
+  )
+  return (
+    <Box mt={SPACING.lg} minH="160px">
+      {hydrated && <CuratorFeedCard />}
+    </Box>
+  )
+}
 
 /**
  * VenuePage — the /venue/[name] permalink. Every headline about a carry venue
@@ -947,6 +969,9 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
         )}
         <ProvFooter date={corpusDate} />
       </Card>
+
+      {/* curator exits and the oracle-gap state, beside the next steps */}
+      <CuratorFeedSlot />
 
       {/* 07 / next-step row */}
       <NextRow />

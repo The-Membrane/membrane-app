@@ -40,6 +40,9 @@
     // regardless of this list. Dropping the directory as a compilation root
     // therefore removes dead, unfixable-by-hand noise without losing coverage of
     // any code that actually ships.
-    "contracts/generated"
+    "contracts/generated",
+    // Q41 Foundry project: its lib/ holds symlinks to membrane-solidity and bundler3 checkouts
+    // (see contracts/migrator/setup.sh), which carry their own unrelated TypeScript tooling.
+    "contracts/migrator"
   ]
 }

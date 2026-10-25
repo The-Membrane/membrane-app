@@ -13,13 +13,18 @@ pragma solidity 0.8.28;
 ///
 ///         Plain-EOA prompts: Aave = aToken permit + bundle (2); Morpho = authorization signature +
 ///         bundle (2, or 1 with the authorization standing). No Membrane grant exists at any time.
+///
+///         SLOT-FILL DoS (refuting review MEDIUM-2): anyone can `Cdp.deposit(0, thisAdapter, 1 wei)`
+///         nine times and fill this adapter's MAX_POSITIONS_AMOUNT index, after which every
+///         migration reverts TooManyPositions. A contract cannot shed positions unless it says how,
+///         so `evict(positionId)` is permissionless: it hands any position this adapter holds (only
+///         ever griefing dust between legs) to a sink address no one holds a key for.
 interface IBundler3Initiator {
     function initiator() external view returns (address);
 }
 
 interface IERC20Min {
     function balanceOf(address) external view returns (uint256);
-    function transfer(address, uint256) external returns (bool);
 }
 
 struct Fund {
@@ -37,6 +42,7 @@ interface ICdpV2 {
     function positionDebt(uint256 positionId) external view returns (uint256);
     function creditPriceSource() external view returns (uint8 source, uint256 price);
     function transferPosition(uint256 positionId, address newOwner) external;
+    function position(uint256 positionId) external view returns (uint256, address, uint256, uint256, uint256, uint256);
 }
 
 interface ICollateralLtv {
@@ -64,8 +70,15 @@ contract MembraneBundlerAdapterV2 {
     error PayoutMismatch(uint256 received, uint256 expected);
     error LtvAboveCap(uint256 ltvWad, uint256 capWad);
     error ZeroAddress();
+    error InLeg();
+    error NotHeld(uint256 positionId);
 
     event MembraneLegExecuted(address indexed owner, uint256 indexed positionId, uint256 collateralDeposited, uint256 borrowedCdt, uint256 ltvWad);
+    event Evicted(uint256 indexed positionId, address indexed sink, address indexed caller);
+
+    /// @dev Set for the duration of a leg, so a token callback cannot evict the position the leg is
+    ///      about to hand to its owner (that would only revert the user's own transaction).
+    bool private _inLeg;
 
     constructor(address bundler3, address cdp, address repayTo) {
         if (bundler3 == address(0) || cdp == address(0) || repayTo == address(0)) revert ZeroAddress();
@@ -81,6 +94,7 @@ contract MembraneBundlerAdapterV2 {
         if (msg.sender != BUNDLER3) revert UnauthorizedSender();
         address owner = IBundler3Initiator(BUNDLER3).initiator();
         if (borrowCdt == 0) revert ZeroBorrow();
+        _inLeg = true;
 
         address token = CDP.assetToken(collateralDenom);
         if (token == address(0)) revert UnregisteredCollateral(collateralDenom);
@@ -109,9 +123,35 @@ contract MembraneBundlerAdapterV2 {
         uint256 ltv = collValue == 0 ? type(uint256).max : (CDP.positionDebt(positionId) * creditPrice / WAD) * WAD / collValue;
         if (ltv > cap) revert LtvAboveCap(ltv, cap);
 
-        require(IERC20Min(repayToken).transfer(REPAY_TO, received), "TRANSFER_FAILED");
+        _safeTransfer(repayToken, REPAY_TO, received);
         CDP.transferPosition(positionId, owner);
+        _inLeg = false;
         emit MembraneLegExecuted(owner, positionId, amount, borrowCdt, ltv);
+    }
+
+    /// @notice Permissionless. Hands a position this adapter holds to `sinkFor(positionId)`. A leg
+    ///         never leaves a position here (it transfers to the initiator in the same transaction),
+    ///         so anything held between transactions is someone else's dust filling a slot.
+    /// @dev    The sink is derived per position rather than one fixed address: a single sink would
+    ///         itself fill its 9 slots after nine evictions and the DoS would come back.
+    ///         `Cdp.transferPosition`'s guards still apply (a dust deposit with no debt passes them).
+    function evict(uint256 positionId) external {
+        if (_inLeg) revert InLeg();
+        (, address holder,,,,) = CDP.position(positionId);
+        if (holder != address(this)) revert NotHeld(positionId);
+        address sink = sinkFor(positionId);
+        CDP.transferPosition(positionId, sink);
+        emit Evicted(positionId, sink, msg.sender);
+    }
+
+    /// @notice The address `evict` sends a position to: a hash, so no one holds its key.
+    function sinkFor(uint256 positionId) public pure returns (address) {
+        return address(uint160(uint256(keccak256(abi.encode("membrane.adapterV2.evict", positionId)))));
+    }
+
+    function _safeTransfer(address token, address to, uint256 amount) private {
+        (bool ok, bytes memory ret) = token.call(abi.encodeWithSelector(0xa9059cbb, to, amount));
+        require(ok && (ret.length == 0 || abi.decode(ret, (bool))), "TRANSFER_FAILED");
     }
 
     function _approve(address token, address spender, uint256 amount) private {

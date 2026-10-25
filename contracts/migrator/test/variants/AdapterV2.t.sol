@@ -67,4 +67,61 @@ contract AdapterV2Test is MembraneMigrationTest {
         bundler.multicall(b);
         assertEq(aWeth.balanceOf(user), COLL, "nothing moved");
     }
+
+    /// MEDIUM-2: anyone can fill the adapter's 9 position slots with 1-wei deposits for it, and
+    /// every migration then reverts TooManyPositions. `evict` (permissionless) sheds one to its
+    /// sink and the migration works again.
+    function test_V2_SlotFill_Evict_RestoresMigration() public {
+        _setUpV2();
+        _openAave(COLL, DEBT);
+        uint256 cap = cdp.MAX_POSITIONS_AMOUNT();
+        weth.mint(ATTACKER, cap);
+        vm.startPrank(ATTACKER);
+        weth.approve(address(cdp), type(uint256).max);
+        uint256[] memory dust = new uint256[](cap);
+        for (uint256 i; i < cap; ++i) dust[i] = cdp.deposit(0, address(v2), _funds(1));
+        vm.stopPrank();
+        assertEq(cdp.userPositionIds(address(v2), cap - 1), dust[cap - 1], "precondition: 9 slots full");
+
+        Call[] memory b = _v2Bundle(_withBuffer(DEBT), COLL, BORROW_LTV - MARGIN);
+        vm.prank(user);
+        vm.expectRevert(); // TooManyPositions inside the leg: the DoS
+        bundler.multicall(b);
+        assertEq(aWeth.balanceOf(user), COLL, "nothing moved while full");
+
+        // a stranger frees a slot
+        address sink = v2.sinkFor(dust[0]);
+        vm.prank(address(0xE71C7));
+        v2.evict(dust[0]);
+        (, address holder,,,,) = cdp.position(dust[0]);
+        assertEq(holder, sink, "dust went to its sink");
+
+        vm.prank(user);
+        bundler.multicall(b);
+        assertEq(aave.variableDebt(address(usdc), user), 0, "migration works again");
+        assertEq(cdp.positionDebt(_onlyPosition()), _withBuffer(DEBT) * SCALE, "the user owns the new position");
+    }
+
+    /// Negative controls for evict: a position the adapter does not hold, and a missing id.
+    function test_V2_Evict_NotHeld_Reverts() public {
+        _setUpV2();
+        _openAave(COLL, DEBT);
+        Call[] memory b = _v2Bundle(_withBuffer(DEBT), COLL, BORROW_LTV - MARGIN); // before the prank
+        vm.prank(user);
+        bundler.multicall(b);
+        uint256 pid = _onlyPosition(); // the user's migrated position
+        vm.expectRevert(abi.encodeWithSelector(MembraneBundlerAdapterV2.NotHeld.selector, pid));
+        v2.evict(pid);
+        vm.expectRevert(abi.encodeWithSelector(MembraneBundlerAdapterV2.NotHeld.selector, uint256(999_999)));
+        v2.evict(999_999);
+        (, address holder,,,,) = cdp.position(pid);
+        assertEq(holder, user, "the user's position is untouched");
+    }
+
+    /// Sinks are distinct per position, so nine evictions cannot fill one sink's own 9 slots.
+    function test_V2_SinkIsPerPosition() public {
+        _setUpV2();
+        assertTrue(v2.sinkFor(1) != v2.sinkFor(2), "distinct sinks");
+        assertTrue(v2.sinkFor(1) != address(0), "non-zero sink");
+    }
 }

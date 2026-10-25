@@ -947,6 +947,25 @@ def cmd_groupz(a):
     print(json.dumps(out, indent=1))
 
 
+def cmd_nlcmp(a):
+    """near-line comparison table from the per-arm unchanged reports (label B paths and label A rows, by bucket)."""
+    arms = [x for x in ("orig",) + ARMS if os.path.exists(os.path.join(a.out, "nl", f"run-{x}", "r111v5-labels-report.json"))]
+    J = {x: json.load(open(os.path.join(a.out, "nl", f"run-{x}", "r111v5-labels-report.json")))["by_H"] for x in arms}
+    out = {}
+    for H in ("6h", "12h", "24h", "72h", "168h"):
+        for b in ("0-2%", "2-5%", "5-10%", "10-20%"):
+            for x in arms:
+                v = J[x][H]["fh_validation"]["by_bucket"].get(b)
+                if not v:
+                    continue
+                lb, la = v["labelB_paths"], v["labelA_rows"]
+                out[f"{H}|{b}|{x}"] = {"B_paths_R": lb["R"], "B_paths_R_ci90": v.get("labelB_paths_ci90", {}).get("R"),
+                                       "B_paths_bss_vs_a": lb["bss_vs_a"], "B_paths_auc": lb["auc_fH"],
+                                       "A_rows_R": la["R"], "n": lb["n"], "pos": lb["pos"], "A_n": la["n"], "A_pos": la["pos"]}
+    json.dump(out, open(os.path.join(a.out, "nearline-r20.json"), "w"), indent=1)
+    print(json.dumps(out)[:2000])
+
+
 # =====================================================================================================================
 def main():
     ap = argparse.ArgumentParser()
@@ -959,7 +978,7 @@ def main():
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     {"acq": cmd_acq, "rows": cmd_rows, "check": cmd_check, "score": cmd_score, "nlrows": cmd_nlrows,
-     "nearline": cmd_nearline, "counts": cmd_counts, "groupz": cmd_groupz}[a.cmd](a)
+     "nearline": cmd_nearline, "counts": cmd_counts, "groupz": cmd_groupz, "nlcmp": cmd_nlcmp}[a.cmd](a)
 
 
 if __name__ == "__main__":

@@ -97,6 +97,9 @@ Checks:
 
 ### 5. Quiet — micro-copy earns its place
 
+> Writing new text? Load `copy-budget` first: it sets the hard word budgets (sheet ≤ 60 visible
+> words, card ≤ 25, one heading per block, rows are label + value) that this section checks.
+
 Tiny type breeds. Each component adds its own 9px reassurance line, heading subtitle, and
 footnote, and the page ends up dusted with small words nobody reads. Sub-body type (below
 ~12px) is allowed exactly three jobs:

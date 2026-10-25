@@ -1,0 +1,6 @@
+forge-std/=lib/membrane-solidity/lib/forge-std/src/
+@openzeppelin/contracts/=lib/membrane-solidity/lib/openzeppelin-contracts/contracts/
+membrane/=lib/membrane-solidity/
+bundler3/=lib/bundler3/src/
+morpho-blue/=lib/bundler3/lib/morpho-blue/src/
+solmate/=lib/bundler3/lib/permit2/lib/solmate/

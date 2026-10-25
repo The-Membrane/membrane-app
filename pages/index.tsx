@@ -9,6 +9,7 @@ import PageSeo from '@/components/PageSeo'
 import { SITE_URL } from '@/components/Seo'
 import ForecastLanding from '@/components/Landing/ForecastLanding'
 import { resolveHeadline, type HeadlineKey } from '@/lib/landing/headline'
+import { comparisonRows, type ComparisonRow, type VenueDoc } from '@/lib/landing/comparison'
 import { summariseCensus, type CensusSummary, type EvidenceDocLike } from '@/lib/landing/objections'
 import { DEMO_BORROWER_ADDRESS } from '@/lib/position-sim/demoBorrower'
 
@@ -33,6 +34,7 @@ const structuredData = SITE_URL
 interface Props {
   headline: HeadlineKey
   census: CensusSummary | null
+  rows: ComparisonRow[]
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async (context) => {
@@ -49,12 +51,20 @@ export const getServerSideProps: GetServerSideProps<Props> = async (context) => 
   } catch {
     census = null
   }
+  // The checkmark table's venue cells come from the committed protocols snapshot.
+  let venues: VenueDoc | null = null
+  try {
+    venues = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data/oct10-2025/protocols.json'), 'utf8')) as VenueDoc
+  } catch {
+    venues = null
+  }
+  const rows = comparisonRows(venues, false)
   // Per-request headline: no shared cache may hold one reader's H1 for another.
   context.res.setHeader('Cache-Control', 'private, no-store')
-  return { props: { headline, census } }
+  return { props: { headline, census, rows } }
 }
 
-const IndexPage = ({ headline, census }: Props) => (
+const IndexPage = ({ headline, census, rows }: Props) => (
   <>
     <PageSeo
       seoClass="indexable"
@@ -68,7 +78,7 @@ const IndexPage = ({ headline, census }: Props) => (
         <script key="ld-org" type="application/ld+json" dangerouslySetInnerHTML={{ __html: structuredData }} />
       </Head>
     )}
-    <ForecastLanding headline={headline} census={census} />
+    <ForecastLanding headline={headline} census={census} comparisonRows={rows} />
   </>
 )
 

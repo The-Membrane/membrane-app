@@ -7,6 +7,7 @@ import type { GetServerSideProps } from 'next'
 import PageSeo from '@/components/PageSeo'
 import ForecastLanding from '@/components/Landing/ForecastLanding'
 import { resolveHeadline, type HeadlineKey } from '@/lib/landing/headline'
+import { comparisonRows, type ComparisonRow, type VenueDoc } from '@/lib/landing/comparison'
 import { summariseCensus, type CensusSummary, type EvidenceDocLike } from '@/lib/landing/objections'
 import { DEMO_ADDRESS } from '@/lib/position-sim/demo'
 
@@ -18,6 +19,7 @@ import { DEMO_ADDRESS } from '@/lib/position-sim/demo'
 interface Props {
   headline: HeadlineKey
   census: CensusSummary | null
+  rows: ComparisonRow[]
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async (context) => {
@@ -33,11 +35,19 @@ export const getServerSideProps: GetServerSideProps<Props> = async (context) => 
   } catch {
     census = null
   }
+  // The checkmark table's venue cells come from the committed protocols snapshot.
+  let venues: VenueDoc | null = null
+  try {
+    venues = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/data/oct10-2025/protocols.json'), 'utf8')) as VenueDoc
+  } catch {
+    venues = null
+  }
+  const rows = comparisonRows(venues, true)
   context.res.setHeader('Cache-Control', 'private, no-store')
-  return { props: { headline, census } }
+  return { props: { headline, census, rows } }
 }
 
-const CarryPage = ({ headline, census }: Props) => (
+const CarryPage = ({ headline, census, rows }: Props) => (
   <>
     <PageSeo
       seoClass="indexable"
@@ -46,7 +56,7 @@ const CarryPage = ({ headline, census }: Props) => (
       description="Paste a carry wallet and replay it through the 10 Oct 2025 crash: what your venue would have sold, and the same carry on Membrane with an 8-hour window."
       image={`/api/og/replay?a=${DEMO_ADDRESS}&s=oct10-2025`}
     />
-    <ForecastLanding page="carry" headline={headline} census={census} />
+    <ForecastLanding page="carry" headline={headline} census={census} comparisonRows={rows} />
   </>
 )
 

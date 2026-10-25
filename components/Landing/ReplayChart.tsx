@@ -46,6 +46,8 @@ export interface ReplayChartProps {
   detection?: VenueDetection | null
   /** The census figures when the replayed position is the census position (the demo). */
   measured: MeasuredSide | null
+  /** The slim forecast strip, rendered right under the chart (not its own section). */
+  belowChart?: React.ReactNode
   /** A live address's own census row: a different (Oct 10) position, shown as its own line. */
   addressCensus: CensusRow | null
 }
@@ -100,6 +102,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
   detection = null,
   measured,
   addressCensus,
+  belowChart = null,
 }) => {
   const zone = useLocalZone()
   const clock = (ts: number) => fmtLocalClock(ts, zone)
@@ -234,6 +237,8 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
               }
             />
           )}
+
+          {belowChart}
 
           {/* O — OUTCOME: time to act, what Membrane would have done, nothing asked of
               the user. The debt-gap verdict follows, second. */}

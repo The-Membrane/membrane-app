@@ -22,10 +22,17 @@ describe('landing STORY order', () => {
     const evidence = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../public/data/oct10-2025/evidence.json'), 'utf8'))
     const { ChakraProvider } = await import('@chakra-ui/react')
     const { default: theme } = await import('@/theme')
+    const { comparisonRows } = await import('@/lib/landing/comparison')
+    const protocols = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../public/data/oct10-2025/protocols.json'), 'utf8'))
+    const rows = comparisonRows(protocols, page === 'carry')
     const html = renderToString(
-      React.createElement(ChakraProvider, { theme }, React.createElement(ForecastLanding, { page, headline: 'default', census: summariseCensus(evidence) })),
+      React.createElement(ChakraProvider, { theme }, React.createElement(ForecastLanding, { page, headline: 'default', census: summariseCensus(evidence), comparisonRows: rows })),
     )
     const order = Array.from(html.matchAll(/data-story="([STORY])"/g)).map((m) => m[1])
     expect(order).toEqual(['S', 'T', 'O', 'R', 'Y'])
-  })
+    // SEO R1: the table, proof bar and closing band are in the server HTML.
+    for (const r of rows) expect(html).toContain(r.label)
+    for (const id of ['landing-proof', 'landing-compare', 'landing-bars', 'landing-stat', 'landing-closing', 'hero-preview']) expect(html).toContain(`data-testid="${id}"`)
+    expect(html.match(/<h1/g)?.length).toBe(1)
+  }, 60_000)
 })

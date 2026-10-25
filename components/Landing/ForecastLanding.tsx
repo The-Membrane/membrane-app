@@ -22,7 +22,9 @@ import { DemoBanner } from '@/components/demo'
 import AddressBar from '@/components/Simulator/AddressBar'
 import { usdSigned } from '@/components/Simulator/format'
 import { useSimHistory } from '@/components/Simulator/hooks/useSimHistory'
-import { doorSet, intentFrom, type Door, type DoorHandlers, type PositionIntent } from '@/lib/landing/doors'
+import type { ComparisonRow } from '@/lib/landing/comparison'
+import { verdictShort } from '@/lib/landing/verdict'
+import { doorSet, intentFrom, movingLineFor, type Door, type DoorHandlers, type PositionIntent } from '@/lib/landing/doors'
 import { RUN_LABEL, type HeadlineKey } from '@/lib/landing/headline'
 import { LANDING_PAGES, type LandingPageId } from '@/lib/landing/pages'
 import { PROSE } from '@/lib/landing/prose'
@@ -36,6 +38,7 @@ import ObjectionCards from './ObjectionCards'
 import { CAPS, deck, kicker, rule, ruleStrong, small, tabularNums } from './styles'
 import Doors from './Doors'
 import Details, { DetailLine } from './Details'
+import { ChainBars, ClosingBand, ComparisonTable, HeroPreview, ProofBar, StatExample, StickyCta } from './sections'
 
 /** Server render and first paint: the T and O beats hold their place in the STORY order. */
 const ChartSkeleton = () => (
@@ -56,7 +59,13 @@ export interface ForecastLandingProps {
   census: CensusSummary | null
   /** Optional: the migrate flow's own handlers. Absent, the page's sheet opens. */
   doors?: Partial<DoorHandlers>
+  /** The "[venue] vs Membrane" rows, built server-side from protocols.json. */
+  comparisonRows?: ComparisonRow[]
 }
+
+const INPUT_ID = 'landing-address-input'
+/** Under the input: what running the replay asks of you (≤ 6 words). */
+export const MICRO_LINE = 'No deposit · no signup · read-only'
 
 const LINK_BTN = {
   variant: 'unstyled' as const,
@@ -79,7 +88,7 @@ const sinceText = (ms: number) => {
   return h < 1 ? 'under an hour ago' : h < 48 ? `${h}h ago` : `${Math.floor(h / 24)} days ago`
 }
 
-export const ForecastLanding: React.FC<ForecastLandingProps> = ({ page = 'borrower', headline, census, doors }) => {
+export const ForecastLanding: React.FC<ForecastLandingProps> = ({ page = 'borrower', headline, census, doors, comparisonRows = [] }) => {
   const cfg = LANDING_PAGES[page]
   const r = useReplay(headline, cfg.demo)
   // Client-only pieces mount after hydration, so the server HTML and the first client
@@ -153,8 +162,13 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ page = 'borrow
 
   const coming = SCENARIOS.filter((x) => x.status === 'coming')
   const hasBorrow = r.positions.some((p) => p.totalDebtUsd > 0)
+  const promise = cfg.headlines[headline].headline.split(/(?<=\.)\s/)[0]
+  const submitFromClosing = () => {
+    r.submitAddress()
+    if (typeof document !== 'undefined') document.getElementById('landing-result')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   const focusInput = () => {
-    const el = typeof document !== 'undefined' ? (document.getElementById('landing-address-input') as HTMLInputElement | null) : null
+    const el = typeof document !== 'undefined' ? (document.getElementById(INPUT_ID) as HTMLInputElement | null) : null
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
       el.focus()
@@ -181,51 +195,74 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ page = 'borrow
   )
 
   return (
-    <Box maxW="1180px" mx="auto" px={{ base: SPACING.base, md: SPACING.lg }} pt={SPACING.xl} pb={SPACING['2xl']} color={SEMANTIC_COLORS.textPrimary} display="grid" gap={SPACING.xl} minW={0}>
-      {/* S — ABOVE THE FOLD: one H1, one subhead, the input and one button. */}
-      <Box as="section" data-story="S" display="grid" gap={SPACING.base} minW={0}>
-      <Box as="header" data-testid="landing-hero" display="grid" gap={SPACING.base} minW={0}>
-        <Text
-          as="h1"
-          data-testid="landing-h1"
-          data-headline={headline}
-          fontFamily={TYPOGRAPHY.fontDisplay}
-          fontWeight={TYPOGRAPHY.normal}
-          fontSize={{ base: '34px', md: '56px' }}
-          lineHeight={1.05}
-          letterSpacing="-0.01em"
-          maxW="22ch"
-        >
-          {cfg.headlines[headline].headline}
-        </Text>
-        <Text as="p" {...deck} maxW="60ch" data-testid="landing-subhead">
-          <Text as="span" display={{ base: 'none', md: 'inline' }}>
-            {cfg.subhead.desktop}
-          </Text>
-          <Text as="span" display={{ base: 'inline', md: 'none' }}>
-            {cfg.subhead.phone}
-          </Text>
-        </Text>
-      </Box>
-      <Box data-testid="landing-input" display="grid" gap={SPACING.xs} justifyItems="start" minW={0}>
-        <AddressBar
-          value={r.input}
-          onChange={r.setInput}
-          onSubmit={r.submitAddress}
-          loadedAddress={r.mode === 'address' ? r.shownAddress : null}
-          onClear={r.backToDemo}
-          isLoading={r.isLoading}
-          error={r.addressError}
-          submitLabel={RUN_LABEL}
-          inputId="landing-address-input"
-          readNote={null}
-          hideConnect
+    <Box maxW="1180px" mx="auto" px={{ base: SPACING.base, md: SPACING.lg }} pt={SPACING.xl} pb={{ base: SPACING['3xl'], md: SPACING['2xl'] }} color={SEMANTIC_COLORS.textPrimary} display="grid" gap={SPACING.xl} minW={0}>
+      {/* S — ABOVE THE FOLD: one H1, one subhead, the input and one button; the replay
+          preview beside it on desktop, under it on phones. */}
+      <Box
+        as="section"
+        data-story="S"
+        display="grid"
+        gap={{ base: SPACING.lg, lg: SPACING.xl }}
+        gridTemplateColumns={{ base: 'minmax(0, 1fr)', lg: 'minmax(0, 7fr) minmax(0, 5fr)' }}
+        alignItems="center"
+        minW={0}
+      >
+        <Box display="grid" gap={SPACING.base} minW={0}>
+          <Box as="header" data-testid="landing-hero" display="grid" gap={SPACING.base} minW={0}>
+            <Text
+              as="h1"
+              data-testid="landing-h1"
+              data-headline={headline}
+              fontFamily={TYPOGRAPHY.fontDisplay}
+              fontWeight={TYPOGRAPHY.normal}
+              fontSize={{ base: '32px', md: '46px' }}
+              lineHeight={1.06}
+              letterSpacing="-0.01em"
+            >
+              {cfg.headlines[headline].headline}
+            </Text>
+            <Text as="p" {...deck} maxW="60ch" data-testid="landing-subhead">
+              <Text as="span" display={{ base: 'none', md: 'inline' }}>
+                {cfg.subhead.desktop}
+              </Text>
+              <Text as="span" display={{ base: 'inline', md: 'none' }}>
+                {cfg.subhead.phone}
+              </Text>
+            </Text>
+          </Box>
+          <Box data-testid="landing-input" display="grid" gap={SPACING.xs} justifyItems="start" minW={0}>
+            <AddressBar
+              value={r.input}
+              onChange={r.setInput}
+              onSubmit={r.submitAddress}
+              loadedAddress={r.mode === 'address' ? r.shownAddress : null}
+              onClear={r.backToDemo}
+              isLoading={r.isLoading}
+              error={r.addressError}
+              submitLabel={RUN_LABEL}
+              inputId={INPUT_ID}
+              readNote={null}
+              hideConnect
+              inlinePrimary
+            />
+            <Box display="flex" gap={SPACING.md} alignItems="center" flexWrap="wrap">
+              <Text {...kicker} data-testid="landing-micro">
+                {MICRO_LINE}
+              </Text>
+              <Button {...LINK_BTN} data-testid="manual-toggle" aria-expanded={manualOpen} onClick={() => setManualOpen((v) => !v)}>
+                {manualOpen ? 'Hide' : 'Enter by hand'}
+              </Button>
+            </Box>
+            {manualOpen && <ManualPositionForm protocols={r.protocols} initial={r.manual} onSubmit={r.submitManual} error={r.manualError} />}
+          </Box>
+        </Box>
+        <HeroPreview
+          comparison={r.comparison}
+          mounted={mounted}
+          isDemo={r.isDemo}
+          verdict={r.comparison ? verdictShort(r.comparison, r.census) : null}
+          scenarioName={r.data?.manifest.name ?? '10 Oct 2025'}
         />
-        <Button {...LINK_BTN} data-testid="manual-toggle" aria-expanded={manualOpen} onClick={() => setManualOpen((v) => !v)}>
-          {manualOpen ? 'Hide' : 'Enter by hand'}
-        </Button>
-        {manualOpen && <ManualPositionForm protocols={r.protocols} initial={r.manual} onSubmit={r.submitManual} error={r.manualError} />}
-      </Box>
       </Box>
 
       {/* RETURN VISIT */}
@@ -243,9 +280,11 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ page = 'borrow
         </Box>
       )}
 
+      <ProofBar census={census} />
+
       {/* T + O — THE RESULT */}
       <DemoBanner show={r.isDemo} note={cfg.demo.bannerNote} />
-      <Box as="section" data-testid="landing-result" display="grid" gap={SPACING.md} minW={0} mt={r.isDemo ? `-${SPACING.lg}` : undefined}>
+      <Box as="section" id="landing-result" data-testid="landing-result" display="grid" gap={SPACING.md} minW={0} mt={r.isDemo ? `-${SPACING.lg}` : undefined}>
         <Box display="flex" flexWrap="wrap" gap={SPACING.sm} alignItems="center" data-testid="scenario-picker" role="radiogroup" aria-label="Stress window">
           {SCENARIOS.filter((x) => x.status === 'live').map((x) => (
             <Button
@@ -300,17 +339,46 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ page = 'borrow
 
       </Box>
 
-      {/* R — THE REVEAL AND THE TWO DOORS */}
+      {/* THE CHECKMARK TABLE: facts only, each cell sourced. */}
+      <ComparisonTable rows={comparisonRows} />
+
+      {/* R — THE REVEAL AND THE DOORS */}
       <Doors
         intent={intent}
         buttons={doorSet(r.mode, hasBorrow)}
         onMigrate={open('migrate')}
         onDeployFresh={open('fresh')}
         onFocusInput={focusInput}
+        movingLine={movingLineFor(r.mode, hasBorrow)}
       />
+
+      {/* THE CENSUS, BY CHAIN; THEN ONE FIGURE AND ONE REAL ROW. */}
+      <ChainBars census={census} />
+      <StatExample census={census} />
 
       {/* Y — OBJECTIONS */}
       <ObjectionCards census={census} cards={cfg.objections} />
+
+      {/* THE CLOSING BAND: the promise, and the input again. */}
+      <ClosingBand promise={promise}>
+        <Box data-testid="landing-input-closing" minW={0}>
+          <AddressBar
+            value={r.input}
+            onChange={r.setInput}
+            onSubmit={submitFromClosing}
+            loadedAddress={r.mode === 'address' ? r.shownAddress : null}
+            onClear={r.backToDemo}
+            isLoading={r.isLoading}
+            error={null}
+            submitLabel={RUN_LABEL}
+            inputId={`${INPUT_ID}-closing`}
+            readNote={null}
+            hideConnect
+            inlinePrimary
+          />
+        </Box>
+        <Text {...kicker}>{MICRO_LINE}</Text>
+      </ClosingBand>
 
       {/* FINE PRINT, ONCE. The prose stays in the server HTML (SEO R1/R10) inside a
           closed disclosure, at the bottom, rendered once. */}
@@ -341,6 +409,7 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ page = 'borrow
         </Details>
       </Box>
 
+      <StickyCta targetId={INPUT_ID} label={RUN_LABEL} onGo={focusInput} />
       {sheet && <DoorSheet door={sheet.door} intent={sheet.intent} onClose={() => setSheet(null)} />}
     </Box>
   )

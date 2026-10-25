@@ -87,6 +87,8 @@ export interface AddressBarProps {
   inputId?: string
   /** Label of the one submit button. Defaults to the simulator's own. */
   submitLabel?: string
+  /** Landing hero: input and a solid phosphor submit on one row from md up. */
+  inlinePrimary?: boolean
 }
 
 export const AddressBar: React.FC<AddressBarProps> = ({
@@ -103,6 +105,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   inputId = 'sim-address-input',
   submitLabel,
   hideConnect = false,
+  inlinePrimary = false,
 }) => {
   // Optional shortcut (owner 2026-09-12): a connected wallet can fill the box so
   // nobody has to copy their address. Still read-only — connecting is never
@@ -147,7 +150,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         as="form"
         display="flex"
         gap={SPACING.sm}
-        flexWrap="wrap"
+        flexWrap={inlinePrimary ? { base: 'wrap', md: 'nowrap' } : 'wrap'}
         justifyContent="center"
         w="100%"
         onSubmit={(e: React.FormEvent) => {
@@ -183,7 +186,23 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           _hover={{ borderColor: SEMANTIC_COLORS.borderStrong }}
           _focus={FOCUS_STYLES.ring}
         />
-        <Button type="submit" isDisabled={isLoading} {...BTN}>
+        <Button
+          type="submit"
+          isDisabled={isLoading}
+          {...BTN}
+          {...(inlinePrimary
+            ? {
+                flex: { base: '1 1 100%', md: '0 0 auto' },
+                w: { base: '100%', md: 'auto' },
+                minW: 'fit-content',
+                bg: SEMANTIC_COLORS.success,
+                borderColor: SEMANTIC_COLORS.success,
+                color: SEMANTIC_COLORS.bgPrimary,
+                fontWeight: TYPOGRAPHY.medium,
+                _hover: { bg: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.textPrimary },
+              }
+            : {})}
+        >
           {isLoading ? 'Reading…' : submitLabel ?? (loadedAddress ? 'Run another' : 'Run mine')}
         </Button>
       </Box>

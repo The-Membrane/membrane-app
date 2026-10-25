@@ -444,3 +444,49 @@ describe('/carry copy (owner brief 2026-10-25)', () => {
     for (const o of CARRY_OBJECTIONS) expect(o.answer.split(/\s+/).length).toBeLessThanOrEqual(25)
   })
 })
+
+describe('redesign: comparison table, proof figures, moving line', () => {
+  const protocols = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../public/data/oct10-2025/protocols.json'), 'utf8'))
+  const evidence = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../public/data/oct10-2025/evidence.json'), 'utf8'))
+
+  it('venue cells come from protocols.json; recall row only on /carry', async () => {
+    const { comparisonRows } = await import('@/lib/landing/comparison')
+    const rows = comparisonRows(protocols, false)
+    expect(rows.map((r) => r.id)).toEqual(['window', 'partial', 'nothing'])
+    expect(comparisonRows(protocols, true).map((r) => r.id)).toEqual(['window', 'partial', 'recall', 'nothing'])
+    const partial = rows.find((r) => r.id === 'partial')!
+    const cf = protocols.aaveV3.closeFactor.documented
+    expect(partial.aave.mark).toBe('partial')
+    expect(partial.aave.text).toContain(`${cf.DEFAULT_LIQUIDATION_CLOSE_FACTOR_pct}%`)
+    expect(partial.aave.text).toContain(String(cf.CLOSE_FACTOR_HF_THRESHOLD))
+    expect(partial.morpho.mark).toBe(protocols.morphoBlue.hasCloseFactor === false ? 'no' : 'na')
+    // The window row is stated from the constants, never typed.
+    expect(rows[0].label).toContain(`${Math.round(MAX_THRESHOLD_TO_DELAY * 100)}%`)
+    // Every Membrane ✓ carries at least one source.
+    for (const r of comparisonRows(protocols, true)) if (r.membrane.mark === 'yes') expect(r.sources.some((s) => s.startsWith('Membrane:'))).toBe(true)
+    // No source → no ✓ for a venue, and a missing doc never invents one.
+    for (const r of comparisonRows(null, true)) {
+      expect(r.aave.mark).not.toBe('yes')
+      expect(r.morpho.mark).not.toBe('yes')
+    }
+  })
+
+  it('proof figures are cohort sums, per chain adding to the total', () => {
+    const s = summariseCensus(evidence)
+    const priced = evidence.cohort.filter((r: { excluded?: boolean; priced?: boolean }) => !r.excluded && r.priced !== false)
+    expect(s.accounts).toBe(evidence.meta.accounts)
+    expect(s.venueClosedUsd).toBeCloseTo(priced.reduce((t: number, r: { aaveClosedUsd: number }) => t + r.aaveClosedUsd, 0), 2)
+    expect(s.byChain.reduce((t, c) => t + c.venueClosedUsd, 0)).toBeCloseTo(s.venueClosedUsd, 2)
+    expect(s.byChain.reduce((t, c) => t + c.membraneClosedUsd, 0)).toBeCloseTo(s.membraneClosedUsd, 2)
+    expect(s.byChain.reduce((t, c) => t + c.rows, 0)).toBe(s.walked)
+  })
+
+  it('the moving line stays hidden until the batched migrate flow is live', async () => {
+    const { BATCHED_MIGRATE_LIVE, MOVING_LINE, movingLineFor } = await import('@/lib/landing/doors')
+    expect(BATCHED_MIGRATE_LIVE).toBe(false)
+    expect(movingLineFor('address', true)).toBeNull()
+    expect(movingLineFor('address', true, true)).toBe(MOVING_LINE)
+    expect(movingLineFor('demo', true, true)).toBeNull()
+    expect(movingLineFor('address', false, true)).toBeNull()
+  })
+})

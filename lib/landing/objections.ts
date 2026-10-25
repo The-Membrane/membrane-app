@@ -46,6 +46,9 @@ export const CITES = {
   updateAsset: { path: 'contracts/Collateral.sol', from: 370, to: 387, expect: 'function updateAsset(' },
   onboardDefaultBand: { path: 'contracts/Collateral.sol', from: 348, to: 348, expect: 'max_threshold_to_delay = 95e16' },
   launchBand: { path: 'script/DeployFullSystem.s.sol', from: 254, to: 254, expect: 'LAUNCH_THRESHOLD_TO_DELAY = 4e16' },
+  restoreToB: { path: 'contracts/LiquidationEngine.sol', from: 2690, to: 2696, expect: 'Restore-to-B partial' },
+  permissionlessLiquidate: { path: 'contracts/Cdp.sol', from: 2256, to: 2256, expect: 'function liquidate(uint256 positionId, address positionOwner)' },
+  timerStart: { path: 'contracts/LiquidationEngine.sol', from: 1702, to: 1702, expect: 'outcome = LiquidationOutcome.TimerStarted' },
 } satisfies Record<string, Cite>
 
 export const citeText = (c: Cite): string => `${c.path.replace(/^contracts\//, '')}:${c.from}${c.to !== c.from ? `-${c.to}` : ''}`
@@ -72,6 +75,13 @@ export interface CensusSummary {
   unpricedAtT0: number
   recoveredExample: CensusCase | null
   failedExample: CensusCase | null
+  /** Accounts liquidated in the window (meta.accounts), before exclusions. Null if absent. */
+  accounts: number | null
+  /** Sums over the walked (priced) rows: debt the venue closed vs Membrane would have. */
+  venueClosedUsd: number
+  membraneClosedUsd: number
+  /** Same sums, per chain, largest venue total first. */
+  byChain: { chain: string; rows: number; venueClosedUsd: number; membraneClosedUsd: number }[]
 }
 
 export interface CensusCase {
@@ -99,7 +109,7 @@ interface EvidenceRow {
 }
 
 export interface EvidenceDocLike {
-  meta: { window: string; cureModel?: { outcomes?: Record<string, number> } }
+  meta: { window: string; accounts?: number; cureModel?: { outcomes?: Record<string, number> } }
   cohort: EvidenceRow[]
 }
 
@@ -138,8 +148,19 @@ export function summariseCensus(doc: EvidenceDocLike): CensusSummary {
     unpricedAtT0: count(included.filter((r) => r.priced === false), 'sold-at-t0'),
     recoveredExample: rec ? toCase(rec) : null,
     failedExample: fail ? toCase(fail) : null,
+    accounts: typeof doc.meta.accounts === 'number' ? doc.meta.accounts : null,
+    venueClosedUsd: sum(priced, 'aaveClosedUsd'),
+    membraneClosedUsd: sum(priced, 'membraneClosedUsd'),
+    byChain: [...new Set(priced.map((r) => r.chain ?? 'mainnet'))]
+      .map((chain) => {
+        const rows = priced.filter((r) => (r.chain ?? 'mainnet') === chain)
+        return { chain, rows: rows.length, venueClosedUsd: sum(rows, 'aaveClosedUsd'), membraneClosedUsd: sum(rows, 'membraneClosedUsd') }
+      })
+      .sort((a, b) => b.venueClosedUsd - a.venueClosedUsd),
   }
 }
+
+const sum = (rows: EvidenceRow[], k: 'aaveClosedUsd' | 'membraneClosedUsd') => rows.reduce((t, r) => t + (r[k] || 0), 0)
 
 export interface ObjectionFact {
   text: string

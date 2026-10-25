@@ -154,8 +154,8 @@ export const ReplayDesk: React.FC<ReplayDeskProps> = (p) => {
         shareSlot={p.shareSlot}
         carry={p.carry}
         detection={p.detection ?? null}
+        belowChart={delay ? <ForecastPanel delay={delay} history={history} reach={reachSlot} stamp={stamp} isDemo={p.isDemo} /> : null}
       />
-      {delay && <ForecastPanel delay={delay} history={history} reach={reachSlot} stamp={stamp} isDemo={p.isDemo} />}
     </Box>
   )
 }

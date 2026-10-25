@@ -62,8 +62,18 @@ const ShownLine: React.FC<{ s: Shown; upperBound?: boolean }> = ({ s, upperBound
   )
 }
 
-const Block: React.FC<{ title: string; testId: string; children: React.ReactNode }> = ({ title, testId, children }) => (
-  <Box data-testid={testId} display="grid" gap={SPACING.xs} borderTop={rule} pt={SPACING.sm} minW={0} alignContent="start">
+const Block: React.FC<{ title: string; testId: string; first?: boolean; children: React.ReactNode }> = ({ title, testId, first, children }) => (
+  <Box
+    data-testid={testId}
+    display="grid"
+    gap={0}
+    minW={0}
+    alignContent="start"
+    py={SPACING.sm}
+    px={{ base: 0, lg: first ? 0 : SPACING.base }}
+    borderLeft={{ base: 'none', lg: first ? 'none' : rule }}
+    borderTop={{ base: first ? 'none' : rule, lg: 'none' }}
+  >
     <Text {...kicker}>{title}</Text>
     {children}
   </Box>
@@ -164,9 +174,9 @@ export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, re
   }
 
   return (
-    <Box as="section" aria-label="Forecast layer" data-testid="landing-forecast" display="grid" gap={SPACING.md}>
-      <Box display="grid" gap={SPACING.md} gridTemplateColumns={{ base: 'minmax(0, 1fr)', lg: 'repeat(3, minmax(0, 1fr))' }}>
-        <Block title="In the window" testId="forecast-delay">
+    <Box role="group" aria-label="Forecast layer" data-testid="landing-forecast" display="grid" gap={SPACING.xs} borderTop={rule} borderBottom={rule}>
+      <Box display="grid" gap={0} gridTemplateColumns={{ base: 'minmax(0, 1fr)', lg: 'repeat(3, minmax(0, 1fr))' }}>
+        <Block title="In the window" testId="forecast-delay" first>
           {delay.status === 'pending' ? <Pending reason={delay.reason} /> : delayHead ?? <Pending reason="no displayable reading" />}
         </Block>
         <Block title={isDemo ? 'Its history' : 'Your history'} testId="forecast-history">
@@ -176,7 +186,7 @@ export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, re
           {reach.status === 'pending' ? <Pending reason={reach.reason} /> : reachHead}
         </Block>
       </Box>
-      {stamp && <Text {...credit} textAlign="left">{stamp}</Text>}
+      <Box display="flex" gap={SPACING.md} alignItems="center" flexWrap="wrap" justifyContent="space-between">
       <Details testId="forecast-details">
         <DetailLine>
           † Forecasts are of the Binance spot price touching a level within a horizon, not of your venue’s oracle. Each reading
@@ -191,6 +201,8 @@ export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, re
         {history.status === 'pending' && <DetailLine>History: {history.reason}</DetailLine>}
         {reach.status === 'pending' && <DetailLine>From today: {reach.reason}</DetailLine>}
       </Details>
+      {stamp && <Text {...credit} textAlign="left">{stamp}</Text>}
+      </Box>
     </Box>
   )
 }

@@ -39,19 +39,38 @@ export interface DoorsProps extends DoorHandlers {
   buttons: DoorButton[]
   /** "Paste your wallet": focus the address input. */
   onFocusInput: () => void
+  /** One line on how the move works; null unless true for this visitor's path. */
+  movingLine?: string | null
 }
 
-export const Doors: React.FC<DoorsProps> = ({ intent, buttons, onMigrate, onDeployFresh, onFocusInput }) => (
-  <Box as="section" aria-labelledby="landing-reveal" data-testid="landing-reveal" data-story="R" display="grid" gap={SPACING.md}>
-    <Text id="landing-reveal" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={{ base: '24px', md: '32px' }} lineHeight={1.15}>
+export const Doors: React.FC<DoorsProps> = ({ intent, buttons, onMigrate, onDeployFresh, onFocusInput, movingLine = null }) => (
+  <Box
+    as="section"
+    aria-labelledby="landing-reveal"
+    data-testid="landing-reveal"
+    data-story="R"
+    display="grid"
+    gap={SPACING.md}
+    border="1px solid"
+    borderColor={SEMANTIC_COLORS.borderStrong}
+    bg={SEMANTIC_COLORS.bgSecondary}
+    boxShadow={`3px 3px 0 ${SEMANTIC_COLORS.borderStrong}`}
+    p={{ base: SPACING.base, md: SPACING.xl }}
+  >
+    <Text id="landing-reveal" as="h2" fontFamily={TYPOGRAPHY.fontDisplay} fontWeight={TYPOGRAPHY.normal} fontSize={{ base: '24px', md: '32px' }} lineHeight={1.15}>
       {REVEAL_LINE}
     </Text>
+    {movingLine && (
+      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="13px" color={SEMANTIC_COLORS.textSecondary} data-testid="landing-moving-line">
+        {movingLine}
+      </Text>
+    )}
     <Box display="flex" flexWrap="wrap" gap={SPACING.md}>
       {buttons.map((b) => (
         <Button
           key={b.action}
           {...DOOR_BTN}
-          {...(b.primary ? { bg: SEMANTIC_COLORS.textPrimary, color: SEMANTIC_COLORS.bgPrimary, _hover: { bg: SEMANTIC_COLORS.textPrimary, opacity: 0.9 } } : {})}
+          {...(b.primary ? { bg: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success, color: SEMANTIC_COLORS.bgPrimary, _hover: { bg: SEMANTIC_COLORS.success, opacity: 0.9 } } : {})}
           data-testid={`door-${b.action}`}
           isDisabled={b.action === 'migrate' && !intent}
           onClick={() => {

@@ -105,3 +105,16 @@ export function doorSet(mode: 'demo' | 'address' | 'manual', hasBorrow: boolean)
     ]
   return [{ action: 'fresh', label: 'Open a position', primary: true }]
 }
+
+/**
+ * THE MOVING LINE under the reveal (redesign brief). It is true only on the migrate
+ * path, and only once that path ships: the batched flash-loan migrate flow
+ * (feat/migrate-flow, morphoFlashLoan + EIP-5792 batch) is a draft branch, not merged or
+ * live. Until it is, the flag stays false and the line never renders.
+ */
+export const BATCHED_MIGRATE_LIVE = false
+export const MOVING_LINE = 'One transaction with a batching wallet; flash-loan backed, no extra capital.'
+
+export function movingLineFor(mode: 'demo' | 'address' | 'manual', hasBorrow: boolean, live = BATCHED_MIGRATE_LIVE): string | null {
+  return live && mode === 'address' && hasBorrow ? MOVING_LINE : null
+}

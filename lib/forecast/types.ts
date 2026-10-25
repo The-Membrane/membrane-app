@@ -49,6 +49,8 @@ export interface ForecastCell {
   label: string
   /** Map section, rule id and evidence pointer. */
   source: string
+  /** Model the class was graded for: raw (fH), or the frozen C3 recalibration (not ported: shows nothing). */
+  model: 'raw_fH' | 'recal_fH' | null
   /** Live calibration monitor covering the cell. */
   monitor: { id: string | null; status: 'deployed' | 'missing' | 'none' }
   /** Date (YYYY-MM-DD) of the governing source (map or routing table generation). */

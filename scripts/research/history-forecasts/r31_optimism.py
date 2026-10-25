@@ -59,14 +59,19 @@ X.HEADER_ENDPOINTS[CHAIN] = [OFFICIAL]
 
 
 
+SPLIT_MSGS = (b"backend response too large", b"no backend is currently healthy", b"is limited to a 10,000 range")
+
+
 class OpClient(X.Client):
     """r111v3_rpc.Client with one Optimism rule (acquisition only; added 2026-10-25 after registration, before any
     label or score). mainnet.optimism.io answers an eth_getLogs query with too large a result with HTTP 400 and
     JSON-RPC error -32020 "backend response too large", with HTTP 413, or (when its backend cannot finish in time)
-    with HTTP 400 and -32011 "no backend is currently healthy to serve traffic". The unchanged client treats these
-    as transient errors and retries the same range forever. Here, on a log range wider than
-    MIN_SPLIT blocks, it raises TooMany, so the client splits the range in two (the same split it applies to result
-    caps). On a narrower range it stays a retried error, so a real outage still fails loudly."""
+    with HTTP 400 and -32011 "no backend is currently healthy to serve traffic". Some of its backends answer a wide
+    range with -32614 "eth_getLogs is limited to a 10,000 range" (HTTP 400 or 413). The unchanged client treats these
+    as transient errors and retries the same range forever. Here it raises TooMany, so the client splits the range in
+    two (the same split it applies to result caps; a single block that still fails raises). The "no backend is
+    currently healthy" answer splits only on a range of MIN_SPLIT blocks or more. On a narrower range it stays a
+    retried error, so a real outage still fails loudly."""
     MIN_SPLIT = 2_000
 
     def _post(self, url, payload, timeout=120):
@@ -74,15 +79,17 @@ class OpClient(X.Client):
         try:
             return super()._post(url, payload, timeout)
         except urllib.error.HTTPError as e:
-            body = e.read()[:400] if e.code == 400 else b""
-            if e.code == 413 or b"backend response too large" in body or b"no backend is currently healthy" in body:
+            body = e.read()[:400] if e.code in (400, 413) else b""
+            if e.code == 413 or any(m in body for m in SPLIT_MSGS):
                 q = json.loads(payload)
                 if q.get("method") == "eth_getLogs":
                     f = q["params"][0]
-                    if int(f["toBlock"], 16) - int(f["fromBlock"], 16) >= self.MIN_SPLIT:
+                    wide = int(f["toBlock"], 16) - int(f["fromBlock"], 16) >= self.MIN_SPLIT
+                    if wide or b"no backend is currently healthy" not in body:
                         with self.lock:
                             self.stats["backend_splits"] = self.stats.get("backend_splits", 0) + 1
                         raise X.TooMany(None)
+            print(f"http {e.code} {body[:160]!r}", file=sys.stderr, flush=True)
             raise
 
 

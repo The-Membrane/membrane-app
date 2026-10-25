@@ -6,8 +6,8 @@ import { worstVerdict } from '@/components/Strats/stratsLogic'
 // (pages/api/og/[kind].tsx), a server page and a client component, so nothing
 // here may touch the DB, fs, or viem.
 
-export type OgKind = 'radar' | 'venue' | 'finding'
-export const OG_KINDS: readonly OgKind[] = ['radar', 'venue', 'finding']
+export type OgKind = 'radar' | 'venue' | 'finding' | 'replay'
+export const OG_KINDS: readonly OgKind[] = ['radar', 'venue', 'finding', 'replay']
 
 type Param = string | string[] | null | undefined
 const first = (v: Param): string | undefined => (Array.isArray(v) ? v[0] : v ?? undefined)
@@ -148,4 +148,27 @@ export function venueCardSummary(json: unknown): VenueCardSummary | null {
     openFlags: Array.isArray(open) ? clampCount(open.length, 1000) : null,
     observedAt,
   }
+}
+
+export type ReplayCardSummary = {
+  address: string
+  isDemo: boolean
+  label: string
+  venueClosedUsd: number
+  membraneClosedUsd: number
+  verdict: string
+}
+
+/** Reads /api/sim/replay/<address>. Any malformed field and the card prints no number. */
+export function replayCardSummary(json: unknown): ReplayCardSummary | null {
+  if (!json || typeof json !== 'object') return null
+  const j = json as Record<string, unknown>
+  if (j.error) return null
+  const address = normalizeAddress(j.address as string)
+  const venueClosedUsd = clampUsd(j.venueClosedUsd)
+  const membraneClosedUsd = clampUsd(j.membraneClosedUsd)
+  const label = typeof j.label === 'string' && j.label ? j.label.slice(0, 48) : null
+  const verdict = typeof j.verdict === 'string' && j.verdict.endsWith('(simulator).') ? j.verdict.slice(0, 140) : null
+  if (!address || venueClosedUsd == null || membraneClosedUsd == null || !label || !verdict) return null
+  return { address, isDemo: j.isDemo === true, label, venueClosedUsd, membraneClosedUsd, verdict }
 }

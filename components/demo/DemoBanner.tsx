@@ -10,6 +10,13 @@ import useDemoMode from '@/hooks/useDemoMode'
 export interface DemoBannerProps {
   /** Overrides the trailing copy after "Demo — not yours ·". */
   note?: string
+  /**
+   * Overrides the wallet-based check. A page whose wallet-scoped block can show the demo
+   * wallet even to a connected reader (the landing at `/`, where a pasted or connected
+   * address replaces it) passes `true` while the demo wallet is on screen and `false` once
+   * a real one is.
+   */
+  show?: boolean
 }
 
 const DEFAULT_NOTE = 'connect a wallet to see your own'
@@ -19,10 +26,10 @@ const DEFAULT_NOTE = 'connect a wallet to see your own'
  * outside demo mode. Ported from the `.demobar2` bar in
  * public/proto/_demo-layer.html.
  */
-export const DemoBanner: React.FC<DemoBannerProps> = ({ note = DEFAULT_NOTE }) => {
+export const DemoBanner: React.FC<DemoBannerProps> = ({ note = DEFAULT_NOTE, show }) => {
   const { isDemo } = useDemoMode()
 
-  if (!isDemo) return null
+  if (!(show ?? isDemo)) return null
 
   return (
     <Box

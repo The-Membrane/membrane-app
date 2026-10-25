@@ -9,6 +9,7 @@ import {
   parseOgKind,
   parseVenueParam,
   radarCardSummary,
+  replayCardSummary,
   shortAddr,
   venueCardSummary,
 } from '@/lib/share/permalink'
@@ -116,6 +117,23 @@ async function venueCard(origin: string, raw: string | null): Promise<CardProps>
   return { eyebrow, title: s.label, stats }
 }
 
+async function replayCard(origin: string, raw: string | null, scenario: string | null): Promise<CardProps> {
+  const address = normalizeAddress(raw)
+  const plain: CardProps = { eyebrow: 'replay · 10 oct 2025', title: 'Your borrow, replayed on your venue and on Membrane' }
+  if (!address) return plain
+  const q = scenario && /^[a-z0-9-]{1,32}$/.test(scenario) ? `?s=${scenario}` : ''
+  const s = replayCardSummary(await getJson(new URL(`/api/sim/replay/${address}${q}`, origin)))
+  if (!s) return { ...plain, title: `Replay · ${shortAddr(address)}` }
+  return {
+    eyebrow: `replay · 10 oct 2025${s.isDemo ? ' · demo wallet' : ''}`,
+    title: s.verdict,
+    stats: [
+      { label: `${s.label} closed`, value: fmtUsdShort(s.venueClosedUsd) },
+      { label: 'Membrane would have closed (simulator)', value: fmtUsdShort(s.membraneClosedUsd) },
+    ],
+  }
+}
+
 function findingCard(): CardProps {
   if (!CORPUS_SCALE_LINE.partial && clampUsd(CORPUS_SCALE_LINE.keptUsd) != null && CORPUS_SCALE_LINE.years > 0) {
     return {
@@ -135,6 +153,7 @@ export default async function handler(req: NextRequest) {
   if (kind === 'radar') props = await radarCard(url.origin, url.searchParams.get('address'))
   else if (kind === 'venue') props = await venueCard(url.origin, url.searchParams.get('venue'))
   else if (kind === 'finding') props = findingCard()
+  else if (kind === 'replay') props = await replayCard(url.origin, url.searchParams.get('a') ?? url.searchParams.get('address'), url.searchParams.get('s'))
   else props = { eyebrow: 'membrane', title: 'Membrane' }
 
   return new ImageResponse(<Card {...props} />, {

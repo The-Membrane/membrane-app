@@ -82,6 +82,8 @@ export interface AddressBarProps {
   error: string | null
   /** DOM id — the hero's is 'sim-address-input'; extra bars below the fold must differ. */
   inputId?: string
+  /** Label of the one submit button. Defaults to the simulator's own. */
+  submitLabel?: string
 }
 
 export const AddressBar: React.FC<AddressBarProps> = ({
@@ -96,6 +98,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   isLoading,
   error,
   inputId = 'sim-address-input',
+  submitLabel,
 }) => {
   // Optional shortcut (owner 2026-09-12): a connected wallet can fill the box so
   // nobody has to copy their address. Still read-only — connecting is never
@@ -177,7 +180,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           _focus={FOCUS_STYLES.ring}
         />
         <Button type="submit" isDisabled={isLoading} {...BTN}>
-          {isLoading ? 'Reading…' : loadedAddress ? 'Run another' : 'Run mine'}
+          {isLoading ? 'Reading…' : submitLabel ?? (loadedAddress ? 'Run another' : 'Run mine')}
         </Button>
       </Box>
 

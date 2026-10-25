@@ -129,7 +129,22 @@ interface ProtocolsFile {
   morphoBlue?: { markets?: Record<string, MarketListEntry> }
 }
 
+/**
+ * Server callers (the share-card route, pages/api/sim/replay) have no origin for the
+ * relative URL above, so they inject a reader of the same committed file. The browser
+ * path is unchanged.
+ */
+let marketListLoader: (() => Promise<ProtocolsFile>) | null = null
+export function setMorphoMarketListLoader(fn: (() => Promise<unknown>) | null): void {
+  marketListLoader = fn as (() => Promise<ProtocolsFile>) | null
+}
+
 async function loadMarketIds(): Promise<{ id: `0x${string}`; entry: MarketListEntry }[]> {
+  if (marketListLoader) {
+    const markets = (await marketListLoader()).morphoBlue?.markets
+    if (!markets || Object.keys(markets).length === 0) throw new Error('morpho blue: market list has no morphoBlue.markets')
+    return Object.entries(markets).map(([id, entry]) => ({ id: id as `0x${string}`, entry }))
+  }
   let res: Response
   try {
     res = await fetch(MARKET_LIST_URL)

@@ -80,8 +80,8 @@ describe('config', () => {
     expect(AT_RISK_RULE).toEqual({ threshold: 0.03, rearmDistance: 0.1, evaluationIntervalS: H })
     expect(AT_RISK_SUBTEXT_CONFIG.provenance).toMatchObject({
       data: 'development',
-      dataset: 'Aave V3 Polygon, Arbitrum and Optimism, 2023–2026 (simulated price touches)',
-      ruling: 'Q26-R27 60fb0e6; replications Q26-R30 1f76bc9 and Q26-R31 4d6d6a0',
+      dataset: 'Aave V3 Polygon, Arbitrum, Optimism and Ethereum, 2023–2026 (simulated price touches)',
+      ruling: 'Q26-R27 60fb0e6; replications Q26-R30 1f76bc9, Q26-R31 4d6d6a0 and Q26-R33 0bc1946',
       review: 'c59f67f, f6092e8, 57653f4, 769f616',
     })
   })

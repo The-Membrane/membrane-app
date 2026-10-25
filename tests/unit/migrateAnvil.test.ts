@@ -14,7 +14,8 @@ import { anvil } from '@/config/evm/chains'
 import local from '@/contracts/migrator/deployments/local.json'
 import { cdpOperatorAbi } from '@/lib/migrate/abis'
 import { migrateConfig } from '@/lib/migrate/addresses'
-import { readiness, resolveDeploy, resolveMigration, runDeploy, runMigration, simulateDeploy, simulatePreSign, type ResolvedDeploy, type ResolvedMigration, type RunEvent } from '@/lib/migrate/exec'
+import { borrowLtvWad, readiness, resolveDeploy, resolveMigration, runDeploy, runMigration, runRevoke, simulateDeploy, simulatePreSign, type ResolvedDeploy, type ResolvedMigration, type RunEvent } from '@/lib/migrate/exec'
+import { morphoAbi, permitTokenAbi } from '@/lib/migrate/abis'
 import { buildDeployPlan } from '@/lib/migrate/plan'
 import { demoBorrowerPosition } from '@/lib/position-sim/demoBorrower'
 import type { MigrateSource } from '@/lib/migrate/types'
@@ -28,7 +29,8 @@ const KEY_MORPHO = '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141
 const KEY_HOT = '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a' // #4
 
 const chain = { ...anvil, rpcUrls: { default: { http: [RPC ?? 'http://127.0.0.1:8545'] } } }
-const aaveDebtAbi = parseAbi(['function variableDebt(address asset, address user) view returns (uint256)'])
+const aaveDebtAbi = parseAbi(['function variableDebt(address asset, address user) view returns (uint256)', 'function aTokenOf(address asset) view returns (address)'])
+const oracleAbi = parseAbi(['function setPrice(bytes32 a, uint256 p)'])
 
 run('migrate on local anvil', () => {
   const client = createPublicClient({ chain, transport: http(RPC) }) as PublicClient
@@ -51,8 +53,8 @@ run('migrate on local anvil', () => {
     expect('error' in r).toBe(false)
     const pre = await simulatePreSign(client, cfg, r)
     const events: RunEvent[] = []
-    const result = pre.ok ? await runMigration({ client, wallet, cfg, r, onEvent: (e) => events.push(e) }) : null
-    return { account, r, pre, result, events }
+    const result = pre.ok ? await runMigration({ client, wallet, cfg, source: source(protocol), r, onEvent: (e) => events.push(e) }) : null
+    return { account, wallet, r, pre, result, events }
   }
 
   it('the chain is ready for Aave and Morpho', () => {
@@ -61,24 +63,66 @@ run('migrate on local anvil', () => {
     expect(readiness(migrateConfig(1), 'Ethereum', 'aave-v3')).toMatchObject({ ok: false })
   })
 
-  it('Aave: simulate, 4 prompts, settle; Membrane debt == exactly what Aave was owed', async () => {
-    const { account, r, pre, result, events } = await migrate(KEY_AAVE, 'aave-v3')
+  it('Aave: simulate, 4 prompts (grant only after the signed bundle simulates), settle, no allowance left, optional revoke', async () => {
+    const { account, wallet, r, pre, result, events } = await migrate(KEY_AAVE, 'aave-v3')
     expect(pre.ok).toBe(true)
+    if (pre.ok) expect(pre.steps.map((x) => x.id)).toEqual(['operator', 'bundle']) // gas per step
     expect(result?.ok).toBe(true)
-    const prompts = events.filter((e) => e.kind === 'prompt').map((e) => (e as { id: string }).id)
-    expect(prompts).toEqual(['operator', 'atoken-permit', 'proceeds-permit', 'bundle'])
-    expect(await client.readContract({ address: cfg.aavePool!, abi: aaveDebtAbi, functionName: 'variableDebt', args: [local.usdc as `0x${string}`, account.address] })).toBe(0n)
+    expect(result?.sourceDebtAfter).toBe(0n) // L-2
+    const order = events.filter((e) => e.kind === 'prompt' || e.kind === 'simulated').map((e) => (e.kind === 'prompt' ? e.id : 'SIM'))
+    expect(order).toEqual(['atoken-permit', 'proceeds-permit', 'SIM', 'operator', 'bundle'])
+    const usdc = local.usdc as `0x${string}`
+    expect(await client.readContract({ address: cfg.aavePool!, abi: aaveDebtAbi, functionName: 'variableDebt', args: [usdc, account.address] })).toBe(0n)
     const pid = await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'userPositionIds', args: [account.address, 0n] })
-    expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionDebt', args: [pid] })).toBe(r.debtWei)
-    // a second migration would skip the operator grant
+    expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionDebt', args: [pid] })).toBe(r.borrowCdt)
+    // exact permits: nothing left approved (M-2)
+    const aToken = await client.readContract({ address: cfg.aavePool!, abi: aaveDebtAbi, functionName: 'aTokenOf', args: [local.weth as `0x${string}`] })
+    expect(await client.readContract({ address: usdc, abi: permitTokenAbi, functionName: 'allowance', args: [account.address, cfg.membraneAdapter!] })).toBe(0n)
+    expect(await client.readContract({ address: aToken, abi: permitTokenAbi, functionName: 'allowance', args: [account.address, cfg.generalAdapter1!] })).toBe(0n)
+    // the optional revoke
     expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionOperator', args: [account.address, cfg.membraneAdapter!] })).toBe(true)
+    expect((await runRevoke({ client, wallet, cfg, owner: account.address, venue: 'aave-v3' })).ok).toBe(true)
+    expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionOperator', args: [account.address, cfg.membraneAdapter!] })).toBe(false)
+  })
+
+  it('the cap is read on-chain: live max LTV − 3pp − 0.5pp', async () => {
+    const account = privateKeyToAccount(KEY_AAVE)
+    const r = (await resolveMigration(client, cfg, source('aave-v3'), 'aave-v3', account.address)) as ResolvedMigration
+    expect(r.maxLtvOnchainWad).toBe(80n * 10n ** 16n)
+    expect(r.maxLtvWad).toBe(765n * 10n ** 15n)
+    expect(r.venueTokenAmount).toBe(r.collateralWei) // exact aTokens
+  })
+
+  it('a price drop after the plan: the fresh read at run time stops before any prompt', async () => {
+    const account = privateKeyToAccount(KEY_AAVE)
+    const wallet = createWalletClient({ account, chain, transport: http(RPC) })
+    const r = (await resolveMigration(client, cfg, source('aave-v3'), 'aave-v3', account.address)) as ResolvedMigration
+    expect(borrowLtvWad(r) <= r.maxLtvWad).toBe(true)
+    const owner0 = privateKeyToAccount('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80')
+    const admin = createWalletClient({ account: owner0, chain, transport: http(RPC) })
+    const h = await admin.writeContract({ address: local.oracle as `0x${string}`, abi: oracleAbi, functionName: 'setPrice', args: [`0x${Buffer.from('WETH').toString('hex').padEnd(64, '0')}`, 1500n * 10n ** 18n] })
+    await client.waitForTransactionReceipt({ hash: h })
+    const events: RunEvent[] = []
+    const res = await runMigration({ client, wallet, cfg, source: source('aave-v3'), r, onEvent: (e) => events.push(e) })
+    expect(res.ok).toBe(false)
+    expect(res.reason).toMatch(/LtvAboveCap/)
+    expect(events.filter((e) => e.kind === 'prompt')).toHaveLength(0)
   })
 
   it('Morpho: simulate, 4 prompts, settle', async () => {
     const { pre, result, events } = await migrate(KEY_MORPHO, 'morpho-blue')
     expect(pre.ok).toBe(true)
     expect(result?.ok).toBe(true)
-    expect(events.filter((e) => e.kind === 'prompt').map((e) => (e as { id: string }).id)).toEqual(['operator', 'morpho-auth', 'proceeds-permit', 'bundle'])
+    expect(events.filter((e) => e.kind === 'prompt').map((e) => (e as { id: string }).id)).toEqual(['morpho-auth', 'proceeds-permit', 'operator', 'bundle'])
+    expect(result?.sourceDebtAfter).toBe(0n)
+    // the Morpho authorization is permanent until revoked; the optional revoke clears both grants
+    const { account, wallet } = await (async () => {
+      const account = privateKeyToAccount(KEY_MORPHO)
+      return { account, wallet: createWalletClient({ account, chain, transport: http(RPC) }) }
+    })()
+    expect(await client.readContract({ address: cfg.morpho!, abi: morphoAbi, functionName: 'isAuthorized', args: [account.address, cfg.generalAdapter1!] })).toBe(true)
+    expect((await runRevoke({ client, wallet, cfg, owner: account.address, venue: 'morpho-blue' })).ok).toBe(true)
+    expect(await client.readContract({ address: cfg.morpho!, abi: morphoAbi, functionName: 'isAuthorized', args: [account.address, cfg.generalAdapter1!] })).toBe(false)
   })
 
   it('82% LTV: the pre-signature simulation fails before any prompt', async () => {

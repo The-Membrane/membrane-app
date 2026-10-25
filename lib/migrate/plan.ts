@@ -12,9 +12,13 @@
  *                 Membrane position, peg-borrow exactly the shortfall, pull it back to repay
  *   Morpho pulls the flash amount back.
  *
- * THE GATE: Membrane opens a position at most at its BORROW LTV (max LTV − 3pp). Above it the
- * Cdp reverts InsolventAfterAction (contracts/migrator/test: 82% and 80.1% revert, 77% opens),
- * so the plan computes the trim first instead of letting the wallet sign a revert.
+ * THE GATE: Membrane's borrow LTV is max LTV − 3pp, but the Cdp's borrow path gates only on max
+ * LTV (CdpInternal.insolvent reads max_LTV; review H-1). MembraneBundlerAdapter therefore checks
+ * the LTV itself, after the borrow, at Membrane's own prices, against the lower of the owner's cap
+ * and the asset's live max LTV − 3pp. The app passes cap = live max LTV − 3pp − LTV_MARGIN, read
+ * on-chain (Collateral.currentMaxLTV), so a small price move between the read and the block does
+ * not revert. Above the cap the plan computes the trim instead of letting the wallet sign a revert
+ * (contracts/migrator/test: the 76.4–82% band and an oracle drop between read and execution).
  */
 
 import {
@@ -23,6 +27,8 @@ import {
   membraneBorrowLtv,
   membraneMaxLtv,
 } from '@/lib/position-sim/membrane'
+
+import { stamp } from '@/lib/position-sim/types'
 
 import type {
   MigrateSource,
@@ -41,12 +47,19 @@ export const FLASH_FEE_BPS = 0
 export const FLASH_SOURCE = 'Morpho Blue flash loan via Bundler3 GeneralAdapter1'
 
 /**
- * The flash amount is the debt read plus this buffer, so interest that accrues between the read
- * and the block that executes is still covered. The buffer is NOT borrowed: the adapter borrows
- * only the shortfall (contracts/migrator test_AaveMigration_EndToEnd: Membrane debt == exactly
- * what Aave was owed). 10 bps ≈ 9 days of interest at 4% APR.
+ * The proceeds P are the debt read plus this buffer, so interest that accrues between the read and
+ * the block that executes is still covered. P is the flash amount, the exact Membrane borrow and
+ * the exact proceeds permit (consumed to zero). The part the venue did not need comes back to the
+ * owner as USDC in the same transaction. 2 bps ≈ 7 days of interest at 10% APR.
  */
-export const FLASH_BUFFER_BPS = 10
+export const ACCRUAL_BUFFER_BPS = 2
+
+/**
+ * The app opens at most at borrow LTV − 0.5pp. The adapter enforces the borrow LTV on-chain; this
+ * margin keeps a ~0.6% collateral price drop between the read and the block from reverting the
+ * whole bundle. Shown on the LTV row.
+ */
+export const LTV_MARGIN = 0.005
 
 /** The only debt the peg borrow can repay is the Transmuter's paired asset. */
 export const PEG_PAIRED_SYMBOL = 'USDC'
@@ -76,7 +89,9 @@ export const amt = (v: number, symbol: string): string =>
 // ------------------------------------------------------------------ signatures
 
 /**
- * The wallet prompts each venue needs on a plain EOA, in order. A wallet that reports EIP-5792
+ * The wallet prompts each venue needs on a plain EOA, in the order the runner asks for them: the
+ * typed-data signatures first, then — only after the exact signed bundle has simulated OK with the
+ * grant as a prior call — the operator grant, then the bundle (lib/migrate/exec.ts runMigration). A wallet that reports EIP-5792
  * atomic batching 'supported' signs the transactions as one batch; the typed-data permits are
  * still signed first.
  *
@@ -89,15 +104,15 @@ export function signatureSteps(venue: MigrateVenue): SignatureStep[] {
   const operator: SignatureStep = {
     id: 'operator',
     kind: 'tx',
-    label: 'Allow the Membrane migration adapter on your Membrane positions',
-    why: 'Cdp.setPositionOperator — the adapter opens the position and borrows for you, and acts only for the wallet that sends the bundle.',
+    label: 'Make the Membrane migration adapter an operator on your Membrane account',
+    why: 'Cdp.setPositionOperator. It stays until you revoke it. It lets the adapter, only inside a Bundler3 transaction you send, open a NEW Membrane position from collateral already in the adapter and borrow on it up to the borrow LTV, paying the borrow to you. It cannot touch existing positions, withdraw, or send funds elsewhere.',
     skippedWhen: 'already granted',
   }
   const proceeds: SignatureStep = {
     id: 'proceeds-permit',
     kind: 'typed-data',
-    label: `Permit: the adapter may pull the borrowed ${PEG_PAIRED_SYMBOL} once`,
-    why: 'Membrane pays the borrow to you; the same amount goes back to repay the flash loan in the same transaction.',
+    label: `Permit: the adapter may pull exactly the borrowed ${PEG_PAIRED_SYMBOL}, once`,
+    why: 'Membrane pays the borrow to you; the same amount goes to GeneralAdapter1 to repay the flash loan. The permit is for that exact amount and is used up.',
     skippedWhen: null,
   }
   const send: SignatureStep = {
@@ -109,30 +124,56 @@ export function signatureSteps(venue: MigrateVenue): SignatureStep[] {
   }
   if (venue === 'morpho-blue') {
     return [
-      operator,
       {
         id: 'morpho-auth',
         kind: 'typed-data',
-        label: 'Authorize Bundler3 GeneralAdapter1 on Morpho',
-        why: 'Morpho setAuthorizationWithSig — lets the adapter repay and withdraw your collateral inside the bundle.',
+        label: 'Authorize Bundler3 GeneralAdapter1 on your Morpho account',
+        why: 'Morpho setAuthorizationWithSig. It stays until you revoke it, and covers every Morpho market: GeneralAdapter1 can then act on your Morpho positions (repay, withdraw collateral, borrow) inside any Bundler3 transaction you send.',
         skippedWhen: 'already authorized',
       },
       proceeds,
+      operator,
       send,
     ]
   }
   return [
-    operator,
     {
       id: 'atoken-permit',
       kind: 'typed-data',
-      label: 'Permit: move your aTokens once',
-      why: 'The aTokens are your collateral on the venue; they move to the migration adapter, which withdraws them.',
+      label: 'Permit: move exactly your aTokens, once',
+      why: 'The aTokens are your collateral on the venue; exactly the amount read moves to the Aave migration adapter, which withdraws it. The permit is used up. Interest the aTokens earn after the read stays on the venue as dust you can withdraw.',
       skippedWhen: null,
     },
     proceeds,
+    operator,
     send,
   ]
+}
+
+/**
+ * OPTIONAL, after a settled migration (not counted in the prompts): revoke the standing grants.
+ * Each is one transaction. Morpho's applies only to the Morpho flow.
+ */
+export function revokeSteps(venue: MigrateVenue): SignatureStep[] {
+  const steps: SignatureStep[] = [
+    {
+      id: 'revoke-operator',
+      kind: 'tx',
+      label: 'Revoke the Membrane migration adapter',
+      why: 'Cdp.setPositionOperator(adapter, false). Your next migration asks for it again.',
+      skippedWhen: 'not granted',
+    },
+  ]
+  if (venue === 'morpho-blue') {
+    steps.push({
+      id: 'revoke-morpho',
+      kind: 'tx',
+      label: 'Revoke GeneralAdapter1 on Morpho',
+      why: 'Morpho setAuthorization(GeneralAdapter1, false).',
+      skippedWhen: 'not authorized',
+    })
+  }
+  return steps
 }
 
 // ------------------------------------------------------------------ blockers
@@ -163,28 +204,60 @@ function blockerFor(source: MigrateSource, venue: MigrateVenue | null): string |
 // ------------------------------------------------------------------ trim
 
 /** The debt that must come off (or the collateral that must come in) to land at the borrow LTV. */
+/** The highest LTV the app opens at: borrow LTV − LTV_MARGIN. */
+export const openCap = (borrowLtv: number): number => Math.max(0, borrowLtv - LTV_MARGIN)
+
+/** The debt that must come off (or the collateral that must come in) to land at the open cap.
+ *  `debtUsd` is what will be borrowed (the debt plus the accrual buffer). */
 export function trimFor(collateralUsd: number, debtUsd: number, borrowLtv: number): PlanTrim | null {
   if (collateralUsd <= 0) return null
+  const cap = openCap(borrowLtv)
   const ltv = debtUsd / collateralUsd
-  if (ltv <= borrowLtv) return null
-  const debtUsdOff = debtUsd - borrowLtv * collateralUsd
-  const collateralUsdIn = debtUsd / borrowLtv - collateralUsd
+  if (ltv <= cap) return null
+  const debtUsdOff = debtUsd - cap * collateralUsd
+  const collateralUsdIn = debtUsd / cap - collateralUsd
   return {
     debtUsd: debtUsdOff,
-    targetLtv: borrowLtv,
-    reason: `At ${pct(ltv)} this position is over Membrane’s ${pct(borrowLtv)} borrow LTV, and the reopen would revert. Repay ${usd(debtUsdOff)} on the venue first, or add ${usd(collateralUsdIn)} of collateral there, then migrate.`,
+    targetLtv: cap,
+    reason: `At ${pct(ltv)} this position is over the ${pct(cap)} Membrane opens at (borrow LTV ${pct(borrowLtv)} − ${pct(LTV_MARGIN)} margin), and the reopen would revert. Repay ${usd(debtUsdOff)} on the venue first, or add ${usd(collateralUsdIn)} of collateral there, then migrate.`,
   }
 }
 
 // ------------------------------------------------------------------ plan
 
-export interface PlanOptions {
-  /** Gas units from a simulation, when one has run. */
-  gasUnits?: bigint | null
+export interface GasStep {
+  id: string
+  label: string
+  gas: bigint
 }
 
-function membraneSide(source: MigrateSource) {
+export interface PlanOptions {
+  /** Per-step gas from a simulation (each +5%), when one has run. */
+  gasSteps?: GasStep[] | null
+  /** The collateral's live max LTV read on-chain (Collateral.currentMaxLTV). Overrides the
+   *  modelled table when present. */
+  onchainMaxLtv?: number | null
+}
+
+function gasRow(steps: GasStep[] | null | undefined): PlanRow {
+  if (!steps || steps.length === 0) {
+    return { key: 'gas', label: 'Gas', value: 'after simulation', detail: 'the transaction is simulated before you sign', tone: 'muted' }
+  }
+  const total = steps.reduce((a, s) => a + s.gas, 0n)
+  return {
+    key: 'gas',
+    label: 'Gas',
+    value: `${total.toLocaleString('en-US')} units`,
+    detail: `${steps.map((s) => `${s.label} ${s.gas.toLocaleString('en-US')}`).join(' · ')} · simulated, +5% each`,
+  }
+}
+
+function membraneSide(source: MigrateSource, onchainMaxLtv?: number | null) {
   const legs = source.collateral
+  if (onchainMaxLtv !== undefined && onchainMaxLtv !== null) {
+    const coll = legs.reduce((a, l) => a + l.valueUsd, 0)
+    return { coll, maxLtv: onchainMaxLtv, borrowLtv: membraneBorrowLtv(onchainMaxLtv), onchain: true }
+  }
   const coll = legs.reduce((a, l) => a + l.valueUsd, 0)
   let wMax = 0
   let known = 0
@@ -195,16 +268,19 @@ function membraneSide(source: MigrateSource) {
     known += l.valueUsd
   }
   const maxLtv = known > 0 ? wMax / known : 0
-  return { coll, maxLtv, borrowLtv: membraneBorrowLtv(maxLtv) }
+  return { coll, maxLtv, borrowLtv: membraneBorrowLtv(maxLtv), onchain: false }
 }
 
 export function buildMigrationPlan(source: MigrateSource, opts: PlanOptions = {}): MigrationPlan {
   const venue = VENUE_OF[source.protocol] ?? null
-  const { coll, maxLtv, borrowLtv } = membraneSide(source)
+  const { coll, maxLtv, borrowLtv, onchain } = membraneSide(source, opts.onchainMaxLtv)
   const debtUsd = source.totalDebtUsd
-  const ltv = coll > 0 ? debtUsd / coll : 0
+  // what is borrowed: the debt plus the accrual buffer (the unused part comes back as USDC)
+  const borrowUsd = (debtUsd * (10_000 + ACCRUAL_BUFFER_BPS)) / 10_000
+  const ltv = coll > 0 ? borrowUsd / coll : 0
   const blocked = blockerFor(source, venue)
-  const trim = blocked ? null : trimFor(coll, debtUsd, borrowLtv)
+  const trim = blocked ? null : trimFor(coll, borrowUsd, borrowLtv)
+  const cap = openCap(borrowLtv)
 
   const repay: RepaidDebt[] = source.debt.map((d) => ({ symbol: d.symbol, amount: d.amount, valueUsd: d.valueUsd }))
   const move: MovedAsset[] = source.collateral.map((c) => ({
@@ -214,14 +290,15 @@ export function buildMigrationPlan(source: MigrateSource, opts: PlanOptions = {}
     membraneMaxLtv: membraneMaxLtv(c.symbol),
   }))
   const flashFeeUsd = (debtUsd * FLASH_FEE_BPS) / 10_000
-  const gasUnits = opts.gasUnits ?? null
+  const gasSteps = opts.gasSteps ?? null
+  const gasUnits = gasSteps ? gasSteps.reduce((a, s) => a + s.gas, 0n) : null
 
   const rows: PlanRow[] = [
     ...repay.map((d) => ({
       key: `repay-${d.symbol}`,
       label: `Repay on ${venue ? VENUE_LABEL[venue] : source.label}`,
       value: amt(d.amount, d.symbol),
-      detail: `${usd(d.valueUsd)} · flash-loaned, plus ${FLASH_BUFFER_BPS} bps for interest until the block (not borrowed)`,
+      detail: `${usd(d.valueUsd)} · flash-loaned (Morpho, fee-free) with ${ACCRUAL_BUFFER_BPS} bps for interest until the block; repaid in full or nothing happens`,
     })),
     ...move.map((c) => ({
       key: `move-${c.symbol}`,
@@ -233,14 +310,14 @@ export function buildMigrationPlan(source: MigrateSource, opts: PlanOptions = {}
       key: 'ltv',
       label: 'New Membrane LTV',
       value: pct(ltv),
-      detail: `borrow cap ${pct(borrowLtv)} · liquidation line ${pct(maxLtv)} (modelled, max LTV − ${pct(BORROW_LTV_GAP, 0)})`,
-      tone: trim ? 'danger' : ltv > borrowLtv - 0.05 ? 'warn' : 'default',
+      detail: `opens at most ${pct(cap)} (borrow LTV ${pct(borrowLtv)} − ${pct(LTV_MARGIN)} margin, checked on-chain) · liquidation line ${pct(maxLtv)} (${onchain ? 'read on-chain' : 'modelled'}, borrow LTV = max − ${pct(BORROW_LTV_GAP, 0)})`,
+      tone: trim ? 'danger' : ltv > cap - 0.05 ? 'warn' : 'default',
     },
     {
       key: 'borrow',
       label: 'Membrane borrow',
-      value: usd(debtUsd),
-      detail: `peg borrow: CDT minted and swapped 1:1 to ${PEG_PAIRED_SYMBOL}, exactly what the venue was owed`,
+      value: usd(borrowUsd),
+      detail: `peg borrow: CDT minted and swapped 1:1 to ${PEG_PAIRED_SYMBOL}. The debt plus ${ACCRUAL_BUFFER_BPS} bps; what the venue did not need comes back to you as ${PEG_PAIRED_SYMBOL}`,
     },
     {
       key: 'flash-fee',
@@ -248,13 +325,7 @@ export function buildMigrationPlan(source: MigrateSource, opts: PlanOptions = {}
       value: usd(flashFeeUsd),
       detail: FLASH_SOURCE,
     },
-    {
-      key: 'gas',
-      label: 'Gas',
-      value: gasUnits === null ? 'after simulation' : `${gasUnits.toLocaleString('en-US')} units`,
-      detail: gasUnits === null ? 'the bundle is simulated before you sign' : 'simulated · +5% buffer',
-      tone: gasUnits === null ? 'muted' : 'default',
-    },
+    gasRow(gasSteps),
   ]
 
   return {
@@ -265,11 +336,11 @@ export function buildMigrationPlan(source: MigrateSource, opts: PlanOptions = {}
     move,
     membrane: {
       collateralUsd: coll,
-      debtUsd,
+      debtUsd: borrowUsd,
       ltv,
       borrowLtv,
       maxLtv,
-      provenance: MEMBRANE_LTV_PROVENANCE,
+      provenance: onchain ? stamp('onchain', 'Collateral.currentMaxLTV', 'read on the connected chain') : MEMBRANE_LTV_PROVENANCE,
     },
     fees: { flashFeeUsd, flashSource: FLASH_SOURCE, gasUnits },
     trim,
@@ -288,8 +359,9 @@ export function buildMigrationPlan(source: MigrateSource, opts: PlanOptions = {}
  * covers it), deposit, borrow.
  */
 export function buildDeployPlan(source: MigrateSource, opts: PlanOptions = {}): MigrationPlan {
-  const { coll, maxLtv, borrowLtv } = membraneSide(source)
-  const cap = borrowLtv * coll
+  const { coll, maxLtv, borrowLtv, onchain } = membraneSide(source, opts.onchainMaxLtv)
+  // Cdp.increaseDebt gates only on max LTV (review H-1); the app caps a fresh borrow at the open cap
+  const cap = openCap(borrowLtv) * coll
   const borrowUsd = Math.min(source.totalDebtUsd, cap)
   const ltv = coll > 0 ? borrowUsd / coll : 0
   const capped = source.totalDebtUsd > cap
@@ -300,7 +372,8 @@ export function buildDeployPlan(source: MigrateSource, opts: PlanOptions = {}): 
       : unknown
         ? `Membrane has no listing assumption for ${unknown.symbol}, so it cannot open this collateral.`
         : null
-  const gasUnits = opts.gasUnits ?? null
+  const gasSteps = opts.gasSteps ?? null
+  const gasUnits = gasSteps ? gasSteps.reduce((a, g) => a + g.gas, 0n) : null
   const move: MovedAsset[] = source.collateral.map((c) => ({
     symbol: c.symbol,
     amount: c.amount,
@@ -319,7 +392,7 @@ export function buildDeployPlan(source: MigrateSource, opts: PlanOptions = {}): 
       label: 'Borrow',
       value: `${Math.floor(borrowUsd).toLocaleString('en-US')} CDT`,
       detail: capped
-        ? `the replay borrowed ${usd(source.totalDebtUsd)}; capped at Membrane’s ${pct(borrowLtv)} borrow LTV`
+        ? `the replay borrowed ${usd(source.totalDebtUsd)}; capped at ${pct(openCap(borrowLtv))} (borrow LTV ${pct(borrowLtv)} − ${pct(LTV_MARGIN)} margin)`
         : `${usd(borrowUsd)} · the replay’s ${pct(source.totalCollateralUsd > 0 ? source.totalDebtUsd / source.totalCollateralUsd : 0)} LTV`,
       tone: capped ? 'warn' : 'default',
     },
@@ -327,14 +400,9 @@ export function buildDeployPlan(source: MigrateSource, opts: PlanOptions = {}): 
       key: 'ltv',
       label: 'Membrane LTV',
       value: pct(ltv),
-      detail: `borrow cap ${pct(borrowLtv)} · liquidation line ${pct(maxLtv)} (modelled)`,
+      detail: `borrow LTV ${pct(borrowLtv)} · liquidation line ${pct(maxLtv)} (${onchain ? 'read on-chain' : 'modelled'})`,
     },
-    {
-      key: 'gas',
-      label: 'Gas',
-      value: gasUnits === null ? 'after simulation' : `${gasUnits.toLocaleString('en-US')} units`,
-      tone: gasUnits === null ? 'muted' : 'default',
-    },
+    gasRow(gasSteps),
   ]
   return {
     kind: 'deploy',

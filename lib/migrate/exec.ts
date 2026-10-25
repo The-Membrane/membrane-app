@@ -30,20 +30,20 @@ import { simulateCalls } from 'viem/actions'
 import { cdpAbi } from '@/contracts/abis/cdp'
 import { membraneBundlerAdapterAbi } from '@/contracts/abis/membraneBundlerAdapter'
 
-import { bundler3Abi, cdpOperatorAbi, membraneOracleAbi, morphoAbi, permitTokenAbi } from './abis'
+import { bundler3Abi, cdpOperatorAbi, collateralLtvAbi, membraneOracleAbi, morphoAbi, permitTokenAbi } from './abis'
 import type { MigrateChainConfig } from './addresses'
 import {
   buildAaveBundle,
   buildMorphoBundle,
   flashAmountFor,
-  maxBorrowCdtFor,
+  borrowCdtFor,
   type BundlerCall,
   type MorphoMarketParams,
   type SignedMorphoAuthorization,
   type SignedPermit,
 } from './bundle'
 import { signMorphoAuthorization, signPermitExact } from './permit'
-import { FLASH_BUFFER_BPS } from './plan'
+import { ACCRUAL_BUFFER_BPS, LTV_MARGIN } from './plan'
 import type { Address, MigrateSource, MigrateVenue } from './types'
 
 export const GAS_BUFFER_PCT = 105n
@@ -143,10 +143,17 @@ export interface ResolvedMigration {
   debtWei: bigint
   /** Exact collateral on the venue, in collateral-token wei. */
   collateralWei: bigint
+  /** P: the debt read + ACCRUAL_BUFFER_BPS. Flash amount, exact borrow, exact proceeds permit. */
   flashAmount: bigint
-  maxBorrowCdt: bigint
+  /** P in CDT units: the exact new Membrane debt. */
+  borrowCdt: bigint
+  /** The LTV cap passed to the adapter (1e18): live max LTV − 3pp − LTV_MARGIN. */
+  maxLtvWad: bigint
+  /** The collateral's live max LTV (1e18), Collateral.currentMaxLTV. */
+  maxLtvOnchainWad: bigint
   /** The token the owner permits to GA1 (aToken) — null for Morpho. */
   venueToken: Address | null
+  /** EXACTLY the aTokens read (the permit and the move use this amount; nothing left allowed). */
   venueTokenAmount: bigint
   morphoParams: MorphoMarketParams | null
   operatorGranted: boolean
@@ -162,6 +169,10 @@ const toNum = (v: bigint, decimals: number): number => {
   const d = 10n ** BigInt(decimals)
   return Number(v / d) + Number(v % d) / Number(d)
 }
+
+const WAD = 10n ** 18n
+const BORROW_LTV_GAP_WAD = 3n * 10n ** 16n
+const LTV_MARGIN_WAD = BigInt(Math.round(LTV_MARGIN * 1e18))
 
 /** The source position re-stated as it stands on the connected chain, valued at Membrane's
  *  oracle price — the exact basis the Cdp's LTV gate uses. */
@@ -183,6 +194,20 @@ export function onchainSource(source: MigrateSource, r: ResolvedMigration, chain
   }
 }
 
+/** The plan options a resolved read implies: the live max LTV. */
+export const planOptsFor = (r: ResolvedMigration) => ({ onchainMaxLtv: toNum(r.maxLtvOnchainWad, 18) })
+
+/** The borrow's LTV at Membrane's price (1e18), the number the adapter checks. */
+export function borrowLtvWad(r: ResolvedMigration): bigint {
+  const collUsdWad = (r.collateralWei * r.membranePriceWad) / 10n ** BigInt(r.collateralDecimals)
+  return collUsdWad === 0n ? maxUint256 : (r.borrowCdt * WAD) / collUsdWad
+}
+
+async function readMaxLtv(client: PublicClient, cfg: MigrateChainConfig, denom: `0x${string}`): Promise<bigint> {
+  const collateral = await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'collateral' })
+  return client.readContract({ address: collateral, abi: collateralLtvAbi, functionName: 'currentMaxLTV', args: [denom] })
+}
+
 export async function resolveMigration(
   client: PublicClient,
   cfg: MigrateChainConfig,
@@ -200,12 +225,13 @@ export async function resolveMigration(
   if (!cfg.pairedAsset || cfg.pairedAsset.toLowerCase() !== debtToken.toLowerCase()) {
     return { error: `${debtSym} is not the peg asset on ${cfg.label}.` }
   }
-  const [block, debtDecimals, collateralDecimals, operatorGranted, oracle] = await Promise.all([
+  const [block, debtDecimals, collateralDecimals, operatorGranted, oracle, maxLtvOnchainWad] = await Promise.all([
     client.getBlock(),
     client.readContract({ address: debtToken, abi: permitTokenAbi, functionName: 'decimals' }),
     client.readContract({ address: collateralToken, abi: permitTokenAbi, functionName: 'decimals' }),
     client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionOperator', args: [owner, cfg.membraneAdapter!] }),
     client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'oracle' }),
+    readMaxLtv(client, cfg, denom),
   ])
   const [membranePriceWad] = await client.readContract({ address: oracle, abi: membraneOracleAbi, functionName: 'getPrice', args: [denom] })
 
@@ -246,7 +272,8 @@ export async function resolveMigration(
   if (debtWei === 0n) return { error: `No ${debtSym} debt for this wallet on ${venue} on ${cfg.label}.` }
   if (collateralWei === 0n) return { error: `No ${collSym} collateral for this wallet on ${venue} on ${cfg.label}.` }
 
-  const flashAmount = flashAmountFor(debtWei, FLASH_BUFFER_BPS)
+  const flashAmount = flashAmountFor(debtWei, ACCRUAL_BUFFER_BPS)
+  const capWad = maxLtvOnchainWad > BORROW_LTV_GAP_WAD + LTV_MARGIN_WAD ? maxLtvOnchainWad - BORROW_LTV_GAP_WAD - LTV_MARGIN_WAD : 0n
   return {
     venue,
     owner,
@@ -257,9 +284,11 @@ export async function resolveMigration(
     debtWei,
     collateralWei,
     flashAmount,
-    maxBorrowCdt: maxBorrowCdtFor(flashAmount, Number(debtDecimals)),
+    borrowCdt: borrowCdtFor(flashAmount, Number(debtDecimals)),
+    maxLtvWad: capWad,
+    maxLtvOnchainWad,
     venueToken,
-    venueTokenAmount: venueToken ? flashAmountFor(collateralWei, FLASH_BUFFER_BPS) : 0n,
+    venueTokenAmount: venueToken ? collateralWei : 0n,
     morphoParams,
     operatorGranted,
     morphoAuthorized,
@@ -277,7 +306,7 @@ export function bundleFor(
   r: ResolvedMigration,
   sigs: { venuePermit: SignedPermit | null; proceedsPermit: SignedPermit | null; morphoAuth: SignedMorphoAuthorization | null },
 ): BundlerCall[] {
-  const membrane = { membraneAdapter: cfg.membraneAdapter!, positionId: 0n, denom: r.denom, maxBorrowCdt: r.maxBorrowCdt }
+  const membrane = { membraneAdapter: cfg.membraneAdapter!, denom: r.denom, borrowCdt: r.borrowCdt, maxLtvWad: r.maxLtvWad }
   if (r.venue === 'morpho-blue') {
     return buildMorphoBundle({
       generalAdapter1: cfg.generalAdapter1!,
@@ -299,6 +328,7 @@ export function bundleFor(
     collateralToken: r.collateralToken,
     aToken: r.venueToken!,
     flashAmount: r.flashAmount,
+    aTokenAmount: r.venueTokenAmount,
     membrane,
     aTokenPermit: sigs.venuePermit,
     proceedsPermit: sigs.proceedsPermit,
@@ -307,11 +337,17 @@ export function bundleFor(
 
 // ------------------------------------------------------------------ simulation
 
+export interface StepGas {
+  id: string
+  label: string
+  gas: bigint
+}
+
 export type SimResult =
-  | { ok: true; gas: bigint; bufferedGas: bigint; method: 'eth_simulateV1' }
+  | { ok: true; steps: StepGas[]; bufferedGas: bigint; method: 'eth_simulateV1' }
   | { ok: false; step: number; reason: string }
 
-type SimCall = { to: Address; abi: readonly unknown[]; functionName: string; args: readonly unknown[] }
+type SimCall = { to: Address; abi: readonly unknown[]; functionName: string; args: readonly unknown[]; id?: string; label?: string }
 
 /** Every custom error the bundle can surface: Cdp's and the adapter's. */
 const ERROR_ABI = [...cdpAbi, ...membraneBundlerAdapterAbi].filter((e) => e.type === 'error')
@@ -333,27 +369,54 @@ function reasonOf(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 
+/** eth_simulateV1 of `calls` in order from `owner`. Gas is reported per labelled call (+5% each);
+ *  unlabelled calls (approves standing in for permits) run but are not reported. */
 async function simulate(client: PublicClient, owner: Address, calls: SimCall[]): Promise<SimResult> {
   try {
-    const { results } = await simulateCalls(client, { account: owner, calls } as Parameters<typeof simulateCalls>[1])
+    const { results } = await simulateCalls(client, {
+      account: owner,
+      calls: calls.map(({ to, abi, functionName, args }) => ({ to, abi, functionName, args })),
+    } as Parameters<typeof simulateCalls>[1])
     const failed = results.findIndex((r) => r.status !== 'success')
     if (failed >= 0) {
       const f = results[failed]
       return { ok: false, step: failed, reason: decodeRevert(f.data) ?? reasonOf(f.error) }
     }
-    const gas = results.reduce((a, r) => a + r.gasUsed, 0n)
-    return { ok: true, gas, bufferedGas: (gas * GAS_BUFFER_PCT) / 100n, method: 'eth_simulateV1' }
+    const steps: StepGas[] = []
+    results.forEach((r, i) => {
+      const c = calls[i]
+      if (c.id && c.label) steps.push({ id: c.id, label: c.label, gas: (r.gasUsed * GAS_BUFFER_PCT) / 100n })
+    })
+    return { ok: true, steps, bufferedGas: steps.reduce((a, x) => a + x.gas, 0n), method: 'eth_simulateV1' }
   } catch (err) {
     return { ok: false, step: -1, reason: `simulation unavailable: ${reasonOf(err)}` }
   }
 }
 
-/** The pre-signature simulation: approves stand in for the permits. */
+const operatorCall = (cfg: MigrateChainConfig, approved: boolean): SimCall => ({
+  to: cfg.cdp!,
+  abi: cdpOperatorAbi,
+  functionName: 'setPositionOperator',
+  args: [cfg.membraneAdapter!, approved],
+  id: approved ? 'operator' : 'revoke-operator',
+  label: approved ? 'operator grant' : 'revoke operator',
+})
+
+const bundleCall = (cfg: MigrateChainConfig, bundle: BundlerCall[]): SimCall => ({
+  to: cfg.bundler3!,
+  abi: bundler3Abi,
+  functionName: 'multicall',
+  args: [bundle],
+  id: 'bundle',
+  label: 'migrate',
+})
+
+/** The pre-signature simulation (review L-1): the operator grant runs as a PRIOR CALL inside the
+ *  same eth_simulateV1, and approves stand in for the permits — so nothing is sent or signed until
+ *  the whole path has simulated OK. */
 export function preSignCalls(cfg: MigrateChainConfig, r: ResolvedMigration): SimCall[] {
   const calls: SimCall[] = []
-  if (!r.operatorGranted) {
-    calls.push({ to: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'setPositionOperator', args: [cfg.membraneAdapter!, true] })
-  }
+  if (!r.operatorGranted) calls.push(operatorCall(cfg, true))
   if (r.venue === 'morpho-blue') {
     if (!r.morphoAuthorized) {
       calls.push({ to: cfg.morpho!, abi: setAuthorizationAbi, functionName: 'setAuthorization', args: [cfg.generalAdapter1!, true] })
@@ -362,7 +425,7 @@ export function preSignCalls(cfg: MigrateChainConfig, r: ResolvedMigration): Sim
     calls.push({ to: r.venueToken!, abi: permitTokenAbi, functionName: 'approve', args: [cfg.generalAdapter1!, r.venueTokenAmount] })
   }
   calls.push({ to: r.debtToken, abi: permitTokenAbi, functionName: 'approve', args: [cfg.membraneAdapter!, r.flashAmount] })
-  calls.push({ to: cfg.bundler3!, abi: bundler3Abi, functionName: 'multicall', args: [bundleFor(cfg, r, { venuePermit: null, proceedsPermit: null, morphoAuth: null })] })
+  calls.push(bundleCall(cfg, bundleFor(cfg, r, { venuePermit: null, proceedsPermit: null, morphoAuth: null })))
   return calls
 }
 
@@ -395,46 +458,81 @@ export interface RunResult {
   ok: boolean
   bundleHash: `0x${string}` | null
   reason?: string
+  /** Read after a settled migration (review L-2): the venue debt left, in debt-token wei. */
+  sourceDebtAfter?: bigint
+}
+
+async function send(
+  client: PublicClient,
+  wallet: WalletClient,
+  owner: Address,
+  c: SimCall,
+  emit: (e: RunEvent) => void,
+): Promise<{ hash: `0x${string}`; ok: boolean }> {
+  const hash = await wallet.writeContract({
+    account: owner,
+    chain: wallet.chain,
+    address: c.to,
+    abi: c.abi as typeof cdpOperatorAbi,
+    functionName: c.functionName as 'setPositionOperator',
+    args: c.args as never,
+  })
+  emit({ kind: 'submitted', id: c.id ?? c.functionName, hash })
+  const rc = await client.waitForTransactionReceipt({ hash })
+  emit({ kind: 'mined', id: c.id ?? c.functionName, hash, status: rc.status })
+  return { hash, ok: rc.status === 'success' }
+}
+
+/** The venue debt left for `r.owner` (0 after a full repay). */
+export async function readSourceDebt(client: PublicClient, cfg: MigrateChainConfig, r: ResolvedMigration): Promise<bigint> {
+  const fresh = await resolveMigrationDebtOnly(client, cfg, r)
+  return fresh
+}
+
+async function resolveMigrationDebtOnly(client: PublicClient, cfg: MigrateChainConfig, r: ResolvedMigration): Promise<bigint> {
+  if (r.venue === 'morpho-blue') {
+    const [, borrowShares] = await client.readContract({ address: cfg.morpho!, abi: morphoAbi, functionName: 'position', args: [morphoMarketId(r.morphoParams!), r.owner] })
+    return borrowShares
+  }
+  const pool = (r.venue === 'aave-v3' ? cfg.aavePool : cfg.sparkPool)!
+  const d = await client.readContract({ address: pool, abi: aaveReserveAbi, functionName: 'getReserveData', args: [r.debtToken] })
+  return client.readContract({ address: d.variableDebtTokenAddress, abi: permitTokenAbi, functionName: 'balanceOf', args: [r.owner] })
 }
 
 /**
- * Prompts, in order: operator grant (skipped when standing), venue permit or Morpho authorization
- * (skipped when standing), proceeds permit, then — after a re-simulation of the exact bundle —
- * the bundle transaction.
+ * Prompts, in order (review L-1 / item 3):
+ *   0. a FRESH read of the venue and Membrane's price; the open cap is re-checked here
+ *   1. venue permit or Morpho authorization (typed data; skipped when standing)
+ *   2. proceeds permit (typed data, exact)
+ *   3. eth_simulateV1 of [operator grant (when not standing), the exact signed bundle]
+ *   4. operator grant (tx; skipped when standing) — only after step 3 passed
+ *   5. the bundle (tx)
+ * Then the venue debt is read again (L-2).
  */
 export async function runMigration(p: {
   client: PublicClient
   wallet: WalletClient
   cfg: MigrateChainConfig
+  source: MigrateSource
   r: ResolvedMigration
   onEvent?: (e: RunEvent) => void
 }): Promise<RunResult> {
-  const { client, wallet, cfg, r } = p
+  const { client, wallet, cfg } = p
   const emit = p.onEvent ?? (() => {})
+  const fresh = await resolveMigration(client, cfg, p.source, p.r.venue, p.r.owner)
+  if ('error' in fresh) return { ok: false, bundleHash: null, reason: fresh.error }
+  const r = fresh
+  if (borrowLtvWad(r) > r.maxLtvWad) {
+    return { ok: false, bundleHash: null, reason: `LtvAboveCap(${borrowLtvWad(r)}, ${r.maxLtvWad}) — the price or the debt moved since the plan; re-open the sheet` }
+  }
   const steps = [
-    !r.operatorGranted && 'operator',
     r.venue === 'morpho-blue' ? !r.morphoAuthorized && 'morpho-auth' : 'atoken-permit',
     'proceeds-permit',
+    !r.operatorGranted && 'operator',
     'bundle',
   ].filter(Boolean) as string[]
   let i = 0
   const prompt = (id: string) => emit({ kind: 'prompt', id, index: ++i, total: steps.length })
-
-  if (!r.operatorGranted) {
-    prompt('operator')
-    const hash = await wallet.writeContract({
-      account: r.owner,
-      chain: wallet.chain,
-      address: cfg.cdp!,
-      abi: cdpOperatorAbi,
-      functionName: 'setPositionOperator',
-      args: [cfg.membraneAdapter!, true],
-    })
-    emit({ kind: 'submitted', id: 'operator', hash })
-    const rc = await client.waitForTransactionReceipt({ hash })
-    emit({ kind: 'mined', id: 'operator', hash, status: rc.status })
-    if (rc.status !== 'success') return { ok: false, bundleHash: null, reason: 'the operator grant reverted' }
-  }
 
   const now = (await client.getBlock()).timestamp
   let venuePermit: SignedPermit | null = null
@@ -452,23 +550,49 @@ export async function runMigration(p: {
   const proceedsPermit = await signPermitExact({ client, wallet, token: r.debtToken, owner: r.owner, spender: cfg.membraneAdapter!, value: r.flashAmount, now })
 
   const bundle = bundleFor(cfg, r, { venuePermit, proceedsPermit, morphoAuth })
-  const sim = await simulate(client, r.owner, [{ to: cfg.bundler3!, abi: bundler3Abi, functionName: 'multicall', args: [bundle] }])
+  const simCalls = [...(r.operatorGranted ? [] : [operatorCall(cfg, true)]), bundleCall(cfg, bundle)]
+  const sim = await simulate(client, r.owner, simCalls)
   emit({ kind: 'simulated', result: sim })
   if (!sim.ok) return { ok: false, bundleHash: null, reason: sim.reason }
 
+  if (!r.operatorGranted) {
+    prompt('operator')
+    const g = await send(client, wallet, r.owner, operatorCall(cfg, true), emit)
+    if (!g.ok) return { ok: false, bundleHash: null, reason: 'the operator grant reverted' }
+  }
   prompt('bundle')
-  const hash = await wallet.writeContract({
-    account: r.owner,
-    chain: wallet.chain,
-    address: cfg.bundler3!,
-    abi: bundler3Abi,
-    functionName: 'multicall',
-    args: [bundle],
-  })
-  emit({ kind: 'submitted', id: 'bundle', hash })
-  const rc = await client.waitForTransactionReceipt({ hash })
-  emit({ kind: 'mined', id: 'bundle', hash, status: rc.status })
-  return rc.status === 'success' ? { ok: true, bundleHash: hash } : { ok: false, bundleHash: hash, reason: 'the bundle reverted on-chain' }
+  const b = await send(client, wallet, r.owner, bundleCall(cfg, bundle), emit)
+  if (!b.ok) return { ok: false, bundleHash: b.hash, reason: 'the bundle reverted on-chain' }
+  const sourceDebtAfter = await readSourceDebt(client, cfg, r)
+  return { ok: true, bundleHash: b.hash, sourceDebtAfter }
+}
+
+/** OPTIONAL after a settled migration: revoke the standing grants (one tx each). */
+export async function runRevoke(p: {
+  client: PublicClient
+  wallet: WalletClient
+  cfg: MigrateChainConfig
+  owner: Address
+  venue: MigrateVenue
+  onEvent?: (e: RunEvent) => void
+}): Promise<RunResult> {
+  const { client, wallet, cfg, owner } = p
+  const emit = p.onEvent ?? (() => {})
+  const calls: SimCall[] = []
+  if (await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionOperator', args: [owner, cfg.membraneAdapter!] })) {
+    calls.push(operatorCall(cfg, false))
+  }
+  if (p.venue === 'morpho-blue' && (await client.readContract({ address: cfg.morpho!, abi: morphoAbi, functionName: 'isAuthorized', args: [owner, cfg.generalAdapter1!] }))) {
+    calls.push({ to: cfg.morpho!, abi: setAuthorizationAbi, functionName: 'setAuthorization', args: [cfg.generalAdapter1!, false], id: 'revoke-morpho', label: 'revoke Morpho' })
+  }
+  let last: `0x${string}` | null = null
+  for (let i = 0; i < calls.length; i++) {
+    emit({ kind: 'prompt', id: calls[i].id!, index: i + 1, total: calls.length })
+    const r = await send(client, wallet, owner, calls[i], emit)
+    last = r.hash
+    if (!r.ok) return { ok: false, bundleHash: r.hash, reason: `${calls[i].id} reverted` }
+  }
+  return { ok: true, bundleHash: last }
 }
 
 // ------------------------------------------------------------------ deploy fresh (Cdp direct)
@@ -485,6 +609,7 @@ export interface ResolvedDeploy {
   borrowCdt: bigint
   allowance: bigint
   membranePriceWad: bigint
+  maxLtvOnchainWad: bigint
   blockNumber: bigint
 }
 
@@ -510,7 +635,14 @@ export async function resolveDeploy(
     client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'oracle' }),
     client.getBlock(),
   ])
-  const [membranePriceWad] = await client.readContract({ address: oracle, abi: membraneOracleAbi, functionName: 'getPrice', args: [denom] })
+  const [[membranePriceWad], maxLtvOnchainWad] = await Promise.all([
+    client.readContract({ address: oracle, abi: membraneOracleAbi, functionName: 'getPrice', args: [denom] }),
+    readMaxLtv(client, cfg, denom),
+  ])
+  // the Cdp gates only on max LTV (review H-1): cap the fresh borrow at max − 3pp − margin, on-chain
+  const openCapWad = maxLtvOnchainWad > BORROW_LTV_GAP_WAD + LTV_MARGIN_WAD ? maxLtvOnchainWad - BORROW_LTV_GAP_WAD - LTV_MARGIN_WAD : 0n
+  const targetWad = BigInt(Math.floor(targetLtv * 1e4)) * 10n ** 14n
+  const ltvWad = targetWad < openCapWad ? targetWad : openCapWad
   const scale = 10n ** BigInt(decimals)
   // the replay amount in wei, from its human amount (micro-unit precision is enough to prefill)
   const prefillWei = (BigInt(Math.round(c0.amount * 1e6)) * scale) / 1_000_000n
@@ -518,17 +650,21 @@ export async function resolveDeploy(
   if (depositWei === 0n) return { error: `This wallet holds no ${c0.symbol} on ${cfg.label}.` }
   const depositUsdWad = (depositWei * membranePriceWad) / scale
   // floor to whole bps of LTV and whole CDT so the borrow never rounds above the target
-  const borrowCdt = ((depositUsdWad * BigInt(Math.floor(targetLtv * 10_000))) / 10_000n / 10n ** 18n) * 10n ** 18n
-  return { owner, collateralToken: token, collateralDecimals: Number(decimals), denom, prefillWei, walletWei, depositWei, borrowCdt, allowance, membranePriceWad, blockNumber: block.number }
+  const borrowCdt = ((depositUsdWad * ltvWad) / WAD / WAD) * WAD
+  return { owner, collateralToken: token, collateralDecimals: Number(decimals), denom, prefillWei, walletWei, depositWei, borrowCdt, allowance, membranePriceWad, maxLtvOnchainWad, blockNumber: block.number }
 }
 
 const depositEventAbi = parseAbi(['event Deposit(address indexed owner, uint256 indexed positionId, bytes32 asset, uint256 amount)'])
 
 export function deployCalls(cfg: MigrateChainConfig, d: ResolvedDeploy, nextPositionId: bigint): SimCall[] {
   const calls: SimCall[] = []
-  if (d.allowance < d.depositWei) calls.push({ to: d.collateralToken, abi: permitTokenAbi, functionName: 'approve', args: [cfg.cdp!, d.depositWei] })
-  calls.push({ to: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'deposit', args: [0n, d.owner, [{ denom: d.denom, amount: d.depositWei }]] })
-  if (d.borrowCdt > 0n) calls.push({ to: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'increaseDebt', args: [nextPositionId, d.denom, d.borrowCdt] })
+  if (d.allowance < d.depositWei) {
+    calls.push({ to: d.collateralToken, abi: permitTokenAbi, functionName: 'approve', args: [cfg.cdp!, d.depositWei], id: 'approve', label: 'approve' })
+  }
+  calls.push({ to: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'deposit', args: [0n, d.owner, [{ denom: d.denom, amount: d.depositWei }]], id: 'deposit', label: 'deposit' })
+  if (d.borrowCdt > 0n) {
+    calls.push({ to: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'increaseDebt', args: [nextPositionId, d.denom, d.borrowCdt], id: 'borrow', label: 'borrow' })
+  }
   return calls
 }
 

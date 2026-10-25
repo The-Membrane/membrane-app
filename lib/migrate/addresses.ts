@@ -113,7 +113,10 @@ function fromLocal(j: Partial<LocalJson>): MigrateChainConfig | null {
 }
 
 const REGISTRY: Record<number, MigrateChainConfig> = { 1: MAINNET }
-const local = fromLocal(localDeployment as Partial<LocalJson>)
+/** Review L-5: the local anvil stack is dev/test only. A production build leaves it out unless
+ *  NEXT_PUBLIC_MIGRATE_LOCAL=1 is set explicitly. */
+const LOCAL_ENABLED = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_MIGRATE_LOCAL === '1'
+const local = LOCAL_ENABLED ? fromLocal(localDeployment as Partial<LocalJson>) : null
 if (local) REGISTRY[31337] = local
 
 export function migrateConfig(chainId: number | undefined): MigrateChainConfig | null {

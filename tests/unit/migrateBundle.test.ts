@@ -11,7 +11,7 @@ import {
   buildAaveBundle,
   buildMorphoBundle,
   flashAmountFor,
-  maxBorrowCdtFor,
+  borrowCdtFor,
   type BundlerCall,
 } from '@/lib/migrate/bundle'
 import { matchPermitDomain } from '@/lib/migrate/permit'
@@ -45,7 +45,7 @@ function inner(flash: BundlerCall): readonly BundlerCall[] {
 }
 
 describe('buildAaveBundle', () => {
-  const flash = flashAmountFor(12_000_000_000n, 10)
+  const flash = flashAmountFor(12_000_000_000n, 2)
   const b = buildAaveBundle({
     generalAdapter1: GA1,
     aaveAdapter: AAVE_AD,
@@ -54,13 +54,17 @@ describe('buildAaveBundle', () => {
     collateralToken: WETH,
     aToken: AWETH,
     flashAmount: flash,
-    membrane: { membraneAdapter: M_AD, positionId: 0n, denom: DENOM, maxBorrowCdt: maxBorrowCdtFor(flash, 6) },
+    aTokenAmount: 10n,
+    membrane: { membraneAdapter: M_AD, denom: DENOM, borrowCdt: borrowCdtFor(flash, 6), maxLtvWad: 765n * 10n ** 15n },
     aTokenPermit: permit(AWETH, GA1, 10n),
     proceedsPermit: permit(USDC, M_AD, flash),
   })
 
-  it('outer: two skipRevert permits, then the flash loan', () => {
-    expect(b).toHaveLength(3)
+  it('outer: two skipRevert permits, the flash loan, then the sweep of the unspent buffer', () => {
+    expect(b).toHaveLength(4)
+    const sw = decodeFunctionData({ abi: generalAdapter1Abi, data: b[3].data })
+    expect(b[3].to).toBe(GA1)
+    expect(sw).toMatchObject({ functionName: 'erc20Transfer', args: [USDC, OWNER, maxUint256] })
     expect(b[0]).toMatchObject({ to: AWETH, skipRevert: true, callbackHash: ZERO_HASH })
     expect(b[1]).toMatchObject({ to: USDC, skipRevert: true })
     const p = decodeFunctionData({ abi: permitTokenAbi, data: b[1].data })
@@ -81,9 +85,10 @@ describe('buildAaveBundle', () => {
     expect(d[0]).toMatchObject({ functionName: 'erc20Transfer', args: [USDC, AAVE_AD, maxUint256] })
     expect(d[1]).toMatchObject({ functionName: 'aaveV3Repay', args: [USDC, maxUint256, 2n, OWNER] })
     expect(d[2]).toMatchObject({ functionName: 'erc20Transfer', args: [USDC, GA1, maxUint256] })
-    expect(d[3]).toMatchObject({ functionName: 'erc20TransferFrom', args: [AWETH, AAVE_AD, maxUint256] })
+    expect(d[3]).toMatchObject({ functionName: 'erc20TransferFrom', args: [AWETH, AAVE_AD, 10n] }) // exactly the permitted aTokens
     expect(d[4]).toMatchObject({ functionName: 'aaveV3Withdraw', args: [WETH, maxUint256, M_AD] })
-    expect(d[5]).toMatchObject({ functionName: 'depositAndBorrowFor', args: [0n, DENOM, flash * 10n ** 12n, USDC, GA1, flash] })
+    // new position only (no id), exact borrow, LTV cap; the payout goes to the adapter's immutable GA1
+    expect(d[5]).toMatchObject({ functionName: 'depositAndBorrowFor', args: [DENOM, flash * 10n ** 12n, USDC, 765n * 10n ** 15n] })
   })
 })
 
@@ -96,12 +101,12 @@ describe('buildMorphoBundle', () => {
     params,
     flashAmount: 100n,
     maxSharePriceE27: maxUint256,
-    membrane: { membraneAdapter: M_AD, positionId: 0n, denom: DENOM, maxBorrowCdt: 100n },
+    membrane: { membraneAdapter: M_AD, denom: DENOM, borrowCdt: 100n * 10n ** 12n, maxLtvWad: 765n * 10n ** 15n },
     authorization: { authorizer: OWNER, authorized: GA1, isAuthorized: true, nonce: 0n, deadline: 99n, ...sig },
     proceedsPermit: null,
   })
-  it('authorization first (skipRevert), then the flash loan', () => {
-    expect(b).toHaveLength(2)
+  it('authorization first (skipRevert), the flash loan, then the sweep', () => {
+    expect(b).toHaveLength(3)
     expect(b[0]).toMatchObject({ to: MORPHO, skipRevert: true })
     expect(decodeFunctionData({ abi: morphoAbi, data: b[0].data }).functionName).toBe('setAuthorizationWithSig')
   })
@@ -118,13 +123,13 @@ describe('buildMorphoBundle', () => {
 })
 
 describe('amounts', () => {
-  it('flash = debt × (1 + 10 bps), rounded up', () => {
-    expect(flashAmountFor(10_000n, 10)).toBe(10_010n)
-    expect(flashAmountFor(1n, 10)).toBe(2n)
+  it('proceeds = debt × (1 + 2 bps), rounded up', () => {
+    expect(flashAmountFor(10_000n, 2)).toBe(10_002n)
+    expect(flashAmountFor(1n, 2)).toBe(2n)
   })
-  it('CDT cap scales 6-decimal debt to 18', () => {
-    expect(maxBorrowCdtFor(1_000_000n, 6)).toBe(10n ** 18n)
-    expect(maxBorrowCdtFor(5n, 18)).toBe(5n)
+  it('the borrow scales 6-decimal proceeds to 18', () => {
+    expect(borrowCdtFor(1_000_000n, 6)).toBe(10n ** 18n)
+    expect(borrowCdtFor(5n, 18)).toBe(5n)
   })
 })
 

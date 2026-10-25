@@ -5,18 +5,26 @@
  * GeneralAdapter1, AaveV3MigrationAdapter, Morpho Blue and Membrane's Cdp + Transmuter;
  * tests/unit/migrateBundle.test.ts decodes every call here back and checks each argument.
  *
+ *   P = the proceeds: the debt read at build time plus ACCRUAL_BUFFER_BPS. It is the flash amount,
+ *   the exact Membrane borrow (P × 10^(18 − decimals) CDT) and the exact proceeds permit, so the
+ *   permit is consumed to zero. What the venue did not need is swept back to the owner.
+ *
  *   outer   [permit/authorization calls (skipRevert: a front-run permit must not brick the
- *            bundle — the allowance is then already set)]  +  GA1.morphoFlashLoan(token, flash, inner)
+ *            bundle — the allowance is then already set)]
+ *           GA1.morphoFlashLoan(token, P, inner)
+ *           GA1.erc20Transfer(token → owner, max)                     the unspent buffer back
  *   inner   (run by Bundler3.reenter inside Morpho's callback; callbackHash = keccak256(inner))
  *     Aave/Spark  GA1.erc20Transfer(debt → aaveAdapter, max)
  *                 aaveAdapter.aaveV3Repay(debt, max, 2, owner)       repays min(balance, debt)
  *                 aaveAdapter.erc20Transfer(debt → GA1, max)          leftover back to the repayer
- *                 GA1.erc20TransferFrom(aToken → aaveAdapter, max)   the owner's whole aToken balance
+ *                 GA1.erc20TransferFrom(aToken → aaveAdapter, A)     EXACTLY the permitted aTokens
  *                 aaveAdapter.aaveV3Withdraw(collateral, max, membraneAdapter)
- *                 membraneAdapter.depositAndBorrowFor(0, denom, maxBorrowCdt, debt, GA1, flash)
+ *                 membraneAdapter.depositAndBorrowFor(denom, P·scale, debt, maxLtvWad)
  *     Morpho      GA1.morphoRepay(params, 0, max shares, maxSharePrice, owner, 0x)
  *                 GA1.morphoWithdrawCollateral(params, max, membraneAdapter)
  *                 membraneAdapter.depositAndBorrowFor(...)
+ *   The adapter pays the borrow back only to GeneralAdapter1 (immutable REPAY_TO) and only opens a
+ *   NEW position.
  */
 
 import { encodeAbiParameters, encodeFunctionData, keccak256, maxUint256, type Hex } from 'viem'
@@ -130,21 +138,26 @@ export function flashLoanCall(ga1: Address, token: Address, amount: bigint, inne
 
 export interface MembraneLeg {
   membraneAdapter: Address
-  /** 0n opens a new position. */
-  positionId: bigint
   denom: Hex
-  maxBorrowCdt: bigint
+  /** The exact new Membrane debt, CDT (18 decimals). */
+  borrowCdt: bigint
+  /** The owner's LTV cap (1e18), checked on-chain after the borrow at Membrane's prices. */
+  maxLtvWad: bigint
 }
 
-function membraneLegCall(m: MembraneLeg, debtToken: Address, ga1: Address, flash: bigint): BundlerCall {
+function membraneLegCall(m: MembraneLeg, debtToken: Address): BundlerCall {
   return call(
     m.membraneAdapter,
     encodeFunctionData({
       abi: membraneBundlerAdapterAbi,
       functionName: 'depositAndBorrowFor',
-      args: [m.positionId, m.denom, m.maxBorrowCdt, debtToken, ga1, flash],
+      args: [m.denom, m.borrowCdt, debtToken, m.maxLtvWad],
     }),
   )
+}
+
+function sweepCall(ga1: Address, token: Address, owner: Address): BundlerCall {
+  return call(ga1, encodeFunctionData({ abi: generalAdapter1Abi, functionName: 'erc20Transfer', args: [token, owner, maxUint256] }))
 }
 
 export interface AaveBundleInput {
@@ -154,7 +167,10 @@ export interface AaveBundleInput {
   debtToken: Address
   collateralToken: Address
   aToken: Address
+  /** P: flash amount = exact proceeds pulled back. */
   flashAmount: bigint
+  /** A: exactly the aTokens permitted and moved. */
+  aTokenAmount: bigint
   membrane: MembraneLeg
   aTokenPermit: SignedPermit | null
   proceedsPermit: SignedPermit | null
@@ -166,14 +182,15 @@ export function buildAaveBundle(i: AaveBundleInput): BundlerCall[] {
     call(ga, encodeFunctionData({ abi: generalAdapter1Abi, functionName: 'erc20Transfer', args: [i.debtToken, i.aaveAdapter, maxUint256] })),
     call(i.aaveAdapter, encodeFunctionData({ abi: aaveV3MigrationAdapterAbi, functionName: 'aaveV3Repay', args: [i.debtToken, maxUint256, AAVE_VARIABLE_RATE_MODE, i.owner] })),
     call(i.aaveAdapter, encodeFunctionData({ abi: aaveV3MigrationAdapterAbi, functionName: 'erc20Transfer', args: [i.debtToken, ga, maxUint256] })),
-    call(ga, encodeFunctionData({ abi: generalAdapter1Abi, functionName: 'erc20TransferFrom', args: [i.aToken, i.aaveAdapter, maxUint256] })),
+    call(ga, encodeFunctionData({ abi: generalAdapter1Abi, functionName: 'erc20TransferFrom', args: [i.aToken, i.aaveAdapter, i.aTokenAmount] })),
     call(i.aaveAdapter, encodeFunctionData({ abi: aaveV3MigrationAdapterAbi, functionName: 'aaveV3Withdraw', args: [i.collateralToken, maxUint256, i.membrane.membraneAdapter] })),
-    membraneLegCall(i.membrane, i.debtToken, ga, i.flashAmount),
+    membraneLegCall(i.membrane, i.debtToken),
   ]
   const outer: BundlerCall[] = []
   if (i.aTokenPermit) outer.push(permitCall(i.aTokenPermit))
   if (i.proceedsPermit) outer.push(permitCall(i.proceedsPermit))
   outer.push(flashLoanCall(ga, i.debtToken, i.flashAmount, inner))
+  outer.push(sweepCall(ga, i.debtToken, i.owner))
   return outer
 }
 
@@ -195,12 +212,13 @@ export function buildMorphoBundle(i: MorphoBundleInput): BundlerCall[] {
   const inner: BundlerCall[] = [
     call(ga, encodeFunctionData({ abi: generalAdapter1Abi, functionName: 'morphoRepay', args: [i.params, 0n, maxUint256, i.maxSharePriceE27, i.owner, '0x'] })),
     call(ga, encodeFunctionData({ abi: generalAdapter1Abi, functionName: 'morphoWithdrawCollateral', args: [i.params, maxUint256, i.membrane.membraneAdapter] })),
-    membraneLegCall(i.membrane, i.params.loanToken, ga, i.flashAmount),
+    membraneLegCall(i.membrane, i.params.loanToken),
   ]
   const outer: BundlerCall[] = []
   if (i.authorization) outer.push(morphoAuthorizationCall(i.morpho, i.authorization))
   if (i.proceedsPermit) outer.push(permitCall(i.proceedsPermit))
   outer.push(flashLoanCall(ga, i.params.loanToken, i.flashAmount, inner))
+  outer.push(sweepCall(ga, i.params.loanToken, i.owner))
   return outer
 }
 
@@ -210,8 +228,8 @@ export function flashAmountFor(debtWei: bigint, bufferBps: number): bigint {
   return (debtWei * (10_000n + b) + 9_999n) / 10_000n
 }
 
-/** CDT cap for the Membrane borrow: the flash amount in CDT units (CDT has 18 decimals). */
-export function maxBorrowCdtFor(flashWei: bigint, debtDecimals: number): bigint {
+/** The exact Membrane borrow: the proceeds in CDT units (CDT has 18 decimals). */
+export function borrowCdtFor(flashWei: bigint, debtDecimals: number): bigint {
   if (debtDecimals > 18) throw new Error(`debt decimals ${debtDecimals} > 18`)
   return flashWei * 10n ** BigInt(18 - debtDecimals)
 }

@@ -11,6 +11,9 @@ import {
   resolveMigration,
   runDeploy,
   runMigration,
+  runRevoke,
+  planOptsFor,
+  borrowLtvWad,
   simulateDeploy,
   simulatePreSign,
   type ResolvedDeploy,
@@ -35,7 +38,7 @@ export type Phase =
   | { k: 'sim-failed'; reason: string }
   | { k: 'signing'; id: string; index: number; total: number }
   | { k: 'submitted'; hash: `0x${string}`; id: string }
-  | { k: 'settled'; hash: `0x${string}` }
+  | { k: 'settled'; hash: `0x${string}`; note?: string; revoke?: 'idle' | 'running' | 'done' | 'failed' }
   | { k: 'failed'; reason: string; hash: `0x${string}` | null }
 
 /** Plain language for the custom errors a bundle can surface; the raw name stays in brackets. */
@@ -79,6 +82,7 @@ export interface MigrateFlow {
   readOnChain: { block: bigint; chainLabel: string } | null
   phase: Phase
   start: () => void
+  revoke: () => void
   /** Prompts the run will actually ask for, given the standing grants read on-chain. */
   promptIds: string[] | null
   addresses: { label: string; address: string }[]
@@ -120,7 +124,7 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
           if (cancelled) return
           if ('error' in r) return setPhase({ k: 'blocked', reason: r.error })
           resolved.current = r
-          const p = buildMigrationPlan(onchainSource(position, r, cfg.label))
+          const p = buildMigrationPlan(onchainSource(position, r, cfg.label), planOptsFor(r))
           setPlan(p)
           setReadOnChain({ block: r.blockNumber, chainLabel: cfg.label })
           setPromptIds(
@@ -128,13 +132,16 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
               .filter((s) => !(s.id === 'operator' && r.operatorGranted) && !(s.id === 'morpho-auth' && r.morphoAuthorized))
               .map((s) => s.id),
           )
+          if (!p.trim && borrowLtvWad(r) > r.maxLtvWad) {
+            return setPhase({ k: 'trim', reason: `The borrow would open at ${(Number(borrowLtvWad(r)) / 1e16).toFixed(2)}%, over the ${(Number(r.maxLtvWad) / 1e16).toFixed(2)}% cap checked on-chain. Repay a little on the venue first.` })
+          }
           if (p.trim) return setPhase({ k: 'trim', reason: p.trim.reason })
           if (env.holdBeforeSimulate) return setPhase({ k: 'ready' })
           setPhase({ k: 'simulating' })
           const sim = await simulatePreSign(client, cfg, r)
           if (cancelled) return
           if (!sim.ok) return setPhase({ k: 'sim-failed', reason: explainRevert(sim.reason) })
-          setPlan(buildMigrationPlan(onchainSource(position, r, cfg.label), { gasUnits: sim.bufferedGas }))
+          setPlan(buildMigrationPlan(onchainSource(position, r, cfg.label), { ...planOptsFor(r), gasSteps: sim.steps }))
           setPhase({ k: 'simulated', gas: sim.bufferedGas })
         } else {
           const d = await resolveDeploy(client, cfg, position, owner, basePlan.membrane.ltv)
@@ -142,7 +149,7 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
           if ('error' in d) return setPhase({ k: 'blocked', reason: d.error })
           resolved.current = d
           const deployed = deploySource(position, d)
-          setPlan(buildDeployPlan(deployed))
+          setPlan(buildDeployPlan(deployed, { onchainMaxLtv: Number(d.maxLtvOnchainWad) / 1e18 }))
           setReadOnChain({ block: d.blockNumber, chainLabel: cfg.label })
           setPromptIds([...(d.allowance < d.depositWei ? ['approve'] : []), 'deposit', 'borrow'])
           if (env.holdBeforeSimulate) return setPhase({ k: 'ready' })
@@ -150,7 +157,7 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
           const sim = await simulateDeploy(client, cfg, d)
           if (cancelled) return
           if (!sim.ok) return setPhase({ k: 'sim-failed', reason: explainRevert(sim.reason) })
-          setPlan(buildDeployPlan(deployed, { gasUnits: sim.bufferedGas }))
+          setPlan(buildDeployPlan(deployed, { onchainMaxLtv: Number(d.maxLtvOnchainWad) / 1e18, gasSteps: sim.steps }))
           setPhase({ k: 'simulated', gas: sim.bufferedGas })
         }
       } catch (err) {
@@ -171,20 +178,41 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
     }
     const go =
       kind === 'migrate'
-        ? runMigration({ client: env.publicClient, wallet: env.walletClient, cfg, r: resolved.current as ResolvedMigration, onEvent })
+        ? runMigration({ client: env.publicClient, wallet: env.walletClient, cfg, source: position, r: resolved.current as ResolvedMigration, onEvent })
         : runDeploy({ client: env.publicClient, wallet: env.walletClient, cfg, d: resolved.current as ResolvedDeploy, onEvent })
     go.then(
       (res) =>
         setPhase(
           res.ok && res.bundleHash
-            ? { k: 'settled', hash: res.bundleHash }
+            ? {
+                k: 'settled',
+                hash: res.bundleHash,
+                revoke: kind === 'migrate' ? 'idle' : undefined,
+                note:
+                  res.sourceDebtAfter !== undefined && res.sourceDebtAfter > 0n
+                    ? `The venue still shows ${res.sourceDebtAfter.toString()} base units of debt (dust). Repay it on the venue.`
+                    : kind === 'migrate'
+                      ? 'The venue debt reads 0 after the repay.'
+                      : undefined,
+              }
             : { k: 'failed', reason: explainRevert(res.reason ?? 'failed'), hash: res.bundleHash },
         ),
       (err) => setPhase({ k: 'failed', reason: explainRevert(err instanceof Error ? (err as { shortMessage?: string }).shortMessage ?? err.message : String(err)), hash: null }),
     ).finally(() => {
       running.current = false
     })
-  }, [phase.k, cfg, env.publicClient, env.walletClient, kind])
+  }, [phase.k, cfg, env.publicClient, env.walletClient, kind, position])
+
+  /** OPTIONAL after settle: revoke the standing grants (not counted in the prompts). */
+  const revoke = useCallback(() => {
+    if (phase.k !== 'settled' || phase.revoke !== 'idle' || !cfg || !env.publicClient || !env.walletClient || !env.address) return
+    const venue = basePlan.venue ?? 'aave-v3'
+    setPhase({ ...phase, revoke: 'running' })
+    runRevoke({ client: env.publicClient, wallet: env.walletClient, cfg, owner: env.address, venue }).then(
+      (r) => setPhase({ ...phase, revoke: r.ok ? 'done' : 'failed' }),
+      () => setPhase({ ...phase, revoke: 'failed' }),
+    )
+  }, [phase, cfg, env.publicClient, env.walletClient, env.address, basePlan.venue])
 
   useEffect(() => {
     if (env.autoStart && phase.k === 'simulated') start()
@@ -205,7 +233,11 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
     return rows.map((r) => ({ label: r.label, address: r.address ?? 'not deployed' }))
   }, [cfg, kind])
 
-  return { env, plan, readOnChain, phase, start, promptIds, addresses }
+  useEffect(() => {
+    if (env.autoRevoke && phase.k === 'settled' && phase.revoke === 'idle') revoke()
+  }, [env.autoRevoke, phase, revoke])
+
+  return { env, plan, readOnChain, phase, start, revoke, promptIds, addresses }
 }
 
 /** The deploy prefill as it will land: the deposit (capped at the wallet) at Membrane's price. */

@@ -21,6 +21,8 @@ export interface MigrateEnv {
   holdBeforeSimulate?: boolean
   /** Dev harness: press the primary button as soon as the simulation passes. */
   autoStart?: boolean
+  /** Dev harness: press the optional revoke once settled. */
+  autoRevoke?: boolean
 }
 
 const HarnessContext = createContext<MigrateEnv | null>(null)

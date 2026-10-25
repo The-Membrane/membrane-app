@@ -63,6 +63,7 @@ export const cdpOperatorAbi = parseAbi([
   'function userPositionIds(address owner, uint256 index) view returns (uint256)',
   'function positionDebt(uint256 positionId) view returns (uint256)',
   'function oracle() view returns (address)',
+  'function collateral() view returns (address)',
   'function currentPositionId() view returns (uint256)',
   'struct Fund { bytes32 denom; uint256 amount; }',
   'function deposit(uint256 positionId, address positionOwner, Fund[] funds) returns (uint256)',
@@ -73,3 +74,6 @@ export const cdpOperatorAbi = parseAbi([
 export const membraneOracleAbi = parseAbi([
   'function getPrice(bytes32 asset) view returns (uint256 price, uint256 timestamp)',
 ])
+
+/** Collateral.currentMaxLTV — the live (glided) max LTV the Cdp gates on, 1e18. */
+export const collateralLtvAbi = parseAbi(['function currentMaxLTV(bytes32 asset) view returns (uint256)'])

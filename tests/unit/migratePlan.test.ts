@@ -7,9 +7,12 @@ import { demoBorrowerPosition } from '@/lib/position-sim/demoBorrower'
 import { membraneBorrowLtv, membraneMaxLtv } from '@/lib/position-sim/membrane'
 import { stamp } from '@/lib/position-sim/types'
 import {
-  FLASH_BUFFER_BPS,
+  ACCRUAL_BUFFER_BPS,
+  LTV_MARGIN,
   buildDeployPlan,
   buildMigrationPlan,
+  openCap,
+  revokeSteps,
   signatureSteps,
   trimFor,
 } from '@/lib/migrate/plan'
@@ -46,39 +49,72 @@ describe('buildMigrationPlan — ready', () => {
     expect(plan.venue).toBe('aave-v3')
     expect(plan.blocked).toBeNull()
     expect(plan.trim).toBeNull()
-    expect(plan.membrane.ltv).toBeCloseTo(src.totalDebtUsd / src.totalCollateralUsd, 12)
+    const borrowed = (src.totalDebtUsd * (10_000 + ACCRUAL_BUFFER_BPS)) / 10_000
+    expect(plan.membrane.ltv).toBeCloseTo(borrowed / src.totalCollateralUsd, 12)
+    expect(plan.membrane.debtUsd).toBeCloseTo(borrowed, 6)
     expect(plan.membrane.borrowLtv).toBeCloseTo(WETH_BORROW, 12)
     expect(plan.fees.flashFeeUsd).toBe(0)
     expect(plan.repay).toEqual([{ symbol: 'USDC', amount: src.debt[0].amount, valueUsd: src.debt[0].valueUsd }])
     expect(plan.move[0]).toMatchObject({ symbol: 'WETH', amount: src.collateral[0].amount })
     const keys = plan.rows.map((r) => r.key)
     expect(keys).toEqual(['repay-USDC', 'move-WETH', 'ltv', 'borrow', 'flash-fee', 'gas'])
-    expect(plan.rows.find((r) => r.key === 'ltv')!.value).toBe('68.4%')
+    expect(plan.rows.find((r) => r.key === 'ltv')!.value).toBe('68.5%')
+    expect(plan.rows.find((r) => r.key === 'ltv')!.detail).toContain('opens at most 76.5%')
     expect(plan.rows.find((r) => r.key === 'gas')!.value).toBe('after simulation')
-    expect(plan.rows.find((r) => r.key === 'repay-USDC')!.detail).toContain(`${FLASH_BUFFER_BPS} bps`)
+    expect(plan.rows.find((r) => r.key === 'repay-USDC')!.detail).toContain(`${ACCRUAL_BUFFER_BPS} bps`)
   })
 
-  it('gas appears once simulated', () => {
-    const plan = buildMigrationPlan(position(), { gasUnits: 1_234_567n })
-    expect(plan.rows.find((r) => r.key === 'gas')!.value).toBe('1,234,567 units')
+  it('gas appears per step once simulated', () => {
+    const plan = buildMigrationPlan(position(), {
+      gasSteps: [
+        { id: 'operator', label: 'operator grant', gas: 50_000n },
+        { id: 'bundle', label: 'migrate', gas: 1_184_567n },
+      ],
+    })
+    const g = plan.rows.find((r) => r.key === 'gas')!
+    expect(g.value).toBe('1,234,567 units')
+    expect(g.detail).toBe('operator grant 50,000 · migrate 1,184,567 · simulated, +5% each')
+  })
+
+  it('the on-chain max LTV overrides the modelled one', () => {
+    const plan = buildMigrationPlan(position(), { onchainMaxLtv: 0.7 })
+    expect(plan.membrane.maxLtv).toBe(0.7)
+    expect(plan.membrane.borrowLtv).toBeCloseTo(0.67, 12)
+    expect(plan.membrane.provenance.kind).toBe('onchain')
   })
 })
 
 describe('the Membrane LTV gate', () => {
-  it('at exactly the borrow LTV there is no trim', () => {
-    expect(trimFor(20_000, WETH_BORROW * 20_000, WETH_BORROW)).toBeNull()
+  it('the open cap is the borrow LTV less the 0.5pp margin', () => {
+    expect(LTV_MARGIN).toBe(0.005)
+    expect(openCap(WETH_BORROW)).toBeCloseTo(0.765, 12)
+    expect(trimFor(20_000, 0.765 * 20_000, WETH_BORROW)).toBeNull()
+    expect(trimFor(20_000, 0.766 * 20_000, WETH_BORROW)).not.toBeNull()
   })
 
-  it('82% on WETH: trim = debt − borrowLtv × collateral, or the collateral that would cover it', () => {
+  it.each([
+    [15_280], // 76.4% + 2 bps → opens
+    [15_300], // 76.5% + 2 bps → trims (the buffer is borrowed too)
+    [15_396], // 77.0%: inside the Cdp's line, over the open cap → trims
+    [15_900], // 79.5%: the review H-1 case → trims
+    [16_400], // 82% → trims
+  ])('debt %i on $20,000: trims exactly when the borrow is over the open cap', (debt) => {
+    const plan = buildMigrationPlan(position({ debtUsd: debt }))
+    const borrowed = (debt * (10_000 + ACCRUAL_BUFFER_BPS)) / 10_000
+    const over = borrowed / 20_000 > openCap(WETH_BORROW)
+    expect(plan.trim !== null).toBe(over)
+  })
+
+  it('82% on WETH: trim = borrowed − cap × collateral, or the collateral that would cover it', () => {
     const plan = buildMigrationPlan(position({ debtUsd: 16_400 }))
+    const borrowed = (16_400 * (10_000 + ACCRUAL_BUFFER_BPS)) / 10_000
+    const cap = openCap(WETH_BORROW)
     expect(plan.blocked).toBeNull()
-    expect(plan.trim).not.toBeNull()
-    expect(plan.trim!.debtUsd).toBeCloseTo(16_400 - WETH_BORROW * 20_000, 9)
-    expect(plan.trim!.targetLtv).toBeCloseTo(WETH_BORROW, 12)
-    expect(plan.trim!.reason).toMatch(/Repay \$1,000 on the venue first, or add \$1,299 of collateral/)
+    expect(plan.trim!.debtUsd).toBeCloseTo(borrowed - cap * 20_000, 9)
+    expect(plan.trim!.targetLtv).toBeCloseTo(cap, 12)
+    expect(plan.trim!.reason).toMatch(/Repay \$1,103 on the venue first, or add \$1,442 of collateral/)
     expect(plan.rows.find((r) => r.key === 'ltv')!.tone).toBe('danger')
-    // after the trim the position sits exactly on the borrow LTV
-    expect((16_400 - plan.trim!.debtUsd) / 20_000).toBeCloseTo(WETH_BORROW, 12)
+    expect((borrowed - plan.trim!.debtUsd) / 20_000).toBeCloseTo(cap, 12)
   })
 })
 
@@ -113,17 +149,28 @@ describe('blockers', () => {
 })
 
 describe('signatures per venue (plain EOA)', () => {
-  it('Aave V3: operator (once) + aToken permit + proceeds permit + bundle', () => {
+  it('Aave V3: aToken permit + proceeds permit + operator (once, after the simulation) + bundle', () => {
     const s = signatureSteps('aave-v3')
-    expect(s.map((x) => x.id)).toEqual(['operator', 'atoken-permit', 'proceeds-permit', 'bundle'])
+    expect(s.map((x) => x.id)).toEqual(['atoken-permit', 'proceeds-permit', 'operator', 'bundle'])
     expect(s.filter((x) => x.kind === 'tx')).toHaveLength(2)
     expect(s.filter((x) => x.kind === 'typed-data')).toHaveLength(2)
     // with the operator grant standing: three prompts, one of them a transaction that costs gas
     expect(s.filter((x) => x.skippedWhen === null)).toHaveLength(3)
   })
-  it('Morpho Blue: operator + authorization sig + proceeds permit + bundle', () => {
+  it('the grant copy says what a standing grant can do (review M-1/M-2)', () => {
+    const op = signatureSteps('aave-v3').find((x) => x.id === 'operator')!
+    expect(op.why).toMatch(/stays until you revoke it/)
+    expect(op.why).toMatch(/NEW Membrane position/)
+    expect(op.why).toMatch(/cannot touch existing positions/)
+    const auth = signatureSteps('morpho-blue').find((x) => x.id === 'morpho-auth')!
+    expect(auth.why).toMatch(/stays until you revoke it, and covers every Morpho market/)
+    expect(revokeSteps('aave-v3').map((x) => x.id)).toEqual(['revoke-operator'])
+    expect(revokeSteps('morpho-blue').map((x) => x.id)).toEqual(['revoke-operator', 'revoke-morpho'])
+  })
+
+  it('Morpho Blue: authorization sig + proceeds permit + operator + bundle', () => {
     const s = signatureSteps('morpho-blue')
-    expect(s.map((x) => x.id)).toEqual(['operator', 'morpho-auth', 'proceeds-permit', 'bundle'])
+    expect(s.map((x) => x.id)).toEqual(['morpho-auth', 'proceeds-permit', 'operator', 'bundle'])
     // both grants standing: two prompts (proceeds permit + bundle)
     expect(s.filter((x) => x.skippedWhen === null).map((x) => x.id)).toEqual(['proceeds-permit', 'bundle'])
   })
@@ -146,9 +193,9 @@ describe('buildDeployPlan', () => {
     expect(p.membrane.debtUsd).toBe(12_000)
     expect(p.signatures.map((s) => s.id)).toEqual(['approve', 'deposit', 'borrow'])
   })
-  it('caps the borrow at the borrow LTV and says so', () => {
+  it('caps the borrow at the open cap and says so', () => {
     const p = buildDeployPlan(position({ debtUsd: 18_000 }))
-    expect(p.membrane.debtUsd).toBeCloseTo(WETH_BORROW * 20_000, 9)
+    expect(p.membrane.debtUsd).toBeCloseTo(openCap(WETH_BORROW) * 20_000, 9)
     expect(p.rows.find((r) => r.key === 'borrow')!.tone).toBe('warn')
   })
 })

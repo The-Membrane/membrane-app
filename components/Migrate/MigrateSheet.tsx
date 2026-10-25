@@ -23,6 +23,7 @@ export const MigrateSheet: React.FC<MigrateSheetProps & { inline?: boolean }> = 
       promptIds={flow.promptIds}
       addresses={flow.addresses}
       onStart={flow.start}
+      onRevoke={flow.revoke}
       onClose={onClose}
     />
   )

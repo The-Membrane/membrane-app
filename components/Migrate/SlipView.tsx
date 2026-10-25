@@ -24,7 +24,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { DemoBanner } from '@/components/demo/DemoBanner'
 import { DemoAwareCta } from '@/components/demo/DemoAwareCta'
 
-import { FLASH_BUFFER_BPS, FLASH_SOURCE } from '@/lib/migrate/plan'
+import { ACCRUAL_BUFFER_BPS, FLASH_SOURCE, LTV_MARGIN, revokeSteps } from '@/lib/migrate/plan'
 import type { MigrationPlan, PlanRow, RowTone } from '@/lib/migrate/types'
 
 import type { Phase } from './useMigrateFlow'
@@ -45,6 +45,8 @@ export interface SlipViewProps {
   notes?: string[]
   explorerUrl?: (hash: string) => string | null
   onStart: () => void
+  /** Optional revoke of the standing grants after a settled migration. */
+  onRevoke?: () => void
   onClose: () => void
   /** Rendered inline (dev page) instead of in a portal modal. */
   inline?: boolean
@@ -214,6 +216,36 @@ const SlipBody: React.FC<SlipViewProps> = (p) => {
         </Text>
       )}
 
+      {phase.k === 'settled' && phase.note && (
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary} data-testid="slip-settled-note">
+          {phase.note}
+        </Text>
+      )}
+      {phase.k === 'settled' && phase.revoke && plan.venue && (
+        <Box border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} borderRadius={0} p={SPACING_PATTERNS.cardPadding} data-testid="slip-revoke">
+          <Label>Optional · revoke the standing grants</Label>
+          {revokeSteps(plan.venue).map((r) => (
+            <Text key={r.id} fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary} mt={SPACING.xs}>
+              {KIND_TAG[r.kind]} {r.label} — {r.why}
+            </Text>
+          ))}
+          <Button
+            variant="outline"
+            mt={SPACING.sm}
+            minH="44px"
+            borderRadius={0}
+            fontFamily={TYPOGRAPHY.fontMono}
+            transition={TRANSITIONS.colors}
+            _focus={FOCUS_STYLES.ring}
+            isDisabled={phase.revoke !== 'idle'}
+            onClick={p.onRevoke}
+            data-testid="slip-revoke-button"
+          >
+            {phase.revoke === 'idle' ? 'Revoke the adapter' : phase.revoke === 'running' ? 'Revoking…' : phase.revoke === 'done' ? 'Revoked' : 'Revoke failed'}
+          </Button>
+        </Box>
+      )}
+
       <Box>
         <Button
           variant="link"
@@ -237,10 +269,13 @@ const SlipBody: React.FC<SlipViewProps> = (p) => {
                   flash source · {FLASH_SOURCE}
                 </Text>
                 <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
-                  flash buffer · {FLASH_BUFFER_BPS} bps over the debt read; only the shortfall is borrowed
+                  accrual buffer · {ACCRUAL_BUFFER_BPS} bps over the debt read; borrowed, and the part the venue did not need comes back to you
                 </Text>
                 <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
-                  borrow cap · the flash amount; the bundle reverts if the venue debt grows past it
+                  LTV margin · {(LTV_MARGIN * 100).toFixed(1)}pp under the borrow LTV; the adapter re-checks the LTV on-chain at Membrane’s price and the whole transaction reverts above it
+                </Text>
+                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
+                  permits · exact amounts, used up in the transaction; nothing is left approved
                 </Text>
               </>
             )}

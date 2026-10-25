@@ -187,13 +187,16 @@ export const HealthBar: React.FC<HealthBarProps> = memo(
                 >
                   {notice.action.label}
                 </Button>
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize={TYPOGRAPHY.xs}
-                  color={SEMANTIC_COLORS.textTertiary}
-                >
-                  {notice.action.note}
-                </Text>
+                {/* The detail line can already carry the note; do not show or announce it twice. */}
+                {!notice.detail.includes(notice.action.note) && (
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.xs}
+                    color={SEMANTIC_COLORS.textSecondary}
+                  >
+                    {notice.action.note}
+                  </Text>
+                )}
               </HStack>
             )}
           </Box>
@@ -364,7 +367,7 @@ const Bar: React.FC<{ model: HealthBarModel; color: string }> = ({ model, color 
           transform="translateX(-50%)"
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize={TYPOGRAPHY.label}
-          color={SEMANTIC_COLORS.textTertiary}
+          color={SEMANTIC_COLORS.textSecondary}
           display={{ base: 'none', sm: 'block' }}
         >
           0%
@@ -374,7 +377,7 @@ const Bar: React.FC<{ model: HealthBarModel; color: string }> = ({ model, color 
           right={0}
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize={TYPOGRAPHY.label}
-          color={SEMANTIC_COLORS.textTertiary}
+          color={SEMANTIC_COLORS.textSecondary}
         >
           {fmtPct(max, 0)}
           {model.offScale ? '+' : ''} from line

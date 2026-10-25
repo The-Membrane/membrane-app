@@ -17,7 +17,7 @@ import { usd } from '@/components/Simulator/format'
 import { CURE_WINDOW_HOURS, CURE_WINDOW_SECONDS, MAX_THRESHOLD_TO_DELAY, type Comparison, type ProtocolPosition } from '@/lib/position-sim'
 import { positionKey } from '@/lib/landing/replay'
 import { depthRegistry, skewLines, skewNote, type UsdeExitLiquidity } from '@/lib/landing/sizeSkew'
-import { armedWindows, eventMarks, outcomeBeat, troubleLine, verdictOf, type MeasuredSide } from '@/lib/landing/verdict'
+import { armedWindows, eventMarks, outcomeBeat, troubleLine, verdictOf, verdictShort, type MeasuredSide } from '@/lib/landing/verdict'
 import { fmtLocalClock, useLocalZone } from '@/components/Simulator/localClock'
 import type { CensusRow } from '@/lib/landing/census'
 import type { DelayStep, Slot } from '@/lib/landing/forecastLayer'
@@ -227,7 +227,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
                 : null}
             </Text>
             <Text {...small} {...tabularNums} color={SEMANTIC_COLORS.textPrimary} data-testid="landing-verdict">
-              {verdictOf(comparison, whose, measured).headline}
+              {verdictShort(comparison, measured)}
             </Text>
           </Box>
 

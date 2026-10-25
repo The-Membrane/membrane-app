@@ -402,3 +402,12 @@ describe('STORY beats T and O', () => {
     for (const h of Object.values(HEADLINES)) expect(h.headline).toMatch(/8[ -]hour/)
   })
 })
+
+describe('verdict second, at its shortest', () => {
+  it('states the debt gap with its label', async () => {
+    const { verdictShort } = await import('@/lib/landing/verdict')
+    const row = DEMO_BORROWER_ROW
+    const gap = Math.round(row.aaveClosedUsd - row.membraneClosedUsd).toLocaleString('en-US')
+    expect(verdictShort(demoRun(), row)).toBe(`$${gap} less debt closed than Aave V3 (simulator).`)
+  })
+})

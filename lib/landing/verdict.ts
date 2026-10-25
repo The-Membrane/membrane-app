@@ -206,3 +206,14 @@ export function outcomeBeat(
       : `price fell through the ${opts.bandPct}% band ${mins} min later`
   return `The ${opts.cureHours}h window opened at ${opened}; ${how}. ${closes}. Nothing required of you.`
 }
+
+/** The debt-gap verdict at its shortest, for second place under the O beat. */
+export function verdictShort(cmp: Comparison, measured: MeasuredSide | null = null): string {
+  const t = closedTotals(cmp)
+  const venue = measured ? measured.aaveClosedUsd : t.venueClosedUsd
+  const mem = measured ? measured.membraneClosedUsd : t.membraneClosedUsd
+  const less = venue - mem
+  if (venue < 0.5 && mem < 0.5) return 'No debt closed on either engine (simulator).'
+  if (Math.abs(less) < 0.5) return 'Same debt closed on both engines (simulator).'
+  return `${usd(less)} ${less > 0 ? 'less' : 'more'} debt closed than ${cmp.position.label.split(' · ')[0]} (simulator).`
+}

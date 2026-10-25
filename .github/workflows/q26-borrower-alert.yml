@@ -133,3 +133,32 @@ jobs:
             sleep $((attempt * 15))
           done
           echo "push failed after 3 retries"; exit 1
+
+  # Hourly chain (owner 2026-10-25: "make it hourly on GitHub"). GitHub's cron on this repo fires hours late or not at
+  # all, so each run waits until :05 of the next hour and starts the next run itself. The cron above stays as a backup.
+  # One chain only: a run does not dispatch while an OLDER run of this workflow is queued or running (the older one
+  # dispatches), so parallel chains merge within an hour. The off switch above stops the chain too. Public repo:
+  # the waiting runner costs no billed minutes.
+  next-hour:
+    needs: d14
+    if: ${{ !cancelled() && vars.BORROWER_ALERT_ENABLED != 'false' && github.repository == 'The-Membrane/membrane-app' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    permissions:
+      actions: write
+    steps:
+      - name: Wait for :05 of the next hour, then start that hour's run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          now=$(date +%s)
+          next=$(( now - now % 3600 + 3600 + 300 ))
+          echo "waiting $(( next - now )) s"
+          sleep $(( next - now ))
+          older=$(gh run list --workflow q26-borrower-alert.yml --limit 30 --json databaseId,status \
+            --jq "[.[] | select(.status != \"completed\" and .databaseId < $RUN_ID)] | length")
+          if [ "$older" -gt 0 ]; then echo "an older run is queued or running; it dispatches"; exit 0; fi
+          gh workflow run q26-borrower-alert.yml --ref main
+          echo "dispatched the next hour's run"

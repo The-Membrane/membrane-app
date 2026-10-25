@@ -1,0 +1,135 @@
+# Q26 D14 -- borrower-alert SHADOW log on Aave V3 (triccs/membrane-board design/HISTORY_TOUCH_LIVE.md block D14;
+# design/q26-borrower-alert-live-2026-10-25.md). Owner approval 2026-10-25 on OWNER? Q26-L1: "Yes: Aave V3 all chains
+# (Recommended)". RULING Q26-R27 episodes (at risk at 3 % of the line, act now at the line), hourly, counts only.
+# NOTHING IS SHOWN TO USERS AND NO ALERT IS SENT. It moves to Membrane positions when a Membrane Cdp is deployed on a
+# public chain (a later dated block).
+#
+# OFF SWITCH: the job runs only while the repository variable BORROWER_ALERT_ENABLED is exactly `true`
+#   (Settings -> Secrets and variables -> Actions -> Variables). Unset, or any other value, = off: the job is skipped.
+#   Turning it off loses no history. Disabling this workflow in the Actions tab also stops it.
+# Code: membrane-app research/history-forecasts at the PINNED full commit D14_APP_SHA (moves only by a dated note in
+#   the D14 block). Data: triccs/membrane-datasets (private), forecasts/q26-borrower-alert/ only.
+# Credential: DATASETS_TOKEN (existing secret of the q26-datasets environment) reaches only the datasets checkout
+#   (persist-credentials: false) and the push (per-command extraheader through GIT_CONFIG_* variables, global and
+#   system git config ignored). The code step never receives it. Keyless public RPC endpoints and the keyless Binance
+#   data API only.
+# PUBLIC LOGS: the run's own output is written to a runner temp file and deleted; the log shows the exit status, line
+#   counts and whitelisted count-only lines. No address, key, distance or position id. No artifacts.
+# A failed run commits nothing; the next hour checks the current state. Nothing is backfilled.
+
+name: q26-borrower-alert
+
+on:
+  schedule:
+    - cron: "23 * * * *"   # hourly at :23 (off the :00 rush and off the daily q26-touch-live runs at :17 and :47)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: q26-borrower-alert
+  cancel-in-progress: false
+
+env:
+  APP_REPO: The-Membrane/membrane-app
+  # D14 (2026-10-25): this job alone runs this pin. APP_SHA, D11_APP_SHA, D12_APP_SHA and D13_APP_SHA (q26-touch-live.yml)
+  # are not touched.
+  D14_APP_SHA: a6145b5130fa7a7cfedf617c2a93dab4b1711269   # D14 (membrane-board ba183cc)
+  DATASETS_REPO: triccs/membrane-datasets
+  D14_DIR: forecasts/q26-borrower-alert
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  d14:
+    if: ${{ !cancelled() && vars.BORROWER_ALERT_ENABLED == 'true' && github.repository == 'The-Membrane/membrane-app' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: q26-datasets
+    steps:
+      - name: Check out membrane-datasets (main, sparse, D14 block only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.DATASETS_REPO }}
+          token: ${{ secrets.DATASETS_TOKEN }}
+          ref: main
+          path: datasets
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /forecasts/q26-borrower-alert/
+
+      - name: Record the datasets git config (checked again before the push)
+        id: gitcfg
+        run: echo "sha256=$(sha256sum datasets/.git/config | cut -c1-64)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out membrane-app at the pinned commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.APP_REPO }}
+          ref: ${{ env.D14_APP_SHA }}
+          path: app
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/research/history-forecasts
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7
+        with:
+          python-version: "3.12"
+
+      - name: D14 hourly check (standard library only)
+        run: |
+          set +x
+          out="$RUNNER_TEMP/q26-d14.log"; rc=0
+          python app/scripts/research/history-forecasts/live/q26_live_d14.py run \
+            --out datasets --expect-commit "$D14_APP_SHA" >"$out" 2>&1 || rc=$?
+          # Public log: status and counts only. The run's own output is withheld and deleted.
+          echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \
+               "Traceback $(grep -c '^Traceback' "$out" || true)"
+          grep -E '^d14 run: hour [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:00Z, [0-9]+ chains ok, [0-9]+ stale, [0-9]+ pending$' "$out" || true
+          grep -E '^d14 run: none \(hour [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:00Z already checked\)$' "$out" || true
+          grep -E '^d14 chain [a-z]+: (ok, [0-9]+ positions, [0-9]+ within 10%, [0-9]+ unresolved, at-risk [0-9]+ oracle [0-9]+ iii, [0-9]+ liquidations, [0-9]+s|stale|pending)$' "$out" || true
+          grep -E '^d14 iii: [0-9]+ symbols, [0-9]+ failed$' "$out" || true
+          grep -E '^d14 daily: snapshot [0-9]{4}-[0-9]{2}-[0-9]{2} written, [0-9]+ members$' "$out" || true
+          grep -E '^d14 checks: ledger [0-9]+ days verified, [0-9]+ address patterns in public files$' "$out" || true
+          rm -f "$out"
+          exit "$rc"
+
+      - name: Commit forecasts/q26-borrower-alert/ and push to membrane-datasets main (pull --rebase, up to 3 retries)
+        working-directory: datasets
+        env:
+          GITCFG_SHA256: ${{ steps.gitcfg.outputs.sha256 }}
+          DATASETS_TOKEN: ${{ secrets.DATASETS_TOKEN }}
+          GIT_CONFIG_GLOBAL: /dev/null   # as D12-A2: no global or system git config in the push step
+          GIT_CONFIG_NOSYSTEM: "1"
+        run: |
+          set +x
+          if [ "$(sha256sum .git/config | cut -c1-64)" != "$GITCFG_SHA256" ]; then
+            echo "datasets .git/config changed after checkout; not pushing"; exit 1
+          fi
+          git config user.name "q26-live-bot"
+          git config user.email "q26-live-bot@users.noreply.github.com"
+          git add -- "$D14_DIR"
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -q -m "forecasts/q26-borrower-alert: hourly $(date -u +%Y-%m-%dT%H:%MZ) (Q26 D14 shadow log, app ${D14_APP_SHA:0:7})" -- "$D14_DIR"
+          echo "committed $(git show --name-only --format= HEAD | wc -l) file(s)"
+          auth="$(printf 'x-access-token:%s' "$DATASETS_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          unset DATASETS_TOKEN
+          # Per-command config: the header and a disabled hooks path (command-line precedence over .git/config).
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          export GIT_CONFIG_KEY_1="core.hooksPath" GIT_CONFIG_VALUE_1="/dev/null"
+          for attempt in 1 2 3 4; do   # the first try plus up to 3 retries
+            if git pull -q --rebase origin main && git push -q origin HEAD:main; then
+              echo "pushed on attempt $attempt"; exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 15))
+          done
+          echo "push failed after 3 retries"; exit 1

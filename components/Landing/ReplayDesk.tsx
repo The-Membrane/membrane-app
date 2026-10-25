@@ -39,6 +39,9 @@ export interface ReplayDeskProps {
   measured: import('@/lib/landing/verdict').MeasuredSide | null
   addressCensus: import('@/lib/landing/census').CensusRow | null
   shareSlot?: React.ReactNode
+  /** The /carry page: T and O add the carry bill, the recall and the covered slice. */
+  carry?: boolean
+  detection?: import('@/lib/position-sim').VenueDetection | null
 }
 
 type SeriesState = { series: PriceSeries; stamp: string } | { error: string }
@@ -149,6 +152,8 @@ export const ReplayDesk: React.FC<ReplayDeskProps> = (p) => {
         measured={p.measured}
         addressCensus={p.addressCensus}
         shareSlot={p.shareSlot}
+        carry={p.carry}
+        detection={p.detection ?? null}
       />
       {delay && <ForecastPanel delay={delay} history={history} reach={reachSlot} stamp={stamp} isDemo={p.isDemo} />}
     </Box>

@@ -13,6 +13,8 @@ import { SIM_ROUTE } from '@/config/simulatorMode'
 export const INDEXABLE_PATHS = [
   // The landing (lane Q41). `/` serves content now, so it is listed first.
   '/',
+  // The carry landing (lane Q41).
+  '/carry',
   `/${DEFAULT_CHAIN}`,
   `/${DEFAULT_CHAIN}/borrow`,
   `/${DEFAULT_CHAIN}/carry`,

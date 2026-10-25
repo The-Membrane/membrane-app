@@ -150,7 +150,7 @@ export interface ObjectionFact {
 }
 
 export interface ObjectionCard {
-  id: 'backtest' | 'redemptions' | 'spread' | 'trust' | 'delay'
+  id: 'backtest' | 'redemptions' | 'spread' | 'trust' | 'delay' | 'manage' | 'recall'
   question: string
   /** The visible answer, facts and numbers only (copy budget: card ≤ 25 words). */
   answer: string

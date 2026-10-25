@@ -11,7 +11,7 @@ import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { shortAddress, usd } from '@/components/Simulator/format'
 import { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
-import { OBJECTIONS, SOLIDITY_PIN, citeText, type CensusCase, type CensusSummary } from '@/lib/landing/objections'
+import { OBJECTIONS, SOLIDITY_PIN, citeText, type CensusCase, type CensusSummary, type ObjectionCard } from '@/lib/landing/objections'
 
 import Details, { DetailLine } from './Details'
 import { kicker, rule, ruleStrong, small, tabularNums } from './styles'
@@ -76,7 +76,7 @@ const DelayDetails: React.FC<{ census: CensusSummary }> = ({ census }) => (
   </>
 )
 
-export const ObjectionCards: React.FC<{ census: CensusSummary | null }> = ({ census }) => (
+export const ObjectionCards: React.FC<{ census: CensusSummary | null; cards?: ObjectionCard[] }> = ({ census, cards = OBJECTIONS }) => (
   <Box as="section" aria-labelledby="landing-objections" data-story="Y" display="grid" gap={SPACING.md}>
     <Text id="landing-objections" as="h2" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={{ base: '22px', md: '28px' }} fontWeight={TYPOGRAPHY.normal}>
       Yes, but…
@@ -87,7 +87,7 @@ export const ObjectionCards: React.FC<{ census: CensusSummary | null }> = ({ cen
       columnGap={SPACING.lg}
       rowGap={SPACING.lg}
     >
-      {OBJECTIONS.map((o) => (
+      {cards.map((o) => (
         <Box
           key={o.id}
           data-testid={`objection-${o.id}`}

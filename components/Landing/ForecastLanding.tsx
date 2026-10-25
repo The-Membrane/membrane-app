@@ -22,9 +22,9 @@ import { DemoBanner } from '@/components/demo'
 import AddressBar from '@/components/Simulator/AddressBar'
 import { usdSigned } from '@/components/Simulator/format'
 import { useSimHistory } from '@/components/Simulator/hooks/useSimHistory'
-import { DEMO_BORROWER_DATE } from '@/lib/position-sim/demoBorrower'
 import { doorSet, intentFrom, type Door, type DoorHandlers, type PositionIntent } from '@/lib/landing/doors'
-import { HEADLINES, RUN_LABEL, SUBHEAD_DESKTOP, SUBHEAD_PHONE, type HeadlineKey } from '@/lib/landing/headline'
+import { RUN_LABEL, type HeadlineKey } from '@/lib/landing/headline'
+import { LANDING_PAGES, type LandingPageId } from '@/lib/landing/pages'
 import { PROSE } from '@/lib/landing/prose'
 import { track } from '@/lib/landing/instrumentation'
 import type { CensusSummary } from '@/lib/landing/objections'
@@ -50,6 +50,8 @@ const ManualPositionForm = dynamic(() => import('./ManualPositionForm'), { ssr: 
 const DoorSheet = dynamic(() => import('./DoorSheet'), { ssr: false })
 
 export interface ForecastLandingProps {
+  /** Which landing: `/` (borrower) or `/carry`. */
+  page?: LandingPageId
   headline: HeadlineKey
   census: CensusSummary | null
   /** Optional: the migrate flow's own handlers. Absent, the page's sheet opens. */
@@ -77,8 +79,9 @@ const sinceText = (ms: number) => {
   return h < 1 ? 'under an hour ago' : h < 48 ? `${h}h ago` : `${Math.floor(h / 24)} days ago`
 }
 
-export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, census, doors }) => {
-  const r = useReplay(headline)
+export const ForecastLanding: React.FC<ForecastLandingProps> = ({ page = 'borrower', headline, census, doors }) => {
+  const cfg = LANDING_PAGES[page]
+  const r = useReplay(headline, cfg.demo)
   // Client-only pieces mount after hydration, so the server HTML and the first client
   // render match exactly (a preloaded dynamic() chunk would otherwise render early).
   const [mounted, setMounted] = useState(false)
@@ -193,14 +196,14 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
           letterSpacing="-0.01em"
           maxW="22ch"
         >
-          {HEADLINES[headline].headline}
+          {cfg.headlines[headline].headline}
         </Text>
         <Text as="p" {...deck} maxW="60ch" data-testid="landing-subhead">
           <Text as="span" display={{ base: 'none', md: 'inline' }}>
-            {SUBHEAD_DESKTOP}
+            {cfg.subhead.desktop}
           </Text>
           <Text as="span" display={{ base: 'inline', md: 'none' }}>
-            {SUBHEAD_PHONE}
+            {cfg.subhead.phone}
           </Text>
         </Text>
       </Box>
@@ -241,7 +244,7 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
       )}
 
       {/* T + O — THE RESULT */}
-      <DemoBanner show={r.isDemo} note={`liquidated ${DEMO_BORROWER_DATE}`} />
+      <DemoBanner show={r.isDemo} note={cfg.demo.bannerNote} />
       <Box as="section" data-testid="landing-result" display="grid" gap={SPACING.md} minW={0} mt={r.isDemo ? `-${SPACING.lg}` : undefined}>
         <Box display="flex" flexWrap="wrap" gap={SPACING.sm} alignItems="center" data-testid="scenario-picker" role="radiogroup" aria-label="Stress window">
           {SCENARIOS.filter((x) => x.status === 'live').map((x) => (
@@ -290,6 +293,8 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
             measured={r.census}
             addressCensus={r.addressCensus}
             shareSlot={shareRow}
+            carry={page === 'carry'}
+            detection={r.detection}
           />
         )}
 
@@ -305,7 +310,7 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
       />
 
       {/* Y — OBJECTIONS */}
-      <ObjectionCards census={census} />
+      <ObjectionCards census={census} cards={cfg.objections} />
 
       {/* FINE PRINT, ONCE. The prose stays in the server HTML (SEO R1/R10) inside a
           closed disclosure, at the bottom, rendered once. */}

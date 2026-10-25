@@ -4,6 +4,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { CITES, OBJECTIONS, SOLIDITY_PIN } from '@/lib/landing/objections'
+import { CARRY_CITES, CARRY_OBJECTIONS } from '@/lib/landing/carry'
 
 // Every contract line the landing's objection cards cite must still contain its
 // identifier at the pinned membrane-solidity commit (Q41 refuting review D6). Reads the
@@ -18,14 +19,14 @@ function lineAt(file: string, n: number): string {
 }
 
 describe.skipIf(!hasRepo)(`landing citations at membrane-solidity ${SOLIDITY_PIN}`, () => {
-  for (const [name, c] of Object.entries(CITES)) {
+  for (const [name, c] of Object.entries({ ...CITES, ...CARRY_CITES })) {
     it(`${name}: ${c.path}:${c.from} contains "${c.expect}"`, () => {
       expect(lineAt(c.path, c.from)).toContain(c.expect)
       expect(c.to).toBeGreaterThanOrEqual(c.from)
     })
   }
   it('every card citation is a pinned CITES entry', () => {
-    const pinned = new Set(Object.values(CITES))
-    for (const o of OBJECTIONS) for (const f of o.facts) for (const c of f.cites ?? []) expect(pinned.has(c)).toBe(true)
+    const pinned = new Set<unknown>([...Object.values(CITES), ...Object.values(CARRY_CITES)])
+    for (const o of [...OBJECTIONS, ...CARRY_OBJECTIONS]) for (const f of o.facts) for (const c of f.cites ?? []) expect(pinned.has(c)).toBe(true)
   })
 })

@@ -14,7 +14,7 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import EquityChart, { type ChartGhost, type ChartTick } from '@/components/Simulator/EquityChart'
 import { usd } from '@/components/Simulator/format'
-import { CURE_WINDOW_HOURS, CURE_WINDOW_SECONDS, MAX_THRESHOLD_TO_DELAY, type Comparison, type ProtocolPosition } from '@/lib/position-sim'
+import { carryCost, CURE_WINDOW_HOURS, CURE_WINDOW_SECONDS, MAX_THRESHOLD_TO_DELAY, type VenueDetection, type Comparison, type ProtocolPosition } from '@/lib/position-sim'
 import { positionKey } from '@/lib/landing/replay'
 import { depthRegistry, skewLines, skewNote, type UsdeExitLiquidity } from '@/lib/landing/sizeSkew'
 import { armedWindows, eventMarks, outcomeBeat, troubleLine, verdictOf, verdictShort, type MeasuredSide } from '@/lib/landing/verdict'
@@ -42,6 +42,8 @@ export interface ReplayChartProps {
   scenarioName: string
   /** Share actions, rendered inside the result's one Details (copy budget). */
   shareSlot?: React.ReactNode
+  carry?: boolean
+  detection?: VenueDetection | null
   /** The census figures when the replayed position is the census position (the demo). */
   measured: MeasuredSide | null
   /** A live address's own census row: a different (Oct 10) position, shown as its own line. */
@@ -64,6 +66,22 @@ function limitsLine(cmp: Comparison, scenarioName: string, measured: boolean): s
   return parts.join(' ')
 }
 
+/** /carry, T: what the venue bills the carry, from the rate read on-chain. */
+function carryTroubleTail(p: ProtocolPosition | null, d: VenueDetection | null): string {
+  const c = carryCost(p, d)
+  return c.annualCostUsd > 0 ? ` Its borrow bills ${usd(c.annualCostUsd)} a year, yield or not.` : ''
+}
+
+/** /carry, O: the recall (simulator) and the slice that would carry no interest. */
+function carryOutcomeTail(cmp: Comparison, p: ProtocolPosition | null, d: VenueDetection | null): string {
+  const recalled = cmp.membrane.events.reduce((a, e) => a + Math.max(0, e.recalledUsd), 0)
+  const c = carryCost(p, d)
+  const parts: string[] = []
+  if (recalled >= 0.5) parts.push(` Venues would have returned ${usd(recalled)} first (simulator).`)
+  if (c.coveredDebtUsd >= 0.5) parts.push(` The ${usd(c.coveredDebtUsd)} deployed slice would accrue no interest.`)
+  return parts.join('')
+}
+
 export const ReplayChart: React.FC<ReplayChartProps> = ({
   comparison,
   startTs,
@@ -78,6 +96,8 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
   errors,
   scenarioName,
   shareSlot,
+  carry = false,
+  detection = null,
   measured,
   addressCensus,
 }) => {
@@ -183,6 +203,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
             color={SEMANTIC_COLORS.textPrimary}
           >
             {troubleLine(comparison, whose, measured, clock)}
+            {carry ? carryTroubleTail(selected, detection) : ''}
           </Text>
           <Text {...credit} textAlign="left" data-testid="landing-stamp">
             {measured ? 'Aave measured' : `${comparison.position.label.split(' · ')[0]} modelled`} · oracle 1-min
@@ -225,6 +246,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
                     stepSeconds,
                   })
                 : null}
+              {carry ? carryOutcomeTail(comparison, selected, detection) : ''}
             </Text>
             <Text {...small} {...tabularNums} color={SEMANTIC_COLORS.textPrimary} data-testid="landing-verdict">
               {verdictShort(comparison, measured)}

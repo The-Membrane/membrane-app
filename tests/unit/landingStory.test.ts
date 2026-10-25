@@ -15,14 +15,15 @@ vi.mock('@/hooks/useWallet', () => ({
 vi.mock('@/components/Simulator/hooks/useSimHistory', () => ({ useSimHistory: () => ({ data: undefined, isPending: true }) }))
 
 describe('landing STORY order', () => {
-  it('renders S, T, O, R, Y in order', async () => {
+  for (const page of ['borrower', 'carry'] as const)
+  it(`renders S, T, O, R, Y in order (${page})`, async () => {
     const { default: ForecastLanding } = await import('@/components/Landing/ForecastLanding')
     const { summariseCensus } = await import('@/lib/landing/objections')
     const evidence = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../public/data/oct10-2025/evidence.json'), 'utf8'))
     const { ChakraProvider } = await import('@chakra-ui/react')
     const { default: theme } = await import('@/theme')
     const html = renderToString(
-      React.createElement(ChakraProvider, { theme }, React.createElement(ForecastLanding, { headline: 'default', census: summariseCensus(evidence) })),
+      React.createElement(ChakraProvider, { theme }, React.createElement(ForecastLanding, { page, headline: 'default', census: summariseCensus(evidence) })),
     )
     const order = Array.from(html.matchAll(/data-story="([STORY])"/g)).map((m) => m[1])
     expect(order).toEqual(['S', 'T', 'O', 'R', 'Y'])

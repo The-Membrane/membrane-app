@@ -11,8 +11,6 @@ import { useRouter } from 'next/router'
 
 import useWallet from '@/hooks/useWallet'
 import {
-  demoBorrowerDetection,
-  demoBorrowerPosition,
   detectVenues,
   loadOct10,
   parseAddress,
@@ -24,14 +22,13 @@ import {
   type Oct10Series,
   type ProtocolPosition,
   type VenueDetection,
-  DEMO_BORROWER_ADDRESS,
-  DEMO_BORROWER_ROW,
   SYMBOL_TO_SERIES,
 } from '@/lib/position-sim'
 import type { HeadlineKey } from '@/lib/landing/headline'
 import { track } from '@/lib/landing/instrumentation'
 import { buildManualPosition, decodeManual, encodeManual, type ManualError, type ManualInput, type ProtocolsDoc } from '@/lib/landing/manualPosition'
 import type { CensusRow } from '@/lib/landing/census'
+import type { DemoConfig } from '@/lib/landing/pages'
 import { largestPosition, positionKey, runReplay, type MeasuredLiquidations } from '@/lib/landing/replay'
 import {
   classifyVisit,
@@ -55,7 +52,7 @@ export interface FullProtocolsDoc extends ProtocolsDoc {
   usdeExitLiquidity?: UsdeExitLiquidity
 }
 
-export function useReplay(headline: HeadlineKey) {
+export function useReplay(headline: HeadlineKey, demo: DemoConfig) {
   const router = useRouter()
 
   // ---------------------------------------------------------------- scenario
@@ -122,8 +119,8 @@ export function useReplay(headline: HeadlineKey) {
   )
 
   // ------------------------------------------------------------- positions
-  const demoPos = useMemo(() => demoBorrowerPosition(), [])
-  const demoDet = useMemo(() => demoBorrowerDetection(), [])
+  const demoPos = useMemo(() => demo.position(), [demo])
+  const demoDet = useMemo(() => demo.detection(), [demo])
 
   const manualBuilt = useMemo(() => {
     if (!manual || !data) return null
@@ -150,20 +147,7 @@ export function useReplay(headline: HeadlineKey) {
   // is what Aave actually closed. A live address replays TODAY's position, which is not
   // the position the census measured, so its row (fetched below) is shown as a separate
   // line and never folded into today's replay.
-  const demoCensus = useMemo<CensusRow>(
-    () => ({
-      user: DEMO_BORROWER_ROW.user,
-      events: DEMO_BORROWER_ROW.events,
-      t0Index: DEMO_BORROWER_ROW.t0Index,
-      aaveClosedUsd: DEMO_BORROWER_ROW.aaveClosedUsd,
-      membraneClosedUsd: DEMO_BORROWER_ROW.membraneClosedUsd,
-      outcome: DEMO_BORROWER_ROW.outcome,
-      collSymbol: DEMO_BORROWER_ROW.collSymbol,
-      debtSymbol: DEMO_BORROWER_ROW.debtSymbol,
-    }),
-    [],
-  )
-  const census = mode === 'demo' ? demoCensus : null
+  const census = mode === 'demo' ? demo.census : null
 
   const comparison = useMemo<Comparison | null>(() => {
     if (!selected || !data) return null
@@ -187,7 +171,7 @@ export function useReplay(headline: HeadlineKey) {
   const membraneLine = useMemo(() => (selected ? weightedMembraneLine(selected.collateral).maxLtv : 0), [selected])
 
   const isDemo = mode === 'demo'
-  const shownAddress: `0x${string}` | null = mode === 'address' ? loaded?.address ?? null : mode === 'demo' ? DEMO_BORROWER_ADDRESS : null
+  const shownAddress: `0x${string}` | null = mode === 'address' ? loaded?.address ?? null : mode === 'demo' ? demo.address : null
 
   // -------------------------------------------------------------- errors
   const readErrors = useMemo<string[]>(() => {
@@ -216,7 +200,7 @@ export function useReplay(headline: HeadlineKey) {
     const m = decodeManual(q.m)
     const prev = readVisit()
     setPrevious(prev)
-    if (a && a.toLowerCase() === DEMO_BORROWER_ADDRESS.toLowerCase()) {
+    if (a && a.toLowerCase() === demo.address.toLowerCase()) {
       // A shared demo link reopens the demo. The live wallet was liquidated; reading it
       // today would replay whatever is left, which is not the result that was shared.
     } else if (a) {
@@ -299,7 +283,7 @@ export function useReplay(headline: HeadlineKey) {
     const q = new URLSearchParams()
     if (mode === 'address' && loaded) q.set('a', loaded.address)
     else if (mode === 'manual' && manual) q.set('m', encodeManual(manual))
-    else q.set('a', DEMO_BORROWER_ADDRESS)
+    else q.set('a', demo.address)
     q.set('s', scenarioId)
     return `?${q.toString()}`
   }, [mode, loaded, manual, scenarioId])
@@ -325,6 +309,7 @@ export function useReplay(headline: HeadlineKey) {
     selected,
     selectKey: setSelectedKey,
     comparison,
+    detection,
     census,
     addressCensus,
     membraneLine,

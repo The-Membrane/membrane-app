@@ -25,6 +25,8 @@ const LEGACY_CHAINS = new Set(['osmosis', 'osmosis-v2', 'neutron'])
 // route. Keep in sync with the pages/ directory; a segment missing here 404s.
 const TOP_LEVEL_ROUTES = new Set([
     'blog',
+    // The carry landing (lane Q41). /[chain]/carry is the separate carry app.
+    'carry',
     'borrow',
     'stake',
     'terms',

@@ -425,3 +425,22 @@ describe('verdict second, at its shortest', () => {
     expect(verdictShort(demoRun(), row)).toBe(`$${gap} less debt closed than Aave V3 (simulator).`)
   })
 })
+
+describe('/carry copy (owner brief 2026-10-25)', () => {
+  it('every H1 states the band and the window from the constants; no profit promise; no unverified 14-day cover', async () => {
+    const { CARRY_HEADLINES, CARRY_OBJECTIONS } = await import('@/lib/landing/carry')
+    const { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } = await import('@/lib/position-sim/membrane')
+    const words = (t: string) => t.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length
+    for (const h of Object.values(CARRY_HEADLINES)) {
+      expect(h.headline).toContain(`Within ${Math.round(MAX_THRESHOLD_TO_DELAY * 100)}% of your line`)
+      expect(h.headline).toContain(`${CURE_WINDOW_HOURS} hours`)
+      expect(h.headline).not.toMatch(/profit|guarantee|14 days|curators? (pay|cover)/i)
+      expect(h.headline).not.toMatch(BANNED)
+      expect(words(h.headline)).toBeLessThanOrEqual(21)
+    }
+    // The 14-day curator spread cover is not in the contracts: only named as absent.
+    const spread = CARRY_OBJECTIONS.find((o) => o.id === 'spread')!
+    expect(spread.answer).toMatch(/No curator cover exists on-chain yet/)
+    for (const o of CARRY_OBJECTIONS) expect(o.answer.split(/\s+/).length).toBeLessThanOrEqual(25)
+  })
+})

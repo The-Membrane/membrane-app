@@ -320,7 +320,7 @@ export function buildDeployPlan(source: MigrateSource, opts: PlanOptions = {}): 
       value: `${Math.floor(borrowUsd).toLocaleString('en-US')} CDT`,
       detail: capped
         ? `the replay borrowed ${usd(source.totalDebtUsd)}; capped at Membrane’s ${pct(borrowLtv)} borrow LTV`
-        : `the replay’s debt, ${usd(source.totalDebtUsd)}`,
+        : `${usd(borrowUsd)} · the replay’s ${pct(source.totalCollateralUsd > 0 ? source.totalDebtUsd / source.totalCollateralUsd : 0)} LTV`,
       tone: capped ? 'warn' : 'default',
     },
     {

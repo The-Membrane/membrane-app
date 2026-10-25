@@ -62,4 +62,14 @@ export const cdpOperatorAbi = parseAbi([
   'function transmuterForPeg() view returns (address)',
   'function userPositionIds(address owner, uint256 index) view returns (uint256)',
   'function positionDebt(uint256 positionId) view returns (uint256)',
+  'function oracle() view returns (address)',
+  'function currentPositionId() view returns (uint256)',
+  'struct Fund { bytes32 denom; uint256 amount; }',
+  'function deposit(uint256 positionId, address positionOwner, Fund[] funds) returns (uint256)',
+  'function increaseDebt(uint256 positionId, bytes32 borrowAsset, uint256 amount)',
+])
+
+/** Membrane's oracle surface as Cdp consumes it (Cdp.sol IOracleMin). 1e18 USD per whole token. */
+export const membraneOracleAbi = parseAbi([
+  'function getPrice(bytes32 asset) view returns (uint256 price, uint256 timestamp)',
 ])

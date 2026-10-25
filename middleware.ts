@@ -34,6 +34,7 @@ const TOP_LEVEL_ROUTES = new Set([
     'tournament',
     'proto',
     'sensory',
+    'dev', // pages/dev — dev-only screenshot pages (404 in production via getServerSideProps)
 ])
 
 const CHAIN_NAMES = new Set(supportedChains.map((c) => c.name))

@@ -20,6 +20,8 @@ import {
   encodeAbiParameters,
   keccak256,
   maxUint256,
+  parseAbi,
+  parseEventLogs,
   type PublicClient,
   type WalletClient,
 } from 'viem'
@@ -28,7 +30,7 @@ import { simulateCalls } from 'viem/actions'
 import { cdpAbi } from '@/contracts/abis/cdp'
 import { membraneBundlerAdapterAbi } from '@/contracts/abis/membraneBundlerAdapter'
 
-import { bundler3Abi, cdpOperatorAbi, morphoAbi, permitTokenAbi } from './abis'
+import { bundler3Abi, cdpOperatorAbi, membraneOracleAbi, morphoAbi, permitTokenAbi } from './abis'
 import type { MigrateChainConfig } from './addresses'
 import {
   buildAaveBundle,
@@ -150,6 +152,35 @@ export interface ResolvedMigration {
   operatorGranted: boolean
   morphoAuthorized: boolean
   blockTime: bigint
+  blockNumber: bigint
+  collateralDecimals: number
+  /** Membrane's own oracle price for the collateral (USD, 1e18) — the price the Cdp gates on. */
+  membranePriceWad: bigint
+}
+
+const toNum = (v: bigint, decimals: number): number => {
+  const d = 10n ** BigInt(decimals)
+  return Number(v / d) + Number(v % d) / Number(d)
+}
+
+/** The source position re-stated as it stands on the connected chain, valued at Membrane's
+ *  oracle price — the exact basis the Cdp's LTV gate uses. */
+export function onchainSource(source: MigrateSource, r: ResolvedMigration, chainLabel: string): MigrateSource {
+  const price = toNum(r.membranePriceWad, 18)
+  const coll = toNum(r.collateralWei, r.collateralDecimals)
+  const debt = toNum(r.debtWei, r.debtDecimals)
+  const c0 = source.collateral[0]
+  const d0 = source.debt[0]
+  const collUsd = coll * price
+  return {
+    ...source,
+    label: `${source.label} · read on ${chainLabel}`,
+    collateral: [{ ...c0, address: r.collateralToken, decimals: r.collateralDecimals, amount: coll, priceUsd: price, valueUsd: collUsd }],
+    debt: [{ ...d0, address: r.debtToken, decimals: r.debtDecimals, amount: debt, priceUsd: 1, valueUsd: debt }],
+    totalCollateralUsd: collUsd,
+    totalDebtUsd: debt,
+    ltv: collUsd > 0 ? debt / collUsd : Number.POSITIVE_INFINITY,
+  }
 }
 
 export async function resolveMigration(
@@ -169,11 +200,14 @@ export async function resolveMigration(
   if (!cfg.pairedAsset || cfg.pairedAsset.toLowerCase() !== debtToken.toLowerCase()) {
     return { error: `${debtSym} is not the peg asset on ${cfg.label}.` }
   }
-  const [block, debtDecimals, operatorGranted] = await Promise.all([
+  const [block, debtDecimals, collateralDecimals, operatorGranted, oracle] = await Promise.all([
     client.getBlock(),
     client.readContract({ address: debtToken, abi: permitTokenAbi, functionName: 'decimals' }),
+    client.readContract({ address: collateralToken, abi: permitTokenAbi, functionName: 'decimals' }),
     client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionOperator', args: [owner, cfg.membraneAdapter!] }),
+    client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'oracle' }),
   ])
+  const [membranePriceWad] = await client.readContract({ address: oracle, abi: membraneOracleAbi, functionName: 'getPrice', args: [denom] })
 
   let debtWei: bigint
   let collateralWei: bigint
@@ -230,6 +264,9 @@ export async function resolveMigration(
     operatorGranted,
     morphoAuthorized,
     blockTime: block.timestamp,
+    blockNumber: block.number,
+    collateralDecimals: Number(collateralDecimals),
+    membranePriceWad,
   }
 }
 
@@ -432,4 +469,116 @@ export async function runMigration(p: {
   const rc = await client.waitForTransactionReceipt({ hash })
   emit({ kind: 'mined', id: 'bundle', hash, status: rc.status })
   return rc.status === 'success' ? { ok: true, bundleHash: hash } : { ok: false, bundleHash: hash, reason: 'the bundle reverted on-chain' }
+}
+
+// ------------------------------------------------------------------ deploy fresh (Cdp direct)
+
+export interface ResolvedDeploy {
+  owner: Address
+  collateralToken: Address
+  collateralDecimals: number
+  denom: `0x${string}`
+  /** What the replay held, in wei, and what the wallet holds. The deposit is the smaller. */
+  prefillWei: bigint
+  walletWei: bigint
+  depositWei: bigint
+  borrowCdt: bigint
+  allowance: bigint
+  membranePriceWad: bigint
+  blockNumber: bigint
+}
+
+/** Reads the wallet and Membrane for a deploy-fresh plan: the deposit is the replay's collateral
+ *  capped at the wallet balance; the borrow is `targetLtv` (the replay's LTV, capped at the
+ *  borrow LTV by buildDeployPlan) of that deposit at Membrane's own oracle price. */
+export async function resolveDeploy(
+  client: PublicClient,
+  cfg: MigrateChainConfig,
+  source: MigrateSource,
+  owner: Address,
+  targetLtv: number,
+): Promise<ResolvedDeploy | { error: string }> {
+  const c0 = source.collateral[0]
+  const token = c0 ? cfg.tokens[c0.symbol] : undefined
+  if (!token) return { error: `${c0?.symbol ?? 'collateral'} has no token address on ${cfg.label}.` }
+  const denom = cfg.denoms[token.toLowerCase()]
+  if (!denom) return { error: `${c0.symbol} is not listed on Membrane on ${cfg.label}.` }
+  const [decimals, walletWei, allowance, oracle, block] = await Promise.all([
+    client.readContract({ address: token, abi: permitTokenAbi, functionName: 'decimals' }),
+    client.readContract({ address: token, abi: permitTokenAbi, functionName: 'balanceOf', args: [owner] }),
+    client.readContract({ address: token, abi: permitTokenAbi, functionName: 'allowance', args: [owner, cfg.cdp!] }),
+    client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'oracle' }),
+    client.getBlock(),
+  ])
+  const [membranePriceWad] = await client.readContract({ address: oracle, abi: membraneOracleAbi, functionName: 'getPrice', args: [denom] })
+  const scale = 10n ** BigInt(decimals)
+  // the replay amount in wei, from its human amount (micro-unit precision is enough to prefill)
+  const prefillWei = (BigInt(Math.round(c0.amount * 1e6)) * scale) / 1_000_000n
+  const depositWei = prefillWei < walletWei ? prefillWei : walletWei
+  if (depositWei === 0n) return { error: `This wallet holds no ${c0.symbol} on ${cfg.label}.` }
+  const depositUsdWad = (depositWei * membranePriceWad) / scale
+  // floor to whole bps of LTV and whole CDT so the borrow never rounds above the target
+  const borrowCdt = ((depositUsdWad * BigInt(Math.floor(targetLtv * 10_000))) / 10_000n / 10n ** 18n) * 10n ** 18n
+  return { owner, collateralToken: token, collateralDecimals: Number(decimals), denom, prefillWei, walletWei, depositWei, borrowCdt, allowance, membranePriceWad, blockNumber: block.number }
+}
+
+const depositEventAbi = parseAbi(['event Deposit(address indexed owner, uint256 indexed positionId, bytes32 asset, uint256 amount)'])
+
+export function deployCalls(cfg: MigrateChainConfig, d: ResolvedDeploy, nextPositionId: bigint): SimCall[] {
+  const calls: SimCall[] = []
+  if (d.allowance < d.depositWei) calls.push({ to: d.collateralToken, abi: permitTokenAbi, functionName: 'approve', args: [cfg.cdp!, d.depositWei] })
+  calls.push({ to: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'deposit', args: [0n, d.owner, [{ denom: d.denom, amount: d.depositWei }]] })
+  if (d.borrowCdt > 0n) calls.push({ to: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'increaseDebt', args: [nextPositionId, d.denom, d.borrowCdt] })
+  return calls
+}
+
+export async function simulateDeploy(client: PublicClient, cfg: MigrateChainConfig, d: ResolvedDeploy): Promise<SimResult> {
+  const next = await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'currentPositionId' })
+  return simulate(client, d.owner, deployCalls(cfg, d, next))
+}
+
+/** Sends approve (when short), deposit, borrow — one prompt each. */
+export async function runDeploy(p: {
+  client: PublicClient
+  wallet: WalletClient
+  cfg: MigrateChainConfig
+  d: ResolvedDeploy
+  onEvent?: (e: RunEvent) => void
+}): Promise<RunResult> {
+  const { client, wallet, cfg, d } = p
+  const emit = p.onEvent ?? (() => {})
+  const next = await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'currentPositionId' })
+  const calls = deployCalls(cfg, d, next)
+  const ids = calls.map((c) => (c.functionName === 'approve' ? 'approve' : c.functionName === 'deposit' ? 'deposit' : 'borrow'))
+  let last: `0x${string}` | null = null
+  let pid: bigint | null = null
+  for (let i = 0; i < calls.length; i++) {
+    let c = calls[i]
+    if (ids[i] === 'borrow') {
+      if (pid === null) return { ok: false, bundleHash: last, reason: 'the deposit receipt carried no Deposit event' }
+      c = { ...c, args: [pid, d.denom, d.borrowCdt] }
+    }
+    emit({ kind: 'prompt', id: ids[i], index: i + 1, total: calls.length })
+    const hash = await wallet.writeContract({
+      account: d.owner,
+      chain: wallet.chain,
+      address: c.to,
+      abi: c.abi as typeof cdpOperatorAbi,
+      functionName: c.functionName as 'deposit',
+      args: c.args as never,
+    })
+    emit({ kind: 'submitted', id: ids[i], hash })
+    const rc = await client.waitForTransactionReceipt({ hash })
+    emit({ kind: 'mined', id: ids[i], hash, status: rc.status })
+    last = hash
+    if (rc.status !== 'success') return { ok: false, bundleHash: hash, reason: `${ids[i]} reverted on-chain` }
+    if (ids[i] === 'deposit') {
+      // the position id the deposit actually created, from its own Deposit event
+      const ev = parseEventLogs({ abi: depositEventAbi, logs: rc.logs, eventName: 'Deposit' }).find(
+        (l) => l.address.toLowerCase() === cfg.cdp!.toLowerCase() && l.args.owner.toLowerCase() === d.owner.toLowerCase(),
+      )
+      pid = ev ? ev.args.positionId : null
+    }
+  }
+  return { ok: true, bundleHash: last }
 }

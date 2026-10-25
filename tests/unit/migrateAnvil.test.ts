@@ -14,7 +14,8 @@ import { anvil } from '@/config/evm/chains'
 import local from '@/contracts/migrator/deployments/local.json'
 import { cdpOperatorAbi } from '@/lib/migrate/abis'
 import { migrateConfig } from '@/lib/migrate/addresses'
-import { readiness, resolveMigration, runMigration, simulatePreSign, type ResolvedMigration, type RunEvent } from '@/lib/migrate/exec'
+import { readiness, resolveDeploy, resolveMigration, runDeploy, runMigration, simulateDeploy, simulatePreSign, type ResolvedDeploy, type ResolvedMigration, type RunEvent } from '@/lib/migrate/exec'
+import { buildDeployPlan } from '@/lib/migrate/plan'
 import { demoBorrowerPosition } from '@/lib/position-sim/demoBorrower'
 import type { MigrateSource } from '@/lib/migrate/types'
 
@@ -85,5 +86,22 @@ run('migrate on local anvil', () => {
     expect(pre.ok).toBe(false)
     if (!pre.ok) expect(pre.reason).toMatch(/InsolventAfterAction/)
     expect(result).toBeNull()
+  })
+
+  it('deploy fresh: replay collateral capped at the wallet, at the replay LTV, 3 prompts', async () => {
+    const account = privateKeyToAccount(KEY_AAVE)
+    const wallet = createWalletClient({ account, chain, transport: http(RPC) })
+    const src = source('aave-v3')
+    const plan = buildDeployPlan(src)
+    const d = (await resolveDeploy(client, cfg, src, account.address, plan.membrane.ltv)) as ResolvedDeploy
+    expect('error' in d).toBe(false)
+    expect(d.depositWei).toBe(d.walletWei) // 10 WETH in the wallet < 281 WETH in the replay
+    expect((await simulateDeploy(client, cfg, d)).ok).toBe(true)
+    const events: RunEvent[] = []
+    const res = await runDeploy({ client, wallet, cfg, d, onEvent: (e) => events.push(e) })
+    expect(res.ok).toBe(true)
+    expect(events.filter((e) => e.kind === 'prompt').map((e) => (e as { id: string }).id)).toEqual(['approve', 'deposit', 'borrow'])
+    const pid = await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'userPositionIds', args: [account.address, 0n] })
+    expect(await client.readContract({ address: cfg.cdp!, abi: cdpOperatorAbi, functionName: 'positionDebt', args: [pid] })).toBe(d.borrowCdt)
   })
 })

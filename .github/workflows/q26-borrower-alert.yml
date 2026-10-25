@@ -4,8 +4,8 @@
 # NOTHING IS SHOWN TO USERS AND NO ALERT IS SENT. It moves to Membrane positions when a Membrane Cdp is deployed on a
 # public chain (a later dated block).
 #
-# OFF SWITCH: the job runs only while the repository variable BORROWER_ALERT_ENABLED is exactly `true`
-#   (Settings -> Secrets and variables -> Actions -> Variables). Unset, or any other value, = off: the job is skipped.
+# OFF SWITCH (owner turned the job ON 2026-10-25): the job runs unless the repository variable BORROWER_ALERT_ENABLED is exactly `false`
+#   (Settings -> Secrets and variables -> Actions -> Variables). Set it to `false` to stop the job; unset or any other value = on.
 #   Turning it off loses no history. Disabling this workflow in the Actions tab also stops it.
 # Code: membrane-app research/history-forecasts at the PINNED full commit D14_APP_SHA (moves only by a dated note in
 #   the D14 block). Data: triccs/membrane-datasets (private), forecasts/q26-borrower-alert/ only.
@@ -45,7 +45,7 @@ defaults:
 
 jobs:
   d14:
-    if: ${{ !cancelled() && vars.BORROWER_ALERT_ENABLED == 'true' && github.repository == 'The-Membrane/membrane-app' }}
+    if: ${{ !cancelled() && vars.BORROWER_ALERT_ENABLED != 'false' && github.repository == 'The-Membrane/membrane-app' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment: q26-datasets

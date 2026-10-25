@@ -4,15 +4,11 @@
  */
 
 import {
-  DEMO_ADDRESS,
   DEMO_BORROWER_ADDRESS,
   DEMO_BORROWER_DATE,
   DEMO_BORROWER_ROW,
-  DEMO_SNAPSHOT_DATE,
   demoBorrowerDetection,
   demoBorrowerPosition,
-  demoDetection,
-  demoPosition,
   type ProtocolPosition,
   type VenueDetection,
 } from '@/lib/position-sim'
@@ -44,28 +40,38 @@ export interface LandingPageConfig {
 
 const R = DEMO_BORROWER_ROW
 
+/**
+ * The census wallet both landings open on (parent review 2026-10-25: the old carry
+ * snapshot was a non-event on 10 Oct 2025, so its T beat said nothing was sold). It is the
+ * one census row with a vetted fixture (scripts/select-demo-borrower.ts): mainnet, WETH
+ * collateral against USDC debt, Aave closed $338,084 (measured). The census holds no
+ * deployment, so on /carry this demo shows no recall; the carry tails render only for a
+ * pasted wallet that has one.
+ */
+const CENSUS_DEMO: DemoConfig = {
+  address: DEMO_BORROWER_ADDRESS,
+  position: demoBorrowerPosition,
+  detection: demoBorrowerDetection,
+  census: {
+    user: R.user,
+    events: R.events,
+    t0Index: R.t0Index,
+    aaveClosedUsd: R.aaveClosedUsd,
+    membraneClosedUsd: R.membraneClosedUsd,
+    outcome: R.outcome,
+    collSymbol: R.collSymbol,
+    debtSymbol: R.debtSymbol,
+  },
+  bannerNote: `liquidated ${DEMO_BORROWER_DATE}`,
+}
+
 export const LANDING_PAGES: Record<LandingPageId, LandingPageConfig> = {
   borrower: {
     id: 'borrower',
     path: '/',
     headlines: HEADLINES,
     subhead: { desktop: SUBHEAD_DESKTOP, phone: SUBHEAD_PHONE },
-    demo: {
-      address: DEMO_BORROWER_ADDRESS,
-      position: demoBorrowerPosition,
-      detection: demoBorrowerDetection,
-      census: {
-        user: R.user,
-        events: R.events,
-        t0Index: R.t0Index,
-        aaveClosedUsd: R.aaveClosedUsd,
-        membraneClosedUsd: R.membraneClosedUsd,
-        outcome: R.outcome,
-        collSymbol: R.collSymbol,
-        debtSymbol: R.debtSymbol,
-      },
-      bannerNote: `liquidated ${DEMO_BORROWER_DATE}`,
-    },
+    demo: CENSUS_DEMO,
     objections: OBJECTIONS,
   },
   carry: {
@@ -73,13 +79,7 @@ export const LANDING_PAGES: Record<LandingPageId, LandingPageConfig> = {
     path: '/carry',
     headlines: CARRY_HEADLINES,
     subhead: { desktop: CARRY_SUBHEAD_DESKTOP, phone: CARRY_SUBHEAD_PHONE },
-    demo: {
-      address: DEMO_ADDRESS,
-      position: demoPosition,
-      detection: demoDetection,
-      census: null,
-      bannerNote: `carry wallet, snapshot ${DEMO_SNAPSHOT_DATE}`,
-    },
+    demo: CENSUS_DEMO,
     objections: CARRY_OBJECTIONS,
   },
 }

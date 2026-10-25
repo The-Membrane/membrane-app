@@ -14,6 +14,7 @@ import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { shortAddress, usd } from '@/components/Simulator/format'
+import { ASSET_COLORS } from '@/config/chartTheme'
 import type { Comparison } from '@/lib/position-sim'
 import { SOLIDITY_PIN, type CensusSummary } from '@/lib/landing/objections'
 import type { ComparisonRow, Mark } from '@/lib/landing/comparison'
@@ -50,6 +51,14 @@ const h2 = {
 }
 
 // ------------------------------------------------------------------ hero preview
+
+/**
+ * Series colours (chart-design: the ordered palette in config/chartTheme). Membrane takes
+ * series 1, phosphor. The venue skips series 2 (cyber teal), which reads as a second green
+ * beside phosphor at this size, and takes series 3, gold.
+ */
+const SERIES_MEMBRANE = ASSET_COLORS[0]
+const SERIES_VENUE = ASSET_COLORS[2]
 
 /** Minute series → SVG points, both lines on one scale. */
 function paths(a: (number | null)[], b: (number | null)[], w: number, h: number): [string, string] {
@@ -111,8 +120,8 @@ export const HeroPreview: React.FC<{
       <Box h={`${H}px`} minW={0}>
         {mounted && comparison ? (
           <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" role="img" aria-label="Equity on the venue and on Membrane through the replay">
-            <polyline points={venue} fill="none" stroke={SEMANTIC_COLORS.textSecondary} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-            <polyline points={mem} fill="none" stroke={SEMANTIC_COLORS.success} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+            <polyline points={venue} fill="none" stroke={SERIES_VENUE} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+            <polyline points={mem} fill="none" stroke={SERIES_MEMBRANE} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
           </svg>
         ) : (
           <Box h="100%" borderTop={rule} />
@@ -120,14 +129,14 @@ export const HeroPreview: React.FC<{
       </Box>
       <Box display="flex" gap={SPACING.md} flexWrap="wrap">
         <Text {...small}>
-          <Text as="span" color={SEMANTIC_COLORS.textSecondary}>
-            —
+          <Text as="span" color={SERIES_VENUE} fontWeight={TYPOGRAPHY.bold}>
+            ━
           </Text>{' '}
           {comparison ? comparison.position.label.split(' · ')[0] : 'Venue'}
         </Text>
         <Text {...small}>
-          <Text as="span" color={SEMANTIC_COLORS.success}>
-            —
+          <Text as="span" color={SERIES_MEMBRANE} fontWeight={TYPOGRAPHY.bold}>
+            ━
           </Text>{' '}
           Membrane (simulator)
         </Text>
@@ -182,13 +191,9 @@ const MARK: Record<Mark, { glyph: string; color: string; sr: string }> = {
 }
 
 const CellView: React.FC<{ c: ComparisonRow['aave']; title: string }> = ({ c, title }) => (
-  <Box as="td" p={SPACING.sm} borderTop={rule} verticalAlign="top" title={title}>
+  <Box as="td" p={SPACING.sm} borderTop={rule} verticalAlign="top" title={`${c.text} · ${title}`}>
     <Text as="span" display="block" fontFamily={TYPOGRAPHY.fontMono} fontSize={c.mark === 'partial' ? '11px' : '16px'} color={MARK[c.mark].color} aria-label={MARK[c.mark].sr}>
       {MARK[c.mark].glyph}
-    </Text>
-    {/* Phones show the mark only; the cell's fact is in the title and the Details below. */}
-    <Text as="span" display={{ base: 'none', md: 'block' }} {...small} fontSize="11px" color={SEMANTIC_COLORS.textSecondary}>
-      {c.text}
     </Text>
   </Box>
 )
@@ -234,7 +239,7 @@ export const ComparisonTable: React.FC<{ rows: ComparisonRow[] }> = ({ rows }) =
       <Details testId="landing-compare-details">
         {rows.map((r) => (
           <DetailLine key={r.id}>
-            {r.label}: {r.sources.join(' · ')}
+            {r.label}: Aave V3 {MARK[r.aave.mark].sr}, {r.aave.text}; Morpho Blue {MARK[r.morpho.mark].sr}, {r.morpho.text}; Membrane {MARK[r.membrane.mark].sr}, {r.membrane.text}. Sources: {r.sources.join(' · ')}
           </DetailLine>
         ))}
         <DetailLine>Contract lines: membrane-solidity master @ {SOLIDITY_PIN}. Venue cells: public/data/oct10-2025/protocols.json.</DetailLine>

@@ -167,11 +167,11 @@ export function troubleLine(
   const first = cmp.source.events.find((e) => e.kind === 'liquidation') ?? null
   if (measured) {
     const at = first ? ` at ${clock(first.ts)}` : ''
-    return `${venue} liquidated ${usd(measured.aaveClosedUsd)} of ${whose} loan${at} (measured). No warning, no time.`
+    return `${venue} liquidated ${usd(measured.aaveClosedUsd)}${at} (measured).`
   }
   if (!first) return `${venue} would have sold nothing of ${whose} position on this replay (modelled).`
   const closed = closedTotals(cmp).venueClosedUsd
-  return `${venue} would have liquidated ${usd(closed)} of ${whose} loan at ${clock(first.ts)} (modelled). No warning, no time.`
+  return `${venue} would have liquidated ${usd(closed)} at ${clock(first.ts)} (modelled).`
 }
 
 /**
@@ -188,11 +188,11 @@ export function outcomeBeat(
   opts: { cureHours: number; bandPct: number; stepSeconds: number },
 ): string {
   const mem = measured ? measured.membraneClosedUsd : closedTotals(cmp).membraneClosedUsd
-  const closes = mem >= 0.5 ? `Membrane would have closed ${usd(mem)} of the loan (simulator)` : 'Membrane would have sold nothing (simulator)'
+  const closes = mem >= 0.5 ? `Membrane would have closed ${usd(mem)} (simulator)` : 'Membrane would have sold nothing (simulator)'
   const w = windows[0]
   if (!w) {
-    if (mem < 0.5) return 'On Membrane no window was needed and nothing was sold (simulator).'
-    return `Already past the ${opts.bandPct}% band, so no window opened. ${closes}.`
+    if (mem < 0.5) return 'On Membrane no window was needed; nothing sold (simulator).'
+    return `Already past the ${opts.bandPct}% band; no window. ${closes}.`
   }
   const opened = clock(cmp.membrane.events.find((e) => e.kind === 'breach')?.ts ?? 0)
   const mins = Math.max(1, Math.round(((w.end - w.start) * opts.stepSeconds) / 60))
@@ -203,8 +203,10 @@ export function outcomeBeat(
       ? 'the price data ended inside it'
       : fullWindow
       ? `still over the line at ${opts.cureHours}h`
-      : `price fell through the ${opts.bandPct}% band ${mins} min later`
-  return `The ${opts.cureHours}h window opened at ${opened}; ${how}. ${closes}. Nothing required of you.`
+      : `band broke ${mins} min later`
+  // Copy budget: the result block is ≤ 40 visible words. Nothing is asked of the user;
+  // the H1 already says so ("automatically"), so the beat does not repeat it.
+  return `${opts.cureHours}h window from ${opened}; ${how}. ${closes}.`
 }
 
 /** The debt-gap verdict at its shortest, for second place under the O beat. */

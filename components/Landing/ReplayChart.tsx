@@ -206,10 +206,6 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
             color={SEMANTIC_COLORS.textPrimary}
           >
             {troubleLine(comparison, whose, measured, clock)}
-            {carry ? carryTroubleTail(selected, detection) : ''}
-          </Text>
-          <Text {...credit} textAlign="left" data-testid="landing-stamp">
-            {measured ? 'Aave measured' : `${comparison.position.label.split(' · ')[0]} modelled`} · oracle 1-min
           </Text>
 
           {sizeFirst && skewBlock}
@@ -226,15 +222,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
               ghosts={ghosts}
               ticks={ticks}
               bare
-              caption={
-                <Text {...small} {...tabularNums} data-testid="landing-chart-key">
-                  <Text as="span" color={SEMANTIC_COLORS.danger}>✖ sold</Text>
-                  {' '}
-                  <Text as="span" color={SEMANTIC_COLORS.warning}>░ window</Text>
-                  {' '}
-                  <Text as="span" color={SEMANTIC_COLORS.success}>● cured</Text>
-                </Text>
-              }
+              caption={null}
             />
           )}
 
@@ -251,10 +239,6 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
                     stepSeconds,
                   })
                 : null}
-              {carry ? carryOutcomeTail(comparison, selected, detection) : ''}
-            </Text>
-            <Text {...small} {...tabularNums} color={SEMANTIC_COLORS.textPrimary} data-testid="landing-verdict">
-              {verdictShort(comparison, measured)}
             </Text>
           </Box>
 
@@ -262,6 +246,17 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
 
           <Details testId="landing-result-details">
             {shareSlot}
+            <DetailLine>
+              <Text as="span" data-testid="landing-stamp">
+                {measured ? 'Aave measured' : `${comparison.position.label.split(' · ')[0]} modelled`} · oracle 1-min
+              </Text>
+            </DetailLine>
+            <DetailLine>
+              <Text as="span" data-testid="landing-verdict">{verdictShort(comparison, measured)}</Text>
+            </DetailLine>
+            {carry && (carryTroubleTail(selected, detection) || carryOutcomeTail(comparison, selected, detection)) && (
+              <DetailLine>{`${carryTroubleTail(selected, detection)}${carryOutcomeTail(comparison, selected, detection)}`.trim()}</DetailLine>
+            )}
             <DetailLine>{verdictOf(comparison, whose, measured).detail}</DetailLine>
             {addressCensus && (
               <DetailLine>

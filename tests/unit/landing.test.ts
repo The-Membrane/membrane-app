@@ -377,13 +377,13 @@ describe('STORY beats T and O', () => {
       membraneClosedUsd: row.membraneClosedUsd, outcome: row.outcome, collSymbol: row.collSymbol, debtSymbol: row.debtSymbol,
     })
     const t = troubleLine(cmp, 'this', row, clock)
-    expect(t).toBe(`Aave V3 liquidated $${Math.round(row.aaveClosedUsd).toLocaleString('en-US')} of this loan at ${clock(series.startTs + row.t0Index * series.stepSeconds)} (measured). No warning, no time.`)
+    expect(t).toBe(`Aave V3 liquidated $${Math.round(row.aaveClosedUsd).toLocaleString('en-US')} at ${clock(series.startTs + row.t0Index * series.stepSeconds)} (measured).`)
     expect(t).not.toMatch(BANNED)
   })
   it('T is labelled modelled without a census row, and says plainly when nothing sold', async () => {
     const { troubleLine } = await import('@/lib/landing/verdict')
     const cmp = demoRun()
-    expect(troubleLine(cmp, 'your', null, clock)).toMatch(/^Aave V3 would have liquidated \$[\d,]+ of your loan at \d\d:\d\dZ \(modelled\)\./)
+    expect(troubleLine(cmp, 'your', null, clock)).toMatch(/^Aave V3 would have liquidated \$[\d,]+ at \d\d:\d\dZ \(modelled\)\./)
     const quiet = { ...cmp, source: { ...cmp.source, events: [] } }
     expect(troubleLine(quiet, 'your', null, clock)).toBe('Aave V3 would have sold nothing of your position on this replay (modelled).')
   })
@@ -393,7 +393,7 @@ describe('STORY beats T and O', () => {
     const cmp = demoRun()
     const w = armedWindows(cmp, cmp.membrane.equitySeries.length, CURE_WINDOW_SECONDS / series.stepSeconds)
     const o = outcomeBeat(cmp, row, w, clock, { cureHours: 8, bandPct: 4, stepSeconds: series.stepSeconds })
-    expect(o).toMatch(/^The 8h window opened at \d\d:\d\dZ; price fell through the 4% band \d+ min later\. Membrane would have closed \$309,635 of the loan \(simulator\)\. Nothing required of you\.$/)
+    expect(o).toMatch(/^8h window from \d\d:\d\dZ; band broke \d+ min later\. Membrane would have closed \$309,635 \(simulator\)\.$/)
     expect(o).not.toMatch(BANNED)
   })
   it('every H1 states the band ceiling and the window, from the constants (owner ruling)', async () => {
@@ -488,5 +488,20 @@ describe('redesign: comparison table, proof figures, moving line', () => {
     expect(movingLineFor('address', true, true)).toBe(MOVING_LINE)
     expect(movingLineFor('demo', true, true)).toBeNull()
     expect(movingLineFor('address', false, true)).toBeNull()
+  })
+})
+
+describe('/carry demo is a census event (parent review 2026-10-25)', () => {
+  it('opens on a wallet Aave liquidated, stable debt against ETH/BTC, never wstETH', async () => {
+    const { LANDING_PAGES } = await import('@/lib/landing/pages')
+    const d = LANDING_PAGES.carry.demo
+    expect(d.census).not.toBeNull()
+    expect(d.census!.aaveClosedUsd).toBeGreaterThan(0)
+    expect(['WETH', 'WBTC', 'cbBTC']).toContain(d.census!.collSymbol)
+    expect(['USDC', 'USDT', 'DAI', 'USDS', 'GHO']).toContain(d.census!.debtSymbol)
+    expect(d.census!.collSymbol).not.toBe('wstETH')
+    const ev = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../public/data/oct10-2025/evidence.json'), 'utf8'))
+    const row = ev.cohort.find((r: { user: string }) => r.user.toLowerCase() === d.address.toLowerCase())
+    expect(row.aaveClosedUsd).toBe(d.census!.aaveClosedUsd)
   })
 })

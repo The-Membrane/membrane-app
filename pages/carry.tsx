@@ -9,7 +9,7 @@ import ForecastLanding from '@/components/Landing/ForecastLanding'
 import { resolveHeadline, type HeadlineKey } from '@/lib/landing/headline'
 import { comparisonRows, type ComparisonRow, type VenueDoc } from '@/lib/landing/comparison'
 import { summariseCensus, type CensusSummary, type EvidenceDocLike } from '@/lib/landing/objections'
-import { DEMO_ADDRESS } from '@/lib/position-sim/demo'
+import { DEMO_BORROWER_ADDRESS } from '@/lib/position-sim/demoBorrower'
 
 // THE CARRY LANDING (owner, 2026-10-25): carry traders and points farmers. Same STORY and
 // components as `/`; copy, demo wallet and objections from lib/landing/pages.ts. The
@@ -53,8 +53,8 @@ const CarryPage = ({ headline, census, rows }: Props) => (
       seoClass="indexable"
       path="/carry"
       title="Earn the carry without managing it · Membrane"
-      description="Paste a carry wallet and replay it through the 10 Oct 2025 crash: what your venue would have sold, and the same carry on Membrane with an 8-hour window."
-      image={`/api/og/replay?a=${DEMO_ADDRESS}&s=oct10-2025`}
+      description="Paste a carry wallet and replay it through the 10 Oct 2025 crash: what your venue sold or would have sold, and the same position on Membrane with an 8-hour window."
+      image={`/api/og/replay?a=${DEMO_BORROWER_ADDRESS}&s=oct10-2025`}
     />
     <ForecastLanding page="carry" headline={headline} census={census} comparisonRows={rows} />
   </>

@@ -21,12 +21,13 @@ export type Mark = 'yes' | 'no' | 'partial' | 'na'
 
 export interface Cell {
   mark: Mark
-  /** Short, ≤ 6 words. */
+  /** Short, ≤ 6 words. Shown in the tooltip and the table's Details, not in the cell. */
   text: string
 }
 
 export interface ComparisonRow {
   id: string
+  /** Row label, ≤ 4 words (copy budget: table rows are label + value). */
   label: string
   aave: Cell
   morpho: Cell
@@ -56,7 +57,7 @@ export function comparisonRows(doc: VenueDoc | null, carry: boolean): Comparison
   const rows: ComparisonRow[] = [
     {
       id: 'window',
-      label: `${CURE_WINDOW_HOURS}h window within ${band} of the line`,
+      label: `${CURE_WINDOW_HOURS}h window, ${band} band`,
       aave: { mark: 'no', text: 'none per position' },
       morpho: { mark: 'no', text: 'none per position' },
       membrane: { mark: 'yes', text: `${CURE_WINDOW_HOURS}h, inside the ${band} band` },
@@ -67,7 +68,7 @@ export function comparisonRows(doc: VenueDoc | null, carry: boolean): Comparison
     },
     {
       id: 'partial',
-      label: 'Sells only back to the borrowable LTV',
+      label: 'Sells to borrowable LTV',
       aave:
         cf?.DEFAULT_LIQUIDATION_CLOSE_FACTOR_pct && cf.CLOSE_FACTOR_HF_THRESHOLD
           ? {
@@ -90,7 +91,7 @@ export function comparisonRows(doc: VenueDoc | null, carry: boolean): Comparison
   if (carry) {
     rows.push({
       id: 'recall',
-      label: 'Deployed debt recalled before any sale',
+      label: 'Recall before sale',
       aave: { mark: 'na', text: 'no deployment' },
       morpho: { mark: 'na', text: 'no deployment' },
       membrane: { mark: 'yes', text: 'recall, then sale' },
@@ -99,7 +100,7 @@ export function comparisonRows(doc: VenueDoc | null, carry: boolean): Comparison
   }
   rows.push({
     id: 'nothing',
-    label: 'Nothing to set or monitor',
+    label: 'Nothing to monitor',
     aave: { mark: 'na', text: 'no window to set' },
     morpho: { mark: 'na', text: 'no window to set' },
     membrane: { mark: 'yes', text: 'any liquidate() call arms it' },

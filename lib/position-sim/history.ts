@@ -45,20 +45,47 @@
  *     repriced by the anchor collateral's oracle rounds. Same debt-fixed convention the
  *     Oct 10 engine uses.
  *   - Crossing the line ARMS an 8h timer. Inside the window: over line x (1+band) is a
- *     BROKE seizure at that price; back at or under the borrow cap (line - 3pp) cures
- *     it and clears the timer. The window expiring still over the cap is a PARTIAL
- *     seizure at the price prevailing AT EXPIRY.
+ *     BROKE seizure at that price; back under the LINE cures it and clears the timer.
+ *     The window expiring still at or over the line is a PARTIAL seizure at the price
+ *     prevailing AT EXPIRY. A position at or under its line is not liquidatable on
+ *     master (`CdpInternal.insolvent` is `ratio > avgMaxLTV`, lib/CdpInternal.sol:329);
+ *     `Cdp.liquidate` clears its stale timer instead (Cdp.sol:2236-2248, LE:926-946).
+ *     (Changed 2026-10-04: this used to cure only at the borrow cap, line − 3pp, and
+ *     seized an expired window that sat between the cap and the line — overstating
+ *     Membrane's seizures in the wallet-history proof.)
+ *     ONE BOUNDARY for arm and cure (owner ruling 2026-10-04: the timer starts and ends
+ *     at the LLTV line; back under it is out of the window, "saved"). `overLine` decides
+ *     both: it arms a timer, and its negation `underLine` clears one. The boundary is
+ *     master's `ratio > line` (lib/CdpInternal.sol:329) with ONE adjustment: the episode
+ *     is pinned AT its line at the anchor price, a stand-in for "just over it" — the real
+ *     liquidation proves the position was liquidatable there — so an LTV within 1e-12
+ *     of the line (equality, or float noise in re-deriving the anchor) counts as OVER it,
+ *     for arming exactly as for curing. A round at the anchor price is therefore not a
+ *     recovery, an expiry on it still sells, and a return to it after a cure re-arms.
+ *     (Fixed 2026-10-04: the cure test used that 1e-12 tolerance while the arm and
+ *     re-arm tests used a bare `> line`, so an LTV in (line·(1 − 1e-12), line] neither
+ *     armed nor cured.)
  *   - After any seizure the position CONTINUES with its new debt and collateral. Cross
  *     the line again and a new timer arms — that is the re-liquidation chain.
- *   - Membrane's seize is its partial repay-to-cap size (LiquidationEngine.sol
- *     :2204-2238) grossed up by the liquidation fee, bounded only by the collateral
+ *   - Membrane's seize is its partial repay-to-cap size (master LiquidationEngine.sol
+ *     :2663-2710) grossed up by the liquidation fee, bounded only by the collateral
  *     that is left.
+ *   - The repay carries the $2,000 debt floor (LE:2718-2729) AND the remainder guard
+ *     (owner ruling 2026-10-04: "a liquidation must never leave 0 < remaining debt <
+ *     liqDebtMinimum; if it would, repay ALL" — `applyDebtMinimum`; master has no guard,
+ *     fix lane "Fix LE debt-floor dust and recall sizing"). Added 2026-10-04: this file
+ *     used to size the repay with NO floor at all, so a repay of $8,964 on a $10,000 slice
+ *     left $1,036 standing. The slice is treated as the whole position — the only debt
+ *     this replay can see. Both the floor and the guard can only ENLARGE a seizure, so
+ *     where the real account held more debt than the slice this overstates Membrane's
+ *     seizures; it never manufactures a save.
  */
 
 import { MAX_LIQ_FEE } from './compare'
 import {
   BORROW_LTV_GAP,
   CURE_WINDOW_SECONDS,
+  LIQ_DEBT_MINIMUM_USD,
   MAX_THRESHOLD_TO_DELAY,
   membraneRepayValue,
 } from './membrane'
@@ -83,6 +110,12 @@ export const DEFAULT_LIQ_FEE = 0.05
 /** A runaway chain is a bug, not a result. Nothing real re-liquidates 12 times in 72h. */
 const MAX_CHAIN = 12
 
+/**
+ * Relative band under the line that still counts as AT (= over) it — the pinned anchor
+ * plus float noise from re-deriving it. Used by `overLine`, the one arm/cure boundary.
+ */
+const LINE_TOLERANCE = 1e-12
+
 /** One decoded, real liquidation. Every field is observed or reconstructed by the
  *  caller — this module invents none of them. */
 export interface HistoricLiquidation {
@@ -106,11 +139,12 @@ export interface PriceRound {
 }
 
 export interface ReplayParams {
-  /** 28,800 s. Real: liquidation-engine/src/contract.rs:52. */
+  /** 28,800 s. Real: `LIQUIDATION_DELAY_S = 8 hours`, script/DeployFullSystem.s.sol:199
+   *  (passed to the engine constructor at :481). */
   cureWindowSeconds: number
   /** The break band. 4% — max_threshold_to_delay on every deploy-registered asset. */
   band: number
-  /** 3pp. `borrow cap = liquidation line − gap`. Real: lib/Constants.sol:30. */
+  /** 3pp. `borrow cap = liquidation line − gap`. Real: lib/Constants.sol:39. */
   borrowLtvGap: number
   /** Membrane's liquidation fee on the repay, 0-MAX_LIQ_FEE. Defaults to the 5% the
    *  sim uses; the scanner passes the seized reserve's own bonus where it can read it,
@@ -118,6 +152,9 @@ export interface ReplayParams {
   liqFee?: number
   /** How far past the episode's last event to walk the chain. */
   spanSeconds?: number
+  /** The `liqDebtMinimum` floor in USD, with the ruled remainder guard (`applyDebtMinimum`).
+   *  Defaults to the deployed $2,000 (LIQ_DEBT_MINIMUM_USD); 0 disables it. */
+  debtMinimumUsd?: number
 }
 
 export const DEFAULT_REPLAY_PARAMS: ReplayParams = {
@@ -126,6 +163,7 @@ export const DEFAULT_REPLAY_PARAMS: ReplayParams = {
   borrowLtvGap: BORROW_LTV_GAP,
   liqFee: DEFAULT_LIQ_FEE,
   spanSeconds: EPISODE_SPAN_SECONDS,
+  debtMinimumUsd: LIQ_DEBT_MINIMUM_USD,
 }
 
 export type EpisodeVerdict = 'saved' | 'partial' | 'broke' | 'worse' | 'unknown'
@@ -151,7 +189,7 @@ export interface EpisodeReplay {
   /** How many times Membrane would have liquidated. 0 on 'saved'. */
   membraneLiquidations: number
   seizures: MembraneSeizure[]
-  /** Unix seconds the price came back inside the borrow cap, first time. */
+  /** Unix seconds the position came back under its line, first time. */
   recoveredAt?: number
   /** Unix seconds the position first climbed past the break band. */
   brokeAt?: number
@@ -216,6 +254,7 @@ export function replayEpisode(
   const { cureWindowSeconds: W, band, borrowLtvGap } = params
   const fee = Math.max(0, Math.min(MAX_LIQ_FEE, params.liqFee ?? DEFAULT_LIQ_FEE))
   const span = params.spanSeconds ?? EPISODE_SPAN_SECONDS
+  const dMin = Math.max(0, params.debtMinimumUsd ?? LIQ_DEBT_MINIMUM_USD)
 
   const evs = (events ?? [])
     .filter((e) => e && Number.isFinite(e.ts) && e.ts > 0)
@@ -259,6 +298,15 @@ export function replayEpisode(
   if (!(debt > 0)) return unknownEpisode(actual, 'no debt could be priced for this episode')
   let collQty = debt / first.ltvAtEvent / p0
 
+  /**
+   * THE boundary (header, "ONE BOUNDARY"): liquidatable = over the line, with an LTV
+   * within 1e-12 of it (the pinned anchor, or float noise re-deriving it) counted as OVER.
+   * Arm, re-arm and cure all read it, so they can never disagree about a position.
+   */
+  const overLine = (ltv: number): boolean => ltv >= line * (1 - LINE_TOLERANCE)
+  /** Back under the line: out of the window — SavedByDelay clears the timer. */
+  const underLine = (ltv: number): boolean => !overLine(ltv)
+
   const ltvAt = (price: number): number => {
     const coll = collQty * price
     return coll > 0 ? debt / coll : Infinity
@@ -272,11 +320,18 @@ export function replayEpisode(
   const seize = (price: number, ts: number, kind: 'broke' | 'expired'): void => {
     const collUsd = collQty * price
     const ltv = collUsd > 0 ? debt / collUsd : Infinity
-    const repay = membraneRepayValue(debt, collUsd, cap)
+    // The floor + remainder guard (header): never leave 0 < debt < dMin on the slice.
+    const repay = membraneRepayValue(debt, collUsd, cap, dMin)
     if (!(repay > 0)) return
-    const usd = Math.min(repay * (1 + fee), collUsd)
+    const gross = repay * (1 + fee)
+    const usd = Math.min(gross, collUsd)
     collQty = Math.max(0, collQty - usd / price)
-    debt = Math.max(0, debt - Math.min(repay, debt))
+    // Debt falls only by what the seized collateral covered, net of the fee. Past L = 1
+    // the target is the FULL debt (LE:2673-2688) but the collateral runs dry first; the
+    // uncovered rest is bad debt (LE:2361-2374), not repaid. (Not observable in the
+    // result today — that seizure always wipes the slice — but `debt` stays truthful.)
+    const covered = usd < gross ? usd / (1 + fee) : repay
+    debt = Math.max(0, debt - Math.min(covered, debt))
     membrane += usd
     seizures.push({ ts, kind, usd, ltv })
     if (collQty * price <= 1e-9 || debt <= 1e-9) wiped = true
@@ -304,7 +359,9 @@ export function replayEpisode(
     //    saw while the window was open.
     while (armed && !wiped && r.ts > timerStart + W && seizures.length < MAX_CHAIN) {
       const at = timerStart + W
-      if (ltvAt(lastPrice) <= cap) {
+      // Back under the line the position is not liquidatable: the timer just clears
+      // (strict: see CURE AT THE LINE in the header).
+      if (underLine(ltvAt(lastPrice))) {
         armed = false
         recoveredAt = recoveredAt ?? at
         break
@@ -313,7 +370,7 @@ export function replayEpisode(
       armed = false
       // The repay restores the cap net of debt but the FEE comes out of collateral, so
       // the survivor can still be over the line. If it is, a new timer arms right there.
-      if (!wiped && ltvAt(lastPrice) > line) {
+      if (!wiped && overLine(ltvAt(lastPrice))) {
         armed = true
         timerStart = at
       }
@@ -323,7 +380,7 @@ export function replayEpisode(
     lastPrice = r.price
     const ltv = ltvAt(r.price)
 
-    if (!armed && ltv > line) {
+    if (!armed && overLine(ltv)) {
       armed = true
       timerStart = r.ts
     }
@@ -332,11 +389,12 @@ export function replayEpisode(
         seize(r.price, r.ts, 'broke')
         brokeAt = brokeAt ?? r.ts
         armed = false
-        if (!wiped && ltvAt(r.price) > line) {
+        if (!wiped && overLine(ltvAt(r.price))) {
           armed = true
           timerStart = r.ts
         }
-      } else if (ltv <= cap) {
+      } else if (underLine(ltv)) {
+        // Back under the line: SavedByDelay clears the timer (LE:1666-1685).
         armed = false
         recoveredAt = recoveredAt ?? r.ts
       }
@@ -361,7 +419,7 @@ export function replayEpisode(
       membraneShare: share,
       why:
         recoveredAt !== undefined
-          ? `price was back under the borrow line ${minutesAfter(first.ts, recoveredAt)} after the first hit, inside the 8-hour window — nothing sold${anchorNote}`
+          ? `price was back under the liquidation line ${minutesAfter(first.ts, recoveredAt)} after the first hit, inside the 8-hour window — nothing sold${anchorNote}`
           : `the position never sat over its line at a window expiry — nothing sold${anchorNote}`,
     }
   }

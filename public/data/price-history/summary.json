@@ -1,0 +1,1976 @@
+{
+  "generatedAt": "2026-10-06T05:19:03.324Z",
+  "statistics": "lib/position-sim/drawdowns.ts",
+  "definitions": {
+    "forward": "entry-relative: 1 - (lowest LOW in the next w hours) / (entry hour CLOSE), at every entry hour — the set-and-forget quantity",
+    "rolling": "deepest running-CLOSE-peak to later LOW inside each w-hour window, at every window end",
+    "effectiveN": "n / w — roughly how many independent windows the overlapping sample holds",
+    "recovery": "events = first hour whose LOW is >= drop below the highest CLOSE of the previous 24 h (de-clustered: a new event needs a pre-drop level set after the last one resolved); recovered = a CLOSE back at >= (1 - 4%) x that level within the 8 hours counted from the event hour opening (\"close\") — or any later hour HIGH (\"high\")"
+  },
+  "assets": {
+    "eth-usd": {
+      "asset": "ETH/USD",
+      "primarySegments": [
+        {
+          "source": "coinbase",
+          "fromIndex": 0,
+          "toIndex": 2372,
+          "from": "2020-01-01T00:00:00Z",
+          "to": "2020-04-08T20:00:00Z"
+        },
+        {
+          "source": "oracle",
+          "fromIndex": 2373,
+          "toIndex": 59282,
+          "from": "2020-04-08T21:00:00Z",
+          "to": "2026-10-06T02:00:00Z"
+        }
+      ],
+      "forward": [
+        {
+          "window": "1h",
+          "n": 59280,
+          "effectiveN": 59280,
+          "p50": 0.0006,
+          "p90": 0.0104,
+          "p99": 0.0291,
+          "max": 0.2461,
+          "maxAt": "2020-03-12T09:00:00Z"
+        },
+        {
+          "window": "8h",
+          "n": 59274,
+          "effectiveN": 7409,
+          "p50": 0.0077,
+          "p90": 0.0335,
+          "p99": 0.0888,
+          "max": 0.3478,
+          "maxAt": "2020-03-12T19:00:00Z"
+        },
+        {
+          "window": "24h",
+          "n": 59258,
+          "effectiveN": 2469,
+          "p50": 0.0161,
+          "p90": 0.0614,
+          "p99": 0.1535,
+          "max": 0.5101,
+          "maxAt": "2020-03-12T02:00:00Z"
+        },
+        {
+          "window": "7d",
+          "n": 59114,
+          "effectiveN": 351,
+          "p50": 0.0478,
+          "p90": 0.1641,
+          "p99": 0.3551,
+          "max": 0.6365,
+          "maxAt": "2020-03-07T15:00:00Z"
+        },
+        {
+          "window": "30d",
+          "n": 58562,
+          "effectiveN": 81,
+          "p50": 0.1059,
+          "p90": 0.3279,
+          "p99": 0.5929,
+          "max": 0.6857,
+          "maxAt": "2020-02-15T00:00:00Z"
+        }
+      ],
+      "rolling": [
+        {
+          "window": "1h",
+          "n": 59281,
+          "effectiveN": 59281,
+          "p50": 0.0006,
+          "p90": 0.0104,
+          "p99": 0.0291,
+          "max": 0.2461,
+          "maxAt": "2020-03-12T10:00:00Z"
+        },
+        {
+          "window": "8h",
+          "n": 59274,
+          "effectiveN": 7409,
+          "p50": 0.0124,
+          "p90": 0.0385,
+          "p99": 0.095,
+          "max": 0.3478,
+          "maxAt": "2020-03-13T02:00:00Z"
+        },
+        {
+          "window": "24h",
+          "n": 59258,
+          "effectiveN": 2469,
+          "p50": 0.0268,
+          "p90": 0.0711,
+          "p99": 0.1645,
+          "max": 0.5101,
+          "maxAt": "2020-03-13T02:00:00Z"
+        },
+        {
+          "window": "7d",
+          "n": 59114,
+          "effectiveN": 351,
+          "p50": 0.0837,
+          "p90": 0.1988,
+          "p99": 0.3621,
+          "max": 0.6365,
+          "maxAt": "2020-03-13T02:00:00Z"
+        },
+        {
+          "window": "30d",
+          "n": 58562,
+          "effectiveN": 81,
+          "p50": 0.1823,
+          "p90": 0.358,
+          "p99": 0.6365,
+          "max": 0.6857,
+          "maxAt": "2020-03-13T02:00:00Z"
+        }
+      ],
+      "forwardBySourceOverOracleSpan": {
+        "from": "2020-04-08T21:00:00Z",
+        "oracle": [
+          {
+            "window": "1h",
+            "n": 56909,
+            "effectiveN": 56909,
+            "p50": 0.0005,
+            "p90": 0.01,
+            "p99": 0.0279,
+            "max": 0.2229,
+            "maxAt": "2021-05-19T11:00:00Z"
+          },
+          {
+            "window": "8h",
+            "n": 56902,
+            "effectiveN": 7112,
+            "p50": 0.0075,
+            "p90": 0.0327,
+            "p99": 0.0859,
+            "max": 0.3394,
+            "maxAt": "2021-05-19T08:00:00Z"
+          },
+          {
+            "window": "24h",
+            "n": 56886,
+            "effectiveN": 2370,
+            "p50": 0.0158,
+            "p90": 0.0603,
+            "p99": 0.1469,
+            "max": 0.4242,
+            "maxAt": "2021-05-18T20:00:00Z"
+          },
+          {
+            "window": "7d",
+            "n": 56742,
+            "effectiveN": 337,
+            "p50": 0.0477,
+            "p90": 0.1603,
+            "p99": 0.34,
+            "max": 0.5441,
+            "maxAt": "2021-05-12T14:00:00Z"
+          },
+          {
+            "window": "30d",
+            "n": 56190,
+            "effectiveN": 78,
+            "p50": 0.1066,
+            "p90": 0.32,
+            "p99": 0.506,
+            "max": 0.5952,
+            "maxAt": "2021-05-12T03:00:00Z"
+          }
+        ],
+        "binance": [
+          {
+            "window": "1h",
+            "n": 56872,
+            "effectiveN": 56872,
+            "p50": 0.0034,
+            "p90": 0.0127,
+            "p99": 0.0337,
+            "max": 0.2797,
+            "maxAt": "2021-05-19T11:00:00Z"
+          },
+          {
+            "window": "8h",
+            "n": 56877,
+            "effectiveN": 7109,
+            "p50": 0.0106,
+            "p90": 0.0374,
+            "p99": 0.0961,
+            "max": 0.3675,
+            "maxAt": "2021-05-19T07:00:00Z"
+          },
+          {
+            "window": "24h",
+            "n": 56861,
+            "effectiveN": 2369,
+            "p50": 0.0193,
+            "p90": 0.0655,
+            "p99": 0.1596,
+            "max": 0.4497,
+            "maxAt": "2021-05-18T20:00:00Z"
+          },
+          {
+            "window": "7d",
+            "n": 56717,
+            "effectiveN": 337,
+            "p50": 0.0527,
+            "p90": 0.1683,
+            "p99": 0.3451,
+            "max": 0.5627,
+            "maxAt": "2021-05-12T14:00:00Z"
+          },
+          {
+            "window": "30d",
+            "n": 56165,
+            "effectiveN": 78,
+            "p50": 0.1116,
+            "p90": 0.3287,
+            "p99": 0.5115,
+            "max": 0.601,
+            "maxAt": "2021-05-12T03:00:00Z"
+          }
+        ],
+        "coinbase": [
+          {
+            "window": "1h",
+            "n": 56889,
+            "effectiveN": 56889,
+            "p50": 0.0035,
+            "p90": 0.0127,
+            "p99": 0.0341,
+            "max": 0.2658,
+            "maxAt": "2021-05-19T11:00:00Z"
+          },
+          {
+            "window": "8h",
+            "n": 56887,
+            "effectiveN": 7110,
+            "p50": 0.0107,
+            "p90": 0.0376,
+            "p99": 0.0971,
+            "max": 0.3773,
+            "maxAt": "2021-05-19T07:00:00Z"
+          },
+          {
+            "window": "24h",
+            "n": 56871,
+            "effectiveN": 2369,
+            "p50": 0.0194,
+            "p90": 0.0658,
+            "p99": 0.1586,
+            "max": 0.4581,
+            "maxAt": "2021-05-18T20:00:00Z"
+          },
+          {
+            "window": "7d",
+            "n": 56727,
+            "effectiveN": 337,
+            "p50": 0.0533,
+            "p90": 0.1684,
+            "p99": 0.3492,
+            "max": 0.5701,
+            "maxAt": "2021-05-12T14:00:00Z"
+          },
+          {
+            "window": "30d",
+            "n": 56175,
+            "effectiveN": 78,
+            "p50": 0.1119,
+            "p90": 0.3281,
+            "p99": 0.5121,
+            "max": 0.6015,
+            "maxAt": "2021-05-12T03:00:00Z"
+          }
+        ]
+      },
+      "recovery24hLookback": {
+        "close": [
+          {
+            "drop": 0.05,
+            "events": 714,
+            "recovered": 369,
+            "p": 0.5168,
+            "ci95": [
+              0.4802,
+              0.5533
+            ],
+            "medianHoursToRecover": 3,
+            "meanMaxDrop": 0.0757
+          },
+          {
+            "drop": 0.075,
+            "events": 307,
+            "recovered": 56,
+            "p": 0.1824,
+            "ci95": [
+              0.1432,
+              0.2294
+            ],
+            "medianHoursToRecover": 4,
+            "meanMaxDrop": 0.1075
+          },
+          {
+            "drop": 0.1,
+            "events": 136,
+            "recovered": 13,
+            "p": 0.0956,
+            "ci95": [
+              0.0567,
+              0.1567
+            ],
+            "medianHoursToRecover": 5,
+            "meanMaxDrop": 0.1419
+          },
+          {
+            "drop": 0.125,
+            "events": 76,
+            "recovered": 6,
+            "p": 0.0789,
+            "ci95": [
+              0.0367,
+              0.1617
+            ],
+            "medianHoursToRecover": 4,
+            "meanMaxDrop": 0.1736
+          },
+          {
+            "drop": 0.15,
+            "events": 44,
+            "recovered": 1,
+            "p": 0.0227,
+            "ci95": [
+              0.004,
+              0.1181
+            ],
+            "medianHoursToRecover": 8,
+            "meanMaxDrop": 0.2063
+          },
+          {
+            "drop": 0.2,
+            "events": 18,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.1759
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.2685
+          },
+          {
+            "drop": 0.25,
+            "events": 10,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.2775
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.3075
+          },
+          {
+            "drop": 0.3,
+            "events": 3,
+            "recovered": 1,
+            "p": 0.3333,
+            "ci95": [
+              0.0615,
+              0.7923
+            ],
+            "medianHoursToRecover": 8,
+            "meanMaxDrop": 0.3779
+          }
+        ],
+        "high": [
+          {
+            "drop": 0.05,
+            "events": 725,
+            "recovered": 421,
+            "p": 0.5807,
+            "ci95": [
+              0.5444,
+              0.6161
+            ],
+            "medianHoursToRecover": 3,
+            "meanMaxDrop": 0.0748
+          },
+          {
+            "drop": 0.075,
+            "events": 310,
+            "recovered": 75,
+            "p": 0.2419,
+            "ci95": [
+              0.1976,
+              0.2926
+            ],
+            "medianHoursToRecover": 4,
+            "meanMaxDrop": 0.1069
+          },
+          {
+            "drop": 0.1,
+            "events": 137,
+            "recovered": 21,
+            "p": 0.1533,
+            "ci95": [
+              0.1025,
+              0.223
+            ],
+            "medianHoursToRecover": 4,
+            "meanMaxDrop": 0.1413
+          },
+          {
+            "drop": 0.125,
+            "events": 76,
+            "recovered": 8,
+            "p": 0.1053,
+            "ci95": [
+              0.0543,
+              0.1942
+            ],
+            "medianHoursToRecover": 4,
+            "meanMaxDrop": 0.1736
+          },
+          {
+            "drop": 0.15,
+            "events": 44,
+            "recovered": 2,
+            "p": 0.0455,
+            "ci95": [
+              0.0126,
+              0.1514
+            ],
+            "medianHoursToRecover": 6.5,
+            "meanMaxDrop": 0.2063
+          },
+          {
+            "drop": 0.2,
+            "events": 18,
+            "recovered": 1,
+            "p": 0.0556,
+            "ci95": [
+              0.0099,
+              0.2576
+            ],
+            "medianHoursToRecover": 5,
+            "meanMaxDrop": 0.2685
+          },
+          {
+            "drop": 0.25,
+            "events": 10,
+            "recovered": 1,
+            "p": 0.1,
+            "ci95": [
+              0.0179,
+              0.4042
+            ],
+            "medianHoursToRecover": 5,
+            "meanMaxDrop": 0.3075
+          },
+          {
+            "drop": 0.3,
+            "events": 3,
+            "recovered": 1,
+            "p": 0.3333,
+            "ci95": [
+              0.0615,
+              0.7923
+            ],
+            "medianHoursToRecover": 2,
+            "meanMaxDrop": 0.3779
+          }
+        ]
+      },
+      "recovery8hLookback": {
+        "close": [
+          {
+            "drop": 0.05,
+            "events": 499,
+            "recovered": 261,
+            "p": 0.523,
+            "ci95": [
+              0.4792,
+              0.5665
+            ],
+            "medianHoursToRecover": 3,
+            "meanMaxDrop": 0.0799
+          },
+          {
+            "drop": 0.075,
+            "events": 172,
+            "recovered": 50,
+            "p": 0.2907,
+            "ci95": [
+              0.228,
+              0.3625
+            ],
+            "medianHoursToRecover": 4,
+            "meanMaxDrop": 0.1159
+          },
+          {
+            "drop": 0.1,
+            "events": 77,
+            "recovered": 14,
+            "p": 0.1818,
+            "ci95": [
+              0.1115,
+              0.2824
+            ],
+            "medianHoursToRecover": 5,
+            "meanMaxDrop": 0.1506
+          },
+          {
+            "drop": 0.125,
+            "events": 39,
+            "recovered": 4,
+            "p": 0.1026,
+            "ci95": [
+              0.0406,
+              0.2358
+            ],
+            "medianHoursToRecover": 5.5,
+            "meanMaxDrop": 0.1802
+          },
+          {
+            "drop": 0.15,
+            "events": 18,
+            "recovered": 1,
+            "p": 0.0556,
+            "ci95": [
+              0.0099,
+              0.2576
+            ],
+            "medianHoursToRecover": 8,
+            "meanMaxDrop": 0.2196
+          },
+          {
+            "drop": 0.2,
+            "events": 7,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.3543
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.2703
+          },
+          {
+            "drop": 0.25,
+            "events": 4,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.4899
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.3137
+          },
+          {
+            "drop": 0.3,
+            "events": 3,
+            "recovered": 1,
+            "p": 0.3333,
+            "ci95": [
+              0.0615,
+              0.7923
+            ],
+            "medianHoursToRecover": 8,
+            "meanMaxDrop": 0.3338
+          }
+        ]
+      },
+      "worstWindows": {
+        "24h": [
+          {
+            "entryAt": "2020-03-12T02:00:00Z",
+            "entryPrice": 183.7,
+            "troughAt": "2020-03-13T02:00:00Z",
+            "troughPrice": 90,
+            "drop": 0.5101
+          },
+          {
+            "entryAt": "2021-05-18T20:00:00Z",
+            "entryPrice": 3432.42,
+            "troughAt": "2021-05-19T13:00:00Z",
+            "troughPrice": 1976.54,
+            "drop": 0.4242
+          },
+          {
+            "entryAt": "2025-02-02T06:00:00Z",
+            "entryPrice": 3124.52,
+            "troughAt": "2025-02-03T02:00:00Z",
+            "troughPrice": 2208.47,
+            "drop": 0.2932
+          },
+          {
+            "entryAt": "2021-01-10T16:00:00Z",
+            "entryPrice": 1303.59,
+            "troughAt": "2021-01-11T16:00:00Z",
+            "troughPrice": 921.75,
+            "drop": 0.2929
+          },
+          {
+            "entryAt": "2022-05-11T10:00:00Z",
+            "entryPrice": 2444.82,
+            "troughAt": "2022-05-12T07:00:00Z",
+            "troughPrice": 1732.31,
+            "drop": 0.2914
+          },
+          {
+            "entryAt": "2021-05-21T00:00:00Z",
+            "entryPrice": 2906.64,
+            "troughAt": "2021-05-21T21:00:00Z",
+            "troughPrice": 2128.25,
+            "drop": 0.2678
+          }
+        ],
+        "7d": [
+          {
+            "entryAt": "2020-03-07T15:00:00Z",
+            "entryPrice": 247.62,
+            "troughAt": "2020-03-13T02:00:00Z",
+            "troughPrice": 90,
+            "drop": 0.6365
+          },
+          {
+            "entryAt": "2021-05-12T14:00:00Z",
+            "entryPrice": 4335.15,
+            "troughAt": "2021-05-19T13:00:00Z",
+            "troughPrice": 1976.54,
+            "drop": 0.5441
+          },
+          {
+            "entryAt": "2022-06-08T13:00:00Z",
+            "entryPrice": 1829.11,
+            "troughAt": "2022-06-15T09:00:00Z",
+            "troughPrice": 1020.41,
+            "drop": 0.4421
+          },
+          {
+            "entryAt": "2022-05-05T07:00:00Z",
+            "entryPrice": 2934.98,
+            "troughAt": "2022-05-12T07:00:00Z",
+            "troughPrice": 1732.31,
+            "drop": 0.4098
+          },
+          {
+            "entryAt": "2021-05-20T13:00:00Z",
+            "entryPrice": 2917.64,
+            "troughAt": "2021-05-23T16:00:00Z",
+            "troughPrice": 1755.09,
+            "drop": 0.3985
+          }
+        ],
+        "30d": [
+          {
+            "entryAt": "2020-02-15T00:00:00Z",
+            "entryPrice": 286.39,
+            "troughAt": "2020-03-13T02:00:00Z",
+            "troughPrice": 90,
+            "drop": 0.6857
+          },
+          {
+            "entryAt": "2021-05-12T03:00:00Z",
+            "entryPrice": 4335.5,
+            "troughAt": "2021-05-23T16:00:00Z",
+            "troughPrice": 1755.09,
+            "drop": 0.5952
+          },
+          {
+            "entryAt": "2022-05-23T13:00:00Z",
+            "entryPrice": 2069.48,
+            "troughAt": "2022-06-18T20:00:00Z",
+            "troughPrice": 891.45,
+            "drop": 0.5692
+          },
+          {
+            "entryAt": "2026-01-15T13:00:00Z",
+            "entryPrice": 3382.97,
+            "troughAt": "2026-02-06T00:00:00Z",
+            "troughPrice": 1751.55,
+            "drop": 0.4822
+          },
+          {
+            "entryAt": "2021-12-25T21:00:00Z",
+            "entryPrice": 4126.79,
+            "troughAt": "2022-01-24T14:00:00Z",
+            "troughPrice": 2174.77,
+            "drop": 0.473
+          }
+        ]
+      },
+      "intrabarWicksOverOracleSpan": {
+        "from": "2020-04-08T21:00:00Z",
+        "oracle": {
+          "atLeast2pct": 160,
+          "atLeast5pct": 17,
+          "deepest": [
+            {
+              "at": "2025-02-03T02:00:00Z",
+              "depth": 0.1129
+            },
+            {
+              "at": "2025-10-10T21:00:00Z",
+              "depth": 0.1069
+            },
+            {
+              "at": "2021-05-19T13:00:00Z",
+              "depth": 0.0816
+            }
+          ]
+        },
+        "binance": {
+          "atLeast2pct": 418,
+          "atLeast5pct": 45,
+          "deepest": [
+            {
+              "at": "2021-05-19T13:00:00Z",
+              "depth": 0.2018
+            },
+            {
+              "at": "2021-05-19T12:00:00Z",
+              "depth": 0.1713
+            },
+            {
+              "at": "2025-02-03T02:00:00Z",
+              "depth": 0.1454
+            }
+          ]
+        },
+        "coinbase": {
+          "atLeast2pct": 422,
+          "atLeast5pct": 44,
+          "deepest": [
+            {
+              "at": "2021-05-19T13:00:00Z",
+              "depth": 0.2032
+            },
+            {
+              "at": "2021-05-19T12:00:00Z",
+              "depth": 0.1432
+            },
+            {
+              "at": "2025-02-03T02:00:00Z",
+              "depth": 0.1369
+            }
+          ]
+        }
+      },
+      "events": [
+        {
+          "id": "mar-2020",
+          "label": "Mar 2020 (Black Thursday)",
+          "from": "2020-03-08",
+          "to": "2020-03-20",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.5101,
+              "entryAt": "2020-03-12T02:00:00Z",
+              "entryPrice": 183.7
+            },
+            "oracle": null,
+            "binance": {
+              "drop": 0.5329,
+              "entryAt": "2020-03-12T02:00:00Z",
+              "entryPrice": 184.1
+            },
+            "coinbase": {
+              "drop": 0.5101,
+              "entryAt": "2020-03-12T02:00:00Z",
+              "entryPrice": 183.7
+            }
+          }
+        },
+        {
+          "id": "may-2021",
+          "label": "May 2021 deleveraging",
+          "from": "2021-05-12",
+          "to": "2021-05-24",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.4242,
+              "entryAt": "2021-05-18T20:00:00Z",
+              "entryPrice": 3432.42
+            },
+            "oracle": {
+              "drop": 0.4242,
+              "entryAt": "2021-05-18T20:00:00Z",
+              "entryPrice": 3432.42
+            },
+            "binance": {
+              "drop": 0.4497,
+              "entryAt": "2021-05-18T20:00:00Z",
+              "entryPrice": 3430.68
+            },
+            "coinbase": {
+              "drop": 0.4581,
+              "entryAt": "2021-05-18T20:00:00Z",
+              "entryPrice": 3432.17
+            }
+          }
+        },
+        {
+          "id": "jun-2022",
+          "label": "Jun 2022 (3AC / Celsius / stETH discount)",
+          "from": "2022-06-08",
+          "to": "2022-06-22",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.2227,
+              "entryAt": "2022-06-12T17:00:00Z",
+              "entryPrice": 1523.21
+            },
+            "oracle": {
+              "drop": 0.2227,
+              "entryAt": "2022-06-12T17:00:00Z",
+              "entryPrice": 1523.21
+            },
+            "binance": {
+              "drop": 0.2362,
+              "entryAt": "2022-06-12T15:00:00Z",
+              "entryPrice": 1525.92
+            },
+            "coinbase": {
+              "drop": 0.2368,
+              "entryAt": "2022-06-12T15:00:00Z",
+              "entryPrice": 1524.31
+            }
+          }
+        },
+        {
+          "id": "aug-2024",
+          "label": "Aug 2024 (yen-carry unwind)",
+          "from": "2024-08-01",
+          "to": "2024-08-08",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.2545,
+              "entryAt": "2024-08-04T12:00:00Z",
+              "entryPrice": 2921.33
+            },
+            "oracle": {
+              "drop": 0.2545,
+              "entryAt": "2024-08-04T12:00:00Z",
+              "entryPrice": 2921.33
+            },
+            "binance": {
+              "drop": 0.2779,
+              "entryAt": "2024-08-04T12:00:00Z",
+              "entryPrice": 2923.57
+            },
+            "coinbase": {
+              "drop": 0.2759,
+              "entryAt": "2024-08-04T12:00:00Z",
+              "entryPrice": 2922.3
+            }
+          }
+        },
+        {
+          "id": "oct-10-2025",
+          "label": "Oct 10 2025 cascade",
+          "from": "2025-10-09",
+          "to": "2025-10-13",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.2105,
+              "entryAt": "2025-10-10T01:00:00Z",
+              "entryPrice": 4388.11
+            },
+            "oracle": {
+              "drop": 0.2105,
+              "entryAt": "2025-10-10T01:00:00Z",
+              "entryPrice": 4388.11
+            },
+            "binance": {
+              "drop": 0.2159,
+              "entryAt": "2025-10-10T00:00:00Z",
+              "entryPrice": 4380.7
+            },
+            "coinbase": {
+              "drop": 0.1993,
+              "entryAt": "2025-10-10T00:00:00Z",
+              "entryPrice": 4383.5
+            }
+          }
+        },
+        {
+          "id": "feb-2026",
+          "label": "Feb 2026 (whole month)",
+          "from": "2026-02-01",
+          "to": "2026-03-01",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.1862,
+              "entryAt": "2026-02-05T01:00:00Z",
+              "entryPrice": 2152.44
+            },
+            "oracle": {
+              "drop": 0.1862,
+              "entryAt": "2026-02-05T01:00:00Z",
+              "entryPrice": 2152.44
+            },
+            "binance": {
+              "drop": 0.187,
+              "entryAt": "2026-02-05T00:00:00Z",
+              "entryPrice": 2149.78
+            },
+            "coinbase": {
+              "drop": 0.1877,
+              "entryAt": "2026-02-05T00:00:00Z",
+              "entryPrice": 2145.42
+            }
+          }
+        }
+      ]
+    },
+    "btc-usd": {
+      "asset": "BTC/USD",
+      "primarySegments": [
+        {
+          "source": "oracle",
+          "fromIndex": 0,
+          "toIndex": 59282,
+          "from": "2020-01-01T00:00:00Z",
+          "to": "2026-10-06T02:00:00Z"
+        }
+      ],
+      "forward": [
+        {
+          "window": "1h",
+          "n": 59282,
+          "effectiveN": 59282,
+          "p50": 0.0002,
+          "p90": 0.0063,
+          "p99": 0.0219,
+          "max": 0.1757,
+          "maxAt": "2020-03-12T22:00:00Z"
+        },
+        {
+          "window": "8h",
+          "n": 59275,
+          "effectiveN": 7409,
+          "p50": 0.0053,
+          "p90": 0.0244,
+          "p99": 0.0662,
+          "max": 0.3224,
+          "maxAt": "2020-03-12T19:00:00Z"
+        },
+        {
+          "window": "24h",
+          "n": 59259,
+          "effectiveN": 2469,
+          "p50": 0.0112,
+          "p90": 0.0445,
+          "p99": 0.1149,
+          "max": 0.4646,
+          "maxAt": "2020-03-12T02:00:00Z"
+        },
+        {
+          "window": "7d",
+          "n": 59115,
+          "effectiveN": 351,
+          "p50": 0.0361,
+          "p90": 0.1221,
+          "p99": 0.2757,
+          "max": 0.5508,
+          "maxAt": "2020-03-06T11:00:00Z"
+        },
+        {
+          "window": "30d",
+          "n": 58563,
+          "effectiveN": 81,
+          "p50": 0.0774,
+          "p90": 0.2394,
+          "p99": 0.5224,
+          "max": 0.6071,
+          "maxAt": "2020-02-13T13:00:00Z"
+        }
+      ],
+      "rolling": [
+        {
+          "window": "1h",
+          "n": 59282,
+          "effectiveN": 59282,
+          "p50": 0.0002,
+          "p90": 0.0063,
+          "p99": 0.0219,
+          "max": 0.1757,
+          "maxAt": "2020-03-12T23:00:00Z"
+        },
+        {
+          "window": "8h",
+          "n": 59275,
+          "effectiveN": 7409,
+          "p50": 0.0086,
+          "p90": 0.0281,
+          "p99": 0.0699,
+          "max": 0.3224,
+          "maxAt": "2020-03-13T02:00:00Z"
+        },
+        {
+          "window": "24h",
+          "n": 59259,
+          "effectiveN": 2469,
+          "p50": 0.0194,
+          "p90": 0.0527,
+          "p99": 0.1246,
+          "max": 0.4646,
+          "maxAt": "2020-03-13T02:00:00Z"
+        },
+        {
+          "window": "7d",
+          "n": 59115,
+          "effectiveN": 351,
+          "p50": 0.0648,
+          "p90": 0.1475,
+          "p99": 0.2808,
+          "max": 0.5508,
+          "maxAt": "2020-03-13T02:00:00Z"
+        },
+        {
+          "window": "30d",
+          "n": 58563,
+          "effectiveN": 81,
+          "p50": 0.1408,
+          "p90": 0.2815,
+          "p99": 0.5497,
+          "max": 0.6071,
+          "maxAt": "2020-03-13T02:00:00Z"
+        }
+      ],
+      "forwardBySourceOverOracleSpan": {
+        "from": "2020-01-01T00:00:00Z",
+        "oracle": [
+          {
+            "window": "1h",
+            "n": 59282,
+            "effectiveN": 59282,
+            "p50": 0.0002,
+            "p90": 0.0063,
+            "p99": 0.0219,
+            "max": 0.1757,
+            "maxAt": "2020-03-12T22:00:00Z"
+          },
+          {
+            "window": "8h",
+            "n": 59275,
+            "effectiveN": 7409,
+            "p50": 0.0053,
+            "p90": 0.0244,
+            "p99": 0.0662,
+            "max": 0.3224,
+            "maxAt": "2020-03-12T19:00:00Z"
+          },
+          {
+            "window": "24h",
+            "n": 59259,
+            "effectiveN": 2469,
+            "p50": 0.0112,
+            "p90": 0.0445,
+            "p99": 0.1149,
+            "max": 0.4646,
+            "maxAt": "2020-03-12T02:00:00Z"
+          },
+          {
+            "window": "7d",
+            "n": 59115,
+            "effectiveN": 351,
+            "p50": 0.0361,
+            "p90": 0.1221,
+            "p99": 0.2757,
+            "max": 0.5508,
+            "maxAt": "2020-03-06T11:00:00Z"
+          },
+          {
+            "window": "30d",
+            "n": 58563,
+            "effectiveN": 81,
+            "p50": 0.0774,
+            "p90": 0.2394,
+            "p99": 0.5224,
+            "max": 0.6071,
+            "maxAt": "2020-02-13T13:00:00Z"
+          }
+        ],
+        "binance": [
+          {
+            "window": "1h",
+            "n": 59235,
+            "effectiveN": 59235,
+            "p50": 0.0026,
+            "p90": 0.0097,
+            "p99": 0.0266,
+            "max": 0.2453,
+            "maxAt": "2020-03-12T09:00:00Z"
+          },
+          {
+            "window": "8h",
+            "n": 59243,
+            "effectiveN": 7405,
+            "p50": 0.008,
+            "p90": 0.0286,
+            "p99": 0.0741,
+            "max": 0.3736,
+            "maxAt": "2020-03-12T19:00:00Z"
+          },
+          {
+            "window": "24h",
+            "n": 59227,
+            "effectiveN": 2467,
+            "p50": 0.0146,
+            "p90": 0.0491,
+            "p99": 0.1251,
+            "max": 0.5064,
+            "maxAt": "2020-03-12T03:00:00Z"
+          },
+          {
+            "window": "7d",
+            "n": 59083,
+            "effectiveN": 351,
+            "p50": 0.0403,
+            "p90": 0.1283,
+            "p99": 0.2782,
+            "max": 0.5864,
+            "maxAt": "2020-03-06T10:00:00Z"
+          },
+          {
+            "window": "30d",
+            "n": 58531,
+            "effectiveN": 81,
+            "p50": 0.0821,
+            "p90": 0.2495,
+            "p99": 0.559,
+            "max": 0.6382,
+            "maxAt": "2020-02-13T06:00:00Z"
+          }
+        ],
+        "coinbase": [
+          {
+            "window": "1h",
+            "n": 59260,
+            "effectiveN": 59260,
+            "p50": 0.0026,
+            "p90": 0.0097,
+            "p99": 0.0269,
+            "max": 0.2407,
+            "maxAt": "2020-03-12T09:00:00Z"
+          },
+          {
+            "window": "8h",
+            "n": 59259,
+            "effectiveN": 7407,
+            "p50": 0.008,
+            "p90": 0.0288,
+            "p99": 0.0749,
+            "max": 0.361,
+            "maxAt": "2020-03-12T19:00:00Z"
+          },
+          {
+            "window": "24h",
+            "n": 59243,
+            "effectiveN": 2468,
+            "p50": 0.0146,
+            "p90": 0.0497,
+            "p99": 0.124,
+            "max": 0.4963,
+            "maxAt": "2020-03-12T03:00:00Z"
+          },
+          {
+            "window": "7d",
+            "n": 59099,
+            "effectiveN": 351,
+            "p50": 0.0408,
+            "p90": 0.1282,
+            "p99": 0.2861,
+            "max": 0.5788,
+            "maxAt": "2020-03-06T23:00:00Z"
+          },
+          {
+            "window": "30d",
+            "n": 58547,
+            "effectiveN": 81,
+            "p50": 0.0819,
+            "p90": 0.2501,
+            "p99": 0.5512,
+            "max": 0.6318,
+            "maxAt": "2020-02-13T06:00:00Z"
+          }
+        ]
+      },
+      "recovery24hLookback": {
+        "close": [
+          {
+            "drop": 0.05,
+            "events": 391,
+            "recovered": 177,
+            "p": 0.4527,
+            "ci95": [
+              0.404,
+              0.5022
+            ],
+            "medianHoursToRecover": 3,
+            "meanMaxDrop": 0.0722
+          },
+          {
+            "drop": 0.075,
+            "events": 137,
+            "recovered": 17,
+            "p": 0.1241,
+            "ci95": [
+              0.0789,
+              0.1897
+            ],
+            "medianHoursToRecover": 5,
+            "meanMaxDrop": 0.1068
+          },
+          {
+            "drop": 0.1,
+            "events": 64,
+            "recovered": 4,
+            "p": 0.0625,
+            "ci95": [
+              0.0246,
+              0.15
+            ],
+            "medianHoursToRecover": 4.5,
+            "meanMaxDrop": 0.1366
+          },
+          {
+            "drop": 0.125,
+            "events": 35,
+            "recovered": 2,
+            "p": 0.0571,
+            "ci95": [
+              0.0158,
+              0.1861
+            ],
+            "medianHoursToRecover": 6.5,
+            "meanMaxDrop": 0.1649
+          },
+          {
+            "drop": 0.15,
+            "events": 17,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.1843
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.2011
+          },
+          {
+            "drop": 0.2,
+            "events": 5,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.4345
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.2549
+          },
+          {
+            "drop": 0.25,
+            "events": 2,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.6576
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.3811
+          },
+          {
+            "drop": 0.3,
+            "events": 1,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.7935
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.483
+          }
+        ],
+        "high": [
+          {
+            "drop": 0.05,
+            "events": 392,
+            "recovered": 192,
+            "p": 0.4898,
+            "ci95": [
+              0.4406,
+              0.5391
+            ],
+            "medianHoursToRecover": 2,
+            "meanMaxDrop": 0.0717
+          },
+          {
+            "drop": 0.075,
+            "events": 137,
+            "recovered": 21,
+            "p": 0.1533,
+            "ci95": [
+              0.1025,
+              0.223
+            ],
+            "medianHoursToRecover": 5,
+            "meanMaxDrop": 0.107
+          },
+          {
+            "drop": 0.1,
+            "events": 64,
+            "recovered": 6,
+            "p": 0.0938,
+            "ci95": [
+              0.0437,
+              0.1898
+            ],
+            "medianHoursToRecover": 4.5,
+            "meanMaxDrop": 0.1366
+          },
+          {
+            "drop": 0.125,
+            "events": 35,
+            "recovered": 2,
+            "p": 0.0571,
+            "ci95": [
+              0.0158,
+              0.1861
+            ],
+            "medianHoursToRecover": 6,
+            "meanMaxDrop": 0.1649
+          },
+          {
+            "drop": 0.15,
+            "events": 17,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.1843
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.2011
+          },
+          {
+            "drop": 0.2,
+            "events": 5,
+            "recovered": 1,
+            "p": 0.2,
+            "ci95": [
+              0.0362,
+              0.6245
+            ],
+            "medianHoursToRecover": 3,
+            "meanMaxDrop": 0.2549
+          },
+          {
+            "drop": 0.25,
+            "events": 2,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.6576
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.3811
+          },
+          {
+            "drop": 0.3,
+            "events": 1,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.7935
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.483
+          }
+        ]
+      },
+      "recovery8hLookback": {
+        "close": [
+          {
+            "drop": 0.05,
+            "events": 254,
+            "recovered": 131,
+            "p": 0.5157,
+            "ci95": [
+              0.4545,
+              0.5765
+            ],
+            "medianHoursToRecover": 2,
+            "meanMaxDrop": 0.0755
+          },
+          {
+            "drop": 0.075,
+            "events": 72,
+            "recovered": 14,
+            "p": 0.1944,
+            "ci95": [
+              0.1195,
+              0.3003
+            ],
+            "medianHoursToRecover": 3.5,
+            "meanMaxDrop": 0.1123
+          },
+          {
+            "drop": 0.1,
+            "events": 34,
+            "recovered": 6,
+            "p": 0.1765,
+            "ci95": [
+              0.0835,
+              0.3351
+            ],
+            "medianHoursToRecover": 5.5,
+            "meanMaxDrop": 0.1385
+          },
+          {
+            "drop": 0.125,
+            "events": 16,
+            "recovered": 4,
+            "p": 0.25,
+            "ci95": [
+              0.1018,
+              0.495
+            ],
+            "medianHoursToRecover": 6,
+            "meanMaxDrop": 0.1642
+          },
+          {
+            "drop": 0.15,
+            "events": 5,
+            "recovered": 1,
+            "p": 0.2,
+            "ci95": [
+              0.0362,
+              0.6245
+            ],
+            "medianHoursToRecover": 5,
+            "meanMaxDrop": 0.2161
+          },
+          {
+            "drop": 0.2,
+            "events": 2,
+            "recovered": 1,
+            "p": 0.5,
+            "ci95": [
+              0.0945,
+              0.9055
+            ],
+            "medianHoursToRecover": 4,
+            "meanMaxDrop": 0.284
+          },
+          {
+            "drop": 0.25,
+            "events": 1,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.7935
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.3273
+          },
+          {
+            "drop": 0.3,
+            "events": 1,
+            "recovered": 0,
+            "p": 0,
+            "ci95": [
+              0,
+              0.7935
+            ],
+            "medianHoursToRecover": null,
+            "meanMaxDrop": 0.3224
+          }
+        ]
+      },
+      "worstWindows": {
+        "24h": [
+          {
+            "entryAt": "2020-03-12T02:00:00Z",
+            "entryPrice": 7686.24,
+            "troughAt": "2020-03-13T02:00:00Z",
+            "troughPrice": 4115.22,
+            "drop": 0.4646
+          },
+          {
+            "entryAt": "2021-05-18T13:00:00Z",
+            "entryPrice": 43792.12,
+            "troughAt": "2021-05-19T13:00:00Z",
+            "troughPrice": 31595,
+            "drop": 0.2785
+          },
+          {
+            "entryAt": "2021-01-10T16:00:00Z",
+            "entryPrice": 39414,
+            "troughAt": "2021-01-11T16:00:00Z",
+            "troughPrice": 30551.55,
+            "drop": 0.2249
+          },
+          {
+            "entryAt": "2020-03-15T21:00:00Z",
+            "entryPrice": 5655.82,
+            "troughAt": "2020-03-16T10:00:00Z",
+            "troughPrice": 4524.17,
+            "drop": 0.2001
+          },
+          {
+            "entryAt": "2021-12-03T11:00:00Z",
+            "entryPrice": 57030,
+            "troughAt": "2021-12-04T05:00:00Z",
+            "troughPrice": 45920.15,
+            "drop": 0.1948
+          },
+          {
+            "entryAt": "2022-06-12T17:00:00Z",
+            "entryPrice": 28171.01,
+            "troughAt": "2022-06-13T14:00:00Z",
+            "troughPrice": 22759.82,
+            "drop": 0.1921
+          }
+        ],
+        "7d": [
+          {
+            "entryAt": "2020-03-06T11:00:00Z",
+            "entryPrice": 9160.83,
+            "troughAt": "2020-03-13T02:00:00Z",
+            "troughPrice": 4115.22,
+            "drop": 0.5508
+          },
+          {
+            "entryAt": "2021-05-12T13:00:00Z",
+            "entryPrice": 56819.96,
+            "troughAt": "2021-05-19T13:00:00Z",
+            "troughPrice": 31595,
+            "drop": 0.4439
+          },
+          {
+            "entryAt": "2022-06-11T22:00:00Z",
+            "entryPrice": 28640.43,
+            "troughAt": "2022-06-18T20:00:00Z",
+            "troughPrice": 17657.43,
+            "drop": 0.3835
+          },
+          {
+            "entryAt": "2022-05-05T07:00:00Z",
+            "entryPrice": 39594.44,
+            "troughAt": "2022-05-12T07:00:00Z",
+            "troughPrice": 25996.36,
+            "drop": 0.3434
+          },
+          {
+            "entryAt": "2024-07-29T12:00:00Z",
+            "entryPrice": 69812.52,
+            "troughAt": "2024-08-05T06:00:00Z",
+            "troughPrice": 49581.27,
+            "drop": 0.2898
+          }
+        ],
+        "30d": [
+          {
+            "entryAt": "2020-02-13T13:00:00Z",
+            "entryPrice": 10474.61,
+            "troughAt": "2020-03-13T02:00:00Z",
+            "troughPrice": 4115.22,
+            "drop": 0.6071
+          },
+          {
+            "entryAt": "2021-05-10T03:00:00Z",
+            "entryPrice": 59368.5,
+            "troughAt": "2021-06-08T15:00:00Z",
+            "troughPrice": 31230.16,
+            "drop": 0.474
+          },
+          {
+            "entryAt": "2022-05-31T16:00:00Z",
+            "entryPrice": 32214.44,
+            "troughAt": "2022-06-18T20:00:00Z",
+            "troughPrice": 17657.43,
+            "drop": 0.4519
+          },
+          {
+            "entryAt": "2022-04-21T12:00:00Z",
+            "entryPrice": 42742.5,
+            "troughAt": "2022-05-12T07:00:00Z",
+            "troughPrice": 25996.36,
+            "drop": 0.3918
+          },
+          {
+            "entryAt": "2026-01-14T21:00:00Z",
+            "entryPrice": 97538.1,
+            "troughAt": "2026-02-06T00:00:00Z",
+            "troughPrice": 60024,
+            "drop": 0.3846
+          }
+        ]
+      },
+      "intrabarWicksOverOracleSpan": {
+        "from": "2020-01-01T00:00:00Z",
+        "oracle": {
+          "atLeast2pct": 83,
+          "atLeast5pct": 4,
+          "deepest": [
+            {
+              "at": "2020-03-13T02:00:00Z",
+              "depth": 0.0922
+            },
+            {
+              "at": "2021-05-19T13:00:00Z",
+              "depth": 0.0821
+            },
+            {
+              "at": "2025-10-10T21:00:00Z",
+              "depth": 0.0754
+            }
+          ]
+        },
+        "binance": {
+          "atLeast2pct": 258,
+          "atLeast5pct": 25,
+          "deepest": [
+            {
+              "at": "2021-05-19T13:00:00Z",
+              "depth": 0.1486
+            },
+            {
+              "at": "2021-12-04T05:00:00Z",
+              "depth": 0.1165
+            },
+            {
+              "at": "2025-10-10T21:00:00Z",
+              "depth": 0.1009
+            }
+          ]
+        },
+        "coinbase": {
+          "atLeast2pct": 272,
+          "atLeast5pct": 26,
+          "deepest": [
+            {
+              "at": "2021-05-19T13:00:00Z",
+              "depth": 0.1337
+            },
+            {
+              "at": "2021-12-04T05:00:00Z",
+              "depth": 0.1152
+            },
+            {
+              "at": "2021-02-22T14:00:00Z",
+              "depth": 0.1024
+            }
+          ]
+        }
+      },
+      "events": [
+        {
+          "id": "mar-2020",
+          "label": "Mar 2020 (Black Thursday)",
+          "from": "2020-03-08",
+          "to": "2020-03-20",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.4646,
+              "entryAt": "2020-03-12T02:00:00Z",
+              "entryPrice": 7686.24
+            },
+            "oracle": {
+              "drop": 0.4646,
+              "entryAt": "2020-03-12T02:00:00Z",
+              "entryPrice": 7686.24
+            },
+            "binance": {
+              "drop": 0.5064,
+              "entryAt": "2020-03-12T03:00:00Z",
+              "entryPrice": 7662.73
+            },
+            "coinbase": {
+              "drop": 0.4963,
+              "entryAt": "2020-03-12T03:00:00Z",
+              "entryPrice": 7659.1
+            }
+          }
+        },
+        {
+          "id": "may-2021",
+          "label": "May 2021 deleveraging",
+          "from": "2021-05-12",
+          "to": "2021-05-24",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.2785,
+              "entryAt": "2021-05-18T13:00:00Z",
+              "entryPrice": 43792.12
+            },
+            "oracle": {
+              "drop": 0.2785,
+              "entryAt": "2021-05-18T13:00:00Z",
+              "entryPrice": 43792.12
+            },
+            "binance": {
+              "drop": 0.3134,
+              "entryAt": "2021-05-18T13:00:00Z",
+              "entryPrice": 43691.22
+            },
+            "coinbase": {
+              "drop": 0.3142,
+              "entryAt": "2021-05-18T13:00:00Z",
+              "entryPrice": 43743.91
+            }
+          }
+        },
+        {
+          "id": "jun-2022",
+          "label": "Jun 2022 (3AC / Celsius / stETH discount)",
+          "from": "2022-06-08",
+          "to": "2022-06-22",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.1921,
+              "entryAt": "2022-06-12T17:00:00Z",
+              "entryPrice": 28171.01
+            },
+            "oracle": {
+              "drop": 0.1921,
+              "entryAt": "2022-06-12T17:00:00Z",
+              "entryPrice": 28171.01
+            },
+            "binance": {
+              "drop": 0.1964,
+              "entryAt": "2022-06-12T17:00:00Z",
+              "entryPrice": 28124.01
+            },
+            "coinbase": {
+              "drop": 0.1955,
+              "entryAt": "2022-06-12T17:00:00Z",
+              "entryPrice": 28090.87
+            }
+          }
+        },
+        {
+          "id": "aug-2024",
+          "label": "Aug 2024 (yen-carry unwind)",
+          "from": "2024-08-01",
+          "to": "2024-08-08",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.1874,
+              "entryAt": "2024-08-04T12:00:00Z",
+              "entryPrice": 61013
+            },
+            "oracle": {
+              "drop": 0.1874,
+              "entryAt": "2024-08-04T12:00:00Z",
+              "entryPrice": 61013
+            },
+            "binance": {
+              "drop": 0.1975,
+              "entryAt": "2024-08-04T12:00:00Z",
+              "entryPrice": 61062
+            },
+            "coinbase": {
+              "drop": 0.1964,
+              "entryAt": "2024-08-04T12:00:00Z",
+              "entryPrice": 61036.07
+            }
+          }
+        },
+        {
+          "id": "oct-10-2025",
+          "label": "Oct 10 2025 cascade",
+          "from": "2025-10-09",
+          "to": "2025-10-13",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.1381,
+              "entryAt": "2025-10-10T00:00:00Z",
+              "entryPrice": 121915.43
+            },
+            "oracle": {
+              "drop": 0.1381,
+              "entryAt": "2025-10-10T00:00:00Z",
+              "entryPrice": 121915.43
+            },
+            "binance": {
+              "drop": 0.1622,
+              "entryAt": "2025-10-10T00:00:00Z",
+              "entryPrice": 121745.27
+            },
+            "coinbase": {
+              "drop": 0.1216,
+              "entryAt": "2025-10-10T00:00:00Z",
+              "entryPrice": 121814.96
+            }
+          }
+        },
+        {
+          "id": "feb-2026",
+          "label": "Feb 2026 (whole month)",
+          "from": "2026-02-01",
+          "to": "2026-03-01",
+          "worst24hForwardDrawdown": {
+            "primary": {
+              "drop": 0.1745,
+              "entryAt": "2026-02-05T00:00:00Z",
+              "entryPrice": 72713.49
+            },
+            "oracle": {
+              "drop": 0.1745,
+              "entryAt": "2026-02-05T00:00:00Z",
+              "entryPrice": 72713.49
+            },
+            "binance": {
+              "drop": 0.1766,
+              "entryAt": "2026-02-05T00:00:00Z",
+              "entryPrice": 72868.02
+            },
+            "coinbase": {
+              "drop": 0.1748,
+              "entryAt": "2026-02-05T00:00:00Z",
+              "entryPrice": 72711.99
+            }
+          }
+        }
+      ]
+    },
+    "steth-eth": {
+      "asset": "STETH/ETH (market discount)",
+      "forward": [
+        {
+          "window": "1h",
+          "n": 44815,
+          "effectiveN": 44815,
+          "p50": 0,
+          "p90": 0,
+          "p99": 0.0003,
+          "max": 0.0439,
+          "maxAt": "2025-10-10T20:00:00Z"
+        },
+        {
+          "window": "8h",
+          "n": 44808,
+          "effectiveN": 5601,
+          "p50": 0,
+          "p90": 0.0002,
+          "p99": 0.0022,
+          "max": 0.044,
+          "maxAt": "2025-10-10T13:00:00Z"
+        },
+        {
+          "window": "24h",
+          "n": 44792,
+          "effectiveN": 1866,
+          "p50": 0,
+          "p90": 0.0008,
+          "p99": 0.0057,
+          "max": 0.044,
+          "maxAt": "2025-10-09T21:00:00Z"
+        },
+        {
+          "window": "7d",
+          "n": 44648,
+          "effectiveN": 265,
+          "p50": 0.0005,
+          "p90": 0.0045,
+          "p99": 0.0267,
+          "max": 0.044,
+          "maxAt": "2025-10-09T18:00:00Z"
+        },
+        {
+          "window": "30d",
+          "n": 44096,
+          "effectiveN": 61,
+          "p50": 0.0013,
+          "p90": 0.0152,
+          "p99": 0.0441,
+          "max": 0.0504,
+          "maxAt": "2022-05-20T17:00:00Z"
+        }
+      ],
+      "deepestPrint": {
+        "at": "2022-06-18T09:00:00Z",
+        "price": 0.935019
+      },
+      "worstWindows": {
+        "7d": [
+          {
+            "entryAt": "2025-10-09T18:00:00Z",
+            "entryPrice": 0.999667,
+            "troughAt": "2025-10-10T21:00:00Z",
+            "troughPrice": 0.955694,
+            "drop": 0.044
+          },
+          {
+            "entryAt": "2022-05-06T15:00:00Z",
+            "entryPrice": 0.999328,
+            "troughAt": "2022-05-13T15:00:00Z",
+            "troughPrice": 0.95612,
+            "drop": 0.0432
+          },
+          {
+            "entryAt": "2022-06-06T08:00:00Z",
+            "entryPrice": 0.979455,
+            "troughAt": "2022-06-13T08:00:00Z",
+            "troughPrice": 0.940975,
+            "drop": 0.0393
+          },
+          {
+            "entryAt": "2022-06-13T21:00:00Z",
+            "entryPrice": 0.962272,
+            "troughAt": "2022-06-18T09:00:00Z",
+            "troughPrice": 0.935019,
+            "drop": 0.0283
+          },
+          {
+            "entryAt": "2025-01-30T04:00:00Z",
+            "entryPrice": 0.999302,
+            "troughAt": "2025-02-03T02:00:00Z",
+            "troughPrice": 0.981656,
+            "drop": 0.0177
+          }
+        ],
+        "30d": [
+          {
+            "entryAt": "2022-05-20T17:00:00Z",
+            "entryPrice": 0.984597,
+            "troughAt": "2022-06-18T09:00:00Z",
+            "troughPrice": 0.935019,
+            "drop": 0.0504
+          },
+          {
+            "entryAt": "2025-09-29T18:00:00Z",
+            "entryPrice": 0.999939,
+            "troughAt": "2025-10-10T21:00:00Z",
+            "troughPrice": 0.955694,
+            "drop": 0.0442
+          },
+          {
+            "entryAt": "2022-04-13T21:00:00Z",
+            "entryPrice": 1.000046,
+            "troughAt": "2022-05-13T15:00:00Z",
+            "troughPrice": 0.95612,
+            "drop": 0.0439
+          }
+        ]
+      }
+    }
+  }
+}

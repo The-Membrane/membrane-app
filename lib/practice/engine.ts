@@ -309,15 +309,19 @@ export function currentLtv(st: PracticeState): number {
 function sell(st: PracticeState, i: number, r: number, reason: 'band' | 'expiry'): boolean {
   const { sc } = st
   const collAt = st.collBase * r
+  // The debt floor includes the remainder guard (owner ruling 2026-10-04: a sale never
+  // leaves 0 < debt < liqDebtMinimum; master LE:2718-2729 lacks it — see applyDebtMinimum).
   let repaid = membraneRepayValue(st.debt, collAt, sc.cap, sc.debtMinimumUsd)
   if (repaid > st.debt) repaid = st.debt
   if (!(repaid > 0)) return st.debt > 0 && collAt > 0 && st.sales.length < sc.maxSales
+  // Collateral repays at most what is held (cureWalk's sell): past insolvency the
+  // uncovered debt stays owed as bad debt (LE:2361-2374), it is not "repaid".
   const seized = Math.min(repaid, collAt)
   const ltvBefore = collAt > 0 ? st.debt / collAt : Infinity
-  st.closedUsd += repaid
-  st.debt -= repaid
+  st.closedUsd += seized
+  st.debt -= seized
   st.collBase = r > 0 ? (collAt - seized) / r : 0
-  st.sales.push({ index: i, reason, repaidUsd: repaid, seizedUsd: seized, ltvBefore })
+  st.sales.push({ index: i, reason, repaidUsd: seized, seizedUsd: seized, ltvBefore })
   st.timer.clearAfterSale()
   return st.debt > 1e-6 && st.collBase > 1e-6 && st.sales.length < sc.maxSales
 }

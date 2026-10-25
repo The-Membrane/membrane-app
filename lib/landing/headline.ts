@@ -35,7 +35,7 @@ export const HEADLINES: Record<HeadlineKey, HeadlineCopy> = {
     draft: null,
   },
   a: {
-    headline: 'Paste your wallet. Replay your loop through the next October 10th.',
+    headline: 'Paste your wallet. Replay your loop through October 10th.',
     draft: 'Paste your wallet. See if your loop survives the next October 10th.',
   },
   b: {

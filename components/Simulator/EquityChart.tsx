@@ -179,7 +179,9 @@ export const EquityChart: React.FC<EquityChartProps> = ({
         flexWrap="wrap"
       >
         <Text {...eyebrow}>{title}</Text>
-        <Stamp provenance={comparison.source.provenance} />
+        <Box minW={0} maxW="100%" sx={{ '& *': { whiteSpace: 'normal', maxWidth: '100%' } }}>
+          <Stamp provenance={comparison.source.provenance} />
+        </Box>
       </Box>
 
       {!marks && (
@@ -212,7 +214,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
           as="svg"
           viewBox={`0 0 ${W} ${H}`}
           w="100%"
-          h="auto"
+          h={marks ? { base: '220px', md: 'auto' } : 'auto'}
           preserveAspectRatio="none"
           role="img"
           aria-label="Equity over the measured window for both liquidation engines"

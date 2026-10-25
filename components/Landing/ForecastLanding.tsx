@@ -50,6 +50,7 @@ export interface ForecastLandingProps {
 
 const LINK_BTN = {
   variant: 'unstyled' as const,
+  w: 'fit-content',
   h: 'auto',
   minH: '44px',
   fontFamily: TYPOGRAPHY.fontMono,
@@ -207,6 +208,8 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
                 role="radio"
                 aria-checked={active}
                 onClick={() => r.setScenarioId(s.id)}
+                flex="0 0 auto"
+                w="auto"
                 minH="44px"
                 borderRadius={0}
                 variant="outline"

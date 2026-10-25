@@ -74,7 +74,7 @@ export const DoorSheet: React.FC<DoorSheetProps> = ({ door, intent, onClose }) =
               {DOOR_TITLE[door]}
             </ModalHeader>
             <ModalCloseButton _focus={FOCUS_STYLES.ring} borderRadius={0} />
-            <ModalBody pb={SPACING_PATTERNS.modalPadding} display="grid" gap={SPACING.md}>
+            <ModalBody pb={SPACING_PATTERNS.modalPadding} display="grid" gap={SPACING.md} alignContent="start">
               <Text {...small}>{DOOR_LINE[door]}</Text>
               <Box>
                 <Text {...kicker} mb={SPACING.xs}>

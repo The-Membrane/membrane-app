@@ -77,8 +77,10 @@ export function lineDistancePct(position: ProtocolPosition): number {
 
 /** The collateral leg that carries the position, for the engine's asset argument. */
 export function anchorAsset(position: ProtocolPosition): string | null {
-  const leg = [...position.collateral].sort((a, b) => b.valueUsd - a.valueUsd)[0]
-  return leg?.symbol ?? null
+  // The largest leg the engine has a series for; else the largest leg, so the engine
+  // can say in its own words why it shows nothing.
+  const legs = [...position.collateral].sort((a, b) => b.valueUsd - a.valueUsd)
+  return (legs.find((l) => seriesIdFor(l.symbol) !== null) ?? legs[0])?.symbol ?? null
 }
 
 // ------------------------------------------------------------- (a) delay

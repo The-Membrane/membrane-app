@@ -153,18 +153,29 @@ function skewLine(cmp: Comparison, registry: Record<string, ExitDepth>, k: numbe
 /** One line per multiple saying what was and was not drawn, and why. */
 export function skewNote(line: SkewLine, registry: Record<string, ExitDepth>): string {
   const k = `${line.multiple}×`
-  const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
   if (line.drawable) {
     return `${k} line drawn: exit cost from the measured ${registry[line.legs[0].symbol]?.source ?? 'depth'}, priced at the worst minute (modelled bound).`
   }
-  const parts = line.legs.map((l) => {
+  const noDepth = line.legs.filter((l) => l.status === 'no-depth').map((l) => l.symbol)
+  const measured = Object.keys(registry)
+  const parts: string[] = []
+  if (noDepth.length)
+    parts.push(
+      `no exit-depth series for ${noDepth.join(', ')} in this scenario${measured.length ? ` (measured: ${measured.join(', ')})` : ''}`,
+    )
+  for (const l of line.legs) {
     const d = registry[l.symbol]
-    if (l.status === 'no-depth') return `no exit-depth series for ${l.symbol} in this scenario`
-    if (l.status === 'beyond-pool' && d)
-      return `${usd(l.exitUsd)} of ${l.symbol} is more than the ${usd(d.poolQuoteLowUsd)} the pool held at its low`
-    if (l.status === 'beyond-clip' && d)
-      return `${Math.round(l.tokens).toLocaleString('en-US')} ${l.symbol} is past the measured ${d.clipTokens.toLocaleString('en-US')} clip`
-    return `${l.symbol} drawable`
-  })
+    if (l.status === 'no-depth' || l.status === 'drawn') continue
+    parts.push(describe(l, d))
+  }
   return `${k}: no line — ${parts.join('; ')}.`
+}
+
+function describe(l: SkewLeg, d: ExitDepth | undefined): string {
+  const usd = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
+  if (l.status === 'beyond-pool' && d)
+    return `${usd(l.exitUsd)} of ${l.symbol} is more than the ${usd(d.poolQuoteLowUsd)} the pool held at its low`
+  if (l.status === 'beyond-clip' && d)
+    return `${Math.round(l.tokens).toLocaleString('en-US')} ${l.symbol} is past the measured ${d.clipTokens.toLocaleString('en-US')} clip`
+  return `${l.symbol} drawable`
 }

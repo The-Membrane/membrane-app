@@ -85,7 +85,7 @@ export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, re
             return (
               <Box key={step.minute}>
                 <Text {...small} {...tabularNums}>
-                  {fmtLocalDayClock(step.ts, zone)} · sale point {Math.abs(Math.floor(step.toBreakPct))}% below
+                  {fmtLocalDayClock(step.ts, zone)} · sale point {Math.floor(Math.abs(step.toBreakPct))}% below
                 </Text>
                 {rows.length === 0 ? (
                   <Text {...small} color={SEMANTIC_COLORS.textTertiary}>nothing the model may show at this distance</Text>
@@ -119,20 +119,24 @@ export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, re
         {reach.status === 'pending' ? (
           <Pending reason={reach.reason} />
         ) : reach.value.throughLine ? (
-          <Text {...small} color={SEMANTIC_COLORS.danger}>✖ Spot is at or through the line. Act now; no probability is shown.</Text>
+          <Text {...small} color={SEMANTIC_COLORS.textPrimary}>Price is at or through your line. Act now; no probability is shown.</Text>
         ) : (
-          reach.value.rows.map((row) => (
-            <Box key={row.horizonH}>
-              {row.status === 'inside' ? (
-                <ShownLine s={shown(row.result)} upperBound={row.isUpperBound} />
-              ) : row.status === 'beyond' ? (
-                <Text {...small} {...tabularNums}>
-                  {fmtHorizon(row.horizonH)} · your line is past the model’s range
-                  {row.edgePct !== null ? ` (deepest shown: ${Math.abs(row.edgePct)}%)` : ''}
-                </Text>
-              ) : null}
-            </Box>
-          ))
+          <>
+            {reach.value.rows
+              .filter((row) => row.status === 'inside')
+              .map((row) => (
+                <ShownLine key={row.horizonH} s={shown(row.result)} upperBound={row.isUpperBound} />
+              ))}
+            {reach.value.rows.some((row) => row.status === 'beyond') && (
+              <Text {...small} {...tabularNums}>
+                {reach.value.rows
+                  .filter((row) => row.status === 'beyond')
+                  .map((row) => fmtHorizon(row.horizonH))
+                  .join(' · ')}
+                : your line ({Math.floor(Math.abs(reach.value.lineDistancePct))}% below) is past what the model may speak about
+              </Text>
+            )}
+          </>
         )}
       </Block>
       <Text {...credit} gridColumn="1 / -1">

@@ -79,7 +79,8 @@ export const ManualPositionForm: React.FC<ManualPositionFormProps> = ({ protocol
     liquidationLtv: Number(linePct) / 100,
   }
   const touched = collUsd !== '' && debtUsd !== ''
-  const localError = touched ? validateManual(parsed) : null
+  const noReserve = venue === 'aave-v3' && protocols !== null && aave === null
+  const localError: ManualError | null = noReserve ? 'reserve' : touched ? validateManual(parsed) : null
   const shownError = localError ?? error
   const ltvNow = parsed.collateralUsd > 0 && parsed.debtUsd > 0 ? parsed.debtUsd / parsed.collateralUsd : null
 
@@ -93,7 +94,7 @@ export const ManualPositionForm: React.FC<ManualPositionFormProps> = ({ protocol
       alignItems="end"
       onSubmit={(e: React.FormEvent) => {
         e.preventDefault()
-        if (!validateManual(parsed)) onSubmit(parsed)
+        if (!noReserve && !validateManual(parsed)) onSubmit(parsed)
       }}
     >
       <FormControl>

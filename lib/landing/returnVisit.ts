@@ -28,6 +28,8 @@ export interface VisitRecord {
   /** The verdict figure (venue closed − Membrane closed) on that visit. */
   lessUsd: number
   scenarioId: string
+  /** Which position on the wallet (protocol:market). A delta is only taken on the same one. */
+  positionKey?: string
 }
 
 export type VisitState = 'first' | 'returning' | 'changed' | 'after-event' | 'deployed'
@@ -60,7 +62,8 @@ export function isVisitRecord(v: unknown): v is VisitRecord {
     typeof r.address === 'string' &&
     /^0x[0-9a-fA-F]{40}$/.test(r.address) &&
     ['at', 'debtUsd', 'collateralUsd', 'ltv', 'lessUsd'].every((k) => typeof r[k] === 'number' && Number.isFinite(r[k] as number)) &&
-    typeof r.scenarioId === 'string'
+    typeof r.scenarioId === 'string' &&
+    (r.positionKey === undefined || typeof r.positionKey === 'string')
   )
 }
 
@@ -91,6 +94,7 @@ export const CHANGE_LTV_POINTS = 0.01
 
 export interface CurrentRead {
   address: string
+  positionKey?: string
   debtUsd: number
   collateralUsd: number
   ltv: number
@@ -108,9 +112,16 @@ export function classifyVisit(previous: VisitRecord | null, current: CurrentRead
   if (!current) return 'returning'
   // A different wallet than the one remembered is that wallet's first visit.
   if (current.address.toLowerCase() !== previous.address.toLowerCase()) return 'first'
+  // Another position on the same wallet: nothing to compare against.
+  if (!sameKey(previous, current)) return 'returning'
   const grew = previous.debtUsd > 0 ? current.debtUsd / previous.debtUsd - 1 >= CHANGE_DEBT_GROWTH : current.debtUsd > 0
   const higher = current.ltv - previous.ltv >= CHANGE_LTV_POINTS
   return grew || higher ? 'changed' : 'returning'
+}
+
+/** Same position? Records written before keys existed never match. */
+export function sameKey(previous: VisitRecord, current: CurrentRead): boolean {
+  return !!previous.positionKey && previous.positionKey === current.positionKey
 }
 
 export interface VisitDelta {

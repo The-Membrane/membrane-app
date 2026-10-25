@@ -15,7 +15,8 @@ import {
 import { setMorphoMarketListLoader } from '@/lib/position-sim/adapters/morphoBlue'
 import { largestPosition, runReplay, type MeasuredLiquidations } from '@/lib/landing/replay'
 import { scenarioById } from '@/lib/landing/scenarios'
-import { closedTotals, verdictSentence } from '@/lib/landing/verdict'
+import { censusRowServer } from '@/lib/landing/censusServer'
+import { verdictOf } from '@/lib/landing/verdict'
 
 /**
  * THE SHARE CARD'S NUMBERS, COMPUTED HERE. `GET /api/sim/replay/0x…?s=oct10-2025`
@@ -39,6 +40,8 @@ export interface ReplaySummary {
   membraneClosedUsd: number
   lessUsd: number
   verdict: string
+  /** True when Aave's side is the measured census close. */
+  measured?: boolean
   error?: string
 }
 
@@ -75,8 +78,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         verdict: '', error: 'no open borrow found',
       })
     }
-    const cmp = runReplay(position, detection, { series: d.series, manifest: d.manifest, measured: d.protocols.measuredLiquidations ?? null })
-    const t = closedTotals(cmp)
+    // The demo position IS its census row, so Aave's side is the measured close. A live
+    // address replays today's position, so its census row (if any) is not applied to it.
+    const census = isDemo ? censusRowServer(address) : null
+    const cmp = runReplay(position, detection, { series: d.series, manifest: d.manifest, measured: d.protocols.measuredLiquidations ?? null }, census)
+    const v = verdictOf(cmp, isDemo ? 'this' : 'your', census)
+    const venueClosedUsd = census ? census.aaveClosedUsd : cmp.source.events.reduce((a, e) => a + e.repaidUsd, 0)
+    const membraneClosedUsd = census ? census.membraneClosedUsd : cmp.membrane.events.reduce((a, e) => a + Math.max(0, e.repaidUsd), 0)
     res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=3600')
     return res.status(200).json({
       address,
@@ -84,10 +92,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       isDemo,
       label: position.label,
       debtUsd: position.totalDebtUsd,
-      venueClosedUsd: t.venueClosedUsd,
-      membraneClosedUsd: t.membraneClosedUsd,
-      lessUsd: t.lessUsd,
-      verdict: verdictSentence(cmp, isDemo ? 'this' : 'your'),
+      venueClosedUsd,
+      membraneClosedUsd,
+      lessUsd: venueClosedUsd - membraneClosedUsd,
+      verdict: v.headline,
+      measured: v.measured,
     })
   } catch (e) {
     return res.status(502).json({ error: (e as Error).message })

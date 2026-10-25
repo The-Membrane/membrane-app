@@ -8,7 +8,7 @@ import { Box } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
 import { loadSeries, type ForecastSymbol, type PriceSeries } from '@/lib/forecast'
-import { CURE_WINDOW_SECONDS, type Comparison, type ProtocolPosition } from '@/lib/position-sim'
+import { CURE_WINDOW_SECONDS, SYMBOL_TO_SERIES, type Comparison, type Oct10Series, type ProtocolPosition } from '@/lib/position-sim'
 import type { HistoryEpisode } from '@/lib/position-sim/history'
 import { anchorAsset, delayReadings, forwardReach, historyReadings, seriesIdFor, type Slot } from '@/lib/landing/forecastLayer'
 import type { UsdeExitLiquidity } from '@/lib/landing/sizeSkew'
@@ -32,6 +32,12 @@ export interface ReplayDeskProps {
   /** The address's own liquidation episodes, or null while loading / for a hand-entered position. */
   episodes: HistoryEpisode[] | null
   historyNote: string
+  /** The scenario's minute series (oracle prices), for the delay window's break price. */
+  oct10: Oct10Series | null
+  /** Demo wallet on screen: "this demo position at today's price", never "your line". */
+  isDemo: boolean
+  measured: import('@/lib/landing/verdict').MeasuredSide | null
+  addressCensus: import('@/lib/landing/census').CensusRow | null
 }
 
 type SeriesState = { series: PriceSeries; stamp: string } | { error: string }
@@ -94,7 +100,14 @@ export const ReplayDesk: React.FC<ReplayDeskProps> = (p) => {
   const delay = useMemo<Slot<ReturnType<typeof delayReadings> extends Slot<infer T> ? T : never> | null>(() => {
     if (!p.comparison || p.startTs === null || !p.stepSeconds) return null
     if (anchorLoading) return loadingSlot
-    return delayReadings(p.comparison, windows, p.startTs, p.stepSeconds, anchorSeries)
+    const sym = anchor
+    const col = sym && p.oct10 ? p.oct10.columns[SYMBOL_TO_SERIES[sym] ?? ''] : undefined
+    const priceAtMinute = (m: number): number | null => {
+      if (!col) return null
+      for (let k = m; k >= 0; k--) if (col[k] !== null && col[k] !== undefined) return col[k] as number
+      return null
+    }
+    return delayReadings(p.comparison, windows, p.startTs, p.stepSeconds, anchorSeries, priceAtMinute)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.comparison, windows, p.startTs, p.stepSeconds, anchorSeries, anchorLoading])
 
@@ -132,8 +145,10 @@ export const ReplayDesk: React.FC<ReplayDeskProps> = (p) => {
         delay={delay}
         errors={p.errors}
         scenarioName={p.scenarioName}
+        measured={p.measured}
+        addressCensus={p.addressCensus}
       />
-      {delay && <ForecastPanel delay={delay} history={history} reach={reachSlot} stamp={stamp} />}
+      {delay && <ForecastPanel delay={delay} history={history} reach={reachSlot} stamp={stamp} isDemo={p.isDemo} />}
     </Box>
   )
 }

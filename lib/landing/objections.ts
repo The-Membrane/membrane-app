@@ -3,37 +3,73 @@
  * simulation and links to its data. Every figure is computed from a committed file or a
  * constant; where no source exists the card says "source pending" and prints no number.
  *
- * Two framework answers were checked against the contracts and changed
- * (components/Seniority/facts.ts holds the verdicts):
- *   - Redemptions: the framework says "touch debt only, never collateral". The contracts
- *     do better: redemption is served by curator vaults and never opens a borrower's
- *     position at all (RedemptionEngine.sol:142-164; Cdp.sol has no redeem).
- *   - Negative spread: the framework says "curator bonds eat it first". Bonds are
- *     slashed for failing to serve a REDEMPTION, never for spread
- *     (CuratorRegistry.sol:670-678, RedemptionEngine.sol:273-287), and no on-chain
- *     max-negative-spread parameter exists. The registry is not wired in config/evm, so
- *     no bond-coverage number can be read: source pending.
+ * CONTRACT CITATIONS are pinned to membrane-solidity `origin/master` at SOLIDITY_PIN and
+ * each carries the identifier its line must contain. tests/unit/landingCitations.test.ts
+ * reads every cited line at that commit and fails if the identifier is gone, so a
+ * citation cannot rot silently (refuting review D6).
+ *
+ * Framework answers corrected against the contracts:
+ *   - Redemptions: the framework says "touch debt only". Redemption is served by curator
+ *     vaults and never opens a borrower's position (RedemptionEngine.redeem; Cdp.sol has
+ *     no redeem).
+ *   - Negative spread: a negative carry spread is a cost, not bad debt. The loss
+ *     waterfall covers bad debt only; bonds are slashed for unserved redemptions and for
+ *     a vault's realized allocation losses, never for spread. No on-chain spread cap.
  */
 
-import { BOND_COVERAGE, CONSEQUENCES, MEMBRANE_WATERFALL, MIMICRY } from '@/components/Seniority/facts'
-import { MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
+import { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
+
+/** membrane-solidity origin/master, verified 2026-10-25. Shown once per card. */
+export const SOLIDITY_PIN = '70f965e'
+
+export interface Cite {
+  /** Path inside membrane-solidity. */
+  path: string
+  /** First and last cited line (inclusive). */
+  from: number
+  to: number
+  /** A string the FIRST cited line must contain. */
+  expect: string
+}
+
+export const CITES = {
+  absorbBadDebt: { path: 'contracts/Cdp.sol', from: 3041, to: 3152, expect: 'function _absorbBadDebt' },
+  slashDivisor: { path: 'contracts/CuratorRegistry.sol', from: 161, to: 161, expect: 'SLASH_DIVISOR = 10' },
+  slash: { path: 'contracts/CuratorRegistry.sol', from: 835, to: 848, expect: 'function slash(' },
+  slashOnLoss: { path: 'contracts/CuratorRegistry.sol', from: 887, to: 887, expect: 'function slashOnLoss(' },
+  bondOf: { path: 'contracts/CuratorRegistry.sol', from: 247, to: 247, expect: 'bondOf' },
+  slashCalls: { path: 'contracts/RedemptionEngine.sol', from: 322, to: 328, expect: 'registry.slash(' },
+  redeem: { path: 'contracts/RedemptionEngine.sol', from: 160, to: 181, expect: 'function redeem(' },
+  delayConfig: { path: 'contracts/LiquidationEngine.sol', from: 976, to: 991, expect: 'le.liquidation_delay' },
+  timelock: { path: 'contracts/lib/AccessControl.sol', from: 233, to: 234, expect: 'DEFAULT_TIMELOCK_REQUEST_S' },
+  timelockConstants: { path: 'contracts/lib/Constants.sol', from: 153, to: 157, expect: 'DEFAULT_TIMELOCK_REQUEST_S = 14 days' },
+  updateAsset: { path: 'contracts/Collateral.sol', from: 370, to: 387, expect: 'function updateAsset(' },
+  onboardDefaultBand: { path: 'contracts/Collateral.sol', from: 348, to: 348, expect: 'max_threshold_to_delay = 95e16' },
+  launchBand: { path: 'script/DeployFullSystem.s.sol', from: 254, to: 254, expect: 'LAUNCH_THRESHOLD_TO_DELAY = 4e16' },
+} satisfies Record<string, Cite>
+
+export const citeText = (c: Cite): string => `${c.path.replace(/^contracts\//, '')}:${c.from}${c.to !== c.from ? `-${c.to}` : ''}`
 
 /** The slice of public/data/oct10-2025/evidence.json the delay card needs (server-built). */
 export interface CensusSummary {
   window: string
-  /** Accounts the window could be walked for (every outcome but "no series"). */
+  /**
+   * Accounts walked minute by minute through the window: included rows whose collateral
+   * has a price series. Every count below except `unpricedAtT0` is out of these.
+   */
   walked: number
-  /** Price came back under the line inside the window; never sold. */
+  /** Price came back under the line inside the window; would never have sold. */
   recovered: number
-  /** Still over the line at expiry; sold then. */
+  /** Still over the line at expiry; would have sold then. */
   expired: number
-  /** Broke the band while the timer ran; sold that minute. */
+  /** Broke the band while the timer ran; would have sold that minute. */
   brokeBand: number
-  /** Already past the band at t0; no window existed. */
+  /** Priced, but already past the band at t0; no window existed. */
   atT0: number
   /** Price data ended mid-window; a sale is booked. */
   gridEnd: number
-  medianMinutesToCure: number | null
+  /** Included accounts on collateral with NO price series: one repay at t0, never walked. */
+  unpricedAtT0: number
   recoveredExample: CensusCase | null
   failedExample: CensusCase | null
 }
@@ -45,7 +81,8 @@ export interface CensusCase {
   outcome: string
   aaveClosedUsd: number
   membraneClosedUsd: number
-  minutesToCure: number | null
+  /** Minutes from the breach to the first return under the line (row.minutesToFirstCure). */
+  minutesToFirstCure: number | null
 }
 
 interface EvidenceRow {
@@ -58,12 +95,11 @@ interface EvidenceRow {
   aaveClosedUsd: number
   membraneClosedUsd: number
   chain?: string
-  cure?: { minutesToCure?: number | null }
+  minutesToFirstCure?: number | null
 }
 
 export interface EvidenceDocLike {
   meta: { window: string; cureModel?: { outcomes?: Record<string, number> } }
-  time?: { medianMinutesToCure?: number }
   cohort: EvidenceRow[]
 }
 
@@ -74,37 +110,32 @@ const toCase = (r: EvidenceRow): CensusCase => ({
   outcome: r.outcome,
   aaveClosedUsd: r.aaveClosedUsd,
   membraneClosedUsd: r.membraneClosedUsd,
-  minutesToCure: r.cure?.minutesToCure ?? null,
+  minutesToFirstCure: r.minutesToFirstCure ?? null,
 })
 
 /**
- * Builds the delay card's figures from the census. Counts come from meta.cureModel when
- * present (the builder's own tally), else from the included cohort rows. The examples
- * are the largest-debt mainnet row of each kind, so the cases are real and checkable.
+ * Builds the delay card's figures from the cohort rows, ONE path (review D5). The
+ * builder's meta.cureModel.outcomes tally mixes the priced and unpriced t0 rows; here
+ * they are split, and the test checks the two agree in total. The examples are the
+ * largest-debt mainnet row of each kind, so the cases are real and checkable.
  */
 export function summariseCensus(doc: EvidenceDocLike): CensusSummary {
-  const included = doc.cohort.filter((r) => !r.excluded && r.priced !== false)
-  const count = (k: string) => doc.meta.cureModel?.outcomes?.[k] ?? included.filter((r) => r.outcome === k).length
-  const recovered = count('cured-then-held')
-  const expired = count('sold-at-expiry')
-  const brokeBand = count('sold-at-band')
-  const atT0 = count('sold-at-t0')
-  const gridEnd = count('sold-at-grid-end')
+  const included = doc.cohort.filter((r) => !r.excluded)
+  const priced = included.filter((r) => r.priced !== false)
+  const count = (rows: EvidenceRow[], k: string) => rows.filter((r) => r.outcome === k).length
   const biggest = (k: string) =>
-    included
-      .filter((r) => r.outcome === k && (r.chain ?? 'mainnet') === 'mainnet')
-      .sort((a, b) => b.debtUsd - a.debtUsd)[0] ?? null
+    priced.filter((r) => r.outcome === k && (r.chain ?? 'mainnet') === 'mainnet').sort((a, b) => b.debtUsd - a.debtUsd)[0] ?? null
   const rec = biggest('cured-then-held')
   const fail = biggest('sold-at-expiry')
   return {
     window: doc.meta.window,
-    walked: recovered + expired + brokeBand + atT0 + gridEnd,
-    recovered,
-    expired,
-    brokeBand,
-    atT0,
-    gridEnd,
-    medianMinutesToCure: doc.time?.medianMinutesToCure ?? null,
+    walked: priced.length,
+    recovered: count(priced, 'cured-then-held'),
+    expired: count(priced, 'sold-at-expiry'),
+    brokeBand: count(priced, 'sold-at-band'),
+    atT0: count(priced, 'sold-at-t0'),
+    gridEnd: count(priced, 'sold-at-grid-end'),
+    unpricedAtT0: count(included.filter((r) => r.priced === false), 'sold-at-t0'),
     recoveredExample: rec ? toCase(rec) : null,
     failedExample: fail ? toCase(fail) : null,
   }
@@ -112,7 +143,10 @@ export function summariseCensus(doc: EvidenceDocLike): CensusSummary {
 
 export interface ObjectionFact {
   text: string
-  cite: string
+  /** Contract citations, pinned to SOLIDITY_PIN. */
+  cites?: Cite[]
+  /** A repo file or data source, when the fact is not a contract line. */
+  source?: string
 }
 
 export interface ObjectionCard {
@@ -134,12 +168,12 @@ export const OBJECTIONS: ObjectionCard[] = [
     question: '“It’s a backtest, not reality.”',
     facts: [
       {
-        text: 'Inputs: Chainlink oracle rounds at one-minute resolution, the venue’s own liquidation line and bonus read on-chain, and its repay size measured from that day’s liquidations.',
-        cite: 'public/data/oct10-2025/manifest.json · protocols.json',
+        text: 'Inputs: Chainlink oracle rounds at one-minute resolution, the venue’s own liquidation line and bonus read on-chain, and its repay size measured from that day’s liquidations. On a wallet in the census, Aave’s side is what Aave actually closed.',
+        source: 'public/data/oct10-2025/manifest.json · protocols.json · evidence.json',
       },
       {
-        text: 'Where it cannot be accurate: liquidators are assumed to fire in the first minute over the line; gas, MEV and slippage on seized collateral are not modelled; Membrane has no mainnet deployment, so its per-asset line is our assumption.',
-        cite: 'lib/position-sim/compare.ts caveats · lib/position-sim/membrane.ts',
+        text: 'Where it cannot be accurate: a modelled liquidator fires the first minute over the line; gas, MEV and slippage on seized collateral are not modelled; Membrane has no mainnet deployment, so its per-asset line is our assumption.',
+        source: 'lib/position-sim/compare.ts caveats · lib/position-sim/membrane.ts',
       },
     ],
     href: '/data/oct10-2025/manifest.json',
@@ -149,7 +183,10 @@ export const OBJECTIONS: ObjectionCard[] = [
     id: 'redemptions',
     question: '“Redemptions will eat me like Liquity.”',
     facts: [
-      { text: CONSEQUENCES[0].effect, cite: CONSEQUENCES[0].cite },
+      {
+        text: 'Redemption is served by curator vaults. It never opens a borrower’s position: Cdp.sol has no redeem.',
+        cites: [CITES.redeem],
+      },
     ],
     href: '/ethereum',
     hrefLabel: 'the loss order, with contract lines',
@@ -159,12 +196,18 @@ export const OBJECTIONS: ObjectionCard[] = [
     question: '“What if the spread goes negative?”',
     facts: [
       {
-        text: `A shortfall goes ${MEMBRANE_WATERFALL.map((s) => s.label.toLowerCase()).join(' → ')} before it reaches a borrower. The cascade never writes to a position.`,
-        cite: 'contracts/Cdp.sol:2758-2869',
+        text: 'Then the carry costs you: the debt’s rate is above what the deployed debt earns, and the difference is yours. No contract parameter caps a negative spread.',
       },
-      { text: BOND_COVERAGE.backs, cite: BOND_COVERAGE.backsCite },
+      {
+        text: 'The loss waterfall is for bad debt, not for spread: reserve → MBRN under the asset → junior lenders → senior lenders. It never writes to a position.',
+        cites: [CITES.absorbBadDebt],
+      },
+      {
+        text: 'Curator bonds are slashed min(shortfall, bond ÷ 10) when a vault fails to serve a redemption, and pro-rata on a vault’s realized allocation loss (slashOnLoss). Neither is spread cover.',
+        cites: [CITES.slashDivisor, CITES.slash, CITES.slashOnLoss, CITES.slashCalls],
+      },
     ],
-    pending: [`Bond coverage (${BOND_COVERAGE.definition}): source pending — ${BOND_COVERAGE.status}.`],
+    pending: ['Bond coverage (bonds ÷ the redemption volume they back): source pending — the CuratorRegistry address is not in config/evm, so bondOf cannot be read.'],
     href: '/ethereum',
     hrefLabel: 'the waterfall',
   },
@@ -172,18 +215,21 @@ export const OBJECTIONS: ObjectionCard[] = [
     id: 'trust',
     question: '“New protocol. Why trust it?”',
     facts: [
-      { text: MIMICRY[0].membrane, cite: MIMICRY[0].cite },
       {
-        text: `The ${BAND} band is set per asset at listing and is not timelocked.`,
-        cite: 'contracts/Collateral.sol:223,232',
+        text: `A breach inside the asset’s band gets an ${CURE_WINDOW_HOURS}h cure window. No-delay assets, and breaches past the band, sell at once. The window’s length is a timelocked config field: 14 days to request, then 2 days to execute.`,
+        cites: [CITES.delayConfig, CITES.timelock, CITES.timelockConstants],
+      },
+      {
+        text: `Launch collateral’s band is ${BAND} (a deploy setting). An asset onboarded without a listing gets 95% by default. The owner can change a band without a timelock.`,
+        cites: [CITES.launchBand, CITES.onboardDefaultBand, CITES.updateAsset],
       },
       {
         text: 'Design of record: deployed once, then frozen when ownership is renounced; new features ship as outside extension contracts.',
-        cite: 'membrane-solidity audit/FROZEN-CORE-PIVOT.md (2026-05-15)',
+        source: 'membrane-solidity audit/FROZEN-CORE-PIVOT.md (2026-05-15)',
       },
       {
         text: 'Start small: “Deploy fresh” opens a new position at any size, so a fraction can go first.',
-        cite: 'this page · the two doors below the chart',
+        source: 'this page · the two doors below the chart',
       },
     ],
     pending: [

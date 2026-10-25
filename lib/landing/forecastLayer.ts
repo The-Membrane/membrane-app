@@ -20,7 +20,7 @@
  * numbers.
  */
 
-import { defaultRegistry, reach, resolveAsset, touchProbability, whatCanWeSay } from '@/lib/forecast'
+import { defaultRegistry, HOUR, originOf, reach, resolveAsset, touchProbability, whatCanWeSay } from '@/lib/forecast'
 import type { HistoryCount, PriceSeries, ReachResult, TouchResult } from '@/lib/forecast'
 import type { Comparison, ProtocolPosition } from '@/lib/position-sim'
 import { MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
@@ -88,18 +88,40 @@ export function anchorAsset(position: ProtocolPosition): string | null {
 export interface DelayStep {
   minute: number
   ts: number
-  /** Distance from that minute's spot to the break line, negative percent. */
-  toBreakPct: number
-  /** The engine's reach at that origin: one row per horizon the registry offers. */
-  reach: ReachResult
+  /** The engine's spot at its floored origin (Binance hourly close), or null. */
+  spot: number | null
+  /** The price at which this position reaches the break line (oracle units). */
+  breakPrice: number | null
+  /** breakPrice / spot − 1, in percent: the fall the ENGINE's spot needs. */
+  toBreakPct: number | null
+  /** Price was already at or past the break point at the reading: no probability. */
+  alreadyPast: boolean
+  /** The engine's reach at that origin, or null when already past / no spot. */
+  reach: ReachResult | null
 }
 
 /** Fall that takes an LTV to `line`, collateral moving as one: (ltv / line − 1) × 100. */
 export const fallToPct = (ltv: number, line: number): number => (line > 0 ? (ltv / line - 1) * 100 : 0)
 
 /**
- * One reading per hour inside each armed window: the engine's reach to the break line
- * (line × (1 + band), the point where the sale stops waiting) from that minute's spot.
+ * The engine's spot at an origin: the close of the hour ending at the floored origin,
+ * exactly as lib/forecast/engine.ts spotAt reads it (it is not exported). Null when the
+ * asset has no engine series or the series does not reach that hour.
+ */
+export function engineSpot(asset: string, ts: number, series: PriceSeries | null): number | null {
+  if (!series || seriesIdFor(asset) === null) return null
+  const j = (originOf(ts) - series.startTs) / HOUR - 1
+  const v = j >= 0 && j < series.close.length ? series.close[j] : null
+  return v !== null && v !== undefined && Number.isFinite(v) ? v : null
+}
+
+/**
+ * One reading per hour inside each armed window (refuting review D2). The break point is
+ * where LTV reaches line × (1 + band): with one asset moving, price × ltv / breakLine.
+ * The distance is measured from the ENGINE's spot at its floored origin, not from the
+ * minute's oracle print, so the level the engine scores is the level the page names.
+ * If the engine's spot is already at or past the break point, the step says so and
+ * carries no probability.
  */
 export function delayReadings(
   cmp: Comparison,
@@ -107,6 +129,7 @@ export function delayReadings(
   pathStartTs: number,
   stepSeconds: number,
   series: PriceSeries | null,
+  priceAtMinute: (minute: number) => number | null,
 ): Slot<DelayStep[]> {
   const asset = anchorAsset(cmp.position)
   const breach = cmp.membrane.events.find((e) => e.kind === 'breach')
@@ -117,14 +140,33 @@ export function delayReadings(
   for (const w of windows) {
     for (let m = w.start; m < w.end; m += perHour) {
       const ltv = cmp.membrane.ltvSeries[m]
-      if (ltv === null || ltv === undefined) continue
-      const toBreakPct = fallToPct(ltv, breakLine)
+      const p = priceAtMinute(m)
       const ts = pathStartTs + m * stepSeconds
-      steps.push({ minute: m, ts, toBreakPct, reach: reach(asset, ts, toBreakPct, series, { purpose: 'line' }) })
+      if (ltv === null || ltv === undefined || p === null || !(breakLine > 0)) continue
+      const breakPrice = (p * ltv) / breakLine
+      const spot = engineSpot(asset, ts, series)
+      if (spot === null || !(spot > 0)) {
+        steps.push({ minute: m, ts, spot: null, breakPrice, toBreakPct: null, alreadyPast: false, reach: null })
+        continue
+      }
+      const toBreakPct = (breakPrice / spot - 1) * 100
+      const alreadyPast = toBreakPct >= 0
+      steps.push({
+        minute: m,
+        ts,
+        spot,
+        breakPrice,
+        toBreakPct,
+        alreadyPast,
+        reach: alreadyPast ? null : reach(asset, ts, toBreakPct, series, { purpose: 'line' }),
+      })
     }
   }
-  const anyShown = steps.some((s) => s.reach.rows.some((r) => shown(r.result).kind !== 'none' || !!r.count))
-  if (!anyShown) return { status: 'pending', reason: steps[0]?.reach.reason ?? 'no displayable cell for this asset inside the window' }
+  const anyShown = steps.some((s) => s.alreadyPast || (s.reach?.rows ?? []).some((r) => shown(r.result).kind !== 'none' || !!r.count))
+  if (!anyShown) {
+    const reason = steps.find((s) => s.reach)?.reach?.reason ?? touchProbability(asset, pathStartTs + breach.minute * stepSeconds, 1, -1, series).reason
+    return { status: 'pending', reason: reason ?? 'no displayable cell for this asset inside the window' }
+  }
   return { status: 'ready', value: steps }
 }
 
@@ -161,13 +203,38 @@ export function historyReadings(episodes: HistoryEpisode[], series: (symbol: str
 
 // ------------------------------------------------------------- (c) reach
 
-export function forwardReach(position: ProtocolPosition, nowTs: number, series: PriceSeries | null): Slot<ReachResult> {
+export interface ForwardReach {
+  /** The engine's latest spot for the anchor asset. */
+  spot: number | null
+  /** The anchor price at which the position reaches its venue line, today's amounts. */
+  linePrice: number | null
+  /** linePrice / spot − 1, in percent. Negative = the line is below spot. */
+  distancePct: number | null
+  reach: ReachResult
+}
+
+/**
+ * Forward reach from today (refuting review D3). The distance is computed at the
+ * engine's latest spot from the position's AMOUNTS — collateral × spot against debt —
+ * never from an LTV read at another time (the demo's Oct 2025 LTV would be stale). Other
+ * collateral legs and the debt are held at their read value. If spot is at or past the
+ * line, the engine returns throughLine and the page says "act now" with no probability.
+ */
+export function forwardReach(position: ProtocolPosition, nowTs: number, series: PriceSeries | null): Slot<ForwardReach> {
   const asset = anchorAsset(position)
   if (!asset) return { status: 'pending', reason: 'no collateral to forecast' }
-  const r = reach(asset, nowTs, lineDistancePct(position), series, { purpose: 'line' })
-  if (r.throughLine) return { status: 'ready', value: r }
-  if (r.rows.length === 0 || r.rows.every((row) => shown(row.result).kind === 'none' && !row.count && row.status !== 'beyond')) {
+  const leg = position.collateral.find((c) => c.symbol === asset)
+  const spot = engineSpot(asset, nowTs, series)
+  if (!leg || !(leg.amount > 0) || spot === null || !(spot > 0) || !(position.liquidationLtv > 0)) {
+    const r = reach(asset, nowTs, lineDistancePct(position), series, { purpose: 'line' })
+    return { status: 'pending', reason: r.reason ?? 'no spot for this asset' }
+  }
+  const others = position.collateral.filter((c) => c !== leg).reduce((a, c) => a + c.valueUsd, 0)
+  const linePrice = (position.totalDebtUsd / position.liquidationLtv - others) / leg.amount
+  const distancePct = (linePrice / spot - 1) * 100
+  const r = reach(asset, nowTs, distancePct, series, { purpose: 'line' })
+  if (!r.throughLine && (r.rows.length === 0 || r.rows.every((row) => shown(row.result).kind === 'none' && !row.count && row.status !== 'beyond'))) {
     return { status: 'pending', reason: r.reason ?? 'no displayable horizon for this asset' }
   }
-  return { status: 'ready', value: r }
+  return { status: 'ready', value: { spot, linePrice, distancePct, reach: r } }
 }

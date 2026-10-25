@@ -182,16 +182,20 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
       </Box>
 
       {/* RETURN VISIT */}
-      {(r.visitState === 'returning' || r.visitState === 'changed') && r.delta && r.shownAddress && (
+      {(r.visitState === 'returning' || r.visitState === 'changed') && r.shownAddress && (
         <Box data-testid={`return-${r.visitState}`} borderTop={rule} pt={SPACING.sm} display="grid" gap={SPACING.xs}>
           <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize="20px">
             {r.visitState === 'changed' ? 'Your position changed since last time. Size lines first.' : 'Welcome back. Your position, re-read today and replayed again.'}
           </Text>
-          <Text {...small} {...tabularNums}>
-            {shortAddress(r.shownAddress)} · last visit {sinceText(r.delta.sinceMs)} · debt {usdSigned(r.delta.debtUsd)} · collateral {usdSigned(r.delta.collateralUsd)} · LTV{' '}
-            {r.delta.ltvPoints >= 0 ? '+' : '−'}
-            {Math.abs(r.delta.ltvPoints * 100).toFixed(1)} pts · gap {usdSigned(r.delta.lessUsd)} (simulator)
-          </Text>
+          {r.delta ? (
+            <Text {...small} {...tabularNums}>
+              {shortAddress(r.shownAddress)} · last visit {sinceText(r.delta.sinceMs)} · debt {usdSigned(r.delta.debtUsd)} · collateral {usdSigned(r.delta.collateralUsd)} · LTV{' '}
+              {r.delta.ltvPoints >= 0 ? '+' : '−'}
+              {Math.abs(r.delta.ltvPoints * 100).toFixed(1)} pts · gap {usdSigned(r.delta.lessUsd)} of debt closed (simulator)
+            </Text>
+          ) : (
+            <Text {...small}>{shortAddress(r.shownAddress)} · a different position than last time, so no change is shown.</Text>
+          )}
         </Box>
       )}
 
@@ -245,6 +249,10 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
             scenarioName={r.data?.manifest.name ?? '10 Oct 2025'}
             episodes={episodes}
             historyNote={historyNote}
+            oct10={r.data?.series ?? null}
+            isDemo={r.isDemo}
+            measured={r.census}
+            addressCensus={r.addressCensus}
           />
         )}
 

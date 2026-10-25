@@ -53,7 +53,10 @@
  *      assumption the census does not contain.)
  *
  * So the selection now runs with venue null, gates on equity with no deployment, and
- * ranks on that same figure. The hero equals its census row exactly, and this file has
+ * ranks on that same figure. CORRECTED 2026-10-25 (Q41 review D1): the run does NOT equal
+ * its census row. The engine models Aave at the median repay size and closes $486,391 here;
+ * the census measured $338,084 closed by Aave and walks Membrane to $309,635. The landing
+ * at / takes Aave's side from the census row (lib/landing/census.ts). This file has
  * NOTHING assumed left in it: every field is measured, read, or derived.
  *
  * There is no borrow APR in the evidence row, so this wallet still carries NO cost line:
@@ -106,7 +109,7 @@ export interface MeasuredCensus {
  */
 export const DEMO_BORROWER_NOTE =
   `liquidated by Aave V3 · ${DEMO_BORROWER_DATE} · no deployment, and none assumed — this ` +
-  'wallet had none, so the figure is the bare census row'
+  'wallet had none; Aave’s side on the landing is the census row’s measured close'
 
 /** A real mainnet borrower, checksummed as the selection recorded it. */
 export const DEMO_BORROWER_ADDRESS = fixture.address as `0x${string}`

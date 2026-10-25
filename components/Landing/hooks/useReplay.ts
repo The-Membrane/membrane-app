@@ -25,14 +25,17 @@ import {
   type ProtocolPosition,
   type VenueDetection,
   DEMO_BORROWER_ADDRESS,
+  DEMO_BORROWER_ROW,
   SYMBOL_TO_SERIES,
 } from '@/lib/position-sim'
 import type { HeadlineKey } from '@/lib/landing/headline'
 import { track } from '@/lib/landing/instrumentation'
 import { buildManualPosition, decodeManual, encodeManual, type ManualError, type ManualInput, type ProtocolsDoc } from '@/lib/landing/manualPosition'
+import type { CensusRow } from '@/lib/landing/census'
 import { largestPosition, positionKey, runReplay, type MeasuredLiquidations } from '@/lib/landing/replay'
 import {
   classifyVisit,
+  sameKey,
   readVisit,
   visitDelta,
   writeVisit,
@@ -132,7 +135,7 @@ export function useReplay(headline: HeadlineKey) {
 
   const positions = useMemo<ProtocolPosition[]>(() => {
     if (mode === 'address' && loaded) return loaded.results.flatMap((r) => r.positions)
-    if (mode === 'manual' && manualBuilt && 'position' in manualBuilt) return [manualBuilt.position]
+    if (mode === 'manual') return manualBuilt && 'position' in manualBuilt ? [manualBuilt.position] : []
     return [demoPos]
   }, [mode, loaded, manualBuilt, demoPos])
 
@@ -143,10 +146,43 @@ export function useReplay(headline: HeadlineKey) {
 
   const detection = mode === 'address' ? loaded?.detection ?? null : mode === 'demo' ? demoDet : null
 
+  // THE MEASURED SIDE (review D1). The demo position IS its census row, so Aave's side
+  // is what Aave actually closed. A live address replays TODAY's position, which is not
+  // the position the census measured, so its row (fetched below) is shown as a separate
+  // line and never folded into today's replay.
+  const demoCensus = useMemo<CensusRow>(
+    () => ({
+      user: DEMO_BORROWER_ROW.user,
+      events: DEMO_BORROWER_ROW.events,
+      t0Index: DEMO_BORROWER_ROW.t0Index,
+      aaveClosedUsd: DEMO_BORROWER_ROW.aaveClosedUsd,
+      membraneClosedUsd: DEMO_BORROWER_ROW.membraneClosedUsd,
+      outcome: DEMO_BORROWER_ROW.outcome,
+      collSymbol: DEMO_BORROWER_ROW.collSymbol,
+      debtSymbol: DEMO_BORROWER_ROW.debtSymbol,
+    }),
+    [],
+  )
+  const census = mode === 'demo' ? demoCensus : null
+
   const comparison = useMemo<Comparison | null>(() => {
     if (!selected || !data) return null
-    return runReplay(selected, detection, { ...data, measured: protocols?.measuredLiquidations ?? null })
-  }, [selected, data, detection, protocols])
+    return runReplay(selected, detection, { ...data, measured: protocols?.measuredLiquidations ?? null }, census)
+  }, [selected, data, detection, protocols, census])
+
+  const [addressCensus, setAddressCensus] = useState<CensusRow | null>(null)
+  useEffect(() => {
+    setAddressCensus(null)
+    if (mode !== 'address' || !loaded) return
+    let alive = true
+    fetch(`/api/sim/census/${loaded.address}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { row: CensusRow | null } | null) => alive && setAddressCensus(j?.row ?? null))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [mode, loaded])
 
   const membraneLine = useMemo(() => (selected ? weightedMembraneLine(selected.collateral).maxLtv : 0), [selected])
 
@@ -200,6 +236,7 @@ export function useReplay(headline: HeadlineKey) {
     if (mode !== 'address' || !loaded || !selected || !comparison) return
     const current = {
       address: loaded.address,
+      positionKey: positionKey(selected),
       debtUsd: selected.totalDebtUsd,
       collateralUsd: selected.totalCollateralUsd,
       ltv: selected.ltv,
@@ -210,7 +247,8 @@ export function useReplay(headline: HeadlineKey) {
       const state = classifyVisit(previous, current)
       setVisitState(state)
       if (previous && state !== 'first' && previous.address.toLowerCase() === current.address.toLowerCase()) {
-        setDelta(visitDelta(previous, current, Date.now()))
+        // A delta only between the same position (review: store positionKey).
+        if (sameKey(previous, current)) setDelta(visitDelta(previous, current, Date.now()))
         track({ name: 'return_visit', headline, state, address: current.address, sinceMs: Date.now() - previous.at })
       }
     }
@@ -287,6 +325,8 @@ export function useReplay(headline: HeadlineKey) {
     selected,
     selectKey: setSelectedKey,
     comparison,
+    census,
+    addressCensus,
     membraneLine,
     shownAddress,
     loadedSource: loaded?.source ?? null,

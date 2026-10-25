@@ -157,6 +157,7 @@ export type ReplayCardSummary = {
   venueClosedUsd: number
   membraneClosedUsd: number
   verdict: string
+  measured: boolean
 }
 
 /** Reads /api/sim/replay/<address>. Any malformed field and the card prints no number. */
@@ -170,5 +171,5 @@ export function replayCardSummary(json: unknown): ReplayCardSummary | null {
   const label = typeof j.label === 'string' && j.label ? j.label.slice(0, 48) : null
   const verdict = typeof j.verdict === 'string' && j.verdict.endsWith('(simulator).') ? j.verdict.slice(0, 140) : null
   if (!address || venueClosedUsd == null || membraneClosedUsd == null || !label || !verdict) return null
-  return { address, isDemo: j.isDemo === true, label, venueClosedUsd, membraneClosedUsd, verdict }
+  return { address, isDemo: j.isDemo === true, label, venueClosedUsd, membraneClosedUsd, verdict, measured: j.measured === true }
 }

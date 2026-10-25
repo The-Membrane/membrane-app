@@ -10,11 +10,11 @@ import { Box, Text } from '@chakra-ui/react'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { fmtLocalDayClock, useLocalZone } from '@/components/Simulator/localClock'
-import type { ReachResult } from '@/lib/forecast'
 import {
   fmtHorizon,
   shown,
   type DelayStep,
+  type ForwardReach,
   type HistoryReading,
   type Shown,
   type Slot,
@@ -25,7 +25,8 @@ import { credit, kicker, rule, small, tabularNums } from './styles'
 export interface ForecastPanelProps {
   delay: Slot<DelayStep[]>
   history: Slot<HistoryReading[]>
-  reach: Slot<ReachResult>
+  reach: Slot<ForwardReach>
+  isDemo: boolean
   /** "Binance spot 1h klines · fetched HH:MM", once a series has loaded. */
   stamp: string | null
 }
@@ -72,7 +73,7 @@ const Block: React.FC<{ title: string; testId: string; children: React.ReactNode
   </Box>
 )
 
-export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, reach, stamp }) => {
+export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, reach, stamp, isDemo }) => {
   const zone = useLocalZone()
   return (
     <Box as="section" aria-label="Forecast layer" display="grid" gap={SPACING.md} gridTemplateColumns={{ base: '1fr', lg: 'repeat(3, minmax(0, 1fr))' }}>
@@ -81,13 +82,18 @@ export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, re
           <Pending reason={delay.reason} />
         ) : (
           delay.value.map((step) => {
-            const rows = step.reach.rows.filter((row) => shown(row.result).kind !== 'none').slice(0, 3)
+            const rows = (step.reach?.rows ?? []).filter((row) => shown(row.result).kind !== 'none').slice(0, 3)
             return (
               <Box key={step.minute}>
                 <Text {...small} {...tabularNums}>
-                  {fmtLocalDayClock(step.ts, zone)} · sale point {Math.floor(Math.abs(step.toBreakPct))}% below
+                  {fmtLocalDayClock(step.ts, zone)} ·{' '}
+                  {step.alreadyPast
+                    ? 'price was already past the sale point at the reading; no probability'
+                    : step.toBreakPct === null
+                      ? 'no engine price at this hour'
+                      : `sale point ${Math.floor(Math.abs(step.toBreakPct))}% below the engine’s spot`}
                 </Text>
-                {rows.length === 0 ? (
+                {step.alreadyPast || step.toBreakPct === null ? null : rows.length === 0 ? (
                   <Text {...small} color={SEMANTIC_COLORS.textTertiary}>nothing the model may show at this distance</Text>
                 ) : (
                   rows.map((row) => <ShownLine key={row.horizonH} s={shown(row.result)} upperBound={row.isUpperBound} />)
@@ -118,22 +124,29 @@ export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, re
       <Block title="From today · how far the model reaches" testId="forecast-reach">
         {reach.status === 'pending' ? (
           <Pending reason={reach.reason} />
-        ) : reach.value.throughLine ? (
-          <Text {...small} color={SEMANTIC_COLORS.textPrimary}>Price is at or through your line. Act now; no probability is shown.</Text>
+        ) : reach.value.reach.throughLine ? (
+          <Text {...small} color={SEMANTIC_COLORS.textPrimary} data-testid="forecast-act-now">
+            {isDemo
+              ? 'At today’s price this demo position is at or through its line. Act now; no probability is shown.'
+              : 'At today’s price your position is at or through its line. Act now; no probability is shown.'}
+          </Text>
         ) : (
           <>
-            {reach.value.rows
+            <Text {...small} {...tabularNums}>
+              {isDemo ? 'This demo position at today’s price' : 'Your line at today’s price'}: {Math.floor(Math.abs(reach.value.distancePct ?? 0))}% below spot
+            </Text>
+            {reach.value.reach.rows
               .filter((row) => row.status === 'inside')
               .map((row) => (
                 <ShownLine key={row.horizonH} s={shown(row.result)} upperBound={row.isUpperBound} />
               ))}
-            {reach.value.rows.some((row) => row.status === 'beyond') && (
+            {reach.value.reach.rows.some((row) => row.status === 'beyond') && (
               <Text {...small} {...tabularNums}>
-                {reach.value.rows
+                {reach.value.reach.rows
                   .filter((row) => row.status === 'beyond')
                   .map((row) => fmtHorizon(row.horizonH))
                   .join(' · ')}
-                : your line ({Math.floor(Math.abs(reach.value.lineDistancePct))}% below) is past what the model may speak about
+                : {isDemo ? 'the line' : 'your line'} is past what the model may speak about
               </Text>
             )}
           </>

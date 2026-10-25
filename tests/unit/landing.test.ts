@@ -2,17 +2,18 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { demoBorrowerDetection, demoBorrowerPosition, CURE_WINDOW_SECONDS } from '@/lib/position-sim'
+import { demoBorrowerDetection, demoBorrowerPosition, CURE_WINDOW_SECONDS, DEMO_BORROWER_ADDRESS, DEMO_BORROWER_ROW, MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim'
 import { HEADLINES, hashToHeadline, resolveHeadline, SUBHEAD, RUN_LABEL } from '@/lib/landing/headline'
 import { LANDING_EVENT_NAMES, setLandingSink, track, type LandingEvent } from '@/lib/landing/instrumentation'
 import { buildManualPosition, decodeManual, encodeManual, morphoBonus, morphoLltvs, aaveLine, validateManual } from '@/lib/landing/manualPosition'
 import { OBJECTIONS, summariseCensus } from '@/lib/landing/objections'
 import { runReplay } from '@/lib/landing/replay'
-import { classifyVisit, readVisit, writeVisit, RETURN_KEY, visitDelta, type VisitRecord } from '@/lib/landing/returnVisit'
+import { classifyVisit, readVisit, sameKey, writeVisit, RETURN_KEY, visitDelta, type VisitRecord } from '@/lib/landing/returnVisit'
 import { SCENARIOS, scenarioById } from '@/lib/landing/scenarios'
 import { depthRegistry, exitCostShare, skewLines, skewNote } from '@/lib/landing/sizeSkew'
-import { armedWindows, closedTotals, eventMarks, verdictSentence } from '@/lib/landing/verdict'
-import { delayReadings, forwardReach, historyReadings, fallToPct, shown } from '@/lib/landing/forecastLayer'
+import { armedWindows, closedTotals, eventMarks, verdictOf, verdictSentence } from '@/lib/landing/verdict'
+import { censusRowFor } from '@/lib/landing/census'
+import { delayReadings, engineSpot, forwardReach, historyReadings, fallToPct, shown } from '@/lib/landing/forecastLayer'
 import { PROSE } from '@/lib/landing/prose'
 import { decodeCompactSeries, PROBABILITY_CLASSES } from '@/lib/forecast'
 
@@ -62,8 +63,28 @@ describe('verdict on the demo wallet', () => {
     expect(t.venueClosedUsd).toBeGreaterThan(0)
     expect(t.lessUsd).toBeCloseTo(t.venueClosedUsd - t.membraneClosedUsd, 6)
     const v = verdictSentence(cmp, 'this')
-    expect(v).toMatch(/^Membrane would have closed \$[\d,]+ (less|more) of this position \(simulator\)\.$/)
+    expect(v).toMatch(/^Membrane would have closed \$[\d,]+ (less|more) of this position’s debt \(simulator\)\.$/)
     expect(v).not.toMatch(BANNED)
+    expect(verdictOf(cmp, 'your').detail).toMatch(/modelled at the median repay size/)
+  })
+  it('uses the census row for Aave on the demo (review D1)', () => {
+    const row = DEMO_BORROWER_ROW
+    const measured = runReplay(demoBorrowerPosition(), demoBorrowerDetection(), { series, manifest, measured: protocols.measuredLiquidations }, {
+      user: row.user, events: row.events, t0Index: row.t0Index, aaveClosedUsd: row.aaveClosedUsd,
+      membraneClosedUsd: row.membraneClosedUsd, outcome: row.outcome, collSymbol: row.collSymbol, debtSymbol: row.debtSymbol,
+    })
+    const v = verdictOf(measured, 'this', row)
+    const gap = Math.round(row.aaveClosedUsd - row.membraneClosedUsd).toLocaleString('en-US')
+    expect(v.headline).toBe(`Membrane would have closed $${gap} less of this position’s debt (simulator).`)
+    expect(v.detail).toContain(`Aave V3 closed $${Math.round(row.aaveClosedUsd).toLocaleString('en-US')} in ${row.events} liquidations (measured`)
+    expect(v.detail).toContain(`Membrane would have closed $${Math.round(row.membraneClosedUsd).toLocaleString('en-US')} (simulator`)
+    // The chart's Aave events are the measured close, one mark at the first event.
+    expect(measured.source.events).toHaveLength(1)
+    expect(measured.source.events[0].minute).toBe(row.t0Index)
+    expect(measured.source.events[0].repaidUsd).toBeCloseTo(row.aaveClosedUsd, 2)
+    // The census lookup finds the same row in evidence.json.
+    expect(censusRowFor(evidence.cohort, DEMO_BORROWER_ADDRESS)?.aaveClosedUsd).toBe(row.aaveClosedUsd)
+    expect(censusRowFor(evidence.cohort, '0x' + '1'.repeat(40))).toBeNull()
   })
   it('marks every engine event with a glyph', () => {
     const marks = eventMarks(cmp)
@@ -101,7 +122,7 @@ describe('size skew', () => {
   })
   it('draws a USDe line inside the measured clip and refuses past the pool', () => {
     const built = buildManualPosition(
-      { venue: 'aave-v3', collateral: 'USDe', collateralUsd: 50_000, debtUsd: 30_000, liquidationLtv: 0.9 },
+      { venue: 'morpho-blue', collateral: 'USDe', collateralUsd: 50_000, debtUsd: 30_000, liquidationLtv: 0.9 },
       protocols,
       1,
     )
@@ -121,7 +142,7 @@ describe('return visits', () => {
     const m = new Map<string, string>()
     return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), m }
   }
-  const rec: VisitRecord = { address: '0x' + 'a'.repeat(40), at: 1, debtUsd: 100, collateralUsd: 200, ltv: 0.5, lessUsd: 10, scenarioId: 'oct10-2025' }
+  const rec: VisitRecord = { address: '0x' + 'a'.repeat(40), at: 1, debtUsd: 100, collateralUsd: 200, ltv: 0.5, lessUsd: 10, scenarioId: 'oct10-2025', positionKey: 'aave-v3:' }
   it('round-trips and rejects junk', () => {
     const s = mem()
     expect(readVisit(s)).toBeNull()
@@ -138,13 +159,17 @@ describe('return visits', () => {
     expect(() => writeVisit(rec, boom)).not.toThrow()
   })
   it('classifies first / returning / changed', () => {
-    const cur = { address: rec.address, debtUsd: 100, collateralUsd: 200, ltv: 0.5, lessUsd: 10 }
+    const cur = { address: rec.address, positionKey: 'aave-v3:', debtUsd: 100, collateralUsd: 200, ltv: 0.5, lessUsd: 10 }
     expect(classifyVisit(null, cur)).toBe('first')
     expect(classifyVisit(rec, cur)).toBe('returning')
     expect(classifyVisit(rec, { ...cur, debtUsd: 111 })).toBe('changed')
     expect(classifyVisit(rec, { ...cur, ltv: 0.52 })).toBe('changed')
     expect(classifyVisit(rec, { ...cur, address: '0x' + 'b'.repeat(40) })).toBe('first')
     expect(visitDelta(rec, { ...cur, debtUsd: 150 }, 11).debtUsd).toBe(50)
+    // Another position on the same wallet: no change is claimed, no delta is taken.
+    expect(classifyVisit(rec, { ...cur, positionKey: 'morpho-blue:0xabc', debtUsd: 999 })).toBe('returning')
+    expect(sameKey(rec, { ...cur, positionKey: 'morpho-blue:0xabc' })).toBe(false)
+    expect(sameKey({ ...rec, positionKey: undefined }, cur)).toBe(false)
   })
 })
 
@@ -162,18 +187,34 @@ describe('manual position', () => {
     expect(validateManual({ ...i, debtUsd: 900 })).toBe('underwater')
     expect(decodeManual('evil:WETH:1:1:0.5')).toBeNull()
     expect(buildManualPosition(i, protocols, null)).toEqual({ error: 'price' })
+    // No Aave reserve, no silent 0% bonus.
+    expect(aaveLine(protocols, 'USDe')).toBeNull()
+    expect(buildManualPosition({ ...i, venue: 'aave-v3', collateral: 'USDe' }, protocols, 1)).toEqual({ error: 'reserve' })
   })
 })
 
 describe('census card (delay postpones the loss)', () => {
   const c = summariseCensus(evidence)
-  it('shows recovered AND not-recovered, from the builder tally', () => {
-    expect(c.recovered).toBe(evidence.meta.cureModel.outcomes['cured-then-held'])
-    expect(c.expired).toBe(evidence.meta.cureModel.outcomes['sold-at-expiry'])
+  it('shows recovered AND not-recovered; one path that agrees with the builder tally (D5)', () => {
+    const o = evidence.meta.cureModel.outcomes
+    expect(c.recovered).toBe(o['cured-then-held'])
+    expect(c.expired).toBe(o['sold-at-expiry'])
+    expect(c.brokeBand).toBe(o['sold-at-band'])
+    expect(c.gridEnd).toBe(o['sold-at-grid-end'])
+    // The builder's t0 count mixes priced and unpriced rows; the card splits it.
+    expect(c.atT0 + c.unpricedAtT0).toBe(o['sold-at-t0'])
+    expect(c.walked).toBe(c.recovered + c.expired + c.brokeBand + c.atT0 + c.gridEnd)
+    expect(c.walked).toBe(evidence.debt.priced.accounts)
     expect(c.recovered).toBeGreaterThan(0)
     expect(c.expired + c.brokeBand).toBeGreaterThan(0)
     expect(c.recoveredExample?.outcome).toBe('cured-then-held')
     expect(c.failedExample?.outcome).toBe('sold-at-expiry')
+  })
+  it('quotes the minutes to the FIRST cure (D4)', () => {
+    const row = evidence.cohort.find((r: { user: string; outcome: string }) => r.user === c.recoveredExample!.user && r.outcome === 'cured-then-held')
+    expect(c.recoveredExample!.minutesToFirstCure).toBe(row.minutesToFirstCure)
+    expect(c.recoveredExample!.user.startsWith('0xa740')).toBe(true)
+    expect(c.recoveredExample!.minutesToFirstCure).toBe(3)
   })
   it('names bond coverage and audits as source pending, with no number', () => {
     for (const id of ['spread', 'trust']) {
@@ -206,6 +247,8 @@ describe('instrumentation', () => {
   })
 })
 
+const eth = decodeCompactSeries(JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../public/data/forecast/ETHUSDT-1h.json'), 'utf8')))
+
 describe('forecast layer gating', () => {
   it('renders only what a result allows', () => {
     expect(shown(null)).toEqual({ kind: 'none', reason: null })
@@ -223,21 +266,59 @@ describe('forecast layer gating', () => {
   it('is pending with no series, and reads the engine with one', () => {
     const cmp = demoRun()
     const w = armedWindows(cmp, cmp.membrane.equitySeries.length, CURE_WINDOW_SECONDS / series.stepSeconds)
-    expect(delayReadings(cmp, w, series.startTs, series.stepSeconds, null).status).toBe('pending')
-    const fr = forwardReach(cmp.position, 1_760_000_000, null)
-    if (fr.status === 'ready') for (const row of fr.value.rows) expect(shown(row.result).kind).not.toBe('probability')
-    const eth = decodeCompactSeries(JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../public/data/forecast/ETHUSDT-1h.json'), 'utf8')))
-    const d = delayReadings(cmp, w, series.startTs, series.stepSeconds, eth)
+    const priceAt = (m: number) => {
+      const col = series.columns.ethOracle as (number | null)[]
+      for (let k = m; k >= 0; k--) if (col[k] !== null) return col[k]
+      return null
+    }
+    expect(delayReadings(cmp, w, series.startTs, series.stepSeconds, null, priceAt).status).toBe('pending')
+    expect(forwardReach(cmp.position, 1_760_000_000, null).status).toBe('pending')
+    const d = delayReadings(cmp, w, series.startTs, series.stepSeconds, eth, priceAt)
     expect(d.status).toBe('ready')
     if (d.status === 'ready') {
       for (const step of d.value)
-        for (const row of step.reach.rows) {
+        for (const row of step.reach?.rows ?? []) {
           const sh = shown(row.result)
           if (sh.kind === "probability") expect(PROBABILITY_CLASSES.has(row.result!.cell!.class)).toBe(true)
         }
     }
     expect(historyReadings([], () => null).status).toBe('pending')
     expect(fallToPct(0.8, 0.8)).toBe(0)
+  })
+  it('measures the delay reading from the engine’s spot at 21:14 Oct 10 (D2)', () => {
+    const cmp = demoRun()
+    const w = armedWindows(cmp, cmp.membrane.equitySeries.length, CURE_WINDOW_SECONDS / series.stepSeconds)
+    const col = series.columns.ethOracle as (number | null)[]
+    const priceAt = (m: number) => { for (let k = m; k >= 0; k--) if (col[k] !== null) return col[k]; return null }
+    const d = delayReadings(cmp, w, series.startTs, series.stepSeconds, eth, priceAt)
+    if (d.status !== 'ready') throw new Error('expected readings')
+    const step = d.value[0]
+    expect(new Date(step.ts * 1000).toISOString().slice(11, 16)).toBe('21:14')
+    const spot = engineSpot('WETH', step.ts, eth)!
+    expect(step.spot).toBe(spot)
+    const breach = cmp.membrane.events.find((e) => e.kind === 'breach')!
+    const breakPrice = (priceAt(step.minute)! * cmp.membrane.ltvSeries[step.minute]!) / (breach.line * (1 + MAX_THRESHOLD_TO_DELAY))
+    expect(step.breakPrice).toBeCloseTo(breakPrice, 6)
+    if (step.alreadyPast) {
+      expect(step.reach).toBeNull()
+      expect(breakPrice / spot - 1).toBeGreaterThanOrEqual(0)
+    } else {
+      expect(step.toBreakPct!).toBeCloseTo((breakPrice / spot - 1) * 100, 9)
+      expect(step.reach!.lineDistancePct).toBeCloseTo(step.toBreakPct!, 9)
+    }
+  })
+  it('reads "from today" off amounts at the latest spot; the demo is through its line (D3)', () => {
+    const p = demoBorrowerPosition()
+    const last = eth.startTs + eth.close.length * 3600
+    const r = forwardReach(p, last, eth)
+    if (r.status !== 'ready') throw new Error('expected a reach')
+    const spot = engineSpot('WETH', last, eth)!
+    const linePrice = p.totalDebtUsd / p.liquidationLtv / p.collateral[0].amount
+    expect(r.value.linePrice).toBeCloseTo(linePrice, 6)
+    expect(r.value.distancePct).toBeCloseTo((linePrice / spot - 1) * 100, 9)
+    expect(linePrice).toBeGreaterThan(spot)
+    expect(r.value.reach.throughLine).toBe(true)
+    expect(r.value.reach.rows).toHaveLength(0)
     expect(fallToPct(0.4, 0.8)).toBeCloseTo(-50, 9)
   })
 })

@@ -348,6 +348,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
               as="span"
               position="absolute"
               right={0}
+              display={{ base: 'none', md: 'block' }}
               top={`${(srcLabelY / H) * 100}%`}
               transform="translateY(-120%)"
               fontFamily={TYPOGRAPHY.fontMono}
@@ -363,6 +364,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
               as="span"
               position="absolute"
               right={0}
+              display={{ base: 'none', md: 'block' }}
               top={`${(memLabelY / H) * 100}%`}
               transform={memLabelY >= srcLabelY ? 'translateY(20%)' : 'translateY(-120%)'}
               fontFamily={TYPOGRAPHY.fontMono}
@@ -377,6 +379,18 @@ export const EquityChart: React.FC<EquityChartProps> = ({
           </>
         )}
       </Box>
+
+      {marks && (
+        // Phones: the end values sit under the plot, not on it, so both lines stay visible.
+        <Box display={{ base: 'grid', md: 'none' }} gap={SPACING.xs} data-testid="chart-end-legend">
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.textPrimary} {...tabular}>
+            ━ {comparison.position.label} · ends {usd(source.endEquityUsd)}
+          </Text>
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.success} {...tabular}>
+            ━ Membrane (simulator) · ends {usd(membrane.endEquityUsd)}
+          </Text>
+        </Box>
+      )}
 
       <Box display="flex" justifyContent="space-between" gap={SPACING.sm}>
         {axisTicks.map((i, k) => (

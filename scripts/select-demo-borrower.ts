@@ -699,7 +699,7 @@ const fixture = {
     'deployment - half the measured debt in a venue modelled at 60% recall / 55% fast - ' +
     'and rank on the equity delta that assumption produced. It is gone. The census has no ' +
     'venue anywhere in it, so a hero ranked on a venue was a hero about the assumption. ' +
-    'The hero now equals its own census row exactly. Membrane is charged a ZERO ' +
+    'The hero does NOT equal its census row: the engine models Aave at the median repay size, the census measured what Aave closed; the landing takes Aave from the census row. Membrane is charged a ZERO ' +
     "liquidation fee (the live simulator's own default); Aave is charged its own measured " +
     'weighted liquidationBonus.',
   /**
@@ -713,7 +713,7 @@ const fixture = {
       'MEASURED ABSENCE, not a modelling choice. Aave liquidated this wallet and the ' +
       'borrowed dollars were gone; no venue balance is detectable behind it, and the Oct ' +
       '10 census has no venue in it either. The fixture therefore ships venue null and ' +
-      'the hero figure is the bare run, which is the same number its census row carries.',
+      'the engine\'s bare run is not the census row\'s number (Aave is modelled there); the landing uses the census row for Aave.',
     /** Reported so the deleted assumption is auditable, never so a surface can use it. */
     diagnosticWithOldAssumedDeployment: {
       deployedShareOfDebt: ASSUMED_DEPLOYED_SHARE,

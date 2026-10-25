@@ -17,7 +17,8 @@ import { usd } from '@/components/Simulator/format'
 import { CURE_WINDOW_HOURS, CURE_WINDOW_SECONDS, MAX_THRESHOLD_TO_DELAY, type Comparison, type ProtocolPosition } from '@/lib/position-sim'
 import { positionKey } from '@/lib/landing/replay'
 import { depthRegistry, skewLines, skewNote, type UsdeExitLiquidity } from '@/lib/landing/sizeSkew'
-import { armedWindows, eventMarks, verdictSentence } from '@/lib/landing/verdict'
+import { armedWindows, eventMarks, verdictOf, type MeasuredSide } from '@/lib/landing/verdict'
+import type { CensusRow } from '@/lib/landing/census'
 import type { DelayStep, Slot } from '@/lib/landing/forecastLayer'
 import { firstShown } from '@/lib/landing/forecastLayer'
 
@@ -37,16 +38,22 @@ export interface ReplayChartProps {
   delay: Slot<DelayStep[]> | null
   errors: string[]
   scenarioName: string
+  /** The census figures when the replayed position is the census position (the demo). */
+  measured: MeasuredSide | null
+  /** A live address's own census row: a different (Oct 10) position, shown as its own line. */
+  addressCensus: CensusRow | null
 }
 
 /**
  * The limits, out loud, next to the result (framework: "state sim limits next to the
  * result"). Generated from the run's own caveats where it has them.
  */
-function limitsLine(cmp: Comparison, scenarioName: string): string {
+function limitsLine(cmp: Comparison, scenarioName: string, measured: boolean): string {
   const parts = [
     `Replay, not a forecast: the measured ${scenarioName} oracle path applied to this position.`,
-    'Liquidators assumed to fire the first minute over the line; gas, MEV and slippage on seized collateral not modelled.',
+    measured
+      ? 'Aave’s side is the census’s measured close, drawn as one mark at its first event; the census has no per-event split.'
+      : 'Aave modelled at the median repay size, firing the first minute over the line; gas, MEV and slippage on seized collateral not modelled.',
     'Membrane is pre-launch: its line here is modelled, not a protocol parameter.',
   ]
   if (cmp.unpricedSymbols.length) parts.push(`No price path for ${cmp.unpricedSymbols.join(', ')}: held flat.`)
@@ -66,6 +73,8 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
   delay,
   errors,
   scenarioName,
+  measured,
+  addressCensus,
 }) => {
   const registry = useMemo(() => depthRegistry(usdeExit), [usdeExit])
   const skews = useMemo(() => (comparison ? skewLines(comparison, registry) : []), [comparison, registry])
@@ -81,7 +90,8 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
   const ticks = useMemo<ChartTick[]>(() => {
     if (!delay || delay.status !== 'ready') return []
     return delay.value.flatMap((s) => {
-      const f = firstShown(s.reach)
+      if (s.alreadyPast) return [{ minute: s.minute, text: 'already past' }]
+      const f = s.reach ? firstShown(s.reach) : null
       return f ? [{ minute: s.minute, text: f.shown.kind === 'none' ? '' : f.shown.text }] : []
     })
   }, [delay])
@@ -148,8 +158,18 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
             lineHeight={1.2}
             color={SEMANTIC_COLORS.textPrimary}
           >
-            {verdictSentence(comparison, whose)}
+            {verdictOf(comparison, whose, measured).headline}
           </Text>
+          <Text {...small} {...tabularNums} color={SEMANTIC_COLORS.textPrimary} data-testid="landing-verdict-detail">
+            {verdictOf(comparison, whose, measured).detail}
+          </Text>
+          {addressCensus && (
+            <Text {...small} {...tabularNums} data-testid="landing-address-census">
+              This wallet is in the 10 Oct 2025 census: on its position that day, Aave closed{' '}
+              {usd(addressCensus.aaveClosedUsd)} in {addressCensus.events} liquidation{addressCensus.events === 1 ? '' : 's'} (measured);
+              Membrane would have closed {usd(addressCensus.membraneClosedUsd)} (simulator, census walk). The chart replays today’s position.
+            </Text>
+          )}
 
           {sizeFirst && skewBlock}
 
@@ -179,7 +199,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
           )}
 
           <Text data-testid="landing-limits" {...small} borderTop={rule} pt={SPACING.sm}>
-            † {limitsLine(comparison, scenarioName)}
+            † {limitsLine(comparison, scenarioName, !!measured)}
           </Text>
 
           {!sizeFirst && skewBlock}

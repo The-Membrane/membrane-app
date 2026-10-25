@@ -66,7 +66,7 @@ export function aaveBonus(doc: ProtocolsDoc | null, symbol: string): number | nu
   return r?.liquidationBonusPct ? r.liquidationBonusPct / 100 - 1 : null
 }
 
-export type ManualError = 'collateral' | 'debt' | 'line' | 'price' | 'underwater'
+export type ManualError = 'collateral' | 'debt' | 'line' | 'price' | 'underwater' | 'reserve'
 
 export function validateManual(i: ManualInput): ManualError | null {
   if (!(i.collateralUsd > 0)) return 'collateral'
@@ -82,6 +82,7 @@ export const MANUAL_ERROR_TEXT: Record<ManualError, string> = {
   line: 'The liquidation line is a percentage between 0 and 100.',
   price: 'That asset has no price at the start of this scenario.',
   underwater: 'That debt is already over the liquidation line. Lower it to replay the position.',
+  reserve: 'Aave V3 had no reserve for that asset in the Oct 10 read, so it has no liquidation bonus to charge. Pick Morpho Blue for it.',
 }
 
 /** Builds the position, or an error. `startPrice` is the scenario's minute-0 price. */
@@ -94,6 +95,8 @@ export function buildManualPosition(
   if (err) return { error: err }
   if (!startPrice || !(startPrice > 0)) return { error: 'price' }
   const bonus = i.venue === 'aave-v3' ? aaveBonus(doc, i.collateral) : morphoBonus(doc, i.liquidationLtv)
+  // Never a silent 0% bonus: a venue with no parameters for the asset is refused.
+  if (bonus === null) return { error: i.venue === 'aave-v3' ? 'reserve' : 'price' }
   const amount = i.collateralUsd / startPrice
   const ltv = i.debtUsd / i.collateralUsd
   const label = i.venue === 'aave-v3' ? 'Aave V3' : `Morpho Blue · ${i.collateral}/USDC ${(i.liquidationLtv * 100).toFixed(1)}%`

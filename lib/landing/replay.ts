@@ -22,6 +22,8 @@ import {
   type VenueDetection,
 } from '@/lib/position-sim'
 
+import { withMeasuredSource, type CensusRow } from './census'
+
 export interface MeasuredLiquidations {
   aaveV3?: { medianRepayFraction?: number; events?: number }
   morphoBlue?: { medianRepayFraction?: number; events?: number }
@@ -33,17 +35,22 @@ export interface ReplayInputs {
   measured: MeasuredLiquidations | null
 }
 
+/**
+ * `census`: the address's measured Oct 10 row, only when the position being replayed IS
+ * the census position (the demo wallet). Aave's side then becomes the measured close.
+ */
 export function runReplay(
   position: ProtocolPosition,
   detection: VenueDetection | null,
   inputs: ReplayInputs,
+  census: CensusRow | null = null,
 ): Comparison {
   const symbols = [...position.collateral.map((c) => c.symbol), ...position.debt.map((d) => d.symbol)]
   const { path, unpriced } = buildPricePath(inputs.series, inputs.manifest, symbols)
   const repay = measuredRepayFraction(position.protocol, inputs.measured)
   const venue = detection ? toVenueRecall(excludeOwnCollateral(detection, position)) : null
   const m = inputs.manifest
-  return runComparison(position, path, unpriced, {
+  const cmp = runComparison(position, path, unpriced, {
     membraneMaxLtv: weightedMembraneLine(position.collateral).maxLtv,
     membraneLiqFee: 0,
     venue,
@@ -51,6 +58,7 @@ export function runReplay(
     sourceRepayFractionLabel: repay.label,
     scenarioLabel: `${m.name} · ${m.resolution} oracle candles, ${m.windowStartUtc.slice(0, 10)} to ${m.windowEndUtc.slice(0, 10)}`,
   })
+  return census ? withMeasuredSource(cmp, path, census) : cmp
 }
 
 /** The largest loan — the one whose liquidation matters. */

@@ -32,22 +32,47 @@ export function closedTotals(cmp: Comparison): ClosedTotals {
 
 const usd = (n: number) => `$${Math.abs(Math.round(n)).toLocaleString('en-US')}`
 
+/** The measured figures, when the replayed position is a census row. */
+export interface MeasuredSide {
+  aaveClosedUsd: number
+  membraneClosedUsd: number
+  events: number
+}
+
+export interface Verdict {
+  /** One sentence, one $ figure, about DEBT closed, conditional, labelled (simulator). */
+  headline: string
+  /** Both terms of the gap, each with where it comes from. */
+  detail: string
+  measured: boolean
+}
+
 /**
- * The verdict line. One sentence, one $ figure, conditional, labelled (simulator).
+ * The verdict. With a census row the two terms are the census's: what Aave actually
+ * closed (measured) and what the census walk says Membrane would have closed. Without
+ * one, Aave is the page's model at the median repay size and is labelled as such.
  * `whose` is "this" on the demo wallet and "your" on a pasted or entered position.
  */
-export function verdictSentence(cmp: Comparison, whose: 'this' | 'your'): string {
+export function verdictOf(cmp: Comparison, whose: 'this' | 'your', measured: MeasuredSide | null = null): Verdict {
   const t = closedTotals(cmp)
-  const what = `of ${whose} position`
-  if (t.venueClosedUsd < 0.5 && t.membraneClosedUsd < 0.5) {
-    return `Neither engine would have closed any ${what} on this replay (simulator).`
-  }
-  if (Math.abs(t.lessUsd) < 0.5) {
-    return `Membrane would have closed the same ${usd(t.membraneClosedUsd)} ${what} (simulator).`
-  }
-  return t.lessUsd > 0
-    ? `Membrane would have closed ${usd(t.lessUsd)} less ${what} (simulator).`
-    : `Membrane would have closed ${usd(t.lessUsd)} more ${what} (simulator).`
+  const venue = measured ? measured.aaveClosedUsd : t.venueClosedUsd
+  const mem = measured ? measured.membraneClosedUsd : t.membraneClosedUsd
+  const less = venue - mem
+  const what = `of ${whose} position’s debt`
+  const src = cmp.position.label
+  let headline: string
+  if (venue < 0.5 && mem < 0.5) headline = `Neither engine would have closed any ${what} on this replay (simulator).`
+  else if (Math.abs(less) < 0.5) headline = `Membrane would have closed the same ${usd(mem)} ${what} (simulator).`
+  else headline = `Membrane would have closed ${usd(less)} ${less > 0 ? 'less' : 'more'} ${what} (simulator).`
+  const detail = measured
+    ? `${src} closed ${usd(venue)} in ${measured.events} liquidation${measured.events === 1 ? '' : 's'} (measured, 10 Oct 2025 census); Membrane would have closed ${usd(mem)} (simulator, census walk).`
+    : `${src} modelled at the median repay size: ${usd(venue)} closed; Membrane would have closed ${usd(mem)} (simulator).`
+  return { headline, detail, measured: !!measured }
+}
+
+/** Back-compat: the headline alone. */
+export function verdictSentence(cmp: Comparison, whose: 'this' | 'your', measured: MeasuredSide | null = null): string {
+  return verdictOf(cmp, whose, measured).headline
 }
 
 /** Chart event marks, one per engine event, in the DESIGN_RULES §2 grammar. */
@@ -68,7 +93,7 @@ export function eventMarks(cmp: Comparison): EventMark[] {
   const out: EventMark[] = []
   for (const e of cmp.source.events) {
     if (e.kind !== 'liquidation') continue
-    out.push({ minute: e.minute, engine: 'venue', tone: 'sold', glyph: GLYPH.sold, label: `${cmp.position.label} liquidation · ${usd(e.seizedUsd)} sold` })
+    out.push({ minute: e.minute, engine: 'venue', tone: 'sold', glyph: GLYPH.sold, label: `${cmp.position.label} liquidation · ${usd(e.repaidUsd)} debt closed, ${usd(e.seizedUsd)} collateral sold` })
   }
   for (const e of cmp.membrane.events) out.push(membraneMark(e))
   return out

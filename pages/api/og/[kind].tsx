@@ -128,7 +128,7 @@ async function replayCard(origin: string, raw: string | null, scenario: string |
     eyebrow: `replay · 10 oct 2025${s.isDemo ? ' · demo wallet' : ''}`,
     title: s.verdict,
     stats: [
-      { label: `${s.label} would have closed (replay)`, value: fmtUsdShort(s.venueClosedUsd) },
+      { label: s.measured ? `${s.label} closed (measured)` : `${s.label} modelled (median repay)`, value: fmtUsdShort(s.venueClosedUsd) },
       { label: 'Membrane would have closed (simulator)', value: fmtUsdShort(s.membraneClosedUsd) },
     ],
   }

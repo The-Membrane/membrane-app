@@ -84,7 +84,7 @@ env:
   # D11 amendment D11-A1 (2026-10-23): the d11 job alone moves to the review-fix pin; the main job stays at APP_SHA.
   D11_APP_SHA: b6c1bb33a058af44e1b3ac750a9c843410691601
   # D12 (2026-10-24): the d12 job alone runs this pin; APP_SHA and D11_APP_SHA do not move. D12-A2 re-pins it.
-  D12_APP_SHA: a5079f729beb3d61c2ee2f18d04f42011d624ca9   # D12-A2 (pooled shallow monitor, default classes, classes.json fixes)
+  D12_APP_SHA: abcace637e447ba71a3654d5f6934f0b58805f5a   # D12-A3 (owner 2026-10-25): ETH/BTC 3 d -20% default DO NOT SHOW; otherwise = D12-A2 a5079f72
   # D13 (2026-10-24): the d13 job alone runs this pin; APP_SHA, D11_APP_SHA and D12_APP_SHA do not move.
   D13_APP_SHA: 485b35b6dc95ad71131f6f418350a7fb2b3b3f84   # D13 + D13-A1 arms + D13-A2 (inputs d13-inputs-93d337c9, d13a1-inputs-1c64ee0e)
   DATASETS_REPO: triccs/membrane-datasets

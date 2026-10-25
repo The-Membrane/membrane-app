@@ -206,7 +206,7 @@ def test_issue_and_score_end_to_end(monkeypatch):
         cls = json.load(open(os.path.join(ldir, "d12", "classes.json")))
         assert len(cls["monitors"]) == 26 and len(cls["cells"]) == 2 * (5 * 5 + 3)
         assert set(c["class"] for c in cls["cells"].values()) <= {L.CLASS_WARN, L.CLASS_DOWN, L.CLASS_RECAL,
-                                                                  L.CLASS_HC, "CALIBRATED"}
+                                                                  L.CLASS_HC, "CALIBRATED", "DO NOT SHOW"}
         json.load(open(os.path.join(ldir, "d12", "summary.json")))
         # rescoring changes no ledger byte
         before = open(L.ledger_path(ldir), "rb").read()
@@ -318,7 +318,7 @@ def test_default_classes_and_downgrade_semantics():
     st = L.initial_state()
     assert st[L.gkey(24, -0.20, "ETHBTC")]["class"] == L.CLASS_HC
     assert st[L.gkey(12, -0.10, "ETHBTC")]["class"] == L.CLASS_RECAL
-    assert st[L.gkey(72, -0.20, "ETHBTC")]["class"] == "CALIBRATED"
+    assert st[L.gkey(72, -0.20, "ETHBTC")]["class"] == "DO NOT SHOW"
     assert st[L.gkey(168, -0.20, "ETHBTC")]["class"] == "CALIBRATED"
     assert st[L.gkey(24, -0.10, "LARGE")]["class"] == L.CLASS_WARN
     assert len(st) == 16 + 10

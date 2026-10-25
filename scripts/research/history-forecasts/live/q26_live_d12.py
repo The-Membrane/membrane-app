@@ -76,8 +76,9 @@ POOL_LV = (-0.02, -0.03, -0.05, -0.07, -0.10)            # D12-A2: pooled shallo
 POOL_J = tuple(L8.index(k) for k in POOL_LV)
 CLASS_RECAL, CLASS_HC = "RECALIBRATE", "HISTORY COUNT"
 # D12-A2 item 3: default classes in classes.json (the regraded Binance classes; every cell stays monitored).
+# D12-A3 (owner 2026-10-25, board R22 ruling 27681c0): ETH/BTC 3 d -20% -> DO NOT SHOW (registered rule, BSS lower bound -0.018).
 DEFAULT_CLASS = {("ETHBTC", 24, -0.20): CLASS_HC, ("ETHBTC", 12, -0.10): CLASS_RECAL,
-                 ("ETHBTC", 72, -0.20): "CALIBRATED", ("ETHBTC", 168, -0.20): "CALIBRATED",
+                 ("ETHBTC", 72, -0.20): "DO NOT SHOW", ("ETHBTC", 168, -0.20): "CALIBRATED",
                  ("LARGE", 6, -0.02): CLASS_RECAL, ("LARGE", 12, -0.05): CLASS_RECAL}
 FIRST_ORIGIN = C.A.utc("2026-10-25T00:00:00Z")        # first daily origin after the D12 registration (no earlier one)
 MAX_LATE = 23 * HOUR                                  # an origin is logged only by a run starting before t + 23 h

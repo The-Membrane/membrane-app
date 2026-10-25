@@ -83,9 +83,16 @@ export const DoorSheet: React.FC<DoorSheetProps> = ({ door, intent, onClose }) =
                 </Text>
                 {intent.address && <Row k="Wallet" v={shortAddress(intent.address)} />}
                 <Row k="From" v={intent.venueLabel} testId="door-row-venue" />
-                {intent.collateral.map((c) => (
+                {/* Copy budget (sheet ≤ 60 words): the three largest legs, then one row. */}
+                {[...intent.collateral].sort((a, b) => b.valueUsd - a.valueUsd).slice(0, 3).map((c) => (
                   <Row key={`c-${c.symbol}`} k={`Collateral · ${c.symbol}`} v={`${amt(c.amount)} · ${usd(c.valueUsd)}`} />
                 ))}
+                {intent.collateral.length > 3 && (
+                  <Row
+                    k={`Other collateral · ${intent.collateral.length - 3}`}
+                    v={usd([...intent.collateral].sort((a, b) => b.valueUsd - a.valueUsd).slice(3).reduce((a, c) => a + c.valueUsd, 0))}
+                  />
+                )}
                 {intent.debt.map((d) => (
                   <Row key={`d-${d.symbol}`} k={`Debt · ${d.symbol}`} v={`${amt(d.amount)} · ${usd(d.valueUsd)}`} />
                 ))}

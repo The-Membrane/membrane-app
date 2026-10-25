@@ -24,7 +24,7 @@ import { usdSigned } from '@/components/Simulator/format'
 import { useSimHistory } from '@/components/Simulator/hooks/useSimHistory'
 import { DEMO_BORROWER_DATE } from '@/lib/position-sim/demoBorrower'
 import { doorSet, intentFrom, type Door, type DoorHandlers, type PositionIntent } from '@/lib/landing/doors'
-import { HEADLINES, RUN_LABEL, SUBHEAD, type HeadlineKey } from '@/lib/landing/headline'
+import { HEADLINES, RUN_LABEL, SUBHEAD_DESKTOP, SUBHEAD_PHONE, type HeadlineKey } from '@/lib/landing/headline'
 import { PROSE } from '@/lib/landing/prose'
 import { track } from '@/lib/landing/instrumentation'
 import type { CensusSummary } from '@/lib/landing/objections'
@@ -196,7 +196,12 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
           {HEADLINES[headline].headline}
         </Text>
         <Text as="p" {...deck} maxW="60ch" data-testid="landing-subhead">
-          {SUBHEAD}
+          <Text as="span" display={{ base: 'none', md: 'inline' }}>
+            {SUBHEAD_DESKTOP}
+          </Text>
+          <Text as="span" display={{ base: 'inline', md: 'none' }}>
+            {SUBHEAD_PHONE}
+          </Text>
         </Text>
       </Box>
       <Box data-testid="landing-input" display="grid" gap={SPACING.xs} justifyItems="start" minW={0}>

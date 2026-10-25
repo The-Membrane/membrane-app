@@ -16,6 +16,7 @@
  */
 
 import { isCrawler } from '@/lib/landingVariant'
+import { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
 
 export type HeadlineKey = 'default' | 'a' | 'b' | 'c'
 
@@ -34,11 +35,18 @@ export interface HeadlineCopy {
  * borrowers who don't want to babysit a loan. Outcome: keep more of the position through
  * a crash, with time to repay before anything is sold. Without: no manual action; the
  * 8h window opens on its own. The owner chose these, so the copy-budget 12-word H1 limit
- * gives way to 20 for this set (tests/unit/landing.test.ts).
+ * gives way to 21 for this set (tests/unit/landing.test.ts).
  */
-const OWNER_1 = 'Borrow without babysitting. If price breaks your line, you get 8 hours to repay — automatically.'
-const OWNER_2 = 'A crash shouldn’t sell your loan at 2am. Membrane waits 8 hours on its own — nothing to set, nothing to watch.'
-const OWNER_3 = 'Keep more of your borrow when the market wicks. An automatic 8-hour window, no monitoring.'
+/**
+ * Owner ruling 2026-10-25 (second): the headline states the 4% ceiling, in the wording
+ * of lib/position-sim/guarantee.ts GUARANTEE ("Staying within 4% of it delays your
+ * liquidation for 8 hours"). Both figures come from the contract constants.
+ */
+const BAND = `${Math.round(MAX_THRESHOLD_TO_DELAY * 100)}%`
+const HOURS = `${CURE_WINDOW_HOURS} hours`
+const OWNER_1 = `Borrow without babysitting. Within ${BAND} of your line, you get ${HOURS} to repay — automatically.`
+const OWNER_2 = `A crash shouldn’t sell your loan at 2am. Within ${BAND} of your line, Membrane waits ${HOURS} — on its own.`
+const OWNER_3 = `Keep more of your borrow when the market wicks. Within ${BAND} of your line: ${HOURS}, automatically.`
 
 export const HEADLINES: Record<HeadlineKey, HeadlineCopy> = {
   default: { headline: OWNER_1, draft: null },
@@ -48,7 +56,14 @@ export const HEADLINES: Record<HeadlineKey, HeadlineCopy> = {
 }
 
 /** The one-line mechanism under the H1. Framework subhead, rewritten to the ruling. */
-export const SUBHEAD = 'Paste your wallet to see your own position replayed through October 10th, on your venue and on Membrane.'
+/**
+ * The subhead, responsive (owner ruling 2026-10-25). Both lines are server-rendered and
+ * switched by CSS breakpoint, so the first paint and the crawler HTML are stable.
+ */
+export const SUBHEAD_DESKTOP = 'Open your position, then close your laptop.'
+export const SUBHEAD_PHONE = 'Open your position, then throw your phone.'
+/** Back-compat: the desktop line. */
+export const SUBHEAD = SUBHEAD_DESKTOP
 
 /** The one button. Framework: "Run my forecast". This runs a replay, so it says so. */
 export const RUN_LABEL = 'Run my replay'

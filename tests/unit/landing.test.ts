@@ -396,10 +396,24 @@ describe('STORY beats T and O', () => {
     expect(o).toMatch(/^The 8h window opened at \d\d:\d\dZ; price fell through the 4% band \d+ min later\. Membrane would have closed \$309,635 of the loan \(simulator\)\. Nothing required of you\.$/)
     expect(o).not.toMatch(BANNED)
   })
-  it('the headline copy names the real window length', async () => {
-    const { CURE_WINDOW_HOURS } = await import('@/lib/position-sim/membrane')
-    expect(CURE_WINDOW_HOURS).toBe(8)
-    for (const h of Object.values(HEADLINES)) expect(h.headline).toMatch(/8[ -]hour/)
+  it('every H1 states the band ceiling and the window, from the constants (owner ruling)', async () => {
+    const { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } = await import('@/lib/position-sim/membrane')
+    const band = `${Math.round(MAX_THRESHOLD_TO_DELAY * 100)}%`
+    const hours = `${CURE_WINDOW_HOURS} hours`
+    expect(band).toBe('4%')
+    expect(hours).toBe('8 hours')
+    for (const h of Object.values(HEADLINES)) {
+      expect(h.headline).toContain(band)
+      expect(h.headline).toContain(hours)
+      expect(h.headline).toContain(`Within ${band} of your line`)
+      expect(h.headline).not.toMatch(/profit/i)
+    }
+    expect(HEADLINES.default.headline).toBe('Borrow without babysitting. Within 4% of your line, you get 8 hours to repay — automatically.')
+  })
+  it('the subhead has a desktop and a phone line', async () => {
+    const { SUBHEAD_DESKTOP, SUBHEAD_PHONE } = await import('@/lib/landing/headline')
+    expect(SUBHEAD_DESKTOP).toBe('Open your position, then close your laptop.')
+    expect(SUBHEAD_PHONE).toBe('Open your position, then throw your phone.')
   })
 })
 

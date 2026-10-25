@@ -12,7 +12,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import type { DoorHandlers, PositionIntent } from '@/lib/landing/doors'
 
 import { DOOR_TITLE } from './DoorSheet'
-import { CAPS, small } from './styles'
+import { CAPS } from './styles'
 
 export const REVEAL_LINE = 'This is a replay. Membrane is the live version.'
 
@@ -40,7 +40,7 @@ export interface DoorsProps extends DoorHandlers {
 }
 
 export const Doors: React.FC<DoorsProps> = ({ intent, onMigrate, onDeployFresh }) => (
-  <Box as="section" aria-labelledby="landing-reveal" display="grid" gap={SPACING.md}>
+  <Box as="section" aria-labelledby="landing-reveal" data-testid="landing-reveal" display="grid" gap={SPACING.md}>
     <Text id="landing-reveal" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={{ base: '24px', md: '32px' }} lineHeight={1.15}>
       {REVEAL_LINE}
     </Text>
@@ -52,7 +52,6 @@ export const Doors: React.FC<DoorsProps> = ({ intent, onMigrate, onDeployFresh }
         {DOOR_TITLE.fresh}
       </Button>
     </Box>
-    <Text {...small}>Both open with the position above already filled in. Nothing is signed until you confirm.</Text>
   </Box>
 )
 

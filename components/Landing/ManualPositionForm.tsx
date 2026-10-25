@@ -154,13 +154,11 @@ export const ManualPositionForm: React.FC<ManualPositionFormProps> = ({ protocol
           _hover={{ borderColor: SEMANTIC_COLORS.success, color: SEMANTIC_COLORS.success }}
           _focus={FOCUS_STYLES.ring}
         >
-          Replay this position
+          Replay position
         </Button>
         {ltvNow !== null && (
           <Text {...small} {...tabularNums}>
             LTV now {pct(ltvNow)}
-            {venue === 'aave-v3' && aave !== null ? ` · Aave V3 ${collateral} line ${pct(aave)} (read on-chain)` : ''}
-            {venue === 'morpho-blue' ? ' · Morpho LLTVs from live markets for this collateral' : ''}
           </Text>
         )}
         {shownError && (

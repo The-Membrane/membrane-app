@@ -26,7 +26,8 @@ import { amt, pct, shortAddress, usd } from '@/components/Simulator/format'
 import useDemoMode from '@/hooks/useDemoMode'
 import type { Door, PositionIntent } from '@/lib/landing/doors'
 
-import { kicker, rule, small, tabularNums } from './styles'
+import Details, { DetailLine } from './Details'
+import { credit, rule, small, tabularNums } from './styles'
 
 export interface DoorSheetProps {
   door: Door | null
@@ -75,12 +76,11 @@ export const DoorSheet: React.FC<DoorSheetProps> = ({ door, intent, onClose }) =
             </ModalHeader>
             <ModalCloseButton _focus={FOCUS_STYLES.ring} borderRadius={0} />
             <ModalBody pb={SPACING_PATTERNS.modalPadding} display="grid" gap={SPACING.md} alignContent="start">
-              <Text {...small}>{DOOR_LINE[door]}</Text>
               <Box>
-                <Text {...kicker} mb={SPACING.xs}>
-                  Prefilled from the replay{intent.source === 'demo' ? ' · demo wallet' : intent.source === 'manual' ? ' · entered by hand' : ''}
+                <Text {...credit} textAlign="left" mb={SPACING.xs}>
+                  {intent.source === 'demo' ? 'Demo — not yours' : intent.source === 'manual' ? 'Entered by hand' : 'From the replay'}
                 </Text>
-                {intent.address && <Row k="Wallet read" v={shortAddress(intent.address)} />}
+                {intent.address && <Row k="Wallet" v={shortAddress(intent.address)} />}
                 <Row k="From" v={intent.venueLabel} testId="door-row-venue" />
                 {intent.collateral.map((c) => (
                   <Row key={`c-${c.symbol}`} k={`Collateral · ${c.symbol}`} v={`${amt(c.amount)} · ${usd(c.valueUsd)}`} />
@@ -92,17 +92,17 @@ export const DoorSheet: React.FC<DoorSheetProps> = ({ door, intent, onClose }) =
                 <Row k={`${intent.venueLabel} line`} v={pct(intent.venueLine)} />
                 <Row k="Membrane line (modelled)" v={pct(intent.membraneLine)} />
               </Box>
+              <Details>
+                <DetailLine>{DOOR_LINE[door]}</DetailLine>
+                <DetailLine>Membrane is pre-launch, so there is nothing to sign yet. Connecting keeps this sheet and its rows.</DetailLine>
+              </Details>
 
               {isWalletConnected ? (
                 <Box borderTop={rule} pt={SPACING.sm} data-testid="door-not-live">
-                  <Text {...small} color={SEMANTIC_COLORS.textPrimary}>Not live yet.</Text>
-                  <Text {...small}>
-                    Membrane is pre-launch, so there is nothing to sign. These rows stay as they are
-                    {address && intent.address && address.toLowerCase() !== intent.address.toLowerCase()
-                      ? `; the connected wallet ${shortAddress(address)} is not the one replayed`
-                      : ''}
-                    .
-                  </Text>
+                  <Text {...small} color={SEMANTIC_COLORS.textPrimary}>Not live yet · pre-launch</Text>
+                  {address && intent.address && address.toLowerCase() !== intent.address.toLowerCase() && (
+                    <Text {...small}>Connected {shortAddress(address)} is not the replayed wallet.</Text>
+                  )}
                 </Box>
               ) : (
                 <Box display="grid" gap={SPACING.xs} borderTop={rule} pt={SPACING.sm}>
@@ -120,7 +120,7 @@ export const DoorSheet: React.FC<DoorSheetProps> = ({ door, intent, onClose }) =
                   >
                     Connect wallet
                   </DemoAwareCta>
-                  <Text {...small}>Not live yet: Membrane is pre-launch. Connecting keeps this sheet and its rows.</Text>
+                  <Text {...small}>Not live yet · pre-launch</Text>
                 </Box>
               )}
             </ModalBody>

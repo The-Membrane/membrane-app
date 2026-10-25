@@ -152,6 +152,10 @@ export interface ObjectionFact {
 export interface ObjectionCard {
   id: 'backtest' | 'redemptions' | 'spread' | 'trust' | 'delay'
   question: string
+  /** The visible answer, facts and numbers only (copy budget: card ≤ 25 words). */
+  answer: string
+  /** Visible "source pending" stubs, ≤ 4 words each. Full text is in `pending`. */
+  pendingShort?: string[]
   /** Lines of fact. Copy only; figures are rendered by the component from data. */
   facts: ObjectionFact[]
   /** "source pending" items: named, never numbered. */
@@ -166,6 +170,7 @@ export const OBJECTIONS: ObjectionCard[] = [
   {
     id: 'backtest',
     question: '“It’s a backtest, not reality.”',
+    answer: 'Measured oracle prices, venue parameters read on-chain, measured repay sizes. Not modelled: gas, MEV, slippage.',
     facts: [
       {
         text: 'Inputs: Chainlink oracle rounds at one-minute resolution, the venue’s own liquidation line and bonus read on-chain, and its repay size measured from that day’s liquidations. On a wallet in the census, Aave’s side is what Aave actually closed.',
@@ -182,6 +187,7 @@ export const OBJECTIONS: ObjectionCard[] = [
   {
     id: 'redemptions',
     question: '“Redemptions will eat me like Liquity.”',
+    answer: 'Curator vaults serve redemptions. A redemption never opens a borrower’s position.',
     facts: [
       {
         text: 'Redemption is served by curator vaults. It never opens a borrower’s position: Cdp.sol has no redeem.',
@@ -194,6 +200,8 @@ export const OBJECTIONS: ObjectionCard[] = [
   {
     id: 'spread',
     question: '“What if the spread goes negative?”',
+    answer: 'It is a carry cost, uncapped on-chain. The bad-debt waterfall does not cover it.',
+    pendingShort: ['Bond coverage: source pending.'],
     facts: [
       {
         text: 'Then the carry costs you: the debt’s rate is above what the deployed debt earns, and the difference is yours. No contract parameter caps a negative spread.',
@@ -214,6 +222,8 @@ export const OBJECTIONS: ObjectionCard[] = [
   {
     id: 'trust',
     question: '“New protocol. Why trust it?”',
+    answer: `${CURE_WINDOW_HOURS}h window inside a ${BAND} band; its length is timelocked. Frozen core (design). Not on mainnet yet.`,
+    pendingShort: ['External audit: source pending.'],
     facts: [
       {
         text: `A breach inside the asset’s band gets an ${CURE_WINDOW_HOURS}h cure window. No-delay assets, and breaches past the band, sell at once. The window’s length is a timelocked config field: 14 days to request, then 2 days to execute.`,
@@ -242,6 +252,7 @@ export const OBJECTIONS: ObjectionCard[] = [
   {
     id: 'delay',
     question: '“The delay just postpones the loss.”',
+    answer: '',
     facts: [],
     href: '/ethereum/evidence',
     hrefLabel: 'the full census, row by row',

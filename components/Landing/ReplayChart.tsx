@@ -22,7 +22,8 @@ import type { CensusRow } from '@/lib/landing/census'
 import type { DelayStep, Slot } from '@/lib/landing/forecastLayer'
 import { firstShown } from '@/lib/landing/forecastLayer'
 
-import { credit, kicker, rule, small, tabularNums } from './styles'
+import Details, { DetailLine } from './Details'
+import { credit, rule, small, tabularNums } from './styles'
 
 export interface ReplayChartProps {
   comparison: Comparison | null
@@ -96,19 +97,18 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
     })
   }, [delay])
 
-  const skewBlock = comparison && (
-    <Box data-testid="landing-size-skew" display="grid" gap={SPACING.xs} borderTop={rule} pt={SPACING.sm}>
-      <Text {...kicker}>Size · 10× and 100×</Text>
-      {skews.map((s) => (
-        <Text key={s.multiple} {...small} {...tabularNums}>
-          {s.drawable && s.endCostPer1xUsd !== null
-            ? `At ${s.multiple}× this size, exit would have cost ${usd(s.endCostPer1xUsd)} per 1× of position by the end (modelled bound). Dashed line.`
-            : skewNote(s, registry)}
+  // Size lines show only when there is a line to draw (copy budget). Assets without a
+  // measured depth say so in Details, not on the page.
+  const drawn = skews.filter((x) => x.drawable && x.endCostPer1xUsd !== null)
+  const skewBlock = comparison && drawn.length > 0 && (
+    <Box data-testid="landing-size-skew" display="grid" gap={SPACING.xs}>
+      {drawn.map((x) => (
+        <Text key={x.multiple} {...small} {...tabularNums} color={SEMANTIC_COLORS.textPrimary}>
+          {x.multiple}× size · exit cost {usd(x.endCostPer1xUsd as number)} per 1× (modelled)
         </Text>
       ))}
     </Box>
   )
-
   return (
     <Box as="section" aria-labelledby="landing-replay-head" display="grid" gap={SPACING.md} minW={0}>
       {errors.map((e) => (
@@ -160,16 +160,9 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
           >
             {verdictOf(comparison, whose, measured).headline}
           </Text>
-          <Text {...small} {...tabularNums} color={SEMANTIC_COLORS.textPrimary} data-testid="landing-verdict-detail">
-            {verdictOf(comparison, whose, measured).detail}
+          <Text {...credit} textAlign="left" data-testid="landing-stamp">
+            {measured ? 'Aave measured' : `${comparison.position.label} modelled`} · Membrane simulator · oracle 1-min
           </Text>
-          {addressCensus && (
-            <Text {...small} {...tabularNums} data-testid="landing-address-census">
-              This wallet is in the 10 Oct 2025 census: on its position that day, Aave closed{' '}
-              {usd(addressCensus.aaveClosedUsd)} in {addressCensus.events} liquidation{addressCensus.events === 1 ? '' : 's'} (measured);
-              Membrane would have closed {usd(addressCensus.membraneClosedUsd)} (simulator, census walk). The chart replays today’s position.
-            </Text>
-          )}
 
           {sizeFirst && skewBlock}
 
@@ -178,7 +171,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
               comparison={comparison}
               startTs={startTs}
               stepSeconds={stepSeconds}
-              title={`Position value · ${comparison.position.label} vs Membrane (simulator)`}
+              hideHeader
               marks={eventMarks(comparison)}
               bands={windows.map((w) => ({ start: w.start, end: w.end }))}
               ghosts={ghosts}
@@ -186,25 +179,39 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
               bare
               caption={
                 <Text {...small} {...tabularNums} data-testid="landing-chart-key">
-                  <Text as="span" color={SEMANTIC_COLORS.danger}>✖ collateral sold</Text>
+                  <Text as="span" color={SEMANTIC_COLORS.danger}>✖ sold</Text>
                   {' · '}
-                  <Text as="span" color={SEMANTIC_COLORS.warning}>░ {CURE_WINDOW_HOURS}h window armed (within {Math.round(MAX_THRESHOLD_TO_DELAY * 100)}% of the line)</Text>
+                  <Text as="span" color={SEMANTIC_COLORS.warning}>░ {CURE_WINDOW_HOURS}h window</Text>
                   {' · '}
-                  <Text as="span" color={SEMANTIC_COLORS.success}>● ▲ cured or recalled, nothing sold</Text>
-                  {ghosts.length > 0 ? ' · dashed: size lines' : ''}
-                  {ticks.length > 0 ? ' · ink ticks: model readings' : ''}
+                  <Text as="span" color={SEMANTIC_COLORS.success}>● cured</Text>
                 </Text>
               }
             />
           )}
 
-          <Text data-testid="landing-limits" {...small} borderTop={rule} pt={SPACING.sm}>
-            † {limitsLine(comparison, scenarioName, !!measured)}
-          </Text>
-
           {!sizeFirst && skewBlock}
 
-          <Text {...credit}>{comparison.scenarioLabel} · engine lib/position-sim · Membrane (simulator)</Text>
+          <Details testId="landing-result-details">
+            <DetailLine>{verdictOf(comparison, whose, measured).detail}</DetailLine>
+            {addressCensus && (
+              <DetailLine>
+                This wallet is in the 10 Oct 2025 census: on its position that day, Aave closed {usd(addressCensus.aaveClosedUsd)} in{' '}
+                {addressCensus.events} liquidation{addressCensus.events === 1 ? '' : 's'} (measured); Membrane would have closed{' '}
+                {usd(addressCensus.membraneClosedUsd)} (simulator, census walk). The chart replays today’s position.
+              </DetailLine>
+            )}
+            <DetailLine>
+              ✖ collateral sold · ░ {CURE_WINDOW_HOURS}h window armed, within {Math.round(MAX_THRESHOLD_TO_DELAY * 100)}% of the line · ● ▲ cured or recalled,
+              nothing sold{ghosts.length > 0 ? ' · dashed: size lines, per 1× of position' : ''}{ticks.length > 0 ? ' · ink ticks: model readings' : ''}.
+            </DetailLine>
+            <DetailLine>{limitsLine(comparison, scenarioName, !!measured)}</DetailLine>
+            {skews.filter((x) => !x.drawable).map((x) => (
+              <DetailLine key={x.multiple}>{skewNote(x, registry)}</DetailLine>
+            ))}
+            <DetailLine>
+              {comparison.scenarioLabel} · engine lib/position-sim
+            </DetailLine>
+          </Details>
         </>
       )}
     </Box>

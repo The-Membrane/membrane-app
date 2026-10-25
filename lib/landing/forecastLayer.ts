@@ -43,7 +43,7 @@ export function seriesIdFor(symbol: string): string | null {
 
 /** What the UI may print for one engine result. Pure: the engine's gate, rendered. */
 export type Shown =
-  | { kind: 'probability'; text: string; label: string; caveat: string | null; horizonH: number; levelPct: number }
+  | { kind: 'probability'; text: string; label: string; caveat: string | null; horizonH: number; levelPct: number; cls: string | null; trigger: boolean }
   | { kind: 'count'; text: string; label: string; horizonH: number }
   | { kind: 'none'; reason: string | null }
 
@@ -60,13 +60,25 @@ export function shown(r: TouchResult | null | undefined): Shown {
     const pct = r.p * 100
     // Never print 0% or 100%: the model says "under 1%" / "over 99%", not certainty.
     const text = pct < 1 ? 'under 1%' : pct > 99 ? 'over 99%' : `${Math.round(pct)}%`
-    return { kind: 'probability', text, label: r.label, caveat: r.cell?.caveat ?? null, horizonH: h, levelPct: r.cell?.levelPct ?? 0 }
+    return { kind: 'probability', text, label: r.label, caveat: r.cell?.caveat ?? null, horizonH: h, levelPct: r.cell?.levelPct ?? 0, cls: r.cell?.class ?? null, trigger: r.cell?.trigger === true }
   }
   if (r.display === 'count' && r.count) {
     return { kind: 'count', text: countText(r.count), label: r.label, horizonH: h }
   }
   return { kind: 'none', reason: r.reason }
 }
+
+/**
+ * The shortest on-page form of a class label (copy budget). The engine's full label goes
+ * in the element's tooltip; nothing is decided here, the class comes from the result.
+ */
+export const SHORT_CLASS: Record<string, string> = {
+  SKILL: 'tested',
+  CALIBRATED_WARN: 'calibrated · not proven better',
+  CALIBRATED: 'context only',
+  HISTORY_COUNT: 'count',
+}
+export const shortClass = (cls: string | null, full: string): string => (cls && SHORT_CLASS[cls]) || full
 
 export type Slot<T> = { status: 'pending'; reason: string } | { status: 'ready'; value: T }
 

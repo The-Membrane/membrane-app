@@ -20,7 +20,7 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { DemoBanner } from '@/components/demo'
 import AddressBar from '@/components/Simulator/AddressBar'
-import { shortAddress, usdSigned } from '@/components/Simulator/format'
+import { usdSigned } from '@/components/Simulator/format'
 import { useSimHistory } from '@/components/Simulator/hooks/useSimHistory'
 import { DEMO_BORROWER_DATE } from '@/lib/position-sim/demoBorrower'
 import { intentFrom, type Door, type DoorHandlers, type PositionIntent } from '@/lib/landing/doors'
@@ -33,8 +33,9 @@ import { SCENARIOS } from '@/lib/landing/scenarios'
 
 import { useReplay } from './hooks/useReplay'
 import ObjectionCards from './ObjectionCards'
-import { CAPS, credit, deck, kicker, rule, ruleStrong, small, tabularNums } from './styles'
+import { CAPS, deck, kicker, rule, ruleStrong, small, tabularNums } from './styles'
 import Doors from './Doors'
+import Details, { DetailLine } from './Details'
 
 const ChartSkeleton = () => <Box h={{ base: '420px', md: '560px' }} borderTop={rule} />
 const ReplayDesk = dynamic(() => import('./ReplayDesk'), { ssr: false, loading: ChartSkeleton })
@@ -132,19 +133,12 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
   const whose = r.isDemo ? 'this' : 'your'
   const sizeFirst = r.visitState === 'changed'
 
-  return (
-    <Box maxW="1180px" mx="auto" px={{ base: SPACING.base, md: SPACING.lg }} pb={SPACING['2xl']} color={SEMANTIC_COLORS.textPrimary} display="grid" gap={SPACING.xl} minW={0}>
-      {/* MASTHEAD: dateline between double rules. */}
-      <Box borderTop={ruleStrong} borderBottom={ruleStrong} mt={SPACING.base} py={SPACING.xs} display="flex" justifyContent="space-between" flexWrap="wrap" gap={SPACING.sm}>
-        <Text {...kicker}>Membrane · the replay desk</Text>
-        <Text {...kicker} display={{ base: 'none', md: 'block' }}>
-          Scenario · 10 Oct 2025 · Chainlink oracle, 1-minute
-        </Text>
-      </Box>
+  const coming = SCENARIOS.filter((x) => x.status === 'coming')
 
-      {/* S — ABOVE THE FOLD */}
-      <Box as="header" display="grid" gap={SPACING.base} minW={0}>
-        <Text {...kicker}>Replay · your borrow on 10 Oct 2025</Text>
+  return (
+    <Box maxW="1180px" mx="auto" px={{ base: SPACING.base, md: SPACING.lg }} pt={SPACING.xl} pb={SPACING['2xl']} color={SEMANTIC_COLORS.textPrimary} display="grid" gap={SPACING.xl} minW={0}>
+      {/* S — ABOVE THE FOLD: one H1, one subhead, the input and one button. */}
+      <Box as="header" data-testid="landing-hero" display="grid" gap={SPACING.base} minW={0}>
         <Text
           as="h1"
           data-testid="landing-h1"
@@ -161,23 +155,24 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
         <Text as="p" {...deck} maxW="60ch" data-testid="landing-subhead">
           {SUBHEAD}
         </Text>
-        <Box display="grid" gap={SPACING.sm} justifyItems="start" minW={0}>
-          <AddressBar
-            value={r.input}
-            onChange={r.setInput}
-            onSubmit={r.submitAddress}
-            loadedAddress={r.mode === 'address' ? r.shownAddress : null}
-            onClear={r.backToDemo}
-            isLoading={r.isLoading}
-            error={r.addressError}
-            submitLabel={RUN_LABEL}
-            inputId="landing-address-input"
-            readNote="Read-only · no signature · no deposit · no email"
-          />
-          <Button {...LINK_BTN} data-testid="manual-toggle" aria-expanded={manualOpen} onClick={() => setManualOpen((v) => !v)}>
-            {manualOpen ? 'Hide manual entry' : 'Or enter a position by hand'}
-          </Button>
-        </Box>
+      </Box>
+      <Box data-testid="landing-input" display="grid" gap={SPACING.xs} justifyItems="start" minW={0}>
+        <AddressBar
+          value={r.input}
+          onChange={r.setInput}
+          onSubmit={r.submitAddress}
+          loadedAddress={r.mode === 'address' ? r.shownAddress : null}
+          onClear={r.backToDemo}
+          isLoading={r.isLoading}
+          error={r.addressError}
+          submitLabel={RUN_LABEL}
+          inputId="landing-address-input"
+          readNote={null}
+          hideConnect
+        />
+        <Button {...LINK_BTN} data-testid="manual-toggle" aria-expanded={manualOpen} onClick={() => setManualOpen((v) => !v)}>
+          {manualOpen ? 'Hide' : 'Enter by hand'}
+        </Button>
         {manualOpen && <ManualPositionForm protocols={r.protocols} initial={r.manual} onSubmit={r.submitManual} error={r.manualError} />}
       </Box>
 
@@ -185,51 +180,43 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
       {(r.visitState === 'returning' || r.visitState === 'changed') && r.shownAddress && (
         <Box data-testid={`return-${r.visitState}`} borderTop={rule} pt={SPACING.sm} display="grid" gap={SPACING.xs}>
           <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize="20px">
-            {r.visitState === 'changed' ? 'Your position changed since last time. Size lines first.' : 'Welcome back. Your position, re-read today and replayed again.'}
+            {r.visitState === 'changed' ? 'Your position changed.' : 'Welcome back. Re-read today.'}
           </Text>
-          {r.delta ? (
-            <Text {...small} {...tabularNums}>
-              {shortAddress(r.shownAddress)} · last visit {sinceText(r.delta.sinceMs)} · debt {usdSigned(r.delta.debtUsd)} · collateral {usdSigned(r.delta.collateralUsd)} · LTV{' '}
-              {r.delta.ltvPoints >= 0 ? '+' : '−'}
-              {Math.abs(r.delta.ltvPoints * 100).toFixed(1)} pts · gap {usdSigned(r.delta.lessUsd)} of debt closed (simulator)
+          {r.delta && (
+            <Text {...small} {...tabularNums} color={SEMANTIC_COLORS.textPrimary}>
+              {sinceText(r.delta.sinceMs)} · debt {usdSigned(r.delta.debtUsd)} · LTV {r.delta.ltvPoints >= 0 ? '+' : '−'}
+              {Math.abs(r.delta.ltvPoints * 100).toFixed(1)} pts · gap {usdSigned(r.delta.lessUsd)} (simulator)
             </Text>
-          ) : (
-            <Text {...small}>{shortAddress(r.shownAddress)} · a different position than last time, so no change is shown.</Text>
           )}
         </Box>
       )}
 
-      {/* T + O — THE CHART */}
-      <Box display="grid" gap={SPACING.md} minW={0}>
-        <DemoBanner show={r.isDemo} note={`a real wallet Aave V3 liquidated on ${DEMO_BORROWER_DATE} · paste yours above`} />
+      {/* T + O — THE RESULT */}
+      <Box as="section" data-testid="landing-result" display="grid" gap={SPACING.md} minW={0}>
+        <DemoBanner show={r.isDemo} note={`liquidated ${DEMO_BORROWER_DATE}`} />
         <Box display="flex" flexWrap="wrap" gap={SPACING.sm} alignItems="center" data-testid="scenario-picker" role="radiogroup" aria-label="Stress window">
-          <Text {...kicker}>Stress window</Text>
-          {SCENARIOS.map((s) => {
-            const active = s.id === r.scenarioId
-            return s.status === 'live' ? (
-              <Button
-                key={s.id}
-                role="radio"
-                aria-checked={active}
-                onClick={() => r.setScenarioId(s.id)}
-                flex="0 0 auto"
-                w="auto"
-                minH="44px"
-                borderRadius={0}
-                variant="outline"
-                borderColor={active ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.borderSubtle}
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="11px"
-                _focus={FOCUS_STYLES.ring}
-              >
-                {s.label}
-              </Button>
-            ) : (
-              <Text key={s.id} {...small} color={SEMANTIC_COLORS.textTertiary} title={s.needs} data-testid={`scenario-coming-${s.id}`}>
-                {s.label} · coming
-              </Text>
-            )
-          })}
+          {SCENARIOS.filter((x) => x.status === 'live').map((x) => (
+            <Button
+              key={x.id}
+              role="radio"
+              aria-checked={x.id === r.scenarioId}
+              onClick={() => r.setScenarioId(x.id)}
+              flex="0 0 auto"
+              w="auto"
+              minH="44px"
+              borderRadius={0}
+              variant="outline"
+              borderColor={x.id === r.scenarioId ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.borderSubtle}
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="11px"
+              _focus={FOCUS_STYLES.ring}
+            >
+              {x.label}
+            </Button>
+          ))}
+          <Text {...small} color={SEMANTIC_COLORS.textTertiary} title={coming.map((x) => `${x.label}: ${x.needs}`).join('\n')} data-testid="scenario-coming">
+            {coming.length} more coming
+          </Text>
         </Box>
 
         {!mounted ? (
@@ -256,21 +243,20 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
           />
         )}
 
-
-        <Box display="flex" flexWrap="wrap" gap={SPACING.md} alignItems="center" borderTop={rule} pt={SPACING.sm} data-testid="share-row">
+        <Box display="flex" flexWrap="wrap" gap={SPACING.md} alignItems="center" data-testid="share-row">
           <Button {...LINK_BTN} onClick={onCopy} data-testid="share-copy">
-            {copied === 'copied' ? 'Link copied' : copied === 'failed' ? 'Copy failed' : 'Copy link to this result'}
+            {copied === 'copied' ? 'Copied' : copied === 'failed' ? 'Copy failed' : 'Copy link'}
           </Button>
           {cardHref && (
             <Text {...kicker}>
               <a href={cardHref} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }} data-testid="share-card">
-                Result card (image) →
+                Result card
               </a>
             </Text>
           )}
           <Text {...kicker}>
             <NextLink href={`/ethereum/simulator${r.mode === 'address' && r.shownAddress ? `?a=${r.shownAddress}` : ''}`} style={{ textDecoration: 'underline' }}>
-              Full run detail →
+              Full run
             </NextLink>
           </Text>
         </Box>
@@ -282,22 +268,34 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
       {/* Y — OBJECTIONS */}
       <ObjectionCards census={census} />
 
-      {/* HOW IT WORKS — static prose, server-rendered (SEO R1/R10). */}
-      <Box as="section" aria-labelledby="landing-how" display="grid" gap={SPACING.sm} borderTop={ruleStrong} pt={SPACING.base} maxW="72ch">
-        <Text id="landing-how" as="h2" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={{ base: '22px', md: '28px' }} fontWeight={TYPOGRAPHY.normal}>
-          How the replay works
-        </Text>
-        {PROSE.map((p) => (
-          <Text key={p.slice(0, 24)} as="p" {...small} fontSize="13px" color={SEMANTIC_COLORS.textPrimary}>
-            {p}
-          </Text>
-        ))}
+      {/* FINE PRINT, ONCE. The prose stays in the server HTML (SEO R1/R10) inside a
+          closed disclosure, at the bottom, rendered once. */}
+      <Box as="footer" data-testid="landing-footer" display="grid" gap={SPACING.xs} borderTop={ruleStrong} pt={SPACING.base}>
+        <Box as="section" aria-labelledby="landing-how" maxW="72ch">
+          <Details label="How the replay works" testId="landing-how">
+            <Text id="landing-how" as="h2" srOnly>
+              How the replay works
+            </Text>
+            {PROSE.map((p) => (
+              <Text key={p.slice(0, 24)} as="p" {...small} fontSize="13px" color={SEMANTIC_COLORS.textPrimary}>
+                {p}
+              </Text>
+            ))}
+          </Details>
+        </Box>
+        <Details label="† Fine print" testId="landing-fineprint">
+          <DetailLine>† Modelled figures are not a guarantee. Membrane figures are simulator output; Membrane is pre-launch and its per-asset line is our assumption.</DetailLine>
+          <DetailLine>Replay, not a forecast: the measured 10 Oct 2025 oracle path applied to the position on screen. On a census wallet Aave’s side is its measured close, drawn at the first event; otherwise Aave is modelled at the median repay size and fires the first minute over the line. Gas, MEV and slippage on seized collateral are not modelled.</DetailLine>
+          <DetailLine>Forecasts are of the Binance spot price touching a level, not of a venue’s oracle, shown only where each registry cell’s class allows.</DetailLine>
+          {coming.map((x) => (
+            <DetailLine key={x.id}>
+              {x.label} · coming: {x.needs}
+            </DetailLine>
+          ))}
+          <DetailLine>Return visits: {PENDING_STATES['after-event']} {PENDING_STATES.deployed}</DetailLine>
+          <DetailLine>Data compiled by Membrane.</DetailLine>
+        </Details>
       </Box>
-
-      <Text {...credit} textAlign="left" data-testid="return-pending-states">
-        Return visits · {PENDING_STATES['after-event']} {PENDING_STATES.deployed}
-      </Text>
-      <Text {...credit}>† modelled, not a guarantee · Membrane figures are simulator output · data compiled by Membrane</Text>
 
       {sheet && <DoorSheet door={sheet.door} intent={sheet.intent} onClose={() => setSheet(null)} />}
     </Box>

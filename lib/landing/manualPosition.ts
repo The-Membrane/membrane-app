@@ -77,12 +77,12 @@ export function validateManual(i: ManualInput): ManualError | null {
 }
 
 export const MANUAL_ERROR_TEXT: Record<ManualError, string> = {
-  collateral: 'Collateral needs a dollar value above zero.',
-  debt: 'Debt needs a dollar value above zero.',
-  line: 'The liquidation line is a percentage between 0 and 100.',
-  price: 'That asset has no price at the start of this scenario.',
-  underwater: 'That debt is already over the liquidation line. Lower it to replay the position.',
-  reserve: 'Aave V3 had no reserve for that asset in the Oct 10 read, so it has no liquidation bonus to charge. Pick Morpho Blue for it.',
+  collateral: 'Enter collateral above $0.',
+  debt: 'Enter debt above $0.',
+  line: 'Enter a liquidation LTV between 0 and 100.',
+  price: 'No price for this asset in this scenario.',
+  underwater: 'Debt is over the line. Lower it.',
+  reserve: 'No Aave reserve for this asset. Use Morpho Blue.',
 }
 
 /** Builds the position, or an error. `startPrice` is the scenario's minute-0 price. */

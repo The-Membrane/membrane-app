@@ -75,8 +75,11 @@ export interface AddressBarProps {
   primaryConnect?: boolean
   /** Label for the primary connect button; falls back to the plain connect copy. */
   connectLabel?: string
-  /** Replaces the generic disclosure line with one that names venues, chain and data. */
-  readNote?: string
+  /** Replaces the generic disclosure line with one that names venues, chain and data.
+   *  `null` hides the line (the landing's copy budget). */
+  readNote?: string | null
+  /** Hide the secondary "connect a wallet" link (the landing: input + one button only). */
+  hideConnect?: boolean
   isLoading: boolean
   /** Verbatim reason the input was rejected, or null. */
   error: string | null
@@ -99,6 +102,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   error,
   inputId = 'sim-address-input',
   submitLabel,
+  hideConnect = false,
 }) => {
   // Optional shortcut (owner 2026-09-12): a connected wallet can fill the box so
   // nobody has to copy their address. Still read-only — connecting is never
@@ -184,7 +188,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         </Button>
       </Box>
 
-      {!primaryConnect && (
+      {!primaryConnect && !hideConnect && (
         <Button type="button" onClick={useWalletAddress} {...LINK_BTN}>
           {isWalletConnected && walletAddress
             ? 'Use connected wallet'
@@ -209,14 +213,16 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         </Text>
       )}
 
-      <Text
-        fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="11px"
-        color={SEMANTIC_COLORS.textTertiary}
-        lineHeight={1.6}
-      >
-        {readNote ?? 'Read-only · no signature · address logged'}
-      </Text>
+      {readNote !== null && (
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="11px"
+          color={SEMANTIC_COLORS.textTertiary}
+          lineHeight={1.6}
+        >
+          {readNote ?? 'Read-only · no signature · address logged'}
+        </Text>
+      )}
     </Box>
   )
 }

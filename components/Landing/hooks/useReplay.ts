@@ -96,7 +96,7 @@ export function useReplay(headline: HeadlineKey) {
     async (raw: string, source: ReadSource) => {
       const parsed = parseAddress(raw)
       if (!parsed) {
-        setAddressError('That is not an Ethereum address. It needs to be 0x followed by 40 hex characters.')
+        setAddressError('Not an address: 0x plus 40 hex characters.')
         return
       }
       setAddressError(null)
@@ -195,7 +195,7 @@ export function useReplay(headline: HeadlineKey) {
     if (dataError) out.push(`Measured price path failed to load: ${dataError}`)
     if (mode === 'address' && loaded) {
       for (const r of loaded.results) if (r.status === 'error') out.push(`${r.label} · ${r.message ?? 'read failed'}`)
-      if (positions.length === 0) out.push('No open borrow found for this address on Aave V3, Spark, Morpho Blue or Compound V3.')
+      if (positions.length === 0) out.push('No open borrow on Aave, Spark, Morpho or Compound.')
     }
     return out
   }, [dataError, mode, loaded, positions])

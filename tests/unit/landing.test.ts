@@ -49,6 +49,11 @@ describe('headline test', () => {
     for (const p of PROSE) expect(p).not.toMatch(BANNED)
     for (const o of OBJECTIONS) for (const f of o.facts) expect(f.text).not.toMatch(/\b(safe|odds|guaranteed?)\b/i)
   })
+  it('fits the copy budget: H1 ≤ 12 words, subhead ≤ 20', () => {
+    const words = (t: string) => t.split(/\s+/).filter(Boolean).length
+    for (const h of Object.values(HEADLINES)) expect(words(h.headline)).toBeLessThanOrEqual(12)
+    expect(words(SUBHEAD)).toBeLessThanOrEqual(20)
+  })
   it('prose is 100-300 words (SEO R10)', () => {
     const words = PROSE.join(' ').split(/\s+/).length
     expect(words).toBeGreaterThanOrEqual(100)

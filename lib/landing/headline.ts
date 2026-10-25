@@ -31,7 +31,7 @@ export interface HeadlineCopy {
 
 export const HEADLINES: Record<HeadlineKey, HeadlineCopy> = {
   default: {
-    headline: 'Your borrow, replayed through 10 Oct 2025 on your venue and on Membrane.',
+    headline: 'Your borrow, replayed through 10 Oct 2025 on your venue and Membrane.',
     draft: null,
   },
   a: {
@@ -43,14 +43,13 @@ export const HEADLINES: Record<HeadlineKey, HeadlineCopy> = {
     draft: 'Your position, replayed through the worst day in DeFi lending. Free, no deposit.',
   },
   c: {
-    headline: 'See what a 2am wick would have done to your borrow, before the next one.',
+    headline: 'What a 2am wick would have done to your borrow.',
     draft: 'Find out what your borrow does at 2am — before 2am finds out for you.',
   },
 }
 
 /** The one-line mechanism under the H1. Framework subhead, rewritten to the ruling. */
-export const SUBHEAD =
-  'We run your exact position through measured 10 Oct 2025 prices, on your current venue and on Membrane, side by side.'
+export const SUBHEAD = 'We run your position through measured 10 Oct 2025 prices, on your venue and on Membrane.'
 
 /** The one button. Framework: "Run my forecast". This runs a replay, so it says so. */
 export const RUN_LABEL = 'Run my replay'

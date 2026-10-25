@@ -80,6 +80,8 @@ export interface EquityChartProps {
   caption?: React.ReactNode | null
   /** Hide the outer card (the landing draws its own rules). */
   bare?: boolean
+  /** Hide the eyebrow + provenance row (the landing states one stamp line itself). */
+  hideHeader?: boolean
 }
 
 const toneColor = (t: ChartMark['tone']) =>
@@ -96,6 +98,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
   ticks,
   caption,
   bare = false,
+  hideHeader = false,
 }) => {
   const { source, membrane } = comparison
   const count = Math.max(source.equitySeries.length, membrane.equitySeries.length)
@@ -172,6 +175,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
       gap={SPACING.md}
       minW={0}
     >
+      {!hideHeader && (
       <Box
         display="flex"
         justifyContent="space-between"
@@ -184,6 +188,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
           <Stamp provenance={comparison.source.provenance} />
         </Box>
       </Box>
+      )}
 
       {!marks && (
         <Box display="flex" gap={SPACING.base} flexWrap="wrap">

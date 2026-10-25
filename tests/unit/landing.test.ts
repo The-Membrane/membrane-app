@@ -241,3 +241,24 @@ describe('forecast layer gating', () => {
     expect(fallToPct(0.4, 0.8)).toBeCloseTo(-50, 9)
   })
 })
+
+describe('share card and doors seam', () => {
+  it('parses only a well-formed replay summary', async () => {
+    const { replayCardSummary, parseOgKind } = await import('@/lib/share/permalink')
+    expect(parseOgKind('replay')).toBe('replay')
+    const ok = { address: '0x' + 'a'.repeat(40), isDemo: true, label: 'Aave V3', venueClosedUsd: 10, membraneClosedUsd: 5, verdict: 'Membrane would have closed $5 less of this position (simulator).' }
+    expect(replayCardSummary(ok)?.venueClosedUsd).toBe(10)
+    expect(replayCardSummary({ ...ok, verdict: 'Membrane kept $5' })).toBeNull()
+    expect(replayCardSummary({ ...ok, venueClosedUsd: -1 })).toBeNull()
+    expect(replayCardSummary({ ...ok, error: 'x' })).toBeNull()
+  })
+  it('prefills the intent from the replayed position', async () => {
+    const { intentFrom } = await import('@/lib/landing/doors')
+    const p = demoBorrowerPosition()
+    const i = intentFrom(p, { source: 'demo', membraneLine: 0.8, scenarioId: 'oct10-2025' })
+    expect(i.collateral[0].amount).toBe(p.collateral[0].amount)
+    expect(i.debt[0].valueUsd).toBe(p.debt[0].valueUsd)
+    expect(i.venueLine).toBe(p.liquidationLtv)
+    expect(i.position).toBe(p)
+  })
+})

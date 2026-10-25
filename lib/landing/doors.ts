@@ -38,6 +38,13 @@ export interface PositionIntent {
   /** The modelled Membrane line the replay used (no mainnet deployment exists). */
   membraneLine: number
   scenarioId: string
+  /**
+   * The raw position, unchanged. feat/migrate-flow's sheets take
+   * `{ ...position, owner: address }` (lib/migrate/types.ts MigrateSource), so the
+   * migrate agent mounts `<MigrateSheet position={{ ...intent.position, owner: intent.address }} />`
+   * straight off this seam.
+   */
+  position: ProtocolPosition
 }
 
 export type DoorHandler = (intent: PositionIntent) => void
@@ -63,5 +70,6 @@ export function intentFrom(
     venueLine: p.liquidationLtv,
     membraneLine: opts.membraneLine,
     scenarioId: opts.scenarioId,
+    position: p,
   }
 }

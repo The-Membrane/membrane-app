@@ -1,8 +1,8 @@
 {
- "version": "ddfde05847563e9b",
- "generated_utc": "2026-10-24T13:00:41Z",
+ "version": "4796e63d4117a2a3",
+ "generated_utc": "2026-10-25T00:42:51Z",
  "schema": "liqwarn-routing/1",
- "map_sha256": "dfe6c060ce51aca674d57ae61605c4d5c1e42923182114d5fa646ed65f555b5d",
+ "map_sha256": "9bab4a8b24c3b169905cdf3ffa97c0c46935f74ba97cb19208c646239de6def8",
  "release_grading_present": true,
  "live_monitors_deployed": [
   "D1",
@@ -27,7 +27,7 @@
  },
  "d13_classes": {
   "path": "forecasts/q26-touch-live/d13/classes.json",
-  "sha256": "5de9df34c5e603a9c6a360516636418e8e0848933b6dd4790cfa86b6b74c3355",
+  "sha256": "e50597fcbc672674645f7aa5249dd220a3b47a8190219ec4ed6ccaeb258e1bf8",
   "lastLedgerDate": null,
   "surfaced": false,
   "downgraded": []
@@ -1750,7 +1750,7 @@
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>DO NOT SHOW −20%: Binance R 1.17, slope 0.66 (0.23–1.03), BSS lower bound −0.018 (parent ruling 2026-10-25 after R22 review; was labelled context)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1781,7 +1781,7 @@
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>DO NOT SHOW −20%: Binance R 1.17, slope 0.66 (0.23–1.03), BSS lower bound −0.018 (parent ruling 2026-10-25 after R22 review; was labelled context)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1812,7 +1812,7 @@
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>DO NOT SHOW −20%: Binance R 1.17, slope 0.66 (0.23–1.03), BSS lower bound −0.018 (parent ruling 2026-10-25 after R22 review; was labelled context)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1843,7 +1843,7 @@
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>DO NOT SHOW −20%: Binance R 1.17, slope 0.66 (0.23–1.03), BSS lower bound −0.018 (parent ruling 2026-10-25 after R22 review; was labelled context)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1874,7 +1874,7 @@
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>DO NOT SHOW −20%: Binance R 1.17, slope 0.66 (0.23–1.03), BSS lower bound −0.018 (parent ruling 2026-10-25 after R22 review; was labelled context)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1905,7 +1905,7 @@
     "id": null,
     "status": "needed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>DO NOT SHOW −20%: Binance R 1.17, slope 0.66 (0.23–1.03), BSS lower bound −0.018 (parent ruling 2026-10-25 after R22 review; was labelled context)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": "",
    "validated": false,
@@ -1931,14 +1931,14 @@
      -0.2
     ]
    },
-   "class": "CALIBRATED",
+   "class": "DO NOT SHOW",
    "source": "raw_fH",
-   "evidence": "Release grading (R19.3): ETH/BTC 3d CALIBRATED -20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)",
+   "evidence": "Release grading (R19.3): ETH/BTC 3d DO NOT SHOW -20%: Binance R 1.17, slope 0.66 (0.23–1.03), BSS lower bound -0.018 (parent ruling 2026-10-25 after R22 review; was labelled context)",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>DO NOT SHOW −20%: Binance R 1.17, slope 0.66 (0.23–1.03), BSS lower bound −0.018 (parent ruling 2026-10-25 after R22 review; was labelled context)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },
@@ -1969,7 +1969,7 @@
     "id": null,
     "status": "none"
    },
-   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>CALIBRATED −20%: labelled context, Binance R 1.17, slope 0.66 (0.23–1.03)<br>HISTORY COUNT −30%",
+   "row": "ETH/BTC | 3d | CALIBRATED-WARN −2, −3, −5, −7, −10%: Binance R 0.95–1.11 (Binance-input live definition, D12 review 2026-10-24; see \"ETH/BTC price-source correction\")<br>RECALIBRATE −15%: Binance slope 0.70 (0.42–0.96)<br>DO NOT SHOW −20%: Binance R 1.17, slope 0.66 (0.23–1.03), BSS lower bound −0.018 (parent ruling 2026-10-25 after R22 review; was labelled context)<br>HISTORY COUNT −30%",
    "display": true,
    "ui_use": ""
   },

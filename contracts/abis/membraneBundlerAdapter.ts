@@ -12,9 +12,27 @@ export const membraneBundlerAdapterAbi = [
         "name": "cdp",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "repayTo",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "BORROW_LTV_GAP",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -44,20 +62,28 @@ export const membraneBundlerAdapterAbi = [
   },
   {
     "type": "function",
+    "name": "REPAY_TO",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "depositAndBorrowFor",
     "inputs": [
-      {
-        "name": "positionId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
       {
         "name": "collateralDenom",
         "type": "bytes32",
         "internalType": "bytes32"
       },
       {
-        "name": "maxBorrowCdt",
+        "name": "borrowCdt",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -67,19 +93,14 @@ export const membraneBundlerAdapterAbi = [
         "internalType": "address"
       },
       {
-        "name": "repayTo",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "repayTarget",
+        "name": "maxLtvWad",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "finalPositionId",
+        "name": "positionId",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -125,21 +146,27 @@ export const membraneBundlerAdapterAbi = [
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      },
+      {
+        "name": "ltvWad",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
   },
   {
     "type": "error",
-    "name": "BorrowAboveCap",
+    "name": "LtvAboveCap",
     "inputs": [
       {
-        "name": "borrowCdt",
+        "name": "ltvWad",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "maxBorrowCdt",
+        "name": "capWad",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -190,22 +217,17 @@ export const membraneBundlerAdapterAbi = [
   },
   {
     "type": "error",
-    "name": "NotPositionOwner",
+    "name": "PayoutMismatch",
     "inputs": [
       {
-        "name": "initiator",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "positionId",
+        "name": "received",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "owner",
-        "type": "address",
-        "internalType": "address"
+        "name": "expected",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ]
   },
@@ -228,6 +250,11 @@ export const membraneBundlerAdapterAbi = [
   {
     "type": "error",
     "name": "ZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroBorrow",
     "inputs": []
   }
 ] as const

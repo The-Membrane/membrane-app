@@ -14,14 +14,24 @@ pragma solidity 0.8.28;
 ///         Cdp.increaseDebt is gated on `msg.sender == owner || positionOperator[owner][msg.sender]`
 ///         (Cdp.sol `_authorizedFor`). Inside a bundle the caller is Bundler3, a public contract that
 ///         executes ANY caller's calls. A user who made Bundler3 their Cdp operator would let anyone
-///         borrow against their position up to the borrow cap (the proceeds land on the owner, but the
-///         position is pushed 3pp from liquidation). So the operator must be a contract that acts only
-///         for the bundle's `initiator` — this adapter, the same rule CdpRouter applies to msg.sender.
+///         borrow against their position up to the Cdp's own gate. So the operator must be a
+///         contract that acts only for the bundle's `initiator` — this adapter.
 ///
 ///         Cdp pays borrow proceeds to the position OWNER, never the operator (Cdp.sol STEP 9). The
-///         flash loan must be repaid inside the same transaction, so the adapter pulls exactly the
-///         shortfall back from the owner. That pull is why the owner grants this adapter an allowance
-///         (or an ERC-2612 permit) on the paired asset.
+///         flash loan must be repaid inside the same transaction, so the adapter pulls the payout
+///         back from the owner to GeneralAdapter1. That pull is why the owner permits this adapter
+///         an exact amount of the paired asset.
+///
+///         WHAT A STANDING OPERATOR GRANT TO THIS ADAPTER CAN DO (review M-1):
+///           - only inside a Bundler3 bundle the OWNER sent (initiator check);
+///           - only OPEN A NEW position for the owner (there is no position id argument), funded by
+///             collateral already sitting in this adapter, and borrow on that NEW position;
+///           - the borrow is capped at the caller's `maxLtvWad` and at the asset's live max LTV
+///             minus the 3pp borrow gap (checked here, after the borrow, at Membrane's prices);
+///           - the payout goes to the owner and is pulled back only to GeneralAdapter1 (immutable),
+///             only up to the owner's ERC-20 allowance to this adapter, and only if the payout is
+///             exactly what the borrow should pay (no fee can make it pull more).
+///           It cannot touch any existing position, withdraw, or send funds to any other address.
 ///
 /// @dev    Holds no admin key and no state. Funds sit here only between two calls of one bundle.
 ///         Mirrors Bundler3's CoreAdapter (`onlyBundler3`, `initiator()`) without importing it.
@@ -31,8 +41,6 @@ interface IBundler3Initiator {
 
 interface IERC20Min {
     function balanceOf(address) external view returns (uint256);
-    function approve(address, uint256) external returns (bool);
-    function decimals() external view returns (uint8);
 }
 
 /// @notice The Fund struct Cdp.deposit takes (CdpInternal.Fund). Same ABI layout.
@@ -49,10 +57,14 @@ interface ICdpForAdapter {
     function positionOperator(address owner, address operator) external view returns (bool);
     function assetToken(bytes32 denom) external view returns (address);
     function transmuterForPeg() external view returns (address);
-    function position(uint256 positionId)
-        external
-        view
-        returns (uint256 id, address owner_, uint256 pendingInterest, uint256 totalAccrued, uint256 collLen, uint256 segLen);
+    function collateral() external view returns (address);
+    function positionCollateralValue(uint256 positionId) external view returns (uint256);
+    function positionDebt(uint256 positionId) external view returns (uint256);
+    function creditPriceSource() external view returns (uint8 source, uint256 price);
+}
+
+interface ICollateralLtv {
+    function currentMaxLTV(bytes32 asset) external view returns (uint256);
 }
 
 interface ITransmuterPaired {
@@ -80,16 +92,24 @@ library SafeTransferLib {
 contract MembraneBundlerAdapter {
     using SafeTransferLib for address;
 
+    /// @notice Membrane's borrow gap: borrow LTV = max LTV − 3pp (lib/Constants.sol BORROW_LTV_GAP).
+    ///         Cdp._increaseDebt gates only on max LTV, so the adapter enforces the gap itself.
+    uint256 public constant BORROW_LTV_GAP = 3e16;
+    uint256 internal constant WAD = 1e18;
+
     address public immutable BUNDLER3;
     ICdpForAdapter public immutable CDP;
+    /// @notice Where the proceeds go back to: Bundler3's GeneralAdapter1, which repays the flash loan.
+    address public immutable REPAY_TO;
 
     error UnauthorizedSender();
     error NotOperator(address owner, address adapter);
-    error NotPositionOwner(address initiator, uint256 positionId, address owner);
     error UnregisteredCollateral(bytes32 denom);
     error NoCollateral(bytes32 denom);
+    error ZeroBorrow();
     error NotPegPaired(address repayToken, address paired);
-    error BorrowAboveCap(uint256 borrowCdt, uint256 maxBorrowCdt);
+    error PayoutMismatch(uint256 received, uint256 expected);
+    error LtvAboveCap(uint256 ltvWad, uint256 capWad);
     error ZeroAddress();
 
     event MembraneLegExecuted(
@@ -98,13 +118,15 @@ contract MembraneBundlerAdapter {
         bytes32 collateralDenom,
         uint256 collateralDeposited,
         uint256 borrowedCdt,
-        uint256 proceedsPulled
+        uint256 proceedsPulled,
+        uint256 ltvWad
     );
 
-    constructor(address bundler3, address cdp) {
-        if (bundler3 == address(0) || cdp == address(0)) revert ZeroAddress();
+    constructor(address bundler3, address cdp, address repayTo) {
+        if (bundler3 == address(0) || cdp == address(0) || repayTo == address(0)) revert ZeroAddress();
         BUNDLER3 = bundler3;
         CDP = ICdpForAdapter(cdp);
+        REPAY_TO = repayTo;
     }
 
     modifier onlyBundler3() {
@@ -112,32 +134,25 @@ contract MembraneBundlerAdapter {
         _;
     }
 
-    /// @notice Deposit this adapter's whole balance of `collateralDenom`'s token into the
-    ///         initiator's Membrane position, then peg-borrow exactly enough for `repayTo` to hold
-    ///         `repayTarget` of the paired asset, and pull that amount from the initiator to `repayTo`.
-    /// @param  positionId     0 opens a new position owned by the initiator; else it must be theirs.
+    /// @notice Open a NEW Membrane position for the initiator with this adapter's whole balance of
+    ///         `collateralDenom`'s token, peg-borrow exactly `borrowCdt`, check the resulting LTV, and
+    ///         pull the payout from the initiator to REPAY_TO (GeneralAdapter1).
     /// @param  collateralDenom Membrane denom of the collateral (its token = Cdp.assetToken(denom)).
-    /// @param  maxBorrowCdt   the initiator's cap on new Membrane debt (CDT, 18 decimals). Revert above.
+    /// @param  borrowCdt      the exact new Membrane debt (CDT, 18 decimals); must pay out whole
+    ///                        paired units.
     /// @param  repayToken     the flash-loaned token; must be the Transmuter's paired asset.
-    /// @param  repayTo        where the flash loan is repaid from (GeneralAdapter1).
-    /// @param  repayTarget    the flash amount `repayTo` must hold when the callback returns.
-    /// @return finalPositionId the Membrane position that now holds the collateral and the debt.
-    function depositAndBorrowFor(
-        uint256 positionId,
-        bytes32 collateralDenom,
-        uint256 maxBorrowCdt,
-        address repayToken,
-        address repayTo,
-        uint256 repayTarget
-    ) external onlyBundler3 returns (uint256 finalPositionId) {
+    /// @param  maxLtvWad      the initiator's LTV cap; the effective cap is the lower of this and
+    ///                        the asset's live max LTV − 3pp.
+    function depositAndBorrowFor(bytes32 collateralDenom, uint256 borrowCdt, address repayToken, uint256 maxLtvWad)
+        external
+        onlyBundler3
+        returns (uint256 positionId)
+    {
         address owner = IBundler3Initiator(BUNDLER3).initiator();
         if (!CDP.positionOperator(owner, address(this))) revert NotOperator(owner, address(this));
-        if (positionId != 0) {
-            (, address posOwner,,,,) = CDP.position(positionId);
-            if (posOwner != owner) revert NotPositionOwner(owner, positionId, posOwner);
-        }
+        if (borrowCdt == 0) revert ZeroBorrow();
 
-        // 1. collateral: everything the venue leg sent here.
+        // 1. collateral: everything the venue leg sent here, into a NEW position.
         address token = CDP.assetToken(collateralDenom);
         if (token == address(0)) revert UnregisteredCollateral(collateralDenom);
         uint256 amount = IERC20Min(token).balanceOf(address(this));
@@ -145,25 +160,32 @@ contract MembraneBundlerAdapter {
         token.forceApprove(address(CDP), amount);
         Fund[] memory funds = new Fund[](1);
         funds[0] = Fund({denom: collateralDenom, amount: amount});
-        finalPositionId = CDP.deposit(positionId, owner, funds);
+        positionId = CDP.deposit(0, owner, funds);
         token.forceApprove(address(CDP), 0);
 
-        // 2. debt: the shortfall, peg path (CDT minted and transmuted 1:1 to the paired asset,
-        //    paid to the owner). The Cdp is fee-exempt in the Transmuter, so the payout is exact.
-        uint256 have = IERC20Min(repayToken).balanceOf(repayTo);
-        uint256 shortfall = repayTarget > have ? repayTarget - have : 0;
-        uint256 borrowCdt;
-        if (shortfall != 0) {
-            ITransmuterPaired tm = ITransmuterPaired(CDP.transmuterForPeg());
-            address paired = address(tm) == address(0) ? address(0) : tm.pairedAsset();
-            if (paired != repayToken) revert NotPegPaired(repayToken, paired);
-            borrowCdt = shortfall * tm.pairedScale();
-            if (borrowCdt > maxBorrowCdt) revert BorrowAboveCap(borrowCdt, maxBorrowCdt);
-            CDP.increaseDebt(finalPositionId, collateralDenom, borrowCdt, true);
-            // 3. proceeds back from the owner to the flash-loan repayer.
-            repayToken.safeTransferFrom(owner, repayTo, shortfall);
-        }
+        // 2. debt: peg path (CDT minted, transmuted 1:1 to the paired asset, paid to the owner).
+        ITransmuterPaired tm = ITransmuterPaired(CDP.transmuterForPeg());
+        address paired = address(tm) == address(0) ? address(0) : tm.pairedAsset();
+        if (paired != repayToken) revert NotPegPaired(repayToken, paired);
+        uint256 expected = borrowCdt / tm.pairedScale();
+        uint256 before = IERC20Min(repayToken).balanceOf(owner);
+        CDP.increaseDebt(positionId, collateralDenom, borrowCdt, true);
+        uint256 received = IERC20Min(repayToken).balanceOf(owner) - before;
+        if (received != expected) revert PayoutMismatch(received, expected);
 
-        emit MembraneLegExecuted(owner, finalPositionId, collateralDenom, amount, borrowCdt, shortfall);
+        // 3. the borrow LTV, at Membrane's own prices, in this same call.
+        uint256 cap = ICollateralLtv(CDP.collateral()).currentMaxLTV(collateralDenom);
+        cap = cap > BORROW_LTV_GAP ? cap - BORROW_LTV_GAP : 0;
+        if (maxLtvWad < cap) cap = maxLtvWad;
+        (, uint256 creditPrice) = CDP.creditPriceSource();
+        uint256 debtValue = (CDP.positionDebt(positionId) * creditPrice) / WAD;
+        uint256 collValue = CDP.positionCollateralValue(positionId);
+        uint256 ltv = collValue == 0 ? type(uint256).max : (debtValue * WAD) / collValue;
+        if (ltv > cap) revert LtvAboveCap(ltv, cap);
+
+        // 4. the payout back to the flash-loan repayer, exactly what was received.
+        repayToken.safeTransferFrom(owner, REPAY_TO, received);
+
+        emit MembraneLegExecuted(owner, positionId, collateralDenom, amount, borrowCdt, received, ltv);
     }
 }

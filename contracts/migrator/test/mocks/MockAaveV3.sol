@@ -20,12 +20,19 @@ contract MockAToken is ERC20, ERC20Permit {
     MockAaveV3Pool public immutable pool;
     address public immutable UNDERLYING_ASSET_ADDRESS;
 
+    uint8 private immutable _decimals;
+
     constructor(address underlying, string memory name_)
         ERC20(name_, name_)
         ERC20Permit(name_)
     {
         pool = MockAaveV3Pool(msg.sender);
         UNDERLYING_ASSET_ADDRESS = underlying;
+        _decimals = ERC20(underlying).decimals();
+    }
+
+    function decimals() public view override returns (uint8) {
+        return _decimals;
     }
 
     function POOL() external view returns (address) {
@@ -88,7 +95,7 @@ contract MockAaveV3Pool {
     struct Reserve {
         MockAToken aToken;
         MockVariableDebtToken vToken;
-        uint256 priceUsd; // 1e18
+        uint256 priceUsd; // USD per whole token, 1e18
         uint256 liquidationThreshold; // 1e4 bps
     }
 
@@ -163,7 +170,7 @@ contract MockAaveV3Pool {
 
     function debtOf(address user) public view returns (uint256 usd) {
         for (uint256 i; i < assets.length; ++i) {
-            usd += variableDebt[assets[i]][user] * reserves[assets[i]].priceUsd / 1e18;
+            usd += variableDebt[assets[i]][user] * reserves[assets[i]].priceUsd / 10 ** ERC20(assets[i]).decimals();
         }
     }
 
@@ -173,7 +180,7 @@ contract MockAaveV3Pool {
         uint256 adjColl;
         for (uint256 i; i < assets.length; ++i) {
             Reserve storage r = reserves[assets[i]];
-            adjColl += r.aToken.balanceOf(user) * r.priceUsd / 1e18 * r.liquidationThreshold / 1e4;
+            adjColl += r.aToken.balanceOf(user) * r.priceUsd / 10 ** ERC20(assets[i]).decimals() * r.liquidationThreshold / 1e4;
         }
         require(adjColl >= debt, "35"); // HEALTH_FACTOR_LOWER_THAN_LIQUIDATION_THRESHOLD
     }

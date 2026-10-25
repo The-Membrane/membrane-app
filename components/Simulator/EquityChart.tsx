@@ -168,6 +168,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
       borderColor={bare ? undefined : SEMANTIC_COLORS.borderSubtle}
       p={bare ? 0 : SPACING.base}
       display="grid"
+      gridTemplateColumns="minmax(0, 1fr)"
       gap={SPACING.md}
       minW={0}
     >
@@ -179,7 +180,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
         flexWrap="wrap"
       >
         <Text {...eyebrow}>{title}</Text>
-        <Box minW={0} maxW="100%" sx={{ '& *': { whiteSpace: 'normal', maxWidth: '100%' } }}>
+        <Box minW={0} maxW="100%" overflow="hidden" sx={{ '& *': { whiteSpace: 'normal', maxWidth: '100%' } }}>
           <Stamp provenance={comparison.source.provenance} />
         </Box>
       </Box>

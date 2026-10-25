@@ -157,19 +157,20 @@ export interface AtRiskSubtextConfig {
 }
 
 export const AT_RISK_SUBTEXT_CONFIG: AtRiskSubtextConfig = {
-  // Copy as corrected by the R29 review (board f6092e8): median lead 13 h.
+  // Copy as corrected by the R31 review (board 769f616): three chains, "touches" not
+  // "liquidations", median lead about 10 h on Arbitrum and Optimism (13 h on Polygon).
   template:
-    'Past data: alerts at this level came a median of {medianLeadH} hours before liquidation ' +
-    'and caught about {caughtShare} liquidations at least an hour ahead. Some come faster, so ' +
-    'act now if you can.',
-  medianLeadH: 13,
-  caughtShare: '3 in 4',
+    'Past data: alerts at this level came a median of {medianLeadH} hours before liquidation, ' +
+    'and about {caughtShare} simulated price touches got at least an hour of warning. Some come ' +
+    'faster, so act now if you can.',
+  medianLeadH: 10,
+  caughtShare: '2 in 3',
   provenance: {
     data: 'development',
-    dataset: 'Aave V3 Polygon, 2023–2026',
-    ruling: 'Q26-R27 60fb0e6',
-    review: 'c59f67f; copy corrected by the R29 review f6092e8',
-    warnedAtLeast1hShare: 0.74,
+    dataset: 'Aave V3 Polygon, Arbitrum and Optimism, 2023–2026 (simulated price touches)',
+    ruling: 'Q26-R27 60fb0e6; replications Q26-R30 1f76bc9 and Q26-R31 4d6d6a0',
+    review: 'c59f67f, f6092e8, 57653f4, 769f616',
+    warnedAtLeast1hShare: 0.68,
     updateFrom: ['live alert logs', 'R29 (Membrane liquidation timer)'],
   },
 }

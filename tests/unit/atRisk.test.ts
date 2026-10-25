@@ -88,7 +88,7 @@ describe('config', () => {
 
   it('renders the subtext from a template, so the numbers can be swapped', () => {
     expect(AT_RISK_SUBTEXT.text).toBe(
-      'Past data: alerts at this level came a median of 13 hours before liquidation and caught about 3 in 4 liquidations at least an hour ahead. Some come faster, so act now if you can.',
+      'Past data: alerts at this level came a median of 10 hours before liquidation, and about 2 in 3 simulated price touches got at least an hour of warning. Some come faster, so act now if you can.',
     )
     expect(
       atRiskSubtext({ ...AT_RISK_SUBTEXT_CONFIG, medianLeadH: 6, caughtShare: '2 in 3' }),

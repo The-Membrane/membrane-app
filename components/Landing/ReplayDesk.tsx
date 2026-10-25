@@ -38,6 +38,7 @@ export interface ReplayDeskProps {
   isDemo: boolean
   measured: import('@/lib/landing/verdict').MeasuredSide | null
   addressCensus: import('@/lib/landing/census').CensusRow | null
+  shareSlot?: React.ReactNode
 }
 
 type SeriesState = { series: PriceSeries; stamp: string } | { error: string }
@@ -147,6 +148,7 @@ export const ReplayDesk: React.FC<ReplayDeskProps> = (p) => {
         scenarioName={p.scenarioName}
         measured={p.measured}
         addressCensus={p.addressCensus}
+        shareSlot={p.shareSlot}
       />
       {delay && <ForecastPanel delay={delay} history={history} reach={reachSlot} stamp={stamp} isDemo={p.isDemo} />}
     </Box>

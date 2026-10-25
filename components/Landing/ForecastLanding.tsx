@@ -134,6 +134,25 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
   const sizeFirst = r.visitState === 'changed'
 
   const coming = SCENARIOS.filter((x) => x.status === 'coming')
+  const shareRow = (
+        <Box display="flex" flexWrap="wrap" gap={SPACING.md} alignItems="center" data-testid="share-row">
+          <Button {...LINK_BTN} onClick={onCopy} data-testid="share-copy">
+            {copied === 'copied' ? 'Copied' : copied === 'failed' ? 'Copy failed' : 'Copy link'}
+          </Button>
+          {cardHref && (
+            <Text {...kicker}>
+              <a href={cardHref} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }} data-testid="share-card">
+                Result card
+              </a>
+            </Text>
+          )}
+          <Text {...kicker}>
+            <NextLink href={`/ethereum/simulator${r.mode === 'address' && r.shownAddress ? `?a=${r.shownAddress}` : ''}`} style={{ textDecoration: 'underline' }}>
+              Full run
+            </NextLink>
+          </Text>
+        </Box>
+  )
 
   return (
     <Box maxW="1180px" mx="auto" px={{ base: SPACING.base, md: SPACING.lg }} pt={SPACING.xl} pb={SPACING['2xl']} color={SEMANTIC_COLORS.textPrimary} display="grid" gap={SPACING.xl} minW={0}>
@@ -192,8 +211,8 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
       )}
 
       {/* T + O — THE RESULT */}
-      <Box as="section" data-testid="landing-result" display="grid" gap={SPACING.md} minW={0}>
-        <DemoBanner show={r.isDemo} note={`liquidated ${DEMO_BORROWER_DATE}`} />
+      <DemoBanner show={r.isDemo} note={`liquidated ${DEMO_BORROWER_DATE}`} />
+      <Box as="section" data-testid="landing-result" display="grid" gap={SPACING.md} minW={0} mt={r.isDemo ? `-${SPACING.lg}` : undefined}>
         <Box display="flex" flexWrap="wrap" gap={SPACING.sm} alignItems="center" data-testid="scenario-picker" role="radiogroup" aria-label="Stress window">
           {SCENARIOS.filter((x) => x.status === 'live').map((x) => (
             <Button
@@ -214,8 +233,8 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
               {x.label}
             </Button>
           ))}
-          <Text {...small} color={SEMANTIC_COLORS.textTertiary} title={coming.map((x) => `${x.label}: ${x.needs}`).join('\n')} data-testid="scenario-coming">
-            {coming.length} more coming
+          <Text {...small} color={SEMANTIC_COLORS.textTertiary} title={`Coming: ${coming.map((x) => `${x.label} (${x.needs})`).join(' · ')}`} aria-label={`${coming.length} more stress windows coming`} data-testid="scenario-coming">
+            +{coming.length}
           </Text>
         </Box>
 
@@ -240,26 +259,10 @@ export const ForecastLanding: React.FC<ForecastLandingProps> = ({ headline, cens
             isDemo={r.isDemo}
             measured={r.census}
             addressCensus={r.addressCensus}
+            shareSlot={shareRow}
           />
         )}
 
-        <Box display="flex" flexWrap="wrap" gap={SPACING.md} alignItems="center" data-testid="share-row">
-          <Button {...LINK_BTN} onClick={onCopy} data-testid="share-copy">
-            {copied === 'copied' ? 'Copied' : copied === 'failed' ? 'Copy failed' : 'Copy link'}
-          </Button>
-          {cardHref && (
-            <Text {...kicker}>
-              <a href={cardHref} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }} data-testid="share-card">
-                Result card
-              </a>
-            </Text>
-          )}
-          <Text {...kicker}>
-            <NextLink href={`/ethereum/simulator${r.mode === 'address' && r.shownAddress ? `?a=${r.shownAddress}` : ''}`} style={{ textDecoration: 'underline' }}>
-              Full run
-            </NextLink>
-          </Text>
-        </Box>
       </Box>
 
       {/* R — THE REVEAL AND THE TWO DOORS */}

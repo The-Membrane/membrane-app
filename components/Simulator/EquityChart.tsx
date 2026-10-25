@@ -82,6 +82,8 @@ export interface EquityChartProps {
   bare?: boolean
   /** Hide the eyebrow + provenance row (the landing states one stamp line itself). */
   hideHeader?: boolean
+  /** Axis ticks at these minutes (e.g. start, crash, end), labelled where they fall. */
+  tickMinutes?: number[]
 }
 
 const toneColor = (t: ChartMark['tone']) =>
@@ -99,9 +101,12 @@ export const EquityChart: React.FC<EquityChartProps> = ({
   caption,
   bare = false,
   hideHeader = false,
+  tickMinutes,
 }) => {
   const { source, membrane } = comparison
   const count = Math.max(source.equitySeries.length, membrane.equitySeries.length)
+  /** The venue's name without its market detail, for on-plot labels. */
+  const venueShort = comparison.position.label.split(' · ')[0]
   const hatchId = `armed-${useId().replace(/:/g, '')}`
 
   // Zero is always inside the range (chartGeometry.equityRange), so a line reaching the
@@ -118,7 +123,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
   const memRuns = toRuns(membrane.equitySeries, scales, TARGET_POINTS)
 
   const zeroY = yOf(0)
-  const axisTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(f * (count - 1)))
+  const axisTicks = tickMinutes ?? [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(f * (count - 1)))
 
   const markers = (run: typeof source, color: string) =>
     run.events.map((e: SimEvent, k: number) => (
@@ -363,7 +368,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
               px={SPACING.xs}
               {...tabular}
             >
-              {comparison.position.label} · {usd(source.endEquityUsd)}
+              {venueShort} · {usd(source.endEquityUsd)}
             </Text>
             <Text
               as="span"
@@ -379,7 +384,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
               px={SPACING.xs}
               {...tabular}
             >
-              Membrane (simulator) · {usd(membrane.endEquityUsd)}
+              Membrane · {usd(membrane.endEquityUsd)}
             </Text>
           </>
         )}
@@ -389,14 +394,32 @@ export const EquityChart: React.FC<EquityChartProps> = ({
         // Phones: the end values sit under the plot, not on it, so both lines stay visible.
         <Box display={{ base: 'grid', md: 'none' }} gap={SPACING.xs} data-testid="chart-end-legend">
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.textPrimary} {...tabular}>
-            ━ {comparison.position.label} · ends {usd(source.endEquityUsd)}
+            ━ {venueShort} · {usd(source.endEquityUsd)}
           </Text>
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.success} {...tabular}>
-            ━ Membrane (simulator) · ends {usd(membrane.endEquityUsd)}
+            ━ Membrane · {usd(membrane.endEquityUsd)}
           </Text>
         </Box>
       )}
 
+      {tickMinutes ? (
+        <Box position="relative" h="16px" minW={0}>
+          {axisTicks.map((i, k) => (
+            <Text
+              key={`l${i}`}
+              {...monoXs}
+              {...tabular}
+              position="absolute"
+              top={0}
+              left={`${(xOf(i) / W) * 100}%`}
+              transform={k === 0 ? 'none' : k === axisTicks.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)'}
+              whiteSpace="nowrap"
+            >
+              {utcClock(startTs + i * stepSeconds)}
+            </Text>
+          ))}
+        </Box>
+      ) : (
       <Box display="flex" justifyContent="space-between" gap={SPACING.sm}>
         {axisTicks.map((i, k) => (
           <Text
@@ -410,6 +433,7 @@ export const EquityChart: React.FC<EquityChartProps> = ({
           </Text>
         ))}
       </Box>
+      )}
 
       {caption === undefined ? defaultCaption : caption}
     </Box>

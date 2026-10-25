@@ -61,7 +61,7 @@ export function verdictOf(cmp: Comparison, whose: 'this' | 'your', measured: Mea
   const what = `of ${whose} position’s debt`
   const src = cmp.position.label
   let headline: string
-  if (venue < 0.5 && mem < 0.5) headline = `Neither engine would have closed any ${what} on this replay (simulator).`
+  if (venue < 0.5 && mem < 0.5) headline = `Neither engine would have closed any ${what} (simulator).`
   else if (Math.abs(less) < 0.5) headline = `Membrane would have closed the same ${usd(mem)} ${what} (simulator).`
   else headline = `Membrane would have closed ${usd(less)} ${less > 0 ? 'less' : 'more'} ${what} (simulator).`
   const detail = measured

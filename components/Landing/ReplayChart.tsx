@@ -39,6 +39,8 @@ export interface ReplayChartProps {
   delay: Slot<DelayStep[]> | null
   errors: string[]
   scenarioName: string
+  /** Share actions, rendered inside the result's one Details (copy budget). */
+  shareSlot?: React.ReactNode
   /** The census figures when the replayed position is the census position (the demo). */
   measured: MeasuredSide | null
   /** A live address's own census row: a different (Oct 10) position, shown as its own line. */
@@ -74,6 +76,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
   delay,
   errors,
   scenarioName,
+  shareSlot,
   measured,
   addressCensus,
 }) => {
@@ -100,11 +103,22 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
   // Size lines show only when there is a line to draw (copy budget). Assets without a
   // measured depth say so in Details, not on the page.
   const drawn = skews.filter((x) => x.drawable && x.endCostPer1xUsd !== null)
+  // Three axis ticks: start, the crash (the venue's lowest-equity minute), end.
+  const tickMinutes = useMemo(() => {
+    if (!comparison) return undefined
+    const eq = comparison.source.equitySeries
+    let lo = 0
+    for (let i = 1; i < eq.length; i++) if ((eq[i] ?? Infinity) < (eq[lo] ?? Infinity)) lo = i
+    const end = eq.length - 1
+    // A low at either end is not a crash between them: two ticks then.
+    return lo > end * 0.1 && lo < end * 0.9 ? [0, lo, end] : [0, end]
+  }, [comparison])
+
   const skewBlock = comparison && drawn.length > 0 && (
     <Box data-testid="landing-size-skew" display="grid" gap={SPACING.xs}>
       {drawn.map((x) => (
         <Text key={x.multiple} {...small} {...tabularNums} color={SEMANTIC_COLORS.textPrimary}>
-          {x.multiple}× size · exit cost {usd(x.endCostPer1xUsd as number)} per 1× (modelled)
+          {x.multiple}×: −{usd(x.endCostPer1xUsd as number)} per 1× (modelled)
         </Text>
       ))}
     </Box>
@@ -161,7 +175,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
             {verdictOf(comparison, whose, measured).headline}
           </Text>
           <Text {...credit} textAlign="left" data-testid="landing-stamp">
-            {measured ? 'Aave measured' : `${comparison.position.label} modelled`} · Membrane simulator · oracle 1-min
+            {measured ? 'Aave measured' : `${comparison.position.label.split(' · ')[0]} modelled`} · oracle 1-min
           </Text>
 
           {sizeFirst && skewBlock}
@@ -172,6 +186,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
               startTs={startTs}
               stepSeconds={stepSeconds}
               hideHeader
+              tickMinutes={tickMinutes}
               marks={eventMarks(comparison)}
               bands={windows.map((w) => ({ start: w.start, end: w.end }))}
               ghosts={ghosts}
@@ -180,9 +195,9 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
               caption={
                 <Text {...small} {...tabularNums} data-testid="landing-chart-key">
                   <Text as="span" color={SEMANTIC_COLORS.danger}>✖ sold</Text>
-                  {' · '}
-                  <Text as="span" color={SEMANTIC_COLORS.warning}>░ {CURE_WINDOW_HOURS}h window</Text>
-                  {' · '}
+                  {' '}
+                  <Text as="span" color={SEMANTIC_COLORS.warning}>░ window</Text>
+                  {' '}
                   <Text as="span" color={SEMANTIC_COLORS.success}>● cured</Text>
                 </Text>
               }
@@ -192,6 +207,7 @@ export const ReplayChart: React.FC<ReplayChartProps> = ({
           {!sizeFirst && skewBlock}
 
           <Details testId="landing-result-details">
+            {shareSlot}
             <DetailLine>{verdictOf(comparison, whose, measured).detail}</DetailLine>
             {addressCensus && (
               <DetailLine>

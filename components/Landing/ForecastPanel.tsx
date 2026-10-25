@@ -69,92 +69,111 @@ const Block: React.FC<{ title: string; testId: string; children: React.ReactNode
   </Box>
 )
 
+/** Plain text of one reading, for the Details list. */
+const readingText = (s: Shown, upperBound = false): string =>
+  s.kind === 'probability'
+    ? `${fmtHorizon(s.horizonH)} · ${upperBound ? '≥ ' : ''}−${Math.abs(s.levelPct)}% · ${s.text} · ${s.label}${s.caveat ? ` · ${s.caveat}` : ''}`
+    : s.kind === 'count'
+      ? s.text
+      : ''
+
 export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, reach, stamp, isDemo }) => {
   const zone = useLocalZone()
-  const caveats = new Set<string>()
-  const collect = (r: Shown) => {
-    if (r.kind === 'probability') {
-      caveats.add(r.label)
-      if (r.caveat) caveats.add(r.caveat)
+  const more: string[] = []
+
+  // ---- In the window: one reading on the page, the rest in Details.
+  let delayHead: React.ReactNode = null
+  if (delay.status === 'ready') {
+    let shownOne = false
+    for (const step of delay.value) {
+      const when = fmtLocalDayClock(step.ts, zone)
+      const rows = (step.reach?.rows ?? []).filter((row) => shown(row.result).kind !== 'none')
+      const where = step.alreadyPast
+        ? 'already past the sale point'
+        : step.toBreakPct === null
+          ? 'no price'
+          : `sale point −${Math.floor(Math.abs(step.toBreakPct))}%`
+      if (!shownOne && (step.alreadyPast || rows.length > 0)) {
+        shownOne = true
+        delayHead = (
+          <>
+            <Text {...small} {...tabularNums}>
+              {when} · {where}
+            </Text>
+            {rows[0] && <ShownLine s={shown(rows[0].result)} upperBound={rows[0].isUpperBound} />}
+          </>
+        )
+        rows.slice(1).forEach((row) => more.push(`In the window, ${when}: ${readingText(shown(row.result), row.isUpperBound)}`))
+      } else {
+        if (rows.length === 0) more.push(`In the window, ${when}: ${where}`)
+        rows.forEach((row) => more.push(`In the window, ${when}: ${where} · ${readingText(shown(row.result), row.isUpperBound)}`))
+      }
     }
   }
+
+  // ---- History: one reading on the page.
+  let historyHead: React.ReactNode = null
+  if (history.status === 'ready') {
+    history.value.forEach((h, k) => {
+      const when = `${fmtLocalDayClock(h.episodeStartTs, zone)} · ${h.collateral} liquidated`
+      const res = h.results.filter((r) => r.kind !== 'none')
+      if (k === 0) {
+        historyHead = (
+          <>
+            <Text {...small} {...tabularNums}>
+              {when}
+            </Text>
+            {res[0] && <ShownLine s={res[0]} />}
+          </>
+        )
+        res.slice(1).forEach((r) => more.push(`History, ${when}: ${readingText(r)}`))
+      } else {
+        res.forEach((r) => more.push(`History, ${when}: ${readingText(r)}`))
+      }
+    })
+  }
+
+  // ---- From today: one reading on the page.
+  let reachHead: React.ReactNode = null
+  if (reach.status === 'ready') {
+    const rv = reach.value
+    if (rv.reach.throughLine) {
+      reachHead = (
+        <Text {...small} color={SEMANTIC_COLORS.textPrimary} data-testid="forecast-act-now">
+          {isDemo ? 'Demo: through its line. Act now.' : 'Through your line. Act now.'}
+        </Text>
+      )
+    } else {
+      const inside = rv.reach.rows.filter((row) => row.status === 'inside' && shown(row.result).kind !== 'none')
+      const beyond = rv.reach.rows.filter((row) => row.status === 'beyond').map((row) => fmtHorizon(row.horizonH))
+      reachHead = (
+        <>
+          <Text {...small} {...tabularNums}>
+            {isDemo ? 'Demo line' : 'Your line'} −{Math.floor(Math.abs(rv.distancePct ?? 0))}%
+          </Text>
+          {inside[0] ? (
+            <ShownLine s={shown(inside[0].result)} upperBound={inside[0].isUpperBound} />
+          ) : beyond.length > 0 ? (
+            <Text {...small}>out of model range</Text>
+          ) : null}
+        </>
+      )
+      inside.slice(1).forEach((row) => more.push(`From today: ${readingText(shown(row.result), row.isUpperBound)}`))
+      if (beyond.length) more.push(`From today: the line is past what the model may speak about at ${beyond.join(', ')}.`)
+    }
+  }
+
   return (
     <Box as="section" aria-label="Forecast layer" data-testid="landing-forecast" display="grid" gap={SPACING.md}>
       <Box display="grid" gap={SPACING.md} gridTemplateColumns={{ base: 'minmax(0, 1fr)', lg: 'repeat(3, minmax(0, 1fr))' }}>
         <Block title="In the window" testId="forecast-delay">
-          {delay.status === 'pending' ? (
-            <Pending reason={delay.reason} />
-          ) : (
-            delay.value.map((step) => {
-              const rows = (step.reach?.rows ?? []).filter((row) => shown(row.result).kind !== 'none').slice(0, 3)
-              rows.forEach((row) => collect(shown(row.result)))
-              return (
-                <Box key={step.minute}>
-                  <Text {...small} {...tabularNums}>
-                    {fmtLocalDayClock(step.ts, zone)} ·{' '}
-                    {step.alreadyPast
-                      ? 'already past the sale point'
-                      : step.toBreakPct === null
-                        ? 'no price'
-                        : `sale point −${Math.floor(Math.abs(step.toBreakPct))}%`}
-                  </Text>
-                  {!step.alreadyPast && step.toBreakPct !== null &&
-                    rows.map((row) => <ShownLine key={row.horizonH} s={shown(row.result)} upperBound={row.isUpperBound} />)}
-                </Box>
-              )
-            })
-          )}
+          {delay.status === 'pending' ? <Pending reason={delay.reason} /> : delayHead ?? <Pending reason="no displayable reading" />}
         </Block>
-
         <Block title={isDemo ? 'Its history' : 'Your history'} testId="forecast-history">
-          {history.status === 'pending' ? (
-            <Pending reason={history.reason} />
-          ) : (
-            history.value.map((h) => {
-              h.results.forEach(collect)
-              return (
-                <Box key={h.episodeStartTs}>
-                  <Text {...small} {...tabularNums}>
-                    {fmtLocalDayClock(h.episodeStartTs, zone)} · {h.collateral} · liquidated
-                  </Text>
-                  {h.results.slice(0, 3).map((s, k) => (
-                    <ShownLine key={k} s={s} />
-                  ))}
-                </Box>
-              )
-            })
-          )}
+          {history.status === 'pending' ? <Pending reason={history.reason} /> : historyHead}
         </Block>
-
         <Block title="From today" testId="forecast-reach">
-          {reach.status === 'pending' ? (
-            <Pending reason={reach.reason} />
-          ) : reach.value.reach.throughLine ? (
-            <Text {...small} color={SEMANTIC_COLORS.textPrimary} data-testid="forecast-act-now">
-              {isDemo ? 'Demo position: through its line at today’s price. Act now.' : 'Through your line at today’s price. Act now.'}
-            </Text>
-          ) : (
-            <>
-              <Text {...small} {...tabularNums}>
-                {isDemo ? 'Demo line' : 'Your line'} −{Math.floor(Math.abs(reach.value.distancePct ?? 0))}% from spot
-              </Text>
-              {reach.value.reach.rows
-                .filter((row) => row.status === 'inside')
-                .map((row) => {
-                  collect(shown(row.result))
-                  return <ShownLine key={row.horizonH} s={shown(row.result)} upperBound={row.isUpperBound} />
-                })}
-              {reach.value.reach.rows.some((row) => row.status === 'beyond') && (
-                <Text {...small} {...tabularNums}>
-                  {reach.value.reach.rows
-                    .filter((row) => row.status === 'beyond')
-                    .map((row) => fmtHorizon(row.horizonH))
-                    .join(' · ')}
-                  : out of range
-                </Text>
-              )}
-            </>
-          )}
+          {reach.status === 'pending' ? <Pending reason={reach.reason} /> : reachHead}
         </Block>
       </Box>
       {stamp && <Text {...credit} textAlign="left">{stamp}</Text>}
@@ -162,11 +181,11 @@ export const ForecastPanel: React.FC<ForecastPanelProps> = ({ delay, history, re
         <DetailLine>
           † Forecasts are of the Binance spot price touching a level within a horizon, not of your venue’s oracle. Each reading
           shows only what its registry cell allows (Q26 confidence map); not a guarantee. “≥ −X%” is the nearest level the
-          model may show, an upper bound for a deeper line. “In the window” reads each hour of the armed {''}
-          window from the engine’s spot; “From today” uses the position’s amounts at the latest spot.
+          model may show, an upper bound for a deeper line. “In the window” reads each hour of the armed window from the
+          engine’s spot; “From today” uses the position’s amounts at the latest spot.
         </DetailLine>
-        {Array.from(caveats).map((c) => (
-          <DetailLine key={c}>{c}</DetailLine>
+        {more.map((m, k) => (
+          <DetailLine key={k}>{m}</DetailLine>
         ))}
         {delay.status === 'pending' && <DetailLine>In the window: {delay.reason}</DetailLine>}
         {history.status === 'pending' && <DetailLine>History: {history.reason}</DetailLine>}

@@ -80,9 +80,9 @@ describe('config', () => {
     expect(AT_RISK_RULE).toEqual({ threshold: 0.03, rearmDistance: 0.1, evaluationIntervalS: H })
     expect(AT_RISK_SUBTEXT_CONFIG.provenance).toMatchObject({
       data: 'development',
-      dataset: 'Aave V3 Polygon, 2023–2026',
-      ruling: 'Q26-R27 60fb0e6',
-      review: 'c59f67f; copy corrected by the R29 review f6092e8',
+      dataset: 'Aave V3 Polygon, Arbitrum and Optimism, 2023–2026 (simulated price touches)',
+      ruling: 'Q26-R27 60fb0e6; replications Q26-R30 1f76bc9 and Q26-R31 4d6d6a0',
+      review: 'c59f67f, f6092e8, 57653f4, 769f616',
     })
   })
 
@@ -91,8 +91,8 @@ describe('config', () => {
       'Past data: alerts at this level came a median of 10 hours before liquidation, and about 2 in 3 simulated price touches got at least an hour of warning. Some come faster, so act now if you can.',
     )
     expect(
-      atRiskSubtext({ ...AT_RISK_SUBTEXT_CONFIG, medianLeadH: 6, caughtShare: '2 in 3' }),
-    ).toContain('median of 6 hours before liquidation and caught about 2 in 3 liquidations')
+      atRiskSubtext({ ...AT_RISK_SUBTEXT_CONFIG, medianLeadH: 6, caughtShare: '3 in 4' }),
+    ).toContain('median of 6 hours before liquidation, and about 3 in 4 simulated price touches')
     expect(AT_RISK_SUBTEXT.text).not.toMatch(PROBABILITY)
     expect(AT_RISK_SUBTEXT.text).not.toMatch(/you have \d+ hours/i)
   })

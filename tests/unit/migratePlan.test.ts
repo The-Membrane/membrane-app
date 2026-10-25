@@ -58,9 +58,9 @@ describe('buildMigrationPlan — ready', () => {
     expect(plan.move[0]).toMatchObject({ symbol: 'WETH', amount: src.collateral[0].amount })
     const keys = plan.rows.map((r) => r.key)
     expect(keys).toEqual(['repay-USDC', 'move-WETH', 'ltv', 'borrow', 'flash-fee', 'gas'])
-    expect(plan.rows.find((r) => r.key === 'ltv')!.value).toBe('68.5%')
+    expect(plan.rows.find((r) => r.key === 'ltv')!.value).toBe('68.5% (max 76.5%)')
     expect(plan.rows.find((r) => r.key === 'ltv')!.detail).toContain('opens at most 76.5%')
-    expect(plan.rows.find((r) => r.key === 'gas')!.value).toBe('after simulation')
+    expect(plan.rows.find((r) => r.key === 'gas')!.value).toBe('—')
     expect(plan.rows.find((r) => r.key === 'repay-USDC')!.detail).toContain(`${ACCRUAL_BUFFER_BPS} bps`)
   })
 
@@ -72,8 +72,8 @@ describe('buildMigrationPlan — ready', () => {
       ],
     })
     const g = plan.rows.find((r) => r.key === 'gas')!
-    expect(g.value).toBe('1,234,567 units')
-    expect(g.detail).toBe('operator grant 50,000 · migrate 1,184,567 · simulated, +5% each')
+    expect(g.value).toBe('1,234,567')
+    expect(g.detail).toBe('Gas per step: operator grant 50,000 · migrate 1,184,567 (simulated, +5% each).')
   })
 
   it('the on-chain max LTV overrides the modelled one', () => {
@@ -115,6 +115,25 @@ describe('the Membrane LTV gate', () => {
     expect(plan.trim!.reason).toMatch(/Repay \$1,103 on the venue first, or add \$1,442 of collateral/)
     expect(plan.rows.find((r) => r.key === 'ltv')!.tone).toBe('danger')
     expect((borrowed - plan.trim!.debtUsd) / 20_000).toBeCloseTo(cap, 12)
+  })
+})
+
+describe('copy budget (visible text)', () => {
+  const words = (t: string) => t.split(/\s+/).filter(Boolean).length
+  it('rows are ≤ 3-word labels with short values', () => {
+    for (const plan of [buildMigrationPlan(demoBorrowerPosition()), buildDeployPlan(position())]) {
+      for (const r of plan.rows) expect(words(r.label)).toBeLessThanOrEqual(3)
+    }
+  })
+  it('steps are ≤ 2 words; blockers and trims are ≤ 12', () => {
+    for (const v of ['aave-v3', 'morpho-blue'] as const) for (const s of signatureSteps(v)) expect(words(s.short)).toBeLessThanOrEqual(2)
+    const blocked = [
+      buildMigrationPlan(position({ debtSymbol: 'USDT' })),
+      buildMigrationPlan(position({ protocol: 'spark', label: 'Spark' })),
+      buildMigrationPlan(position({ protocol: 'compound-v3', label: 'Compound V3' })),
+    ]
+    for (const b of blocked) expect(words(b.blockedShort!)).toBeLessThanOrEqual(12)
+    expect(words(buildMigrationPlan(position({ debtUsd: 16_400 })).trim!.short)).toBeLessThanOrEqual(12)
   })
 })
 

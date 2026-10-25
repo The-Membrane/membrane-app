@@ -19,7 +19,7 @@ export const MigrateSheet: React.FC<MigrateSheetProps & { inline?: boolean }> = 
       inline={inline}
       plan={flow.plan}
       phase={flow.phase}
-      sourceStamp={sourceStamp(position, flow.readOnChain)}
+      {...sourceStamp(position, flow.readOnChain)}
       promptIds={flow.promptIds}
       addresses={flow.addresses}
       onStart={flow.start}

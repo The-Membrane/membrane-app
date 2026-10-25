@@ -33,8 +33,11 @@ export type RowTone = 'default' | 'warn' | 'danger' | 'muted'
  *  the plain-language line under it. Every number comes from the position or a constant. */
 export interface PlanRow {
   key: string
+  /** ≤ 3 words. */
   label: string
+  /** Short, mono, right-aligned. */
   value: string
+  /** Shown only in Details. */
   detail?: string
   tone?: RowTone
 }
@@ -44,6 +47,9 @@ export interface SignatureStep {
   id: string
   /** 'tx' costs gas; 'typed-data' is an off-chain signature (permit / authorization). */
   kind: 'tx' | 'typed-data'
+  /** ≤ 2 words, the visible step line (`01 Sign aToken permit`). */
+  short: string
+  /** The full line, shown in Details. */
   label: string
   /** Plain reason this step is needed. */
   why: string
@@ -71,6 +77,9 @@ export interface PlanTrim {
   debtUsd: number
   /** The Membrane borrow LTV the trim targets. */
   targetLtv: number
+  /** ≤ 12 words, visible. */
+  short: string
+  /** The full explanation, shown in Details. */
   reason: string
 }
 
@@ -103,8 +112,10 @@ export interface MigrationPlan {
   fees: PlanFees
   /** Set when the old LTV is above Membrane's borrow LTV and a trim makes it fit. */
   trim: PlanTrim | null
-  /** Set when the plan cannot run at all. Plain reason, shown verbatim. */
+  /** Set when the plan cannot run at all. Full reason (Details). */
   blocked: string | null
+  /** ≤ 12 words, visible, when blocked. */
+  blockedShort: string | null
   signatures: SignatureStep[]
   rows: PlanRow[]
 }

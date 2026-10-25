@@ -17,7 +17,7 @@ export const DeploySheet: React.FC<DeploySheetProps & { inline?: boolean }> = ({
   const moved = flow.plan.move[0]
   const notes =
     flow.readOnChain && replayed && moved && moved.amount < replayed.amount
-      ? [`Capped at your wallet: it holds ${moved.amount.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${moved.symbol}; the replay held ${replayed.amount.toLocaleString('en-US', { maximumFractionDigits: 2 })}.`]
+      ? [`Deposit capped at your wallet: it holds ${moved.amount.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${moved.symbol}; the replay held ${replayed.amount.toLocaleString('en-US', { maximumFractionDigits: 2 })}.`]
       : undefined
   return (
     <SlipView
@@ -25,7 +25,7 @@ export const DeploySheet: React.FC<DeploySheetProps & { inline?: boolean }> = ({
       inline={inline}
       plan={flow.plan}
       phase={flow.phase}
-      sourceStamp={sourceStamp(position, flow.readOnChain)}
+      {...sourceStamp(position, flow.readOnChain)}
       promptIds={flow.promptIds}
       addresses={flow.addresses}
       notes={notes}

@@ -27,31 +27,35 @@ import { useMigrateHarness, type MigrateEnv } from './harness'
 
 export type Phase =
   | { k: 'demo' }
-  | { k: 'wrong-chain'; reason: string }
-  | { k: 'no-deployment'; reason: string }
-  | { k: 'blocked'; reason: string }
+  | { k: 'wrong-chain'; reason: string; detail?: string }
+  | { k: 'no-deployment'; reason: string; detail?: string }
+  | { k: 'blocked'; reason: string; detail?: string }
   | { k: 'reading' }
   | { k: 'ready' }
-  | { k: 'trim'; reason: string }
+  | { k: 'trim'; reason: string; detail?: string }
   | { k: 'simulating' }
   | { k: 'simulated'; gas: bigint }
-  | { k: 'sim-failed'; reason: string }
+  | { k: 'sim-failed'; reason: string; detail?: string }
   | { k: 'signing'; id: string; index: number; total: number }
   | { k: 'submitted'; hash: `0x${string}`; id: string }
   | { k: 'settled'; hash: `0x${string}`; note?: string; revoke?: 'idle' | 'running' | 'done' | 'failed' }
-  | { k: 'failed'; reason: string; hash: `0x${string}` | null }
+  | { k: 'failed'; reason: string; detail?: string; hash: `0x${string}` | null }
 
-/** Plain language for the custom errors a bundle can surface; the raw name stays in brackets. */
+/** ≤ 12 words: the custom error in plain language, with its name. Unknown reasons are cut to 12
+ *  words; the full text goes to Details via the phase's `detail`. */
 export function explainRevert(reason: string): string {
   const named: [RegExp, string][] = [
-    [/InsolventAfterAction|PositionUnsolventPostOp/, 'Membrane would refuse to open the position at this LTV'],
-    [/NotOperator/, 'the migration adapter is not allowed on your Membrane positions yet'],
-    [/BorrowAboveCap/, 'the venue debt grew past the borrow cap you signed'],
-    [/NotPegPaired|TransmuterNotWired/, 'Membrane on this chain cannot pay the borrow out in the debt asset'],
-    [/User rejected|denied/i, 'the wallet prompt was rejected'],
+    [/InsolventAfterAction|PositionUnsolventPostOp/, 'Membrane refuses this LTV. Repay a little first.'],
+    [/LtvAboveCap/, 'Over the on-chain LTV cap. Repay a little first.'],
+    [/NotOperator/, 'Adapter not granted yet.'],
+    [/PayoutMismatch/, 'Membrane payout differed; nothing moved.'],
+    [/NotPegPaired|TransmuterNotWired/, 'Membrane here can’t pay out USDC.'],
+    [/User rejected|denied/i, 'Wallet prompt rejected.'],
   ]
   const hit = named.find(([re]) => re.test(reason))
-  return hit ? `${hit[1]} (${reason.split('(')[0]})` : reason
+  if (hit) return hit[1]
+  const words = reason.split(/\s+/).filter(Boolean)
+  return words.length <= 12 ? reason : `${words.slice(0, 11).join(' ')}…`
 }
 
 const chainName = (id: number | undefined, label?: string) => label ?? (id === 1 ? 'Ethereum' : id === undefined ? 'no chain' : `chain ${id}`)
@@ -107,12 +111,18 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
     setReadOnChain(null)
     setPromptIds(null)
     if (env.isDemo) return setPhase({ k: 'demo' })
-    if (basePlan.blocked) return setPhase({ k: 'blocked', reason: basePlan.blocked })
+    if (basePlan.blocked) return setPhase({ k: 'blocked', reason: basePlan.blockedShort ?? basePlan.blocked, detail: basePlan.blocked })
     if (!cfg) {
-      return setPhase({ k: 'wrong-chain', reason: `Your wallet is on ${env.chainLabel}, where Membrane has no deployment. Switch to a chain with one.` })
+      return setPhase({
+        k: 'wrong-chain',
+        reason: `Wallet on ${env.chainLabel}. Switch to a Membrane network.`,
+        detail: `Your wallet is on ${env.chainLabel}, where Membrane has no deployment.`,
+      })
     }
     const ready = readiness(cfg, env.chainLabel, kind === 'migrate' ? basePlan.venue : null)
-    if (!ready.ok) return setPhase({ k: 'no-deployment', reason: ready.reason })
+    if (!ready.ok) {
+      return setPhase({ k: 'no-deployment', reason: cfg.chainId === 1 ? 'Not on mainnet yet' : 'No Membrane here yet', detail: ready.reason })
+    }
     if (!env.publicClient || !env.address) return setPhase({ k: 'reading' })
     const client = env.publicClient
     const owner = env.address
@@ -133,14 +143,18 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
               .map((s) => s.id),
           )
           if (!p.trim && borrowLtvWad(r) > r.maxLtvWad) {
-            return setPhase({ k: 'trim', reason: `The borrow would open at ${(Number(borrowLtvWad(r)) / 1e16).toFixed(2)}%, over the ${(Number(r.maxLtvWad) / 1e16).toFixed(2)}% cap checked on-chain. Repay a little on the venue first.` })
+            return setPhase({
+              k: 'trim',
+              reason: 'Over the on-chain LTV cap. Repay a little first.',
+              detail: `The borrow would open at ${(Number(borrowLtvWad(r)) / 1e16).toFixed(2)}%, over the ${(Number(r.maxLtvWad) / 1e16).toFixed(2)}% cap the adapter checks on-chain.`,
+            })
           }
-          if (p.trim) return setPhase({ k: 'trim', reason: p.trim.reason })
+          if (p.trim) return setPhase({ k: 'trim', reason: p.trim.short, detail: p.trim.reason })
           if (env.holdBeforeSimulate) return setPhase({ k: 'ready' })
           setPhase({ k: 'simulating' })
           const sim = await simulatePreSign(client, cfg, r)
           if (cancelled) return
-          if (!sim.ok) return setPhase({ k: 'sim-failed', reason: explainRevert(sim.reason) })
+          if (!sim.ok) return setPhase({ k: 'sim-failed', reason: explainRevert(sim.reason), detail: sim.reason })
           setPlan(buildMigrationPlan(onchainSource(position, r, cfg.label), { ...planOptsFor(r), gasSteps: sim.steps }))
           setPhase({ k: 'simulated', gas: sim.bufferedGas })
         } else {
@@ -156,12 +170,12 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
           setPhase({ k: 'simulating' })
           const sim = await simulateDeploy(client, cfg, d)
           if (cancelled) return
-          if (!sim.ok) return setPhase({ k: 'sim-failed', reason: explainRevert(sim.reason) })
+          if (!sim.ok) return setPhase({ k: 'sim-failed', reason: explainRevert(sim.reason), detail: sim.reason })
           setPlan(buildDeployPlan(deployed, { onchainMaxLtv: Number(d.maxLtvOnchainWad) / 1e18, gasSteps: sim.steps }))
           setPhase({ k: 'simulated', gas: sim.bufferedGas })
         }
       } catch (err) {
-        if (!cancelled) setPhase({ k: 'blocked', reason: `Reading ${cfg.label} failed: ${err instanceof Error ? err.message : String(err)}` })
+        if (!cancelled) setPhase({ k: 'blocked', reason: `Reading ${cfg.label} failed. Try again.`, detail: err instanceof Error ? err.message : String(err) })
       }
     })()
     return () => {
@@ -190,14 +204,15 @@ export function useMigrateFlow(kind: 'migrate' | 'deploy', position: MigrateSour
                 revoke: kind === 'migrate' ? 'idle' : undefined,
                 note:
                   res.sourceDebtAfter !== undefined && res.sourceDebtAfter > 0n
-                    ? `The venue still shows ${res.sourceDebtAfter.toString()} base units of debt (dust). Repay it on the venue.`
-                    : kind === 'migrate'
-                      ? 'The venue debt reads 0 after the repay.'
-                      : undefined,
+                    ? `Venue dust debt left: ${res.sourceDebtAfter.toString()} units. Repay it there.`
+                    : undefined,
               }
-            : { k: 'failed', reason: explainRevert(res.reason ?? 'failed'), hash: res.bundleHash },
+            : { k: 'failed', reason: explainRevert(res.reason ?? 'failed'), detail: res.reason, hash: res.bundleHash },
         ),
-      (err) => setPhase({ k: 'failed', reason: explainRevert(err instanceof Error ? (err as { shortMessage?: string }).shortMessage ?? err.message : String(err)), hash: null }),
+      (err) => {
+        const msg = err instanceof Error ? (err as { shortMessage?: string }).shortMessage ?? err.message : String(err)
+        setPhase({ k: 'failed', reason: explainRevert(msg), detail: msg, hash: null })
+      },
     ).finally(() => {
       running.current = false
     })

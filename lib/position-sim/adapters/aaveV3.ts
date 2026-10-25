@@ -21,8 +21,8 @@
  */
 
 import { getMainnetClient, rpcLabel, toNumber } from '../rpc'
-import { stamp, type CollateralLeg, type DebtLeg, type ProtocolId, type ProtocolPosition } from '../types'
-import { decimalsFromScale, mc, optional, ratio, unwrap, type Call, type LendingAdapter } from './types'
+import { stamp, type CollateralLeg, type DebtLeg, type LendMarketState, type ProtocolId, type ProtocolPosition, type SuppliedLeg } from '../types'
+import { decimalsFromScale, mc, optional, pinBlock, ratio, unwrap, type Call, type LendingAdapter } from './types'
 
 // ----------------------------------------------------------------------- ABIs
 
@@ -47,7 +47,71 @@ const poolAbi = [
       { name: 'healthFactor', type: 'uint256' },
     ],
   },
+  {
+    // Aave v3.3+: debt a liquidation left with no collateral behind it, not yet covered.
+    type: 'function',
+    name: 'getReserveDeficit',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
 ] as const
+
+const poolLiquidityAbi = [
+  // v3.1+: the reserve's real cash (aToken claims minus the deficit and debt are not cash).
+  { type: 'function', name: 'getVirtualUnderlyingBalance', stateMutability: 'view', inputs: [{ name: 'asset', type: 'address' }], outputs: [{ type: 'uint128' }] },
+] as const
+const reserveTokensAbi = [
+  {
+    type: 'function',
+    name: 'getReserveTokensAddresses',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [
+      { name: 'aTokenAddress', type: 'address' },
+      { name: 'stableDebtTokenAddress', type: 'address' },
+      { name: 'variableDebtTokenAddress', type: 'address' },
+    ],
+  },
+] as const
+const balanceOfAbi = [
+  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
+] as const
+/** Aave Umbrella: the staked backstop that may be slashed to cover a reserve's deficit. */
+const umbrellaAbi = [
+  { type: 'function', name: 'getPendingDeficit', stateMutability: 'view', inputs: [{ name: 'r', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'getDeficitOffset', stateMutability: 'view', inputs: [{ name: 'r', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'isReserveSlashable', stateMutability: 'view', inputs: [{ name: 'r', type: 'address' }], outputs: [{ type: 'bool' }, { type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'getReserveSlashingConfigs',
+    stateMutability: 'view',
+    inputs: [{ name: 'r', type: 'address' }],
+    outputs: [
+      {
+        type: 'tuple[]',
+        components: [
+          { name: 'umbrellaStake', type: 'address' },
+          { name: 'umbrellaStakeUnderlyingOracle', type: 'address' },
+          { name: 'liquidationFee', type: 'uint256' },
+        ],
+      },
+    ],
+  },
+] as const
+const erc4626Abi = [
+  { type: 'function', name: 'totalAssets', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'asset', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+  { type: 'function', name: 'convertToAssets', stateMutability: 'view', inputs: [{ name: 's', type: 'uint256' }], outputs: [{ type: 'uint256' }] },
+] as const
+
+/** Aave V3 mainnet Umbrella (checked 2026-10-17: POOL() is the Aave V3 Pool). */
+export const AAVE_UMBRELLA_MAINNET = '0xD400fc38ED4732893174325693a63C30ee3881a8' as const
+
+const multicall3TsAbi = [
+  { type: 'function', name: 'getCurrentBlockTimestamp', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+] as const
+const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11' as const
 
 const dataProviderAbi = [
   {
@@ -127,6 +191,200 @@ const dataProviderAbi = [
   },
 ] as const
 
+/**
+ * E-MODE. A borrower in an efficiency-mode category is liquidated at the CATEGORY's
+ * threshold for every collateral asset in that category, not at the reserve's own (which
+ * can be 0 for an asset that is collateral only inside e-mode). Two layouts are live:
+ *   v3.2+ (Aave V3 mainnet)   getEModeCategoryCollateralConfig + a per-category collateral
+ *                             bitmap indexed by reserve id (Pool.getReserveData(asset).id)
+ *   v3.0/3.1 (Spark)          getEModeCategoryData + the asset's own category
+ *                             (PoolDataProvider.getReserveEModeCategory)
+ * Both verified on mainnet 2026-10-14 (0x902f…eb38: category 47, legs reproduce the
+ * protocol health factor 1.02940 exactly).
+ */
+const emodePoolAbi = [
+  { type: 'function', name: 'getUserEMode', stateMutability: 'view', inputs: [{ name: 'user', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'getEModeCategoryCollateralConfig',
+    stateMutability: 'view',
+    inputs: [{ name: 'id', type: 'uint8' }],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'ltv', type: 'uint16' },
+          { name: 'liquidationThreshold', type: 'uint16' },
+          { name: 'liquidationBonus', type: 'uint16' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'function',
+    name: 'getEModeCategoryCollateralBitmap',
+    stateMutability: 'view',
+    inputs: [{ name: 'id', type: 'uint8' }],
+    outputs: [{ type: 'uint128' }],
+  },
+  {
+    type: 'function',
+    name: 'getEModeCategoryData',
+    stateMutability: 'view',
+    inputs: [{ name: 'id', type: 'uint8' }],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'ltv', type: 'uint16' },
+          { name: 'liquidationThreshold', type: 'uint16' },
+          { name: 'liquidationBonus', type: 'uint16' },
+          { name: 'priceSource', type: 'address' },
+          { name: 'label', type: 'string' },
+        ],
+      },
+    ],
+  },
+  {
+    // Only `id` is used; the struct is ReserveDataLegacy (v3.2) / ReserveData (v3.0).
+    type: 'function',
+    name: 'getReserveData',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'configuration', type: 'uint256' },
+          { name: 'liquidityIndex', type: 'uint128' },
+          { name: 'currentLiquidityRate', type: 'uint128' },
+          { name: 'variableBorrowIndex', type: 'uint128' },
+          { name: 'currentVariableBorrowRate', type: 'uint128' },
+          { name: 'currentStableBorrowRate', type: 'uint128' },
+          { name: 'lastUpdateTimestamp', type: 'uint40' },
+          { name: 'id', type: 'uint16' },
+          { name: 'aTokenAddress', type: 'address' },
+          { name: 'stableDebtTokenAddress', type: 'address' },
+          { name: 'variableDebtTokenAddress', type: 'address' },
+          { name: 'interestRateStrategyAddress', type: 'address' },
+          { name: 'accruedToTreasury', type: 'uint128' },
+          { name: 'unbacked', type: 'uint128' },
+          { name: 'isolationModeTotalDebt', type: 'uint128' },
+        ],
+      },
+    ],
+  },
+] as const
+
+const emodeDataProviderAbi = [
+  {
+    type: 'function',
+    name: 'getReserveEModeCategory',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
+] as const
+
+export interface EModeThresholds {
+  category: number
+  /** Which layout answered. */
+  layout: 'v3.2 bitmap' | 'v3.0 category'
+  /** Lowercased token → the category threshold and LTV, for in-category collateral only. */
+  inCategory: Map<string, { lt: number; ltv: number }>
+  /** v3.0 categories may price their assets from a separate source; noted, not applied. */
+  priceSource: string | null
+}
+
+/** Is reserve `id` set in an e-mode collateral bitmap? */
+export const inBitmap = (bitmap: bigint, id: number): boolean => ((bitmap >> BigInt(id)) & 1n) === 1n
+
+/** One collateral leg the e-mode read must classify: its token and its RESERVE threshold. */
+export interface EModeCollateral {
+  token: `0x${string}`
+  /** The reserve's own liquidation threshold (fraction), before any e-mode. */
+  reserveLt: number
+}
+
+export interface EModeReadInput {
+  client: ReturnType<typeof getMainnetClient>
+  /** The read's pinned block (adapters/types.ts pinBlock). */
+  block: bigint | null
+  pool: `0x${string}`
+  dataProvider: `0x${string}`
+  user: `0x${string}`
+  collateral: EModeCollateral[]
+  tag: string
+}
+
+/**
+ * The thresholds a user's e-mode category applies, or null when the user is not in one.
+ * Throws when the user IS in a category but neither layout answers: falling back to the
+ * reserve thresholds would misstate the line.
+ *
+ * The two layouts differ on a reserve whose OWN threshold is 0. v3.2+ (Aave, GenericLogic
+ * 3.2–3.7) applies the category threshold to any asset on the collateral bitmap. v3.0/3.1
+ * (Spark, Pool revision 4) skips a zero-threshold reserve before e-mode is consulted, so
+ * such an asset counts for nothing there and keeps its 0.
+ */
+export async function readEModeThresholds(input: EModeReadInput): Promise<EModeThresholds | null> {
+  const { client, block, pool, dataProvider, user, collateral, tag } = input
+  const collateralTokens = collateral.map((c) => c.token)
+  const head = await mc<bigint>(client, [{ address: pool, abi: emodePoolAbi, functionName: 'getUserEMode', args: [user] }], block)
+  const category = Number(unwrap(head[0], `${tag}: Pool.getUserEMode()`))
+  if (category === 0) return null
+  if (collateralTokens.length === 0) return { category, layout: 'v3.2 bitmap', inCategory: new Map(), priceSource: null }
+
+  // v3.2+: category config + collateral bitmap by reserve id.
+  const v32 = await mc<unknown>(
+    client,
+    [
+      { address: pool, abi: emodePoolAbi, functionName: 'getEModeCategoryCollateralConfig', args: [category] },
+      { address: pool, abi: emodePoolAbi, functionName: 'getEModeCategoryCollateralBitmap', args: [category] },
+      ...collateralTokens.map((t) => ({ address: pool, abi: emodePoolAbi, functionName: 'getReserveData', args: [t] })),
+    ],
+    block,
+  )
+  const cfg = optional(v32[0]) as { ltv: number; liquidationThreshold: number } | null
+  const bitmap = optional(v32[1]) as bigint | null
+  if (cfg && bitmap !== null) {
+    const inCategory = new Map<string, { lt: number; ltv: number }>()
+    collateralTokens.forEach((t, i) => {
+      const rd = unwrap(v32[2 + i], `${tag}: Pool.getReserveData(${t}).id`) as { id: number }
+      if (inBitmap(bitmap, Number(rd.id))) {
+        inCategory.set(t.toLowerCase(), { lt: Number(cfg.liquidationThreshold) / 10_000, ltv: Number(cfg.ltv) / 10_000 })
+      }
+    })
+    return { category, layout: 'v3.2 bitmap', inCategory, priceSource: null }
+  }
+
+  // v3.0 / 3.1: one category per asset.
+  const v30 = await mc<unknown>(
+    client,
+    [
+      { address: pool, abi: emodePoolAbi, functionName: 'getEModeCategoryData', args: [category] },
+      ...collateralTokens.map((t) => ({ address: dataProvider, abi: emodeDataProviderAbi, functionName: 'getReserveEModeCategory', args: [t] })),
+    ],
+    block,
+  )
+  const data = unwrap(v30[0], `${tag}: e-mode category ${category} (neither getEModeCategoryCollateralConfig nor getEModeCategoryData answered)`) as {
+    ltv: number
+    liquidationThreshold: number
+    priceSource: string
+  }
+  const inCategory = new Map<string, { lt: number; ltv: number }>()
+  collateral.forEach(({ token: t, reserveLt }, i) => {
+    const assetCat = Number(unwrap(v30[1 + i], `${tag}: getReserveEModeCategory(${t})`) as bigint)
+    // GenericLogic 3.0/3.1: `if (liquidationThreshold != 0 && isUsingAsCollateral)` comes
+    // first, so a zero-threshold reserve never reaches the e-mode branch.
+    if (assetCat === category && reserveLt > 0) {
+      inCategory.set(t.toLowerCase(), { lt: Number(data.liquidationThreshold) / 10_000, ltv: Number(data.ltv) / 10_000 })
+    }
+  })
+  const ps = data.priceSource && !/^0x0{40}$/i.test(data.priceSource) ? data.priceSource : null
+  return { category, layout: 'v3.0 category', inCategory, priceSource: ps }
+}
+
 const oracleAbi = [
   {
     type: 'function',
@@ -134,6 +392,13 @@ const oracleAbi = [
     stateMutability: 'view',
     inputs: [{ name: 'assets', type: 'address[]' }],
     outputs: [{ type: 'uint256[]' }],
+  },
+  {
+    type: 'function',
+    name: 'getAssetPrice',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
   },
   { type: 'function', name: 'BASE_CURRENCY_UNIT', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
 ] as const
@@ -157,6 +422,81 @@ const HF_DECIMALS = 18
 /** `type(uint256).max` — what Aave returns for healthFactor when totalDebtBase == 0. */
 const UINT256_MAX = (1n << 256n) - 1n
 
+// ------------------------------------------------------------ a lender's reserve
+
+/** Umbrella's state for one reserve, in the reserve's token. */
+export interface AaveBackstop {
+  slashable: boolean
+  /** Deficit Umbrella is set to cover by slashing (getPendingDeficit). */
+  pending: number
+  /** Deficit Umbrella will not slash for (getDeficitOffset). */
+  offset: number
+  /** The stake's assets, in the reserve's token (null when no stake or not read). */
+  stake: number | null
+}
+
+/** One reserve as PoolDataProvider.getReserveData returns it (the fields a lender needs). */
+export interface AaveReserveWords {
+  totalAToken: bigint
+  totalStableDebt: bigint
+  totalVariableDebt: bigint
+  /** RAY (1e27) APRs. */
+  liquidityRate: bigint
+  variableBorrowRate: bigint
+  lastUpdateTimestamp: number
+}
+
+/**
+ * The reserve a supply-only address lends into, from one block's reads. Pure, so the unit
+ * test covers the scaling. Liquidity is the unborrowed supply (aToken supply − debt), the
+ * same definition the Morpho block uses; the supply APR is Aave's own liquidityRate (RAY,
+ * already an APR), not a derivation.
+ */
+export function aaveReserveLendMarket(input: {
+  symbol: string
+  token: `0x${string}`
+  decimals: number
+  priceUsd: number
+  words: AaveReserveWords
+  /** Reserve factor, bps. */
+  reserveFactorBps: bigint
+  /** Pool.getReserveDeficit, token base units; null when the call does not exist (Spark) or failed. */
+  deficitRaw: bigint | null
+  /** The reserve's cash: Pool.getVirtualUnderlyingBalance, else underlying.balanceOf(aToken); null when neither read. */
+  cashRaw: bigint | null
+  /** Umbrella's state for the reserve; null where there is no Umbrella (Spark) or it was not read. */
+  backstop: AaveBackstop | null
+  block: bigint
+  blockTs: bigint | null
+}): LendMarketState {
+  const { words: w, decimals } = input
+  const debt = w.totalStableDebt + w.totalVariableDebt
+  const totalSupply = toNumber(w.totalAToken, decimals)
+  const totalBorrow = toNumber(debt, decimals)
+  return {
+    venue: 'aave-reserve',
+    symbol: input.symbol,
+    token: input.token,
+    priceUsd: input.priceUsd,
+    totalSupply,
+    totalBorrow,
+    // The cash a withdrawal is paid from. aToken supply − debt over-counts by the deficit.
+    liquidity:
+      input.cashRaw !== null ? toNumber(input.cashRaw, decimals) : w.totalAToken > debt ? toNumber(w.totalAToken - debt, decimals) : 0,
+    liquiditySource: input.cashRaw !== null ? 'cash (getVirtualUnderlyingBalance / balanceOf the aToken)' : 'aToken supply − debt (cash not read)',
+    backstop: input.backstop,
+    utilization: totalSupply > 0 ? Math.min(1, totalBorrow / totalSupply) : 0,
+    borrowApr: toNumber(w.variableBorrowRate, RAY_DECIMALS),
+    fee: Number(input.reserveFactorBps) / 10_000,
+    supplyApr: toNumber(w.liquidityRate, RAY_DECIMALS),
+    aprBasis: 'the reserve’s liquidityRate (RAY, an APR), live at the read block',
+    block: Number(input.block),
+    lastUpdate: w.lastUpdateTimestamp,
+    blockTs: input.blockTs === null ? null : Number(input.blockTs),
+    deficit: input.deficitRaw === null ? null : toNumber(input.deficitRaw, decimals),
+  }
+}
+
 // --------------------------------------------------------------- shared reads
 
 interface ResolvedAave {
@@ -166,14 +506,18 @@ interface ResolvedAave {
 }
 
 /** Resolve Pool / PoolDataProvider / AaveOracle from the immutable provider. */
-async function resolve(provider: `0x${string}`, label: string): Promise<ResolvedAave> {
-  const client = getMainnetClient()
+async function resolve(
+  client: ReturnType<typeof getMainnetClient>,
+  block: bigint | null,
+  provider: `0x${string}`,
+  label: string,
+): Promise<ResolvedAave> {
   const calls: Call[] = (['getPool', 'getPoolDataProvider', 'getPriceOracle'] as const).map((fn) => ({
     address: provider,
     abi: addressesProviderAbi,
     functionName: fn,
   }))
-  const res = await mc<`0x${string}`>(client, calls)
+  const res = await mc<`0x${string}`>(client, calls, block)
   const pool = unwrap(res[0], `${label}: PoolAddressesProvider.getPool()`)
   const dataProvider = unwrap(res[1], `${label}: PoolAddressesProvider.getPoolDataProvider()`)
   const oracle = unwrap(res[2], `${label}: PoolAddressesProvider.getPriceOracle()`)
@@ -196,28 +540,36 @@ async function resolve(provider: `0x${string}`, label: string): Promise<Resolved
  * pricing a non-stablecoin Morpho market in USD needs a real external USD source for
  * the loan token. Reusing Aave's oracle keeps that number READ rather than invented.
  *
- * Tokens Aave does not list come back as 0 and are OMITTED from the result — the
- * caller must treat a missing key as "no price available" and fail loudly.
+ * Tokens Aave does not list are OMITTED from the result — the caller must treat a missing
+ * key as "no price available" and fail loudly. Each token is its own multicall leg
+ * (`getAssetPrice`): AaveOracle REVERTS for a token with no source and no fallback oracle
+ * (EURCV, 2026-10-16), and one batched `getAssetsPrices` would take every other token down
+ * with it.
  */
 export async function aaveOracleUsdPrices(
   tokens: `0x${string}`[],
   provider: `0x${string}` = AAVE_V3_MAINNET_ADDRESSES_PROVIDER,
   label = 'aave v3 oracle',
+  /** The caller's pinned block, so a price read inside another adapter's read matches it. */
+  block: bigint | null = null,
 ): Promise<Record<string, number>> {
   if (tokens.length === 0) return {}
   const client = getMainnetClient()
-  const { oracle } = await resolve(provider, label)
-  const res = await mc<bigint[] | bigint>(client, [
-    { address: oracle, abi: oracleAbi, functionName: 'getAssetsPrices', args: [tokens] },
-    { address: oracle, abi: oracleAbi, functionName: 'BASE_CURRENCY_UNIT' },
-  ])
-  const prices = unwrap(res[0], `${label}: AaveOracle.getAssetsPrices()`) as bigint[]
-  const baseUnit = unwrap(res[1], `${label}: AaveOracle.BASE_CURRENCY_UNIT()`) as bigint
+  const { oracle } = await resolve(client, block, provider, label)
+  const res = await mc<bigint>(
+    client,
+    [
+      { address: oracle, abi: oracleAbi, functionName: 'BASE_CURRENCY_UNIT' },
+      ...tokens.map((token) => ({ address: oracle, abi: oracleAbi, functionName: 'getAssetPrice', args: [token] })),
+    ],
+    block,
+  )
+  const baseUnit = unwrap(res[0], `${label}: AaveOracle.BASE_CURRENCY_UNIT()`)
   const baseDecimals = decimalsFromScale(baseUnit, `${label}: BASE_CURRENCY_UNIT`)
   const out: Record<string, number> = {}
   tokens.forEach((token, i) => {
-    const raw = prices[i]
-    if (raw === undefined || raw === 0n) return // no source configured — omit, never default
+    const raw = optional(res[i + 1])
+    if (raw === null || raw === 0n) return // no source configured (reverted or 0) — omit, never default
     out[token.toLowerCase()] = toNumber(raw, baseDecimals)
   })
   return out
@@ -229,6 +581,8 @@ export interface AaveV3AdapterConfig {
   id: ProtocolId
   label: string
   addressesProvider: `0x${string}`
+  /** The pool's Umbrella, where it has one. */
+  umbrella?: `0x${string}`
 }
 
 /**
@@ -243,14 +597,20 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
     async read(user: `0x${string}`): Promise<ProtocolPosition[]> {
       const client = getMainnetClient()
       const tag = config.label.toLowerCase()
-      const { pool, dataProvider, oracle } = await resolve(config.addressesProvider, tag)
+      // Every call below reads this one block (adapters/types.ts pinBlock).
+      const block = await pinBlock(client)
+      const { pool, dataProvider, oracle } = await resolve(client, block, config.addressesProvider, tag)
 
       // --- aggregate + reserve list -------------------------------------------
-      const head = await mc<unknown>(client, [
-        { address: pool, abi: poolAbi, functionName: 'getUserAccountData', args: [user] },
-        { address: dataProvider, abi: dataProviderAbi, functionName: 'getAllReservesTokens' },
-        { address: oracle, abi: oracleAbi, functionName: 'BASE_CURRENCY_UNIT' },
-      ])
+      const head = await mc<unknown>(
+        client,
+        [
+          { address: pool, abi: poolAbi, functionName: 'getUserAccountData', args: [user] },
+          { address: dataProvider, abi: dataProviderAbi, functionName: 'getAllReservesTokens' },
+          { address: oracle, abi: oracleAbi, functionName: 'BASE_CURRENCY_UNIT' },
+        ],
+        block,
+      )
       const account = unwrap(head[0], `${tag}: Pool.getUserAccountData()`) as readonly bigint[]
       const reserves = unwrap(head[1], `${tag}: PoolDataProvider.getAllReservesTokens()`) as readonly {
         symbol: string
@@ -260,7 +620,8 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
       const baseDecimals = decimalsFromScale(baseUnit, `${tag}: BASE_CURRENCY_UNIT`)
 
       const [totalCollateralBase, totalDebtBase, , liqThresholdBps, , healthFactorRaw] = account
-      if (totalCollateralBase === 0n && totalDebtBase === 0n) return []
+      // No early exit on an empty aggregate: a supply with collateral switched off counts for
+      // nothing in it, so every reserve's aToken balance is read (one more multicall).
 
       // --- per-reserve user balances ------------------------------------------
       const userCalls: Call[] = reserves.map((r) => ({
@@ -269,7 +630,7 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
         functionName: 'getUserReserveData',
         args: [r.tokenAddress, user],
       }))
-      const userRes = await mc<readonly unknown[]>(client, userCalls)
+      const userRes = await mc<readonly unknown[]>(client, userCalls, block)
 
       interface Active {
         symbol: string
@@ -301,6 +662,7 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
         })
       })
 
+      if (active.length === 0 && totalCollateralBase === 0n && totalDebtBase === 0n) return []
       if (active.length === 0) {
         // The aggregate says there is value but no reserve carries it. That is a real
         // inconsistency, not an empty wallet — say so rather than returning nothing.
@@ -323,18 +685,185 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
         args: [a.token],
       }))
       const [cfgRes, rateRes, priceRes] = await Promise.all([
-        mc<readonly unknown[]>(client, cfgCalls),
-        mc<readonly unknown[]>(client, rateCalls),
-        mc<bigint[]>(client, [
-          {
-            address: oracle,
-            abi: oracleAbi,
-            functionName: 'getAssetsPrices',
-            args: [active.map((a) => a.token)],
-          },
-        ]),
+        mc<readonly unknown[]>(client, cfgCalls, block),
+        mc<readonly unknown[]>(client, rateCalls, block),
+        mc<bigint[]>(
+          client,
+          [
+            {
+              address: oracle,
+              abi: oracleAbi,
+              functionName: 'getAssetsPrices',
+              args: [active.map((a) => a.token)],
+            },
+          ],
+          block,
+        ),
       ])
       const prices = unwrap(priceRes[0], `${tag}: AaveOracle.getAssetsPrices()`)
+      const emode = await readEModeThresholds({
+        client,
+        block,
+        pool,
+        dataProvider,
+        user,
+        collateral: active.flatMap((a, i) =>
+          a.aTokenBalance > 0n && a.collateralEnabled
+            ? [
+                {
+                  token: a.token,
+                  reserveLt:
+                    Number(unwrap(cfgRes[i], `${tag}: getReserveConfigurationData(${a.symbol})`)[2] as bigint) / 10_000,
+                },
+              ]
+            : [],
+        ),
+        tag,
+      })
+
+      // --- a lender with no debt: one supply position per reserve it holds -------
+      // Without debt there is no line, collateral or not: each aToken balance is a supply
+      // in that reserve, shown with the reserve's market state (owner, 2026-10-17).
+      if (totalDebtBase === 0n) {
+        const supplied = active.filter((a) => a.aTokenBalance > 0n)
+        const extra = await mc<bigint>(
+          client,
+          [
+            { address: MULTICALL3, abi: multicall3TsAbi, functionName: 'getCurrentBlockTimestamp' },
+            ...supplied.map((a) => ({ address: pool, abi: poolAbi, functionName: 'getReserveDeficit', args: [a.token] })),
+          ],
+          block,
+        )
+        const blockTs = optional(extra[0])
+        // Cash per reserve: the virtual balance (v3.1+), else the underlying held by the aToken.
+        const cashRes = await mc<unknown>(
+          client,
+          supplied.flatMap((a) => [
+            { address: pool, abi: poolLiquidityAbi, functionName: 'getVirtualUnderlyingBalance', args: [a.token] },
+            { address: dataProvider, abi: reserveTokensAbi, functionName: 'getReserveTokensAddresses', args: [a.token] },
+          ]),
+          block,
+        )
+        const fallbackIdx = supplied.map((a, k) => (optional(cashRes[k * 2]) === null ? k : -1)).filter((k) => k >= 0)
+        const fallbackRes = await mc<bigint>(
+          client,
+          fallbackIdx.map((k) => {
+            const toks = optional(cashRes[k * 2 + 1]) as readonly `0x${string}`[] | null
+            return { address: supplied[k].token, abi: balanceOfAbi, functionName: 'balanceOf', args: [toks?.[0] ?? supplied[k].token] }
+          }),
+          block,
+        )
+        const cashOf = (k: number): bigint | null => {
+          const v = optional(cashRes[k * 2]) as bigint | null
+          if (v !== null) return v
+          const j = fallbackIdx.indexOf(k)
+          return j >= 0 && optional(cashRes[k * 2 + 1]) !== null ? (optional(fallbackRes[j]) as bigint | null) : null
+        }
+        // Umbrella, where the pool has one: is the deficit slashable, and how large is the stake?
+        const backstops: (AaveBackstop | null)[] = supplied.map(() => null)
+        if (config.umbrella) {
+          const u = config.umbrella
+          const ur = await mc<unknown>(
+            client,
+            supplied.flatMap((a) => [
+              { address: u, abi: umbrellaAbi, functionName: 'getPendingDeficit', args: [a.token] },
+              { address: u, abi: umbrellaAbi, functionName: 'getDeficitOffset', args: [a.token] },
+              { address: u, abi: umbrellaAbi, functionName: 'isReserveSlashable', args: [a.token] },
+              { address: u, abi: umbrellaAbi, functionName: 'getReserveSlashingConfigs', args: [a.token] },
+            ]),
+            block,
+          )
+          const stakes = supplied.map((_, k) => ((optional(ur[k * 4 + 3]) as readonly { umbrellaStake: `0x${string}` }[] | null) ?? [])[0]?.umbrellaStake ?? null)
+          const sr = await mc<unknown>(
+            client,
+            stakes.flatMap((st) => (st ? [{ address: st, abi: erc4626Abi, functionName: 'totalAssets' }, { address: st, abi: erc4626Abi, functionName: 'asset' }] : [])),
+            block,
+          )
+          // A stake's asset is a wrapped aToken (waWETH): its totalAssets converted to the reserve token.
+          let si = 0
+          const conv: Call[] = []
+          const convIdx: (number | null)[] = stakes.map((st) => {
+            if (!st) return null
+            const total = optional(sr[si]) as bigint | null
+            const asset = optional(sr[si + 1]) as `0x${string}` | null
+            si += 2
+            if (total === null || asset === null) return null
+            conv.push({ address: asset, abi: erc4626Abi, functionName: 'convertToAssets', args: [total] })
+            return conv.length - 1
+          })
+          const cr = await mc<bigint>(client, conv, block)
+          supplied.forEach((a, k) => {
+            const pending = optional(ur[k * 4]) as bigint | null
+            const offset = optional(ur[k * 4 + 1]) as bigint | null
+            const sl = optional(ur[k * 4 + 2]) as readonly [boolean, bigint] | null
+            if (pending === null || offset === null || sl === null) return
+            const dec = Number(unwrap(cfgRes[active.indexOf(a)], `${tag}: getReserveConfigurationData(${a.symbol})`)[0] as bigint)
+            const ci = convIdx[k]
+            const stakeRaw = ci === null ? null : (optional(cr[ci]) as bigint | null)
+            backstops[k] = {
+              slashable: sl[0],
+              pending: toNumber(pending, dec),
+              offset: toNumber(offset, dec),
+              stake: stakeRaw === null ? null : toNumber(stakeRaw, dec),
+            }
+          })
+        }
+        return supplied.map((a, k) => {
+          const i = active.indexOf(a)
+          const cfg = unwrap(cfgRes[i], `${tag}: getReserveConfigurationData(${a.symbol})`)
+          const rd = unwrap(rateRes[i], `${tag}: getReserveData(${a.symbol})`)
+          const decimals = Number(cfg[0] as bigint)
+          const priceRaw = prices[i]
+          if (priceRaw === undefined || priceRaw === 0n) throw new Error(`${tag}: AaveOracle has no price for ${a.symbol} (${a.token})`)
+          const priceUsd = toNumber(priceRaw, baseDecimals)
+          const amount = toNumber(a.aTokenBalance, decimals)
+          const leg: SuppliedLeg = { symbol: a.symbol, address: a.token, decimals, amount, priceUsd, valueUsd: amount * priceUsd }
+          const lendMarket = aaveReserveLendMarket({
+            symbol: a.symbol,
+            token: a.token,
+            decimals,
+            priceUsd,
+            words: {
+              totalAToken: rd[2] as bigint,
+              totalStableDebt: rd[3] as bigint,
+              totalVariableDebt: rd[4] as bigint,
+              liquidityRate: rd[5] as bigint,
+              variableBorrowRate: rd[6] as bigint,
+              lastUpdateTimestamp: Number(rd[11] as bigint | number),
+            },
+            reserveFactorBps: cfg[4] as bigint,
+            deficitRaw: optional(extra[1 + k]),
+            cashRaw: cashOf(k),
+            backstop: backstops[k],
+            block,
+            blockTs,
+          })
+          const position: ProtocolPosition = {
+            protocol: config.id,
+            label: `${config.label} · ${a.symbol} supply`,
+            marketId: a.token,
+            collateral: [],
+            debt: [],
+            totalCollateralUsd: 0,
+            totalDebtUsd: 0,
+            ltv: 0,
+            liquidationLtv: 0,
+            healthFactor: Number.POSITIVE_INFINITY,
+            status: 'supply-only',
+            supplied: [leg],
+            lendMarket,
+            provenance: {
+              ...stamp(
+                'onchain',
+                `${tag} · ${rpcLabel()}`,
+                `Pool ${pool} · data provider ${dataProvider} · oracle ${oracle}, resolved from PoolAddressesProvider ${config.addressesProvider}. No debt: ${amount} ${a.symbol} supplied (aToken balance from getUserReserveData${a.collateralEnabled ? ', collateral enabled but nothing borrowed' : ', not used as collateral'}). Reserve totals and rates from getReserveData (RAY APRs); reserve factor from getReserveConfigurationData; deficit from Pool.getReserveDeficit${lendMarket.deficit === null ? ' (not read: the call reverts on this pool)' : ''}; free liquidity from ${lendMarket.liquiditySource}${config.umbrella ? `; Umbrella ${config.umbrella} (getPendingDeficit, getDeficitOffset, isReserveSlashable, its stake's totalAssets)` : ''}. Every call read block ${block}.`,
+              ),
+              block: Number(block),
+            },
+          }
+          return position
+        })
+      }
 
       const collateral: CollateralLeg[] = []
       const debt: DebtLeg[] = []
@@ -342,8 +871,10 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
       active.forEach((a, i) => {
         const cfg = unwrap(cfgRes[i], `${tag}: getReserveConfigurationData(${a.symbol})`)
         const decimals = Number(cfg[0] as bigint)
-        const maxLtv = Number(cfg[1] as bigint) / 10_000 // bps
-        const liqThreshold = Number(cfg[2] as bigint) / 10_000 // bps
+        // In e-mode, an in-category collateral asset takes the category's thresholds.
+        const em = emode?.inCategory.get(a.token.toLowerCase())
+        const maxLtv = em ? em.ltv : Number(cfg[1] as bigint) / 10_000 // bps
+        const liqThreshold = em ? em.lt : Number(cfg[2] as bigint) / 10_000 // bps
         // liquidationBonus is bps-of-par: 10500 = the liquidator receives 105% of the
         // repaid value, i.e. a 5% bonus. Subtract par to get the bonus itself.
         const liqBonus = Math.max(0, Number(cfg[3] as bigint) / 10_000 - 1)
@@ -424,11 +955,18 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
           ltv: ratio(totalDebtUsd, totalCollateralUsd),
           liquidationLtv,
           healthFactor,
-          provenance: stamp(
-            'onchain',
-            `${tag} · ${rpcLabel()}`,
-            `Pool ${pool} · data provider ${dataProvider} · oracle ${oracle}, all resolved from PoolAddressesProvider ${config.addressesProvider}. Totals from getUserAccountData in base units (BASE_CURRENCY_UNIT 1e${baseDecimals}); per-asset prices from getAssetsPrices; thresholds in bps.`,
-          ),
+          provenance: {
+            ...stamp(
+              'onchain',
+              `${tag} · ${rpcLabel()}`,
+              `Pool ${pool} · data provider ${dataProvider} · oracle ${oracle}, all resolved from PoolAddressesProvider ${config.addressesProvider}. Totals from getUserAccountData in base units (BASE_CURRENCY_UNIT 1e${baseDecimals}); per-asset prices from getAssetsPrices; thresholds in bps. Every call read block ${block}.${
+                emode
+                  ? ` E-mode category ${emode.category} (${emode.layout}): its thresholds apply to ${emode.inCategory.size} collateral asset(s)${emode.priceSource ? `; the category prices from ${emode.priceSource}, which these legs do not apply` : ''}.`
+                  : ''
+              }`,
+            ),
+            block: Number(block),
+          },
         },
       ]
     },
@@ -439,6 +977,7 @@ export const aaveV3Adapter: LendingAdapter = createAaveV3Adapter({
   id: 'aave-v3',
   label: 'Aave V3',
   addressesProvider: AAVE_V3_MAINNET_ADDRESSES_PROVIDER,
+  umbrella: AAVE_UMBRELLA_MAINNET,
 })
 
 export const sparkAdapter: LendingAdapter = createAaveV3Adapter({

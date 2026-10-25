@@ -15,6 +15,7 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 
 import { fmtDuration, fmtMultiple, fmtPct, fmtUsd, type Verdict } from './radarLogic'
 import { RecapSection } from './RecapSection'
+import { VenueCardAlert } from '@/components/Alerts/VenueAlerts'
 import { RadarShareCard } from './RadarShareCard'
 import { exportElementAsImage } from '@/services/shareableCard'
 import { radarPermalinkPath } from '@/lib/share/permalink'
@@ -150,7 +151,7 @@ const StressFacts: React.FC<{ stress: Stress }> = ({ stress }) => {
   )
 }
 
-const VenueCard: React.FC<{ p: Position }> = ({ p }) => {
+const VenueCard: React.FC<{ p: Position; address: string }> = ({ p, address }) => {
   const { chainName } = useChainRoute()
   return (
   <Card variant="default" mb={SPACING.base}>
@@ -179,6 +180,8 @@ const VenueCard: React.FC<{ p: Position }> = ({ p }) => {
     {/* Added line, not a verdict input: the cost of exiting THIS position through
         the venue's swap markets, read off the quoted curve (none for a lending reserve). */}
     <CapacityCurve venue={p.venue} variant="compact" sizeUsd={p.usd} />
+    {/* "Alert me at" this venue's live utilization (else supply APR), for this address. */}
+    <VenueCardAlert venue={p.venue} address={address} />
   </Card>
   )
 }
@@ -356,7 +359,7 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
               </Text>
             </Card>
           ) : (
-            data.positions.map((p) => <VenueCard key={p.venue} p={p} />)
+            data.positions.map((p) => <VenueCard key={p.venue} p={p} address={data.address} />)
           )}
 
           {/* Comparator: same framework, all four venues at the user's TOTAL size. */}
@@ -475,11 +478,6 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
               next
             </Text>
             <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.sm}>
-              <NextLink href={`/${chainName}/receipts`} style={{ textDecoration: 'underline' }}>
-                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
-                  think it holds? call it → /receipts
-                </Text>
-              </NextLink>
               <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
                 <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
                   the whole board → /carry

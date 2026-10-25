@@ -83,6 +83,7 @@ import {
 } from '@/lib/position-sim'
 
 import ComparisonPanel from './ComparisonPanel'
+import { emptyReadLine } from './emptyRead'
 import type { ControlValues } from './Controls'
 import DeploymentSection from './DeploymentSection'
 import EventLog from './EventLog'
@@ -374,8 +375,9 @@ export const Simulator: React.FC<SimulatorProps> = ({
     [mode],
   )
   const isDemo = loaded === null
+  // A Morpho supply-only position lends and owes nothing: it has no liquidation line to simulate.
   const positions = useMemo<ProtocolPosition[]>(
-    () => (loaded ? loaded.results.flatMap((r) => r.positions) : [demoPos]),
+    () => (loaded ? loaded.results.flatMap((r) => r.positions.filter((p) => p.status !== 'supply-only')) : [demoPos]),
     [loaded, demoPos],
   )
 
@@ -603,7 +605,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
     for (const r of loaded?.results ?? []) {
       if (r.status === 'error') out.push(`${r.label} · ${r.message ?? 'read failed'}`)
     }
-    if (loaded && positions.length === 0) out.push('No open position found for this address.')
+    if (loaded && positions.length === 0) out.push(emptyReadLine(loaded.results))
     return out
   }, [scenarioError, loaded, positions])
   /** One set of address-bar props, mounted three times (hero, carry section, foot). */

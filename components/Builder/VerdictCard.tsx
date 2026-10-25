@@ -36,11 +36,10 @@ const xbtn = {
 export interface VerdictCardProps {
   verdict: VerdictView
   mintHref: string
-  positionHref: string
   onSaveCard: () => void
 }
 
-export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict: v, mintHref, positionHref, onSaveCard }) => {
+export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict: v, mintHref, onSaveCard }) => {
   if (!v.visible) return null
   const borderColor = v.cls === 'pass' ? SEMANTIC_COLORS.success : v.cls === 'fail' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.borderStrong
   const tagColor = v.cls === 'pass' ? SEMANTIC_COLORS.success : v.cls === 'fail' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary
@@ -79,9 +78,6 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ verdict: v, mintHref, 
       <Box display="flex" gap={SPACING.sm} flexWrap="wrap" mt={SPACING.md}>
         <Box as={Link} href={mintHref} {...xbtn} bg={SEMANTIC_COLORS.success} borderColor={SEMANTIC_COLORS.success} color={SEMANTIC_COLORS.bgPrimary} _hover={{ opacity: 0.9 }}>
           Take this board live → Borrow
-        </Box>
-        <Box as={Link} href={positionHref} {...xbtn}>
-          Check your real board → Position
         </Box>
         <Box as="button" type="button" onClick={onSaveCard} {...xbtn}>
           Save result card

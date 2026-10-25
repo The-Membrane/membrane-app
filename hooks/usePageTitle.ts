@@ -11,7 +11,6 @@ const EXACT_TITLES: Record<string, string> = {
   '/[chain]/disco': 'Membrane | Disco',
   '/[chain]/flywheel': 'Membrane | Flywheel',
   '/[chain]/headquarters': 'Membrane | Headquarters',
-  '/[chain]/levels': 'Membrane | Levels',
   '/[chain]/mint': 'Membrane | Mint',
   '/[chain]/stake': 'Membrane | Stake',
   '/[chain]/portfolio': 'Membrane | Portfolio',
@@ -19,17 +18,13 @@ const EXACT_TITLES: Record<string, string> = {
   '/[chain]/tournament': 'Membrane | Tournament',
   '/[chain]/maze-runners': 'Membrane | Maze Runners',
   '/[chain]/cityscape': 'Membrane | Cityscape',
-  '/[chain]/control-room': 'Membrane | Control Room',
   '/[chain]/liquidate': 'Membrane | Liquidate',
   '/[chain]/manic': 'Membrane | Manic',
-  '/[chain]/isolated': 'Membrane | Isolated Markets',
   '/[chain]/transmuter': 'Membrane | Transmuter',
   '/bid': 'Membrane | Bid',
   '/borrow': 'Membrane | Borrow',
-  '/lockdrop': 'Membrane | Lockdrop',
   '/management': 'Membrane | Management',
   '/manic': 'Membrane | Manic',
-  '/nft': 'Membrane | NFT',
   '/stake': 'Membrane | Stake',
   '/terms': 'Membrane | Terms of Service',
   '/tournament': 'Membrane | Tournament',
@@ -47,10 +42,8 @@ const SEGMENT_TITLES: Array<[string, string]> = [
   ['/tournament', 'Tournament'],
   ['/maze-runners', 'Maze Runners'],
   ['/cityscape', 'Cityscape'],
-  ['/control-room', 'Control Room'],
   ['/liquidate', 'Liquidate'],
   ['/manic', 'Manic'],
-  ['/isolated', 'Isolated Markets'],
   ['/transmuter', 'Transmuter'],
 ]
 
@@ -61,7 +54,6 @@ export const usePageTitle = (): string => {
     const view = typeof query.view === 'string' ? query.view : undefined
     if (view === 'lobby') return 'Membrane | Lobby'
     if (view === 'about') return 'Membrane | About'
-    if (view === 'levels') return 'Membrane | Levels'
     return 'Membrane | Storefront'
   }
 

@@ -21,12 +21,10 @@ const ROUTES = [
   '/ethereum/portfolio',
   '/ethereum/transmuter',
   '/ethereum/disco',
-  '/ethereum/isolated',
   '/ethereum/maze-runners',
+  '/ethereum/position', // read-only; idle state renders with no address
   '/osmosis', // stale bookmark — must render (redirects to /ethereum), not crash
-  '/nft',
   '/bid',
-  '/lockdrop',
   '/manic',
 ]
 

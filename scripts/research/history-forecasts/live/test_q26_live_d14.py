@@ -455,3 +455,48 @@ def test_backfill_step_discovers_and_survives_stale(tmp_path):
     r = D.backfill_step(FakeRpc(), "bnb", D.CHAINS["bnb"], d, index, addrs, new, None, budget=60)
     assert r["complete"] is True and new == [_addr(200), _addr(300)]
     assert D.backfill_step(FakeRpc(), "bnb", D.CHAINS["bnb"], d, index, addrs, new, None) == {"complete": True}
+
+
+def test_backfill_step_records_unreachable_history(tmp_path):
+    d = str(tmp_path)
+    D.write_atomic(os.path.join(d, "backfill.json"), D.dumps({"start": 100, "next": 100, "end": 999, "chunk": 100}))
+    seen = []
+
+    class FakeRpc:
+        deadline = None
+        interval = 0.0
+
+        def logs(self, address, topics, lo, hi):
+            seen.append(lo)
+            return []
+
+    cfg = {**D.CHAINS["bnb"], "log_depth": 500}
+    addrs, index, new = [], {}, []
+    r = D.backfill_step(FakeRpc(), "bnb", cfg, d, index, addrs, new, None, budget=60, head=1100)
+    assert seen[0] == 600                                    # 100..599 is older than head - log_depth
+    assert r == {"complete": True, "found": 0, "doneShare": 1.0, "unreachableBlocks": 500}
+    bf = D.read_json(os.path.join(d, "backfill.json"))
+    assert bf["unreachable"] == [[100, 599]] and bf["next"] == 1000
+    assert D.backfill_step(FakeRpc(), "bnb", cfg, d, index, addrs, new, None, head=2000) == \
+        {"complete": True, "unreachableBlocks": 500}
+    # without a head (or a log_depth) nothing is skipped
+    D.write_atomic(os.path.join(d, "backfill.json"), D.dumps({"start": 100, "next": 100, "end": 199, "chunk": 100}))
+    seen.clear()
+    D.backfill_step(FakeRpc(), "bnb", cfg, d, index, addrs, new, None, budget=60)
+    assert seen == [100]
+
+
+def test_stale_reason_carries_http_code():
+    import urllib.error
+
+    def post(url, payload, timeout):
+        raise urllib.error.HTTPError(url, 403, "Forbidden", {}, None)
+
+    rpc = D.Rpc("arbitrum", D.CHAINS["arbitrum"], post=post, tries=2, sleep=lambda s: None)
+    try:
+        rpc.call("eth_call", [{}, "latest"])
+        raise AssertionError("expected Stale")
+    except D.Stale as e:
+        assert str(e) == "eth_call: HTTPError 403"
+    assert D.CHAINS["arbitrum"]["call"][0] == "https://arbitrum-one-rpc.publicnode.com"
+    assert D.CHAINS["bnb"]["log"][0][0] == "https://bsc.rpc.blxrbdn.com" and D.CHAINS["bnb"]["log_depth"] == 6_000_000

@@ -111,8 +111,10 @@ CHAINS = {
                           "https://eth.drpc.org", "https://rpc.mevblocker.io"]},
     "arbitrum": {"pool": "0x794a61358d6845594f94dc1db02a252b5b4814ad", "start": 7_740_000, "confirm": 20,
                  "log": [("https://arbitrum.gateway.tenderly.co", 500_000), ("https://arb1.arbitrum.io/rpc", 50_000)],
-                 "call": ["https://arbitrum.gateway.tenderly.co", "https://arb1.arbitrum.io/rpc",
-                          "https://arbitrum.drpc.org"]},
+                 # publicnode first: the 2026-10-25 20:13Z runner run went stale on eth_call HTTP errors with the
+                 # three endpoints below; every chain that passed on the runner had publicnode first.
+                 "call": ["https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.gateway.tenderly.co",
+                          "https://arb1.arbitrum.io/rpc", "https://arbitrum.drpc.org"]},
     "base": {"pool": "0xa238dd80c259a72e81d7e4664a9801593f98d1c5", "start": 2_350_000, "confirm": 10,
              "log": [("https://base-rpc.publicnode.com", 50_000), ("https://base.gateway.tenderly.co", 1_000),
                      ("https://gateway.tenderly.co/public/base", 1_000)],
@@ -133,7 +135,10 @@ CHAINS = {
                   "call": ["https://avalanche-c-chain-rpc.publicnode.com", "https://api.avax.network/ext/bc/C/rpc",
                            "https://avalanche.gateway.tenderly.co", "https://avalanche.drpc.org"]},
     "bnb": {"pool": "0x6807dc923806fe8fd134338eabca509979a7e0cb", "start": 33_500_000, "confirm": 15,
-            "log": [("https://bsc-rpc.publicnode.com", 5_000), ("https://bsc.publicnode.com", 5_000)],
+            # Keyless BNB logs: publicnode serves only about the last 10k blocks; bloXroute keeps a rolling window of
+            # about 7M blocks (probed 2026-10-25). Older history needs a key, so discovery starts at log_depth.
+            "log": [("https://bsc.rpc.blxrbdn.com", 5_000), ("https://bsc-rpc.publicnode.com", 5_000),
+                    ("https://bsc.publicnode.com", 5_000)], "log_depth": 6_000_000,
             "call": ["https://bsc-rpc.publicnode.com", "https://bsc.publicnode.com", "https://bsc-dataseed.bnbchain.org",
                      "https://bsc.drpc.org"]},
 }
@@ -383,7 +388,8 @@ class Rpc:
             with self.lock:
                 self.stats["errors"] += 1
             self.sleep(min(1.0 * 2 ** min(k, 4), 10.0))
-        raise Stale(f"{method}: {type(err).__name__}")
+        code = getattr(err, "code", None)
+        raise Stale(f"{method}: {type(err).__name__}" + (f" {code}" if isinstance(code, int) else ""))
 
     def head(self):
         return int(self.call("eth_blockNumber", []), 16)
@@ -427,7 +433,8 @@ class Rpc:
                 if isinstance(ex, urllib.error.HTTPError) and ex.code in (400, 403, 413):
                     span = max(1, s // 4)
                 if fails > 4 * self.tries:
-                    raise Stale(f"logs: {type(ex).__name__}")
+                    code = getattr(ex, "code", None)
+                    raise Stale(f"logs: {type(ex).__name__}" + (f" {code}" if isinstance(code, int) else ""))
                 self.sleep(min(0.5 * 2 ** min(fails, 5), 10.0))
         out.sort(key=lambda x: (int(x["blockNumber"], 16), int(x["logIndex"], 16)))
         return out
@@ -1058,20 +1065,28 @@ def chain_pass(root, chain, cfg, deadline, watch_keys, rpc=None, log=print):
             pos[k]["unresolved"] = True
             unresolved += 1
     keyed = lambda s: {pos_key(chain, u) for u in s if u in index}  # noqa: E731
-    bf = backfill_step(rpc, chain, cfg, d, index, addrs, new, deadline)
+    bf = backfill_step(rpc, chain, cfg, d, index, addrs, new, deadline, head=head)
     return {"status": "ok", "backfill": bf, "active": new_active, "fullScan": full, "scanned": len(scan_idx), "block": hi, "head": head, "blockTs": bts, "lo": lo, "lagBlocks": head - hi,
             "positions": pos, "acted": keyed(acted), "liq": keyed(liq), "nLiq": n_liq, "newAddrs": new,
             "borrowers": len(addrs), "failedCalls": failed, "screened": len(screen), "unresolved": unresolved,
             "logs": len(pool_logs) + len(bt_logs), "sec": round(time.time() - t0, 1), "rpc": dict(rpc.stats)}
 
 
-def backfill_step(rpc, chain, cfg, d, index, addrs, new, deadline, budget=None):
+def backfill_step(rpc, chain, cfg, d, index, addrs, new, deadline, budget=None, head=None):
     """Borrower discovery still partial (backfill.json next <= end): scan Borrow logs forward from next inside the
-    budget. New accounts are appended (scanned from the next run). Never makes the chain stale. -> public summary."""
+    budget. New accounts are appended (scanned from the next run). Never makes the chain stale. -> public summary.
+    A chain with cfg log_depth has no keyless logs older than head - log_depth: that range is recorded as unreachable
+    (disclosed in the summary), never silently treated as scanned."""
     bp = os.path.join(d, "backfill.json")
     bf = read_json(bp)
     if not bf or bf["next"] > bf["end"]:
-        return None if not bf else {"complete": True}
+        return None if not bf else {"complete": True, **({"unreachableBlocks": unreachable(bf)} if bf and
+                                                            bf.get("unreachable") else {})}
+    depth = cfg.get("log_depth")
+    if depth and head is not None and bf["next"] < head - depth:
+        floor = min(head - depth, bf["end"] + 1)
+        bf.setdefault("unreachable", []).append([bf["next"], floor - 1])
+        bf["next"] = floor
     budget = BACKFILL_BUDGET_S if budget is None else budget
     stop = min(deadline or math.inf, time.time() + budget)
     old_deadline, old_interval = rpc.deadline, rpc.interval
@@ -1098,8 +1113,15 @@ def backfill_step(rpc, chain, cfg, d, index, addrs, new, deadline, budget=None):
     bf["updatedAt"] = int(time.time())
     write_atomic(bp, dumps(bf))
     total = max(bf["end"] - bf["start"] + 1, 1)
-    return {"complete": bf["next"] > bf["end"], "found": found,
-            "doneShare": round(min(1.0, (bf["next"] - bf["start"]) / total), 4)}
+    out = {"complete": bf["next"] > bf["end"], "found": found,
+           "doneShare": round(min(1.0, (bf["next"] - bf["start"]) / total), 4)}
+    if bf.get("unreachable"):
+        out["unreachableBlocks"] = unreachable(bf)
+    return out
+
+
+def unreachable(bf):
+    return sum(b - a + 1 for a, b in bf.get("unreachable", []))
 
 
 def init_chain(a):

@@ -82,9 +82,147 @@ export interface AlertConfig {
   exitCapacity: ExitCapacityConfig | null
   oracleChange: OracleChangeConfig | null
   governanceChange: GovernanceChangeConfig | null
+  /**
+   * The R27 "3% rule" (at risk / act now) for the borrower channel. Optional so configs
+   * written before it keep compiling; absent = AT_RISK_RULE. null = off. See atRisk.ts.
+   */
+  atRisk?: AtRiskConfig | null
   /** Health factor the "what to do" line in a message aims for. */
   targetHf: number
 }
+
+/**
+ * The "3% rule" (board RULING Q26-R27 60fb0e6, REVIEW c59f67f; knowledge page
+ * q26-ui-confidence-map.md, "Borrower alerts").
+ *
+ *   at risk   the oracle price that liquidates (Membrane: the deployed Oracle.getPrice;
+ *             elsewhere the venue's own oracle, CollateralInput.oraclePriceUsd) is within
+ *             `threshold` of the position's liquidation price. One alert per episode.
+ *   act now   SPOT (CollateralInput.marketPriceUsd) is at or through the liquidation line.
+ *             No promise of warning time.
+ *   re-arm    the episode ends when the position is more than `rearmDistance` from the line,
+ *             the borrower adds collateral or repays, or the position is liquidated.
+ *
+ * Distance for several collateral legs is the uniform price drop of every non-stable leg
+ * (stables held) that reaches the line: the k* rule of r111v5_labels.py on branch
+ * research/history-forecasts. Not used for stable/PT loops: CORRELATED_LOOP_HF covers them.
+ *
+ * Measured on DEVELOPMENT data only (Aave V3 Polygon, 2023–2026). Replace the numbers here
+ * and in AT_RISK_SUBTEXT_CONFIG from the live alert logs and from R29 (Membrane's
+ * liquidation timer) when those land.
+ */
+export interface AtRiskConfig {
+  /** At risk when distance to the liquidation price is at or below this, 0–1. */
+  threshold: number
+  /** Episode re-arms once distance is above this, 0–1. */
+  rearmDistance: number
+  /** The rule must be evaluated at least this often (seconds). */
+  evaluationIntervalS: number
+}
+
+export const AT_RISK_RULE: AtRiskConfig = {
+  // R27: 3% of the liquidation price, oracle basis.
+  threshold: 0.03,
+  // R27: re-arm after the position moves more than 10% away.
+  rearmDistance: 0.1,
+  // R27: checked at least hourly.
+  evaluationIntervalS: H,
+}
+
+/**
+ * Subtext under the at-risk alert, in-app and in the dry-run message. A template plus the
+ * numbers it fills, so the numbers can be swapped after review without touching copy.
+ *
+ * The figures are from DEVELOPMENT data, not live outcomes: Aave V3 Polygon, 2023–2026,
+ * board RULING Q26-R27 60fb0e6 and REVIEW c59f67f (median lead 8 h; about 74% of oracle
+ * touches warned at least 1 h ahead, 90% interval 0.60–0.87; about 1 in 4 got under 1 h).
+ * Update them from the live alert logs and from R29 (Membrane's liquidation timer; under
+ * review). Never add a probability, and never promise a fixed time to act (no "you have
+ * 8 hours": a further oracle drop past the timer's line liquidates at once).
+ */
+export interface AtRiskSubtextConfig {
+  /** {medianLeadH} and {caughtShare} are filled from the fields below. */
+  template: string
+  medianLeadH: number
+  /** Plain-words share, e.g. '3 in 4'. Kept as words so no percentage reads as a probability. */
+  caughtShare: string
+  provenance: {
+    data: 'development' | 'live'
+    dataset: string
+    ruling: string
+    review: string
+    warnedAtLeast1hShare: number
+    updateFrom: readonly string[]
+  }
+}
+
+export const AT_RISK_SUBTEXT_CONFIG: AtRiskSubtextConfig = {
+  // Copy as corrected by the R29 review (board f6092e8): median lead 13 h.
+  template:
+    'Past data: alerts at this level came a median of {medianLeadH} hours before liquidation ' +
+    'and caught about {caughtShare} liquidations at least an hour ahead. Some come faster, so ' +
+    'act now if you can.',
+  medianLeadH: 13,
+  caughtShare: '3 in 4',
+  provenance: {
+    data: 'development',
+    dataset: 'Aave V3 Polygon, 2023–2026',
+    ruling: 'Q26-R27 60fb0e6',
+    review: 'c59f67f; copy corrected by the R29 review f6092e8',
+    warnedAtLeast1hShare: 0.74,
+    updateFrom: ['live alert logs', 'R29 (Membrane liquidation timer)'],
+  },
+}
+
+export function atRiskSubtext(c: AtRiskSubtextConfig = AT_RISK_SUBTEXT_CONFIG): string {
+  return c.template
+    .replace('{medianLeadH}', String(c.medianLeadH))
+    .replace('{caughtShare}', c.caughtShare)
+}
+
+/** The rendered at-risk subtext (kept for callers that want the string). */
+export const AT_RISK_SUBTEXT = {
+  text: atRiskSubtext(),
+  provenance: AT_RISK_SUBTEXT_CONFIG.provenance,
+} as const
+
+/**
+ * Membrane liquidation timer (R29, review board f6092e8). Membrane liquidates on a 1-hour
+ * average oracle price. Below the liquidation price P anyone can start an 8-hour timer; below
+ * the immediate price X = P / (1 + window) the position can be liquidated at once, timer or
+ * not. `window` is CHAIN STATE; `launchWindow` is only the launch default used until a reader
+ * supplies it (MarketContext.liquidationWindow). Copy must never state the window as a
+ * percentage, never say "a further drop", and never say "you have 8 hours".
+ */
+export const MEMBRANE_LIQUIDATION = {
+  oracleAverageS: H,
+  timerS: 8 * H,
+  launchWindow: 0.04,
+} as const
+
+/**
+ * Line-crossing / act-now explainer for Membrane positions (R29 review f6092e8). {P} is the
+ * liquidation price, {X} the immediate-liquidation price; the {X} sentence is dropped when
+ * X is unknown.
+ */
+export const ACT_NOW_EXPLAINER = {
+  oracle:
+    'Membrane uses a 1-hour average oracle price, which can lag the market. If it falls below ' +
+    'your liquidation price ({P}), anyone can start an 8-hour liquidation timer.',
+  immediate: 'If it falls below {X}, you can be liquidated at once, timer or not.',
+  history: 'Past liquidations often came well before the 8 hours ended.',
+} as const
+
+/**
+ * Post-recovery state (R29 review f6092e8): the oracle is back above the line but a started
+ * timer still runs. STUB: the clearRecoveredTimer action is a disabled placeholder until the
+ * owner decides; no transaction is wired.
+ */
+export const RECOVERED_TIMER_COPY = {
+  title: 'Repaying does not stop the timer. Clear it now.',
+  action: { id: 'clearRecoveredTimer', label: 'Clear timer', enabled: false },
+  note: 'Not available yet: awaiting an owner decision.',
+} as const
 
 export const DEFAULT_ALERT_CONFIG: AlertConfig = {
   healthFactor: {
@@ -177,6 +315,7 @@ export const DEFAULT_ALERT_CONFIG: AlertConfig = {
       cooldownS: 24 * H,
     },
   },
+  atRisk: AT_RISK_RULE,
   targetHf: 1.3,
 }
 

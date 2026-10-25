@@ -3,9 +3,7 @@
  * live/q26_live_d12.py series_origin, float32), stored in tests/unit/fixtures/forecast/fh-parity.json:
  *  - 176 reference rows (11 origins incl. the Oct 10-11 2025 window, ETH/BTC, 1 h-30 d, 8 levels), and
  *  - 10 rows of the PUBLISHED D12 live issue of 2026-10-25 (dev grid + live kline store).
- * Tolerance: |p_ts - p_ref| <= 1e-6 (float32 rounding of the reference) plus at most one training origin
- * (1 / nTrain) where a threshold lands within float error of a training z. We also report the share that is
- * exactly equal after float32 rounding.
+ * Tolerance: 0. Every TS value, rounded to float32 like the reference, must equal the reference exactly.
  */
 import { describe, expect, it } from 'vitest'
 import fixture from '../fixtures/forecast/fh-parity.json'
@@ -31,7 +29,7 @@ function compare(rows: Row[], cut: boolean) {
         const d = Math.abs(Math.fround(p[name][j]) - r[name][j])
         if (d === 0) exact++
         maxDiff = Math.max(maxDiff, d)
-        if (d > 1e-6 + 1 / Math.max(p.nTrain, 1)) bad.push(`${r.origin} ${r.symbol} ${r.T}h ${name}[${L8[j]}] ts ${p[name][j]} ref ${r[name][j]}`)
+        if (d !== 0) bad.push(`${r.origin} ${r.symbol} ${r.T}h ${name}[${L8[j]}] ts ${p[name][j]} ref ${r[name][j]}`)
       }
     }
   }
@@ -53,10 +51,19 @@ describe('raw (fH) parity with the Python reference', () => {
   }, 120_000)
 
   it('gives identical values on a series cut at the origin (no look-ahead)', () => {
-    const rows = (fixture.rows as Row[]).filter((r) => r.origin === '2025-10-10T21:00:00Z' && (r.T === 6 || r.T === 168))
-    const a = compare(rows, true)
-    const b = compare(rows, false)
-    expect(a.bad).toEqual([])
-    expect(a.exact).toBe(b.exact)
+    const rows = (fixture.rows as Row[]).filter((r) => r.origin.startsWith('2025-10-1') && (r.T === 6 || r.T === 72 || r.T === 168))
+    expect(rows.length).toBeGreaterThan(10)
+    const full = { ETHUSDT: new FhSeriesModel(committed('ETHUSDT')), BTCUSDT: new FhSeriesModel(committed('BTCUSDT')) }
+    for (const r of rows) {
+      const cut = new FhSeriesModel(cutAt(committed(r.symbol), r.originTs)).predict(r.originTs, r.T, L8)
+      const all = full[r.symbol].predict(r.originTs, r.T, L8)
+      if ('error' in cut || 'error' in all) throw new Error('not issued')
+      // full float64 values, not just counts
+      expect(cut.fH).toEqual(all.fH)
+      expect(cut.f).toEqual(all.f)
+      expect(cut.a).toEqual(all.a)
+      expect(cut.sigmaH).toBe(all.sigmaH)
+      expect(cut.spot).toBe(all.spot)
+    }
   }, 120_000)
 })

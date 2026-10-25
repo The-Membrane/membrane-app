@@ -2,7 +2,7 @@
  * Forecast engine (lane Q41): registry gating + the raw (fH) port + history counts.
  */
 import { FhSeriesModel } from './fh'
-import { cellsFor, defaultRegistry, findCell, gate, isNearLine, PROBABILITY_CLASSES, resolveAsset } from './registry'
+import { cellsFor, defaultRegistry, effectiveRegistry, findCell, gate, isNearLine, PROBABILITY_CLASSES, resolveAsset } from './registry'
 import { HOUR } from './series'
 import type {
   ForecastCell, HistoryCount, PriceSeries, ReachResult, ReachRow, Registry, TouchOptions, TouchResult,
@@ -102,7 +102,7 @@ function spotAt(series: PriceSeries, originTs: number): number | null {
 }
 
 export function touchProbability(asset: string, asOfTs: number, horizonH: number, levelPct: number, priceSeries: PriceSeries | null, opts: TouchOptions = {}): TouchResult {
-  const reg = opts.registry ?? defaultRegistry()
+  const reg = effectiveRegistry(opts.registry ?? defaultRegistry(), opts.nowMs ?? Date.now())
   const originTs = originOf(asOfTs)
   const ctx = context(asset, priceSeries, reg)
   if (!ctx.group) return none(originTs, ctx.reason as string)
@@ -110,7 +110,7 @@ export function touchProbability(asset: string, asOfTs: number, horizonH: number
 }
 
 export function whatCanWeSay(asset: string, asOfTs: number, priceSeries: PriceSeries | null, opts: TouchOptions = {}): TouchResult[] {
-  const reg = opts.registry ?? defaultRegistry()
+  const reg = effectiveRegistry(opts.registry ?? defaultRegistry(), opts.nowMs ?? Date.now())
   const originTs = originOf(asOfTs)
   const ctx = context(asset, priceSeries, reg)
   if (!ctx.group) return []
@@ -125,15 +125,20 @@ export function whatCanWeSay(asset: string, asOfTs: number, priceSeries: PriceSe
 }
 
 export function reach(asset: string, nowTs: number, lineDistancePct: number, priceSeries: PriceSeries | null, opts: TouchOptions = {}): ReachResult {
-  const reg = opts.registry ?? defaultRegistry()
+  const reg = effectiveRegistry(opts.registry ?? defaultRegistry(), opts.nowMs ?? Date.now())
   const originTs = originOf(nowTs)
-  const line = -Math.abs(lineDistancePct)
+  // lineDistancePct < 0: the fall still needed to reach the line. >= 0: spot is at or already through the line.
+  if (!(lineDistancePct < 0)) {
+    return { asset, originTs, lineDistancePct, rows: [], throughLine: true, reason: 'spot is at or through the line: act now (no probability; R27 / R12.7)' }
+  }
+  const line = lineDistancePct
   const base: ReachResult = { asset, originTs, lineDistancePct: line, rows: [], throughLine: false, reason: null }
   const ctx = context(asset, priceSeries, reg)
   if (!ctx.group) return { ...base, reason: ctx.reason }
-  if (!(line < 0)) return { ...base, throughLine: true, reason: 'spot is at or through the line: act now (no probability; R27 / R12.7)' }
   if (line <= -100) return { ...base, reason: 'line distance must be above -100%' }
-  const o: TouchOptions = { ...opts, purpose: 'line' }
+  // R23 (near-line) is applied below on the TRUE line distance; the bounding cell is then gated as a price statement,
+  // so a line 12% away keeps its -10% upper-bound cell.
+  const o: TouchOptions = { ...opts, purpose: 'price', registry: reg, nowMs: opts.nowMs }
   const pred = new Map<number, ReturnType<FhSeriesModel['predict']>>()
   for (const h of reg.horizonsH) {
     const shown = cellsFor(reg, ctx.group, h).filter((c) => gate(reg, c, 'price').display === 'probability')

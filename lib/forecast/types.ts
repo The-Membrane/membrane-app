@@ -30,6 +30,8 @@ export type CellClass =
   | 'HISTORY_COUNT'
   | 'DO_NOT_SHOW'
 
+export type MonitorStatus = 'deployed' | 'missing' | 'none'
+
 /** What the UI may render for a cell. */
 export type Display = 'probability' | 'count' | 'none'
 
@@ -51,8 +53,8 @@ export interface ForecastCell {
   source: string
   /** Model the class was graded for: raw (fH), or the frozen C3 recalibration (not ported: shows nothing). */
   model: 'raw_fH' | 'recal_fH' | null
-  /** Live calibration monitor covering the cell. */
-  monitor: { id: string | null; status: 'deployed' | 'missing' | 'none' }
+  /** Live calibration monitor covering the cell: deployed, missing (needed but not deployed) or none. */
+  monitor: { id: string | null; status: MonitorStatus }
   /** Date (YYYY-MM-DD) of the governing source (map or routing table generation). */
   asOf: string
   /** May drive a warning / trigger. Only SKILL and CALIBRATED_WARN with a deployed monitor. */
@@ -97,6 +99,12 @@ export interface Registry {
   nearLine: NearLineRule
   assets: AssetSpec[]
   labels: Record<CellClass, string>
+  /**
+   * Commit time (ISO) of the live D12 monitor flags (d12/classes.json) synced into this registry. When it is missing
+   * or older than 3 days, the engine fails closed: every CALIBRATED_WARN cell displays as CALIBRATED, no trigger.
+   */
+  monitorAsOf?: string
+  monitorSource?: { path: string; sha256: string; lastLedgerDate: string | null; downgraded: string[] }
 }
 
 /**
@@ -143,6 +151,8 @@ export interface TouchOptions {
   registry?: Registry
   /** Year floor for history counts (default: the whole series). */
   countSinceTs?: number
+  /** Wall clock for the monitor-freshness check (ms; default Date.now()). */
+  nowMs?: number
 }
 
 export interface TouchResult {

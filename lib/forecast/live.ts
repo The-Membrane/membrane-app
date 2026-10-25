@@ -16,6 +16,14 @@ export function isForecastSymbol(s: string): s is ForecastSymbol {
   return (FORECAST_SYMBOLS as readonly string[]).includes(s)
 }
 
+/** Clamp a requested tail start to [now - MAX_TAIL_HOURS, now]. A future or non-numeric value is an error. */
+export function clampSince(since: number, nowMs: number): { since: number } | { error: string } {
+  const now = Math.floor(nowMs / 1000)
+  if (!Number.isFinite(since) || since <= 0) return { error: 'since must be a unix timestamp (s)' }
+  if (since > now) return { error: 'since is in the future' }
+  return { since: Math.max(Math.floor(since), now - MAX_TAIL_HOURS * HOUR) }
+}
+
 /** Fetch closed hourly klines opening at or after sinceTs (unix s). Pages of 1,000. */
 export async function fetchKlineTail(
   symbol: ForecastSymbol, sinceTs: number, fetchFn: typeof fetch = fetch, nowMs: number = Date.now(),
@@ -44,7 +52,8 @@ export async function fetchKlineTail(
 export async function loadSeries(
   symbol: ForecastSymbol,
   opts: { live?: boolean; baseUrl?: string; fetchFn?: typeof fetch } = {},
-): Promise<{ series: PriceSeries; stamp: { source: string; through: string; fetchedAt: string | null; live: boolean } }> {
+  nowMs: number = Date.now(),
+): Promise<{ series: PriceSeries; stamp: { source: string; through: string; fetchedAt: string | null; live: boolean; reason: string | null } }> {
   const f = opts.fetchFn ?? fetch
   const base = opts.baseUrl ?? ''
   const r = await f(`${base}/data/forecast/${symbol}-1h.json`)
@@ -52,19 +61,27 @@ export async function loadSeries(
   let series = decodeCompactSeries((await r.json()) as CompactSeries)
   let fetchedAt: string | null = null
   let live = false
-  if (opts.live) {
+  let reason: string | null = opts.live ? null : 'live tail not requested'
+  const gapH = Math.floor(nowMs / 1000 / HOUR) - seriesEndTs(series) / HOUR
+  if (opts.live && gapH > MAX_TAIL_HOURS) {
+    // the tail endpoint serves at most MAX_TAIL_HOURS: refuse instead of filling the gap with null hours
+    reason = `committed series ends ${gapH} h before now (> ${MAX_TAIL_HOURS} h): rebuild public/data/forecast with scripts/forecast/build-price-series.mjs`
+  } else if (opts.live) {
     try {
       const t = await f(`${base}/api/forecast/klines?symbol=${symbol}&since=${seriesEndTs(series)}`)
       if (t.ok) {
         const body = (await t.json()) as { klines: BinanceKline[]; fetchedAt: string }
-        series = appendKlines(series, body.klines, Date.now(), body.fetchedAt)
+        series = appendKlines(series, body.klines, nowMs, body.fetchedAt)
         fetchedAt = body.fetchedAt
         live = true
+      } else {
+        reason = `live tail HTTP ${t.status}`
       }
-    } catch {
+    } catch (e) {
       // the committed series still works; the stamp says it is not live
+      reason = `live tail failed: ${e instanceof Error ? e.message : 'error'}`
     }
   }
   const through = new Date((seriesEndTs(series) - HOUR) * 1000).toISOString().replace('.000Z', 'Z')
-  return { series, stamp: { source: 'Binance spot 1h klines', through, fetchedAt, live } }
+  return { series, stamp: { source: 'Binance spot 1h klines', through, fetchedAt, live, reason } }
 }

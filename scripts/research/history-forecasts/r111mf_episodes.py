@@ -197,8 +197,34 @@ def cmd_report(a):
         if r0 is not None and r0 <= 1.01:
             return "price revaluation only (<= 1.01 at first-call prices)"
         return "other"
+    # interest bound: a reserve's token-unit repay over the episode cannot exceed its first-call debt times the growth
+    # of its variable-debt index from the first to the last call (daily anchor vindex; the last-call day is taken one
+    # day late so the bound is not tightened by the daily grid)
+    metas, sym2a = {}, {}
+    if a.work:
+        rs = F.jl(os.path.join(a.work, "reserves.json.gz"))["reserves"]
+        sym2a = {r["symbol"]: r["asset"] for r in rs}
+
+        def vidx(day, sym):
+            if day not in metas:
+                pth = os.path.join(a.work, "meta", f"{day}.json.gz")
+                metas[day] = F.jl(pth)["reserves"] if os.path.exists(pth) else {}
+            r = metas[day].get(sym2a.get(sym))
+            return int(r["vindex"]) / 1e27 if r and r.get("vindex") else None
     for e in viol:
         e["cause_class"] = cls(e)
+        if a.work:
+            d0 = e["first_call_day"]
+            d1 = (dt.date.fromisoformat(d0) + dt.timedelta(hours=e["duration_h"] + 24)).isoformat()
+            ib = {}
+            for sname, ur in e["unit_ratio_by_symbol"].items():
+                v0, v1 = vidx(d0, sname), vidx(d1, sname)
+                g = v1 / v0 if v0 and v1 else None
+                ib[sname] = {"unit_ratio": ur, "vindex_growth_first_to_last_call": g,
+                             "within_interest_bound": None if g is None or ur is None else bool(ur <= g * (1 + 1e-6))}
+            e["interest_bound"] = ib
+            e["all_within_interest_bound"] = all(v["within_interest_bound"] for v in ib.values()
+                                                 if v["within_interest_bound"] is not None)
     by = {}
     for e in viol:
         by[e["cause_class"]] = by.get(e["cause_class"], 0) + 1
@@ -208,6 +234,8 @@ def cmd_report(a):
            "published_dev_engine_episodes": json.load(open(a.published_json))["engine"]["episodes"],
            "segments_engine_episodes": tot, "hook_max_rel_diff_vs_engine": hook_ok,
            "violations": len(viol), "violations_by_cause": by,
+           "violations_within_interest_bound": sum(1 for e in viol if e.get("all_within_interest_bound")),
+           "violations_usdc_or_stable_only_debt": sum(1 for e in viol if e["usdc_only_debt"]),
            "violations_detail": sorted(viol, key=lambda e: -e["ratio_engine"]),
            "all_episodes_ratio_at_first_call_prices_max": max(e["ratio_at_first_call_prices"] or 0 for e in eps),
            "all_episodes_max_unit_ratio": max(e["max_unit_ratio_per_reserve"] or 0 for e in eps),
@@ -215,6 +243,7 @@ def cmd_report(a):
     G.jdump(a.out, res)
     print(json.dumps({k: res[k] for k in ("path_check", "published_dev_engine_episodes", "segments_engine_episodes",
                                           "hook_max_rel_diff_vs_engine", "violations", "violations_by_cause",
+                                          "violations_within_interest_bound", "violations_usdc_or_stable_only_debt",
                                           "all_episodes_ratio_at_first_call_prices_max", "all_episodes_max_unit_ratio",
                                           "episodes_unit_ratio_gt_1p01")}, indent=1, default=str))
 
@@ -222,7 +251,7 @@ def cmd_report(a):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd")
-    for k in ("mk", "work", "rule", "start", "end", "out", "published", "published_json"):
+    for k in ("mk", "work", "rule", "start", "end", "out", "published", "published_json"):  # noqa: B007
         ap.add_argument(f"--{k}")
     ap.add_argument("--segs", nargs="*")
     a = ap.parse_args()

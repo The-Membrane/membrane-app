@@ -1,7 +1,7 @@
 {
  "schema": "membrane-forecast-registry/1",
- "version": "e100dd2c30b41d28",
- "generatedAt": "2026-10-25T13:20:56Z",
+ "version": "fdc439b0c9520020",
+ "generatedAt": "2026-10-25T13:52:49Z",
  "mapSha256": "fe3de9c6e20fe96ab1691b0d5cce03b096fc730bb40dd3029add4cdb76d3e550",
  "routingTableVersion": "1c70c80c912d8a78",
  "model": {
@@ -37,36 +37,36 @@
    "group": "eth_btc",
    "horizonH": 1,
    "levelPct": -2,
-   "class": "CALIBRATED",
+   "class": "PENDING",
    "gradedClass": "CALIBRATED_WARN",
-   "label": "historical context: calibrated, not a warning",
-   "source": "release:release-0-0-0-2 | Release grading (R19.3): ETH/BTC 1h CALIBRATED-WARN -2, -3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.042…+0.051, AUC 0.81…0.84, pos 117…296 || P3: warning class without a deployed live monitor -> labelled context",
+   "label": "",
+   "source": "release:release-0-0-0-2 | Release grading (R19.3): ETH/BTC 1h CALIBRATED-WARN -2, -3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.042…+0.051, AUC 0.81…0.84, pos 117…296 || P3: warning class without a deployed live monitor -> labelled context; P4: graded only on Chainlink-spliced rows; calibration does not transfer to the Binance-input live definition (map: ETH/BTC price-source correction)",
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
-   "caveat": "Graded on Chainlink-spliced rows; the Binance-input live definition is re-checked only at 6 h -10% (map: ETH/BTC price-source correction)."
+   "caveat": "graded only on Chainlink-spliced rows; calibration does not transfer to the Binance-input live definition (map: ETH/BTC price-source correction)"
   },
   {
    "id": "eth_btc:1h:-3",
    "group": "eth_btc",
    "horizonH": 1,
    "levelPct": -3,
-   "class": "CALIBRATED",
+   "class": "PENDING",
    "gradedClass": "CALIBRATED_WARN",
-   "label": "historical context: calibrated, not a warning",
-   "source": "release:release-0-0-0-3 | Release grading (R19.3): ETH/BTC 1h CALIBRATED-WARN -2, -3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.042…+0.051, AUC 0.81…0.84, pos 117…296 || P3: warning class without a deployed live monitor -> labelled context",
+   "label": "",
+   "source": "release:release-0-0-0-3 | Release grading (R19.3): ETH/BTC 1h CALIBRATED-WARN -2, -3%: R 0.86…0.96, slope 1.10…1.13, BSS(a) +0.051…+0.079, BSS(e) +0.042…+0.051, AUC 0.81…0.84, pos 117…296 || P3: warning class without a deployed live monitor -> labelled context; P4: graded only on Chainlink-spliced rows; calibration does not transfer to the Binance-input live definition (map: ETH/BTC price-source correction)",
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
-   "caveat": "Graded on Chainlink-spliced rows; the Binance-input live definition is re-checked only at 6 h -10% (map: ETH/BTC price-source correction)."
+   "caveat": "graded only on Chainlink-spliced rows; calibration does not transfer to the Binance-input live definition (map: ETH/BTC price-source correction)"
   },
   {
    "id": "eth_btc:1h:-5",
@@ -80,7 +80,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -217,36 +217,36 @@
    "group": "eth_btc",
    "horizonH": 3,
    "levelPct": -2,
-   "class": "CALIBRATED",
+   "class": "PENDING",
    "gradedClass": "CALIBRATED_WARN",
-   "label": "historical context: calibrated, not a warning",
-   "source": "release:release-0-1-0-2 | Release grading (R19.3): ETH/BTC 3h CALIBRATED-WARN -2, -3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.068…+0.076, AUC 0.75…0.79, pos 519…1224 || P3: warning class without a deployed live monitor -> labelled context",
+   "label": "",
+   "source": "release:release-0-1-0-2 | Release grading (R19.3): ETH/BTC 3h CALIBRATED-WARN -2, -3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.068…+0.076, AUC 0.75…0.79, pos 519…1224 || P3: warning class without a deployed live monitor -> labelled context; P4: graded only on Chainlink-spliced rows; calibration does not transfer to the Binance-input live definition (map: ETH/BTC price-source correction)",
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
-   "caveat": "Graded on Chainlink-spliced rows; the Binance-input live definition is re-checked only at 6 h -10% (map: ETH/BTC price-source correction)."
+   "caveat": "graded only on Chainlink-spliced rows; calibration does not transfer to the Binance-input live definition (map: ETH/BTC price-source correction)"
   },
   {
    "id": "eth_btc:3h:-3",
    "group": "eth_btc",
    "horizonH": 3,
    "levelPct": -3,
-   "class": "CALIBRATED",
+   "class": "PENDING",
    "gradedClass": "CALIBRATED_WARN",
-   "label": "historical context: calibrated, not a warning",
-   "source": "release:release-0-1-0-3 | Release grading (R19.3): ETH/BTC 3h CALIBRATED-WARN -2, -3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.068…+0.076, AUC 0.75…0.79, pos 519…1224 || P3: warning class without a deployed live monitor -> labelled context",
+   "label": "",
+   "source": "release:release-0-1-0-3 | Release grading (R19.3): ETH/BTC 3h CALIBRATED-WARN -2, -3%: R 0.85…0.85, slope 0.98…1.04, BSS(a) +0.087…+0.096, BSS(e) +0.068…+0.076, AUC 0.75…0.79, pos 519…1224 || P3: warning class without a deployed live monitor -> labelled context; P4: graded only on Chainlink-spliced rows; calibration does not transfer to the Binance-input live definition (map: ETH/BTC price-source correction)",
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
-   "caveat": "Graded on Chainlink-spliced rows; the Binance-input live definition is re-checked only at 6 h -10% (map: ETH/BTC price-source correction)."
+   "caveat": "graded only on Chainlink-spliced rows; calibration does not transfer to the Binance-input live definition (map: ETH/BTC price-source correction)"
   },
   {
    "id": "eth_btc:3h:-5",
@@ -260,7 +260,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -278,7 +278,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -397,72 +397,72 @@
    "group": "eth_btc",
    "horizonH": 6,
    "levelPct": -2,
-   "class": "CALIBRATED_WARN",
+   "class": "CALIBRATED",
    "gradedClass": "CALIBRATED_WARN",
-   "label": "calibrated, not proven better than alternatives",
-   "source": "release:release-0-2-0-2 | Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295",
+   "label": "historical context: calibrated, not a warning",
+   "source": "release:release-0-2-0-2 | Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295 || P4: graded on Chainlink-spliced rows; context only until re-checked on Binance input",
    "model": "raw_fH",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
    "asOf": "2026-10-25",
-   "trigger": true,
-   "caveat": "Graded on Chainlink-spliced rows; the Binance-input live definition is re-checked only at 6 h -10% (map: ETH/BTC price-source correction)."
+   "trigger": false,
+   "caveat": "graded on Chainlink-spliced rows; context only until re-checked on Binance input"
   },
   {
    "id": "eth_btc:6h:-3",
    "group": "eth_btc",
    "horizonH": 6,
    "levelPct": -3,
-   "class": "CALIBRATED_WARN",
+   "class": "CALIBRATED",
    "gradedClass": "CALIBRATED_WARN",
-   "label": "calibrated, not proven better than alternatives",
-   "source": "release:release-0-2-0-3 | Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295",
+   "label": "historical context: calibrated, not a warning",
+   "source": "release:release-0-2-0-3 | Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295 || P4: graded on Chainlink-spliced rows; context only until re-checked on Binance input",
    "model": "raw_fH",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
    "asOf": "2026-10-25",
-   "trigger": true,
-   "caveat": "Graded on Chainlink-spliced rows; the Binance-input live definition is re-checked only at 6 h -10% (map: ETH/BTC price-source correction)."
+   "trigger": false,
+   "caveat": "graded on Chainlink-spliced rows; context only until re-checked on Binance input"
   },
   {
    "id": "eth_btc:6h:-5",
    "group": "eth_btc",
    "horizonH": 6,
    "levelPct": -5,
-   "class": "CALIBRATED_WARN",
+   "class": "CALIBRATED",
    "gradedClass": "CALIBRATED_WARN",
-   "label": "calibrated, not proven better than alternatives",
-   "source": "release:release-0-2-0-5 | Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295",
+   "label": "historical context: calibrated, not a warning",
+   "source": "release:release-0-2-0-5 | Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295 || P4: graded on Chainlink-spliced rows; context only until re-checked on Binance input",
    "model": "raw_fH",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
    "asOf": "2026-10-25",
-   "trigger": true,
-   "caveat": "Graded on Chainlink-spliced rows; the Binance-input live definition is re-checked only at 6 h -10% (map: ETH/BTC price-source correction)."
+   "trigger": false,
+   "caveat": "graded on Chainlink-spliced rows; context only until re-checked on Binance input"
   },
   {
    "id": "eth_btc:6h:-7",
    "group": "eth_btc",
    "horizonH": 6,
    "levelPct": -7,
-   "class": "CALIBRATED_WARN",
+   "class": "CALIBRATED",
    "gradedClass": "CALIBRATED_WARN",
-   "label": "calibrated, not proven better than alternatives",
-   "source": "release:release-0-2-0-7 | Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295",
+   "label": "historical context: calibrated, not a warning",
+   "source": "release:release-0-2-0-7 | Release grading (R19.3): ETH/BTC 6h CALIBRATED-WARN -2, -3, -5, -7, -10%: R 0.86…0.92, slope 1.01…1.33, BSS(a) +0.044…+0.111, BSS(e) +0.051…+0.088, AUC 0.72…0.89, pos 48…2295 || P4: graded on Chainlink-spliced rows; context only until re-checked on Binance input",
    "model": "raw_fH",
    "monitor": {
     "id": "D12",
     "status": "deployed"
    },
    "asOf": "2026-10-25",
-   "trigger": true,
-   "caveat": "Graded on Chainlink-spliced rows; the Binance-input live definition is re-checked only at 6 h -10% (map: ETH/BTC price-source correction)."
+   "trigger": false,
+   "caveat": "graded on Chainlink-spliced rows; context only until re-checked on Binance input"
   },
   {
    "id": "eth_btc:6h:-10",
@@ -854,7 +854,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -1034,7 +1034,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -1214,7 +1214,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -1484,7 +1484,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -1502,7 +1502,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -1682,7 +1682,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -1700,7 +1700,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -1718,7 +1718,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -2294,7 +2294,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -2474,7 +2474,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -2654,7 +2654,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -2834,7 +2834,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -2852,7 +2852,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -2870,7 +2870,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -2888,7 +2888,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -2924,7 +2924,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -2942,7 +2942,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -2960,7 +2960,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3158,7 +3158,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3284,7 +3284,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3302,7 +3302,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3320,7 +3320,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3338,7 +3338,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3356,7 +3356,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3392,7 +3392,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3428,7 +3428,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3464,7 +3464,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3482,7 +3482,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3500,7 +3500,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3518,7 +3518,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3536,7 +3536,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3572,7 +3572,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3608,7 +3608,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3680,7 +3680,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3698,7 +3698,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3716,7 +3716,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3734,7 +3734,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3788,7 +3788,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3824,7 +3824,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3842,7 +3842,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3860,7 +3860,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3878,7 +3878,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3896,7 +3896,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3914,7 +3914,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -3932,7 +3932,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -4004,7 +4004,7 @@
    "model": "raw_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -4058,7 +4058,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -4076,7 +4076,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -4094,7 +4094,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -4112,7 +4112,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -4148,7 +4148,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -4274,7 +4274,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -4292,7 +4292,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -4310,7 +4310,7 @@
    "model": "recal_fH",
    "monitor": {
     "id": null,
-    "status": "needed"
+    "status": "missing"
    },
    "asOf": "2026-10-25",
    "trigger": false,
@@ -5831,10 +5831,10 @@
   },
   {
    "symbol": "wstETH",
-   "group": "eth_btc",
-   "series": "ETHUSDT",
-   "basis": "wrap-rate",
-   "note": "Lending oracles price wstETH as ETH/USD x the wstETH wrap rate (measured on Aave across the Oct 10 2025 stETH/ETH depeg: wstETH/WETH constant 1.21598891; public/data/oct10-2025/README.md). A percentage fall of the wstETH oracle equals the ETH/USD fall, so the ETH cells apply. Not valid for an oracle that reads the stETH/ETH market feed (use stETH-market)."
+   "group": "steth",
+   "series": null,
+   "basis": "none",
+   "note": "Membrane prices wstETH through a Uniswap V3 wstETH/WETH TWAP, so the stETH/ETH market basis applies: the map's stETH row is DO NOT SHOW (no meaningful blind test)."
   },
   {
    "symbol": "stETH-market",
@@ -5853,5 +5853,12 @@
   "SCENARIO": "",
   "HISTORY_COUNT": "history count, not a probability",
   "DO_NOT_SHOW": ""
+ },
+ "monitorAsOf": "2026-10-25T05:28:31Z",
+ "monitorSource": {
+  "path": "membrane-datasets forecasts/q26-touch-live/d12/classes.json",
+  "sha256": "66acfc68f35d9d9f13d2fd9c80bab4f34a44400ad8a4fdb62045dd10285e5bfa",
+  "lastLedgerDate": null,
+  "downgraded": []
  }
 }

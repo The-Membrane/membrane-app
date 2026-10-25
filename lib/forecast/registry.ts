@@ -4,7 +4,11 @@
  * The UI renders whatever each cell's class allows, so a regrade flows through by data alone.
  */
 import registryJson from './registry.json'
-import type { AssetSpec, CellClass, Display, ForecastCell, Purpose, Registry } from './types'
+import type { AssetSpec, CellClass, Display, ForecastCell, MonitorStatus, Purpose, Registry } from './types'
+
+const MONITOR_STATUSES: MonitorStatus[] = ['deployed', 'missing', 'none']
+/** The live monitor flags must be at most this old, or warning cells fail closed to CALIBRATED context. */
+export const MONITOR_MAX_AGE_S = 3 * 86400
 
 const CLASSES: CellClass[] = ['SKILL', 'CALIBRATED_WARN', 'CALIBRATED', 'RECALIBRATE', 'PENDING', 'SCENARIO', 'HISTORY_COUNT', 'DO_NOT_SHOW']
 /** Classes that may show a probability (owner rule, Q41). */
@@ -26,6 +30,8 @@ export function parseRegistry(raw: unknown): Registry {
       throw new Error(`forecast registry: ${c.id} CALIBRATED_WARN needs the required label`)
     }
     if (c.trigger && !(c.class === 'SKILL' || c.class === 'CALIBRATED_WARN')) throw new Error(`forecast registry: ${c.id} trigger on ${c.class}`)
+    if (!c.monitor || !MONITOR_STATUSES.includes(c.monitor.status)) throw new Error(`forecast registry: bad monitor status in ${c.id}`)
+    if (c.trigger && c.monitor.status !== 'deployed') throw new Error(`forecast registry: ${c.id} trigger without a deployed monitor`)
   }
   return r
 }
@@ -34,6 +40,37 @@ let cached: Registry | null = null
 export function defaultRegistry(): Registry {
   if (!cached) cached = parseRegistry(registryJson)
   return cached
+}
+
+const failClosed = new WeakMap<Registry, Map<string, Registry>>()
+
+/** Why the live-monitor flags are not usable at nowMs, or null when they are fresh. */
+export function monitorStaleReason(reg: Registry, nowMs: number): string | null {
+  if (!reg.monitorAsOf) return 'live monitor flags missing from the registry'
+  const t = Date.parse(reg.monitorAsOf)
+  if (!Number.isFinite(t)) return 'live monitor flags have an unreadable date'
+  if (nowMs / 1000 - t / 1000 > MONITOR_MAX_AGE_S) return `live monitor flags are older than 3 days (synced ${reg.monitorAsOf})`
+  return null
+}
+
+/**
+ * The registry as the UI may use it at nowMs. Fresh monitor flags: unchanged. Stale or missing: every
+ * CALIBRATED_WARN cell becomes CALIBRATED (labelled context, trigger false), with the reason in its caveat.
+ */
+export function effectiveRegistry(reg: Registry, nowMs: number = Date.now()): Registry {
+  const why = monitorStaleReason(reg, nowMs)
+  if (!why) return reg
+  let byWhy = failClosed.get(reg)
+  if (!byWhy) { byWhy = new Map(); failClosed.set(reg, byWhy) }
+  const hit = byWhy.get(why)
+  if (hit) return hit
+  const cells = reg.cells.map((c) => c.class !== 'CALIBRATED_WARN' ? c : {
+    ...c, class: 'CALIBRATED' as const, label: reg.labels.CALIBRATED, trigger: false,
+    caveat: [c.caveat, `Fail-closed: ${why}; warning odds shown as context only.`].filter(Boolean).join(' '),
+  })
+  const out = { ...reg, cells }
+  byWhy.set(why, out)
+  return out
 }
 
 export function resolveAsset(reg: Registry, asset: string): AssetSpec | null {
@@ -69,7 +106,7 @@ export function gate(reg: Registry, cell: ForecastCell | null, purpose: Purpose)
     case 'RECALIBRATE':
       return { display: 'none', reason: 'informative but miscalibrated, no validated recalibration: no probability' }
     case 'PENDING':
-      return { display: 'none', reason: 'pending a live verdict: research build only' }
+      return { display: 'none', reason: `pending a live verdict: research build only${cell.caveat ? ` (${cell.caveat})` : ''}` }
     case 'SCENARIO':
       return { display: 'none', reason: 'scenario only: no frequency' }
     case 'DO_NOT_SHOW':

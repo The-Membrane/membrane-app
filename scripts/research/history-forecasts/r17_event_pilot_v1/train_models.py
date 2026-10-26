@@ -114,7 +114,9 @@ def bounded_fit(arm,xt,yt,mt,xe,me,seconds=120,rss_limit=1073741824):
  try:
   while not recv.poll(.15):
    if time.monotonic()-start>seconds:raise TimeoutError('per-fit boundary')
-   if not p.is_alive():raise RuntimeError('fit child exited without result')
+   if not p.is_alive():
+    if recv.poll(0):break
+    raise RuntimeError('fit child exited without result')
    remaining=seconds-(time.monotonic()-start)
    try:sample=sampled_rss(os.getpid(),p.pid,min(1.,remaining))
    except LookupError:

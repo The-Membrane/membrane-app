@@ -76,3 +76,9 @@ Spawn one fit child at a time. Monitor combined parent+fit-child RSS against1GiB
 A parent outer monitor must additionally bound loading/scoring RSS and full-run wall time. Sampling is not native syscall containment.
 The request remains DRAFT until the parent verifies source, tests, producer schema, fixed24-series input selection and data/provenance qualifications.
 Current synthetic tests exercise real small XGBoost fits only, numerical gradients, split masks, projection and margin handling.
+
+## Execution-only amendment before the first real fit — 2026-10-20
+
+After an empty timed pipe poll, a fit child may send its reply and exit before the liveness check.
+Re-poll the pipe immediately when the child is terminal. Consume a queued reply or retain the genuine no-result failure.
+A deterministic mocked interleaving checks both cases. Model mathematics, hyperparameters, inputs and scores are unchanged.

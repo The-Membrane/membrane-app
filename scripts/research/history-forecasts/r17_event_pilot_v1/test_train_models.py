@@ -88,6 +88,20 @@ class TestPilot(unittest.TestCase):
   for code,output,error in [(1,'',RuntimeError),(0,'junk',RuntimeError),(0,'10 100\n',LookupError),(0,'20 200\n',RuntimeError),(0,'10 100\n20 0\n',RuntimeError)]:
    with patch.object(M.subprocess,'run',return_value=SimpleNamespace(returncode=code,stdout=output)):
     with self.assertRaises(error):M.sampled_rss(10,20,.2)
+ def test_child_send_exit_poll_race(self):
+  from unittest.mock import MagicMock
+  for queued in [True,False]:
+   with self.subTest(queued=queued):
+    context=MagicMock();receiver=MagicMock();sender=MagicMock();child=MagicMock();child.pid=123;child.exitcode=0;child.is_alive.return_value=False
+    receiver.poll.side_effect=[False,queued];receiver.recv.return_value=('ok',(np.array([.2]),{}));context.Pipe.return_value=(receiver,sender);context.Process.return_value=child
+    x=np.zeros((2,1));y=np.array([0.,1.]);m=np.zeros(2)
+    with patch.object(M.mp,'get_context',return_value=context),patch.object(M,'sampled_rss',side_effect=AssertionError('no RSS probe after terminal child')):
+     if queued:
+      pred,details=M.bounded_fit('linear',x,y,m,x[:1],m[:1]);np.testing.assert_array_equal(pred,[.2]);receiver.recv.assert_called_once();self.assertGreaterEqual(details['elapsed_seconds'],0)
+     else:
+      with self.assertRaisesRegex(RuntimeError,'exited without result'):M.bounded_fit('linear',x,y,m,x[:1],m[:1])
+      receiver.recv.assert_not_called()
+    receiver.poll.assert_any_call(0);receiver.close.assert_called_once();child.terminate.assert_not_called()
  def test_child_timeout_is_failure(self):
   x=np.zeros((100,3));y=np.tile([0,1],50)
   with self.assertRaises(TimeoutError):M.bounded_fit('xgb_shape',x,y,np.zeros(100),x[:2],np.array([-1.,1.]),seconds=0)

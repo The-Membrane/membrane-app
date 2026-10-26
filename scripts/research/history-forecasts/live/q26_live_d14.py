@@ -140,7 +140,7 @@ CHAINS = {
             # Keyless BNB logs: publicnode serves only about the last 10k blocks; bloXroute keeps a rolling window of
             # about 7M blocks (probed 2026-10-25). Older history needs a key, so discovery starts at log_depth.
             "log": [("https://bsc.rpc.blxrbdn.com", 5_000), ("https://bsc-rpc.publicnode.com", 5_000),
-                    ("https://bsc.publicnode.com", 5_000)], "log_depth": 6_000_000,
+                    ("https://bsc.publicnode.com", 5_000)], "log_depth": 6_000_000, "latest_state": True,
             # 2026-10-26: BNB 09:00Z was stale on drpc 429; publicnode 403s and dataseed "missing trie node" under load.
             # bloXroute (keyless) answers the Multicall reads; drpc is dropped.
             "call": ["https://bsc.rpc.blxrbdn.com", "https://bsc-rpc.publicnode.com", "https://bsc.publicnode.com",
@@ -331,6 +331,9 @@ class Rpc:
         self.lock = threading.Lock()
         self.stats = {"requests": 0, "errors": 0, "logs": 0, "splits": 0}
         self.interval = interval
+        # Chains whose keyless nodes keep only ~100-300 blocks of state (BNB: about a minute) read state at "latest";
+        # a block pinned at the start of a minutes-long run is already pruned there (2026-10-26 BNB stale).
+        self.latest_state = bool(cfg.get("latest_state"))
         self._last = 0.0
 
     def _pace(self):
@@ -450,7 +453,7 @@ class Rpc:
         """calls: [(target, calldata bytes)] -> [(ok, bytes)] at block (int)."""
         data = aggregate3_data(calls)
         try:
-            raw = self.call("eth_call", [{"to": MULTICALL3, "data": data}, hex(block)])
+            raw = self.call("eth_call", [{"to": MULTICALL3, "data": data}, "latest" if self.latest_state else hex(block)])
         except TooBig:
             if len(calls) <= 8:
                 raise Stale("aggregate3: too big") from None

@@ -523,3 +523,21 @@ def test_out_of_gas_splits_and_400_rotates():
         pass
     # a 400 rotates and retries; the third answer succeeds, so no TooBig and no Stale
     assert rpc.call("eth_call", [{"to": D.MULTICALL3, "data": "0x00"}, "latest"]) == "0x"
+
+
+def test_latest_state_chain_reads_latest():
+    seen = []
+
+    def post(url, payload, timeout):
+        seen.append(json.loads(payload)["params"][1])
+        return {"jsonrpc": "2.0", "id": 1, "result": "0x" + "00" * 64}
+
+    assert D.CHAINS["bnb"].get("latest_state") is True and not D.CHAINS["ethereum"].get("latest_state")
+    for ch, want in (("bnb", "latest"), ("ethereum", hex(123))):
+        seen.clear()
+        rpc = D.Rpc(ch, D.CHAINS[ch], post=post, tries=1, sleep=lambda s: None)
+        try:
+            rpc.aggregate3([(D.MULTICALL3, b"\x00")], 123)
+        except Exception:
+            pass
+        assert seen and seen[0] == want

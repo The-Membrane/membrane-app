@@ -152,7 +152,7 @@ const PlaySession: React.FC = () => {
               Start play session
             </Button>
             {start.isError && (
-              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.danger} mt={SPACING.xs}>
+              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.dangerText} mt={SPACING.xs}>
                 {(start.error as Error)?.message ?? 'Could not start session'}
               </Text>
             )}

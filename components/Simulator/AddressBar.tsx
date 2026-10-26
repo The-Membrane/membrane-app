@@ -200,7 +200,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           id={`${inputId}-error`}
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize="11.5px"
-          color={SEMANTIC_COLORS.danger}
+          color={SEMANTIC_COLORS.dangerText}
         >
           {error}
         </Text>

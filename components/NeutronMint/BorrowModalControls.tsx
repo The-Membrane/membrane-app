@@ -170,7 +170,7 @@ export const BorrowModalControls: React.FC<BorrowModalControlsProps> = ({
                     {/* Fixed-rate aggregate cap notice */}
                     {isFixed && Number.isFinite(fixedCapacity) && (
                         <Text
-                            color={exceedsFixedCap ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.warning}
+                            color={exceedsFixedCap ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.warning}
                             fontSize="xs"
                             textAlign="left"
                         >

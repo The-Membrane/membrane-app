@@ -717,7 +717,7 @@ export const StratsBoard: React.FC = () => {
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize="12px"
-          color={SEMANTIC_COLORS.danger}
+          color={SEMANTIC_COLORS.dangerText}
           mt={SPACING.lg}
         >
           {(error as Error).message}

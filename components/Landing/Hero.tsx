@@ -194,7 +194,10 @@ export const Hero: React.FC<HeroProps> = ({ st, c, chainName, onBtc, onLtv, onVe
             <Small>/yr at 3.0%</Small>
           </FlowRow>
           <FlowRow label="Net to you" net>
-            <Text as="span" color={c.net >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}>
+            <Text
+              as="span"
+              color={c.net >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}
+            >
               {usdc(c.net)}
               <Small>/yr</Small>
             </Text>

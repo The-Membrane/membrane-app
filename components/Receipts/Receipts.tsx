@@ -271,7 +271,11 @@ export const Receipts: React.FC = () => {
             </Button>
           )}
           {err && (
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.danger}>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="11px"
+              color={SEMANTIC_COLORS.dangerText}
+            >
               {err}
             </Text>
           )}

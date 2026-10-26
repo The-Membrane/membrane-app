@@ -75,7 +75,7 @@ export const CureTimeline: React.FC = () => {
           {/* Liquidation tick + zone: 80-100% */}
           <Box position="absolute" top={0} bottom={0} left="80%" w="1px" bg={SEMANTIC_COLORS.borderStrong} />
           <Box position="absolute" top={0} bottom={0} left="80%" w="20%" bg="rgba(207,64,52,0.22)" />
-          <Text position="absolute" left="82%" top="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.danger}>
+          <Text position="absolute" left="82%" top="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.dangerText}>
             Liquidation
           </Text>
           <Text position="absolute" left="82%" bottom="8px" fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>

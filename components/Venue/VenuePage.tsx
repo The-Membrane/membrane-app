@@ -473,7 +473,9 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
                 fontFamily={TYPOGRAPHY.fontMono}
                 fontSize={TYPOGRAPHY.h2}
                 fontWeight={TYPOGRAPHY.semibold}
-                color={driverData.deltaUsd >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
+                color={
+                  driverData.deltaUsd >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText
+                }
               >
                 {signedUsd(driverData.deltaUsd)}
               </Text>
@@ -548,7 +550,7 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
                         fontSize={TYPOGRAPHY.small}
                         fontWeight={TYPOGRAPHY.medium}
                         color={
-                          part.deltaUsd >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger
+                          part.deltaUsd >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText
                         }
                         textAlign={{ base: 'left', md: 'right' }}
                       >
@@ -604,7 +606,7 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
                             value > 0
                               ? SEMANTIC_COLORS.success
                               : value < 0
-                                ? SEMANTIC_COLORS.danger
+                                ? SEMANTIC_COLORS.dangerText
                                 : SEMANTIC_COLORS.textSecondary
                           }
                           textAlign="right"
@@ -751,7 +753,9 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
                   fontSize="10px"
                   letterSpacing="0.14em"
                   textTransform="uppercase"
-                  color={a.severity === 'alarm' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.warning}
+                  color={
+                    a.severity === 'alarm' ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.warning
+                  }
                 >
                   {a.kind}
                 </Text>
@@ -767,7 +771,9 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
                   fontSize="9px"
                   letterSpacing="0.14em"
                   textTransform="uppercase"
-                  color={a.severity === 'alarm' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.warning}
+                  color={
+                    a.severity === 'alarm' ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.warning
+                  }
                   textAlign={{ base: 'left', md: 'right' }}
                 >
                   {a.severity}
@@ -869,7 +875,9 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
                     letterSpacing="0.14em"
                     textTransform="uppercase"
                     color={
-                      isAlarm && !e.cleared ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textTertiary
+                      isAlarm && !e.cleared
+                        ? SEMANTIC_COLORS.dangerText
+                        : SEMANTIC_COLORS.textTertiary
                     }
                     textAlign={{ base: 'left', md: 'right' }}
                   >

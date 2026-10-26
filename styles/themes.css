@@ -17,6 +17,9 @@
   --m-warning: #d8b24a;
   --m-risk-caution: #c77d3f;
   --m-danger: #cf4034;
+  /* danger as small text: #cf4034 is 4.0-4.2:1 on the dark surfaces (fails AA);
+     this lighter blood holds >= 5.09:1 on page, card and raised */
+  --m-danger-text: #e0564a;
   --m-info: #46d39a;
   /* emphasis */
   --m-primary: #9bdc4f;
@@ -45,6 +48,8 @@
   --m-warning: #725410;
   --m-risk-caution: #8a451a;
   --m-danger: #a52f2a;
+  /* deep blood already holds >= 5.96:1 on every paper surface */
+  --m-danger-text: #a52f2a;
   --m-info: #0f6b4b;
   /* emphasis — moss ink; solid CTA fills keep phosphor with dark text */
   --m-primary: #326215;

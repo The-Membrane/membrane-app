@@ -33,7 +33,7 @@ export const Stat: React.FC<{
     tone === 'good'
       ? SEMANTIC_COLORS.success
       : tone === 'bad'
-        ? SEMANTIC_COLORS.danger
+        ? SEMANTIC_COLORS.dangerText
         : tone === 'muted'
           ? SEMANTIC_COLORS.textSecondary
           : SEMANTIC_COLORS.textPrimary

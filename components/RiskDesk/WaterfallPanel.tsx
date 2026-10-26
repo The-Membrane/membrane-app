@@ -40,7 +40,10 @@ const Row: React.FC<{ step: string; label: string; amount: bigint; unit: string;
         {step}
       </Text>
       <Box>
-        <Text fontSize="14px" color={hole ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}>
+        <Text
+          fontSize="14px"
+          color={hole ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textPrimary}
+        >
           {label}
           {tag && (
             <Text as="span" ml={SPACING.sm} fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.24em" textTransform="uppercase" color={SEMANTIC_COLORS.info}>
@@ -53,7 +56,7 @@ const Row: React.FC<{ step: string; label: string; amount: bigint; unit: string;
         </Text>
       </Box>
     </HStack>
-    <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="16px" color={amount === 0n ? SEMANTIC_COLORS.textTertiary : hole ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}>
+    <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="16px" color={amount === 0n ? SEMANTIC_COLORS.textTertiary : hole ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textPrimary}>
       {fmtToken(amount)} <Text as="span" fontSize="11px" color={SEMANTIC_COLORS.textTertiary}>{unit}</Text>
     </Text>
   </HStack>

@@ -205,7 +205,7 @@ const ClusterCard: React.FC<{ c: ClusterView }> = ({ c }) => (
     <HStack justify="space-between" align="baseline" flexWrap="wrap">
       <HStack spacing={SPACING.sm} align="baseline">
         <Tag tone="red">{c.claim.replace(/-/g, ' ')}</Tag>
-        <Mono size="13px" color={SEMANTIC_COLORS.danger}>
+        <Mono size="13px" color={SEMANTIC_COLORS.dangerText}>
           {c.text}
         </Mono>
       </HStack>
@@ -244,7 +244,7 @@ const VaultExposure: React.FC<{ collateral: string }> = ({ collateral }) => {
   return (
     <Stack spacing={0} mt={SPACING.sm}>
       {isLoading && <Mono>loading…</Mono>}
-      {error && <Mono color={SEMANTIC_COLORS.danger}>{String((error as Error).message)}</Mono>}
+      {error && <Mono color={SEMANTIC_COLORS.dangerText}>{String((error as Error).message)}</Mono>}
       {data?.vaults.slice(0, 80).map((v) => (
         <Box key={v.vault} borderBottom="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
           <HStack
@@ -366,7 +366,7 @@ const ExposureSection: React.FC<{ collateral: string }> = ({ collateral }) => {
       {by === 'vault' && <VaultExposure collateral={collateral} />}
       {by === 'collateral' && isLoading && <Mono>loading…</Mono>}
       {by === 'collateral' && error && (
-        <Mono color={SEMANTIC_COLORS.danger}>{String((error as Error).message)}</Mono>
+        <Mono color={SEMANTIC_COLORS.dangerText}>{String((error as Error).message)}</Mono>
       )}
       <Stack spacing={0} mt={SPACING.sm} display={by === 'collateral' ? 'flex' : 'none'}>
         {data?.rows.slice(0, 60).map((row) => (
@@ -456,7 +456,7 @@ const AttributionSection: React.FC<{
         per year).
       </Mono>
       {isLoading && <Mono>loading…</Mono>}
-      {error && <Mono color={SEMANTIC_COLORS.danger}>{String((error as Error).message)}</Mono>}
+      {error && <Mono color={SEMANTIC_COLORS.dangerText}>{String((error as Error).message)}</Mono>}
       <Stack spacing={0} mt={SPACING.sm}>
         {shown.map((a) => (
           <Box
@@ -570,7 +570,7 @@ const SpikeSection: React.FC<{ collateral: string; minSupply?: number }> = ({
         ))}
       </HStack>
       {isLoading && <Mono>loading…</Mono>}
-      {error && <Mono color={SEMANTIC_COLORS.danger}>{String((error as Error).message)}</Mono>}
+      {error && <Mono color={SEMANTIC_COLORS.dangerText}>{String((error as Error).message)}</Mono>}
       {data && rows.length === 0 && (
         <Mono size="11px">No spike matches these filters in the collected range.</Mono>
       )}
@@ -682,7 +682,7 @@ const FlagsSection: React.FC<{ collateral: string }> = ({ collateral }) => {
         it in the vaults that gave it up.
       </Mono>
       {isLoading && <Mono>loading…</Mono>}
-      {error && <Mono color={SEMANTIC_COLORS.danger}>{String((error as Error).message)}</Mono>}
+      {error && <Mono color={SEMANTIC_COLORS.dangerText}>{String((error as Error).message)}</Mono>}
       {data && (
         <>
           <HStack mt={SPACING.sm} spacing={SPACING.sm} flexWrap="wrap">
@@ -881,7 +881,7 @@ export const CuratorFeed: React.FC = () => {
       </HStack>
 
       {error && (
-        <Mono color={SEMANTIC_COLORS.danger} size="12px">
+        <Mono color={SEMANTIC_COLORS.dangerText} size="12px">
           {String((error as Error).message)}
         </Mono>
       )}
@@ -1017,7 +1017,7 @@ export const CuratorFeedCard: React.FC = () => {
       </HStack>
       {!data && <Mono size="11px">loading…</Mono>}
       {data?.clusters.slice(0, 2).map((c) => (
-        <Mono key={`${c.collateral}:${c.start}`} size="12px" color={SEMANTIC_COLORS.danger}>
+        <Mono key={`${c.collateral}:${c.start}`} size="12px" color={SEMANTIC_COLORS.dangerText}>
           {c.text} ({utc(c.end).slice(0, 10)})
         </Mono>
       ))}

@@ -83,7 +83,7 @@ export const ForecastGate: React.FC<ForecastGateProps> = ({
             lineHeight="1.8"
           >
             You said <strong>{BANDS[picked].label}</strong>. Aave closed a median of{' '}
-            <Text as="span" color={SEMANTIC_COLORS.danger}>
+            <Text as="span" color={SEMANTIC_COLORS.dangerText}>
               {pct(aaveMedianFrac)}
             </Text>{' '}
             of each account&rsquo;s debt. Membrane&rsquo;s engine closes{' '}

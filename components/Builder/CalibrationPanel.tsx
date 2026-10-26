@@ -53,7 +53,7 @@ export const CalibrationPanel: React.FC<CalibrationPanelProps> = ({ forecasts, s
                   ? SEMANTIC_COLORS.success
                   : b != null && b < 0.3
                     ? SEMANTIC_COLORS.warning
-                    : SEMANTIC_COLORS.danger
+                    : SEMANTIC_COLORS.dangerText
             }
           >
             {locked ? n + ' / ' + CAL_MIN : (skill >= 0 ? '+' : '−') + Math.abs(skill * 100).toFixed(0) + '%'}
@@ -95,7 +95,7 @@ export const CalibrationPanel: React.FC<CalibrationPanelProps> = ({ forecasts, s
                   <Text as="span" color={SEMANTIC_COLORS.textPrimary}>
                     said {(f.p * 100).toFixed(0)}%
                   </Text>
-                  <Text as="span" color={loss < 0.25 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}>
+                  <Text as="span" color={loss < 0.25 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}>
                     {f.o ? 'held' : 'sold'} · {(Math.abs(f.p - f.o) * 100).toFixed(0)} pts off
                   </Text>
                 </Box>
@@ -120,7 +120,7 @@ export const CalibrationPanel: React.FC<CalibrationPanelProps> = ({ forecasts, s
           cursor="pointer"
           borderRadius={0}
           transition={TRANSITIONS.colors}
-          _hover={{ borderColor: SEMANTIC_COLORS.danger, color: SEMANTIC_COLORS.danger }}
+          _hover={{ borderColor: SEMANTIC_COLORS.danger, color: SEMANTIC_COLORS.dangerText }}
           _focusVisible={FOCUS_STYLES.ring}
         >
           Reset my calls

@@ -126,7 +126,7 @@ export const DiscoSectionDepositCarousel: React.FC<DiscoSectionDepositCarouselPr
                                 size="sm"
                                 variant="outline"
                                 borderColor={SEMANTIC_COLORS.danger}
-                                color={SEMANTIC_COLORS.danger}
+                                color={SEMANTIC_COLORS.dangerText}
                                 _hover={{ bg: SEMANTIC_COLORS.danger, color: SEMANTIC_COLORS.textPrimary }}
                                 onClick={() => setShowUnstakeForm(true)}
                             >

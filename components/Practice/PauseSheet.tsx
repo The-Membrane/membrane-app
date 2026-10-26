@@ -55,7 +55,9 @@ export const PauseSheet: React.FC<{ st: PracticeState; pause: PauseKind; onChoos
 
   return (
     <Panel accent={pause === 'band-approach' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.warning} role="dialog" aria-label="Choose an action">
-      <Eyebrow color={pause === 'band-approach' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.warning}>
+      <Eyebrow
+        color={pause === 'band-approach' ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.warning}
+      >
         {pause === 'arm' ? 'Window started' : pause === 'band-approach' ? 'Near the break line' : 'Halfway through the window'} · {clockAt(sc, st.index)}
       </Eyebrow>
       <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="15px" color={SEMANTIC_COLORS.textPrimary} mt={SPACING.sm}>

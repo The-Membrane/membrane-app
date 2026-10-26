@@ -80,7 +80,7 @@ export const Timeline: React.FC = () => {
           {/* Liquidation terminal */}
           <Box position="absolute" top={0} bottom={0} left="80%" w="1px" bg={SEMANTIC_COLORS.borderStrong} />
           <Box position="absolute" top={0} bottom={0} left="80%" w="20%" bg={SEMANTIC_COLORS.danger} opacity={0.22} />
-          <Label left="82%" top="8px" color={SEMANTIC_COLORS.danger}>
+          <Label left="82%" top="8px" color={SEMANTIC_COLORS.dangerText}>
             LIQUIDATION
           </Label>
           <Label left="82%" bottom="8px" color={SEMANTIC_COLORS.textPrimary} mono>

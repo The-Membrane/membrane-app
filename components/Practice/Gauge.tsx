@@ -55,7 +55,7 @@ export const Gauge: React.FC<{ sc: Scenario; ltv: number }> = ({ sc, ltv }) => {
       <Box position="absolute" left={x(sc.breakLine)} right={0} top={0} bottom={0} bg={SEMANTIC_COLORS.danger} opacity={0.1} />
       <Mark v={sc.cap} label="borrow" color={SEMANTIC_COLORS.textTertiary} />
       <Mark v={sc.line} label="line" color={SEMANTIC_COLORS.warning} />
-      <Mark v={sc.breakLine} label="break" color={SEMANTIC_COLORS.danger} />
+      <Mark v={sc.breakLine} label="break" color={SEMANTIC_COLORS.dangerText} />
       <Box position="absolute" left={x(ltv)} top="-4px" bottom="-4px" w="2px" ml="-1px" bg={over}>
         <Text
           position="absolute"

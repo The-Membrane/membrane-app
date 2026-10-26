@@ -164,7 +164,7 @@ export const ApplyLoopSection: React.FC<ApplyLoopSectionProps> = ({
                         <Text
                             fontSize={TYPOGRAPHY.h3}
                             fontWeight={TYPOGRAPHY.bold}
-                            color={requiredCapacity <= transmuterBalance ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.danger}
+                            color={requiredCapacity <= transmuterBalance ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.dangerText}
                             fontFamily={TYPOGRAPHY.fontMono}
                             sx={{ fontVariantNumeric: 'tabular-nums' }}
                         >

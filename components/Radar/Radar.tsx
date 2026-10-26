@@ -334,7 +334,7 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
         </Text>
       )}
       {error && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.danger} mt={SPACING.lg}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.dangerText} mt={SPACING.lg}>
           {(error as Error).message}
         </Text>
       )}

@@ -104,7 +104,7 @@ export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard, routesO
         <Box mt={SPACING.md}>
           {BOARDS.map((b) => {
             const carry = (b.lev * b.yld).toFixed(1)
-            const netColor = b.dead ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success
+            const netColor = b.dead ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.success
             return (
               <Grid
                 key={b.rk}
@@ -190,6 +190,8 @@ export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard, routesO
         {ROUTES.map((r, i) => {
           const { positive, width } = routeBar(r.net)
           const netColor = positive ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger
+          // Text twin: the bar keeps the fill red, the figures use the AA-safe text red.
+          const netTextColor = positive ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText
           return (
             <Grid
               key={i}
@@ -222,7 +224,7 @@ export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard, routesO
                   </Link>
                 </Text>
                 {r.note && (
-                  <Text as="span" color={SEMANTIC_COLORS.danger}>
+                  <Text as="span" color={SEMANTIC_COLORS.dangerText}>
                     {' '}
                     · {r.note}
                   </Text>
@@ -237,7 +239,7 @@ export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard, routesO
                   {r.proto}
                 </Text>
               </Box>
-              <RouteMagnitude count={r.pos} netPct={r.net} color={netColor} />
+              <RouteMagnitude count={r.pos} netPct={r.net} color={netTextColor} />
               {/* Diverging bar around a zero line */}
               <Box
                 display={{ base: 'none', md: 'block' }}
@@ -266,7 +268,7 @@ export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard, routesO
                 />
               </Box>
               <Box textAlign="right" whiteSpace="nowrap">
-                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} color={netColor}>
+                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} color={netTextColor}>
                   {(positive ? '+' : '') + r.net.toFixed(2)}%
                 </Text>
               </Box>

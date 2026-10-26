@@ -106,8 +106,8 @@ const TxConfirmView: React.FC<{
                         p={3}
                     >
                         <HStack spacing={2} align="flex-start">
-                            <Icon as={AlertTriangle} w={4} h={4} color={SEMANTIC_COLORS.danger} mt={0.5} />
-                            <Text fontSize="xs" color={SEMANTIC_COLORS.danger}>
+                            <Icon as={AlertTriangle} w={4} h={4} color={SEMANTIC_COLORS.dangerText} mt={0.5} />
+                            <Text fontSize="xs" color={SEMANTIC_COLORS.dangerText}>
                                 {error.message || 'Transaction simulation failed'}
                             </Text>
                         </HStack>
@@ -227,7 +227,7 @@ const TxSuccessView: React.FC<{
                             as={isSuccess ? CheckCircle : XCircle}
                             w={12}
                             h={12}
-                            color={isSuccess ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
+                            color={isSuccess ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}
                         />
                     </MotionBox>
                     <Text fontSize="md" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary}>
@@ -274,7 +274,7 @@ const TxSuccessView: React.FC<{
                         <Text
                             fontSize="xs"
                             fontWeight="bold"
-                            color={isSuccess ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
+                            color={isSuccess ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}
                         >
                             {isSuccess ? 'Success' : 'Failed'}
                         </Text>
@@ -352,7 +352,7 @@ const TxErrorView: React.FC<{
             <VStack spacing={4} align="stretch">
                 {/* Error Icon and Message */}
                 <VStack spacing={2} align="center" py={2}>
-                    <Icon as={XCircle} w={12} h={12} color={SEMANTIC_COLORS.danger} />
+                    <Icon as={XCircle} w={12} h={12} color={SEMANTIC_COLORS.dangerText} />
                     <Text fontSize="md" fontWeight="bold" color={SEMANTIC_COLORS.textPrimary}>
                         Transaction Failed
                     </Text>
@@ -364,7 +364,7 @@ const TxErrorView: React.FC<{
                         p={3}
                         w="100%"
                     >
-                        <Text fontSize="xs" color={SEMANTIC_COLORS.danger} textAlign="center">
+                        <Text fontSize="xs" color={SEMANTIC_COLORS.dangerText} textAlign="center">
                             {error?.message || 'An error occurred while processing your transaction'}
                         </Text>
                     </Box>

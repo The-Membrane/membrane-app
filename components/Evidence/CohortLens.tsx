@@ -69,7 +69,7 @@ const Detail: React.FC<{ r: CohortRow }> = ({ r }) => (
               ? SEMANTIC_COLORS.success
               : r.cure.curedInWindow
                 ? SEMANTIC_COLORS.warning
-                : SEMANTIC_COLORS.danger
+                : SEMANTIC_COLORS.dangerText
           }
           lineHeight="1.9"
         >
@@ -253,7 +253,7 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
                   <Text
                     fontFamily={TYPOGRAPHY.fontMono}
                     fontSize={TYPOGRAPHY.small}
-                    color={SEMANTIC_COLORS.danger}
+                    color={SEMANTIC_COLORS.dangerText}
                   >
                     {pct(r.aaveClosedFrac)}
                   </Text>
@@ -267,7 +267,7 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
                   <Text
                     fontFamily={TYPOGRAPHY.fontMono}
                     fontSize={TYPOGRAPHY.small}
-                    color={spared >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
+                    color={spared >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}
                   >
                     {spared >= 0 ? usd(spared) : `−${usd(-spared)}`}
                   </Text>
@@ -281,7 +281,7 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
                           ? SEMANTIC_COLORS.success
                           : r.cure.curedInWindow
                             ? SEMANTIC_COLORS.warning
-                            : SEMANTIC_COLORS.danger
+                            : SEMANTIC_COLORS.dangerText
                     }
                   >
                     {!r.cure ? '—' : r.cure.healthyAt8h ? 'yes' : r.cure.curedInWindow ? '8h' : 'no'}

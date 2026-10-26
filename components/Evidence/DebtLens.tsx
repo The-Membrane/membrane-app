@@ -146,11 +146,11 @@ export const DebtLens: React.FC<{
 
         <Card variant="subtle">
           <VStack align="flex-start" spacing={SPACING.sm}>
-            <Eyebrow color={SEMANTIC_COLORS.danger}>Membrane closes more</Eyebrow>
+            <Eyebrow color={SEMANTIC_COLORS.dangerText}>Membrane closes more</Eyebrow>
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.h1}
-              color={SEMANTIC_COLORS.danger}
+              color={SEMANTIC_COLORS.dangerText}
             >
               {primary.membraneClosesMore.toLocaleString()}
             </Text>
@@ -212,14 +212,14 @@ export const DebtLens: React.FC<{
                 <Text
                   fontFamily={TYPOGRAPHY.fontMono}
                   fontSize={TYPOGRAPHY.small}
-                  color={SEMANTIC_COLORS.danger}
+                  color={SEMANTIC_COLORS.dangerText}
                 >
                   {pct(a.aaveMedianFrac)}
                 </Text>
                 <Text
                   fontFamily={TYPOGRAPHY.fontMono}
                   fontSize={TYPOGRAPHY.small}
-                  color={a.membraneMedianFrac <= a.aaveMedianFrac ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
+                  color={a.membraneMedianFrac <= a.aaveMedianFrac ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}
                 >
                   {pct(a.membraneMedianFrac)}
                 </Text>

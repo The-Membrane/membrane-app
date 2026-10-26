@@ -51,7 +51,7 @@ const Row: React.FC<{ r: RegimeBleedRow }> = ({ r }) => {
       <Text
         fontFamily={TYPOGRAPHY.fontMono}
         textAlign="right"
-        color={positive ? SEMANTIC_COLORS.textSecondary : SEMANTIC_COLORS.danger}
+        color={positive ? SEMANTIC_COLORS.textSecondary : SEMANTIC_COLORS.dangerText}
       >
         {positive ? '+' : ''}
         {r.v.toFixed(1)}

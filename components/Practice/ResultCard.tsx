@@ -39,7 +39,7 @@ const Column: React.FC<{
     </Text>
     <SimpleGrid columns={2} spacing={SPACING.sm} mt={SPACING.md}>
       <Fact label={countLabel} value={count} />
-      <Fact label={takenLabel} value={fmtUsd(takenUsd)} color={takenUsd > 0 ? SEMANTIC_COLORS.danger : undefined} />
+      <Fact label={takenLabel} value={fmtUsd(takenUsd)} color={takenUsd > 0 ? SEMANTIC_COLORS.dangerText : undefined} />
     </SimpleGrid>
     {extra}
   </Panel>
@@ -116,7 +116,7 @@ export const ResultCard: React.FC<{
         </Box>
       )}
       {st.sales.map((s, k) => (
-        <Text key={`s${k}`} fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.danger} lineHeight={1.8}>
+        <Text key={`s${k}`} fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.dangerText} lineHeight={1.8}>
           {clockAt(sc, s.index)} · sold {fmtUsd(s.seizedUsd)} at {fmtPct(s.ltvBefore, 2)} ·{' '}
           {s.reason === 'band' ? 'passed the break line' : 'window expired'}
         </Text>

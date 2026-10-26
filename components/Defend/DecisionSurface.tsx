@@ -233,7 +233,7 @@ export const DecisionSurface: React.FC = () => {
         {/* readout */}
         <Box>
           <DRow label="Borrow LTV — B = M − g" value={readout.bVal} />
-          <DRow label="Wipeout frontier √M" value={readout.wipeVal} color={SEMANTIC_COLORS.danger} />
+          <DRow label="Wipeout frontier √M" value={readout.wipeVal} color={SEMANTIC_COLORS.dangerText} />
           <DRow label="Headroom, trigger → wipeout" value={readout.headVal} color={statusColor(readout.headClass)} />
           <DRow label="Capital efficiency vs Aave BTC" value={readout.effVal} />
 

@@ -12,7 +12,7 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import { Warm, WarmGate, VetBadge, SectionHead } from './primitives'
 import { ExecButton } from './ExecContext'
 import { INTENTS, SPREAD_AXIS, SPREAD_SPIKED, SPREAD_TODAY } from './fixtures'
-import { computeSpread, withAlpha } from './utils'
+import { computeSpread, cssAlpha } from './utils'
 import { HpBar, Intent, MiniRow, RngBar } from './types'
 
 const BAND_COLOR = {
@@ -36,7 +36,7 @@ const HpTrack: React.FC<{ bar: HpBar }> = ({ bar }) => (
 
 const RngTrack: React.FC<{ bar: RngBar }> = ({ bar }) => {
   const edgeColor = bar.gold ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.info
-  const bandColor = withAlpha(bar.gold ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.info, 0.28)
+  const bandColor = cssAlpha(bar.gold ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.info, 0.28)
   return (
     <Box position="relative" h="11px" bg={SEMANTIC_COLORS.bgPrimary} border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} m="14px 0 6px">
       <Box position="absolute" top={0} bottom={0} left={`${bar.bandLeft}%`} w={`${bar.bandWidth}%`} bg={bandColor} />
@@ -249,7 +249,7 @@ export const IntentCountdowns: React.FC = () => {
           <Box position="absolute" top={0} bottom={0} left={`${spread.barLeft}%`} w={`${spread.barWidth}%`} bg={spread.inv ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.info} />
           <Box position="absolute" top="-4px" bottom="-4px" left={`${spread.zeroLeft}%`} w="1px" bg={SEMANTIC_COLORS.borderStrong} />
         </Box>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="15px" color={spread.inv ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.info}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="15px" color={spread.inv ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.info}>
           {spread.valText}
         </Text>
       </Grid>

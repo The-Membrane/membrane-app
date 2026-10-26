@@ -9,7 +9,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { MockStamp } from '@/components/demo'
 
 import { ExecButton } from './ExecContext'
-import { withAlpha } from './utils'
+import { cssAlpha } from './utils'
 
 const PK: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Text
@@ -70,7 +70,14 @@ export const PositionHeader: React.FC = () => {
           </PK>
           <Box position="relative" h="9px" bg={SEMANTIC_COLORS.bgPrimary} border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} mt="7px">
             <Box position="absolute" left={0} top={0} bottom={0} w="28%" bg={SEMANTIC_COLORS.success} />
-            <Box position="absolute" top={0} bottom={0} left="60%" w="13%" bg={withAlpha(SEMANTIC_COLORS.danger, 0.2)} />
+            <Box
+              position="absolute"
+              top={0}
+              bottom={0}
+              left="60%"
+              w="13%"
+              bg={cssAlpha(SEMANTIC_COLORS.danger, 0.2)}
+            />
             <Box position="absolute" top="-3px" bottom="-3px" left="60%" w="1px" bg={SEMANTIC_COLORS.danger} />
             <Box position="absolute" top="-3px" bottom="-3px" left="73%" w="1px" bg={SEMANTIC_COLORS.danger} />
           </Box>
@@ -87,7 +94,7 @@ export const PositionHeader: React.FC = () => {
         {/* Debt */}
         <Box display="grid" gap="5px" alignContent="start" minW={0}>
           <PK>Debt</PK>
-          <PV color={SEMANTIC_COLORS.danger}>$26,980</PV>
+          <PV color={SEMANTIC_COLORS.dangerText}>$26,980</PV>
           <Box h="9px" bg={SEMANTIC_COLORS.bgPrimary} border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} mt="7px">
             <Box h="100%" w="71%" bg={SEMANTIC_COLORS.danger} />
           </Box>

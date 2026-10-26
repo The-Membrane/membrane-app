@@ -9,7 +9,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { SectionHead } from './primitives'
 import { FeedList } from './FeedList'
 import { LEND_FEED, SEATS } from './fixtures'
-import { withAlpha } from './utils'
+import { cssAlpha } from './utils'
 import { LossSegment, Seat } from './types'
 
 const SEG_ALPHA: Record<LossSegment['tone'], number> = { teal: 0.35, gold: 0.4, phos: 0.28, blood: 0.25 }
@@ -50,7 +50,7 @@ const SeatCard: React.FC<{ seat: Seat }> = ({ seat }) => (
           key={i}
           h="100%"
           w={`${seg.width}%`}
-          bg={withAlpha(SEG_BASE[seg.tone], SEG_ALPHA[seg.tone])}
+          bg={cssAlpha(SEG_BASE[seg.tone], SEG_ALPHA[seg.tone])}
           outline={seg.me ? `1px solid ${SEMANTIC_COLORS.success}` : undefined}
           outlineOffset={seg.me ? '-1px' : undefined}
         />

@@ -7,7 +7,7 @@ import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { DemoAwareCta } from '@/components/demo'
 
-import { withAlpha } from './utils'
+import { cssAlpha } from './utils'
 import { ExecPayload } from './types'
 
 /**
@@ -65,7 +65,7 @@ export const ExecProvider: React.FC<{ children: React.ReactNode }> = ({ children
         <Box
           position="fixed"
           inset={0}
-          bg={withAlpha(SEMANTIC_COLORS.bgPrimary, 0.78)}
+          bg={cssAlpha(SEMANTIC_COLORS.bgPrimary, 0.78)}
           display="grid"
           placeItems="center"
           zIndex={60}

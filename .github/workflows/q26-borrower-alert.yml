@@ -35,7 +35,7 @@ env:
   APP_REPO: The-Membrane/membrane-app
   # D14 (2026-10-25): this job alone runs this pin. APP_SHA, D11_APP_SHA, D12_APP_SHA and D13_APP_SHA (q26-touch-live.yml)
   # are not touched.
-  D14_APP_SHA: 6f783f3c7fccd576a75e30cd9ae0b211d80005f3   # D14 (membrane-board ba183cc); BNB/Arbitrum endpoint fix 2026-10-25; Multicall gas-cap split 2026-10-26
+  D14_APP_SHA: 5bb18c327e7d4deef68e4d74253942534c232749   # D14 (membrane-board ba183cc); BNB/Arbitrum endpoint fix 2026-10-25; Multicall gas-cap split 2026-10-26; 400 rotates, Arbitrum endpoints 2026-10-26
   DATASETS_REPO: triccs/membrane-datasets
   D14_DIR: forecasts/q26-borrower-alert
 

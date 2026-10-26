@@ -88,6 +88,7 @@ corners, no drop shadows doing brand work.
 | `success` | Phosphor `#9bdc4f` | Confirmations, healthy positions, positive deltas |
 | `warning` | Gold `#d8b24a` | Approaching limits, gated actions |
 | `danger` | Blood `#cf4034` | Errors, liquidation risk, destructive actions |
+| `dangerText` | `#e0564a` | Danger as text/icons: ≥5.09:1 on page/card/raised (`danger` is 4.0–4.2:1, fills only) |
 | `info` | Cyber teal `#46d39a` | Tooltips, informational, machine-side content |
 | `primary` | Phosphor `#9bdc4f` | Main CTAs, organic/living emphasis |
 | `secondary` | Cyber teal `#46d39a` | Secondary actions, machine emphasis |

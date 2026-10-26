@@ -115,6 +115,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 bg={SEMANTIC_COLORS.success}  // #9bdc4f (phosphor) - positive outcomes, healthy, up
 bg={SEMANTIC_COLORS.warning}  // #d8b24a (gold) - gates, caution, approaching limits
 bg={SEMANTIC_COLORS.danger}   // #cf4034 (blood) - errors, liquidation risk, down
+color={SEMANTIC_COLORS.dangerText} // #e0564a - danger as TEXT/icons (AA on dark; danger is fill-only)
 bg={SEMANTIC_COLORS.info}     // #46d39a (cyber teal) - informational, machine-side emphasis
 
 // Emphasis colors
@@ -413,7 +414,7 @@ import { FOCUS_STYLES } from '@/config/transitions'
     Amount
   </FormLabel>
   <Input {...inputProps} />
-  <FormErrorMessage color={SEMANTIC_COLORS.danger}>
+  <FormErrorMessage color={SEMANTIC_COLORS.dangerText}>
     {errorMessage}
   </FormErrorMessage>
 </FormControl>

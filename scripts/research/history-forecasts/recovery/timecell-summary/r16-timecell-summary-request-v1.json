@@ -1,0 +1,121 @@
+{
+  "admission_status": "parent_accepted",
+  "artifacts": {
+    "accepted_descriptive": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-neural-descriptive-v2.json",
+      "sha256": "4d97868a55511e536d98dabd1e6ab6370b363c0003341c39cd62a7fc3f4f7703",
+      "size": 652550
+    },
+    "dev_source": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_dev.py",
+      "sha256": "702cedb98c7cfcfe77985c5f75073ec2a6f09a9a3e9dd97747328e42018ae29f",
+      "size": 62743
+    },
+    "implementation": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/audit_r16_timecell_summaries.py",
+      "sha256": "507d9b53abd8e3d730b0b438caaa87661b1940e93eb30f50c29a60fc2d3c7013",
+      "size": 12667
+    },
+    "nn_source": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r16_nn.py",
+      "sha256": "637915e982b961029dcd5b3b69dc6903564f2482fbfd604d2330c88e1cf68f20",
+      "size": 17786
+    },
+    "runtime_proof": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/fresh-runtime-proof-v2/manifest.json",
+      "sha256": "b0111f8eb81243ee27e6514b7bf13c32135c2ef50a214e5d7d1d031800931852",
+      "size": 2318
+    },
+    "temporal_parent_acceptance": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-r16-temporal-admission-v1.json",
+      "sha256": "b9a43f138be6b319a17c02dc7c64bf769bc71ca20f85c2bd44ec64f32990981a",
+      "size": 2246
+    },
+    "temporal_result": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r16-temporal-admission-v1/result.json",
+      "sha256": "0230dd62c7281375577c0be37ad68e98e22057107a6218a7afa6056f9e4f9225",
+      "size": 40933
+    },
+    "tests": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/test_audit_r16_timecell_summaries.py",
+      "sha256": "e99cca70ed1612730ffcc170b0abff4b7e04cfb3a5d0f47801a904ed05e013c5",
+      "size": 7544
+    }
+  },
+  "fixed_scope": "ALL240 original model\u00d7hashhalf\u00d7timehalf\u00d712labels; ALL120 merged model\u00d7time\u00d7labels; ALL10model/time summaries; ALL20original12h\u221210%cells. No performance-selection.",
+  "labels": [
+    [
+      1,
+      -0.02
+    ],
+    [
+      1,
+      -0.03
+    ],
+    [
+      1,
+      -0.05
+    ],
+    [
+      3,
+      -0.02
+    ],
+    [
+      3,
+      -0.03
+    ],
+    [
+      3,
+      -0.05
+    ],
+    [
+      3,
+      -0.07
+    ],
+    [
+      12,
+      -0.02
+    ],
+    [
+      12,
+      -0.03
+    ],
+    [
+      12,
+      -0.05
+    ],
+    [
+      12,
+      -0.07
+    ],
+    [
+      12,
+      -0.1
+    ]
+  ],
+  "limitations": "Fixed posthoc ALL240 existing accepted JSON records, no new NPZ/outcome/prediction access or model fit. All120 hash-merged model/time/labels retained. Mean12 label BSS differs from exposure-weighted pooled BSS; label exposure counts repeat origins across thresholds/horizons and are not independent episodes. R=sumPred/sumObserved, null when observed=0; BSS null for zero reference SSE. No new E2 gate, ranking, selection, tuning, promotion, p-values or causal timing interpretation. Original shared tier RNG and seen-data model/tuning selection remain. Late membership and validation timestamp arithmetic does not constitute strict-forward validation. Original scores remain retrospective; O14/LP/reserve holds unchanged. Private descriptor evidence_pins manifest is excluded, never copied into output.",
+  "output": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r16-timecell-summaries-v1",
+  "parent_gate": "2026-10-20: parent read the complete helper, tests and DRAFT request and independently ran all14 synthetic tests PASS0.067s. Separate fresh refutation ran14 tests PASS and reported no blockers. All8 artifact pins and exact runtime rechecked before freezing; no diagnostic aggregation or run performed by this handoff.",
+  "policy": {
+    "disk_reserve_bytes": 2000000000,
+    "output_bytes": 1000000,
+    "rss_bytes": 1000000000,
+    "wall_seconds": 60
+  },
+  "pooling": "Hash-merge n-weighted SSE and prediction sums; R=sumPred/sumObserved. Mean12 labelBSS separate from exposure-pooled BSS. Null zero-reference/zero-observed denominators explicit. Weakest defined labels retain exact ties. No new gates/ranking.",
+  "preserved_draft_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r16-timecell-summary-request-DRAFT.json",
+    "sha256": "b7e473f3975148187d689906f8c9fd831cf1b04beecd6c170a67278f6441e7df",
+    "size": 5030,
+    "status": "preserved unexecuted DRAFT"
+  },
+  "projection": "Export only named complete cell projection and derived metrics, compact temporal support context and eight artifact pins. Exclude accepted descriptor evidence_pins/private fullmanifest, unknown fields and full source maps.",
+  "runtime": {
+    "executable": "/Users/EBmic/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "numpy": "2.5.4",
+    "platform": "macOS-14.6.1-arm64-arm-64bit",
+    "prefix": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime",
+    "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]"
+  },
+  "schema": "codex-r16-timecell-summary-v1"
+}

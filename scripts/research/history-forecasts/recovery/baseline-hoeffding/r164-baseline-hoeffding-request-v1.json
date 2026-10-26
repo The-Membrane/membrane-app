@@ -1,0 +1,139 @@
+{
+  "schema": "codex-r164-baseline-hoeffding-v1",
+  "admission_status": "parent_accepted",
+  "protocol": {
+    "constructions": [
+      "PU",
+      "DIS"
+    ],
+    "states": {
+      "independent": 256,
+      "shared": 81
+    },
+    "theta": [
+      3,
+      4
+    ],
+    "blocks": 4,
+    "support": [
+      0,
+      1
+    ],
+    "confidence": 0.9,
+    "radius_formula": "sqrt(log(20)/8)",
+    "fixed": true
+  },
+  "policy": {
+    "rss_bytes": 1000000000,
+    "wall_seconds": 60,
+    "disk_reserve_bytes": 2000000000,
+    "output_bytes": 1000000
+  },
+  "runtime": {
+    "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+    "executable": "/Users/EBmic/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "prefix": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime",
+    "platform": "macOS-14.6.1-arm64-arm-64bit"
+  },
+  "pins": {
+    "input_result": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r164-range-uncertainty-v1/result.json",
+      "size": 1547481,
+      "sha256": "43b4195ed5fd247944e2a65adb42675624a7427a5245658f6f1feafc2b498994"
+    },
+    "input_acceptance": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-r164-range-uncertainty-admission-v1.json",
+      "size": 1752,
+      "sha256": "438ff2b3e86f2547dc005db0f9b420625d210bc61fa9fdfae8f3f284be3318c3"
+    },
+    "implementation": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/audit_r164_baseline_hoeffding.py",
+      "size": 8042,
+      "sha256": "c500b4db71b89317fb76636963fd486126f9c93f5bbd5f5da997022a2a28bc2f"
+    },
+    "tests": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/test_audit_r164_baseline_hoeffding.py",
+      "size": 4641,
+      "sha256": "b02ab1b7d466f63b95cdd387ff23128b48ff876e2d05cd8a672061a4a8867e57"
+    },
+    "original_world_helper": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/audit_r164_range_uncertainty.py",
+      "size": 19988,
+      "sha256": "8aafce14bb40e79aadb944ac384845c5aef88aca354e5bfcbe24dffc28f7deb3"
+    },
+    "original_world_tests": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/test_audit_r164_range_uncertainty.py",
+      "size": 7942,
+      "sha256": "fd71993311602e020e4bf13931b0e844fbbe8039fe79a80a8f34ef2a061655f8"
+    },
+    "runtime_proof": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/fresh-runtime-proof-v2/manifest.json",
+      "size": 2318,
+      "sha256": "b0111f8eb81243ee27e6514b7bf13c32135c2ef50a214e5d7d1d031800931852"
+    },
+    "source_r164_ranges.py": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r164_ranges.py",
+      "size": 16177,
+      "sha256": "64743b5a6c99b4a8387f573dede3e8ad03c16bc3262d176d9c4b92e24a0ce7d4"
+    },
+    "source_r164_score.py": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r164_score.py",
+      "size": 10829,
+      "sha256": "151b6eb0c3f8543fe6b4e11c560407eacac3ce4780ce7068f9609c5e86055142"
+    },
+    "source_r164_power.py": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r164_power.py",
+      "size": 4023,
+      "sha256": "77f8f69fbd673867f2db29b30091ea523d1ee3889d8d9d67337fa54671d73098"
+    },
+    "source_a_touch.py": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a_touch.py",
+      "size": 98754,
+      "sha256": "6d914066dbaff96ee55c4cf722679cdf6e242be920c9228c553fe344553b43d7"
+    },
+    "source_a2_touch.py": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a2_touch.py",
+      "size": 101006,
+      "sha256": "0a3d892e08cfbaaf07719ae4c22e59f880382b802defa93545c998217f01e3ce"
+    },
+    "source_a3_touch.py": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a3_touch.py",
+      "size": 75865,
+      "sha256": "f719a3202738c4c301e13ad892f4406de4c0adc532b219359301aa50d8e205f7"
+    },
+    "source_a4_touch.py": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a4_touch.py",
+      "size": 65464,
+      "sha256": "e83e470defa168ed683e5ad1353d1b5e19cf24b7d875f69e881a3444ca93e925"
+    },
+    "source_a5_touch.py": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a5_touch.py",
+      "size": 67529,
+      "sha256": "cc6b265ebe673e86909f79d217cf241f79a2552fadc9ed752942c9a4c0c7e0b6"
+    },
+    "source_a6_touch.py": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a6_touch.py",
+      "size": 133980,
+      "sha256": "6da8e4f719ef164128cdceccfd6ba9dc347d3fa75e6e4e585bcd27eb0e36ed45"
+    }
+  },
+  "output": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r164-baseline-hoeffding-v1",
+  "limitations": "Synthetic independent-block laws only; fixed baseline endpoints/equal block weights. Forty groups are not forty independent units. Common support[0,1] even under shared shocks. No CAL/refit, market, PartB power repair, forecast revision, promotion, reserve or NOT RUN claims.",
+  "status_note": "2026-10-20 parent read all source/tests/DRAFT, independently passed6 synthetic tests0.108s; separate fresh refuter passed6 tests0.110s and actual DRAFT refused. All16pins rechecked before admission. Only synthetic fixed-baseline JSON audit admitted; no forecast model fit or market data access.",
+  "assumptions": "X=(1-Ylow+Yhigh)/2; fixed PU/DIS endpoints, equal weights of4 independent blocks under the declared synthetic laws only. Common support[0,1] for BOTH laws; no shared-law support tightening. Forty groups are not40 independent units.",
+  "expected_controls": {
+    "theta": "3/4",
+    "radius": "sqrt(log20/8)",
+    "independent_inclusion": "65511/65536",
+    "shared_inclusion": "1",
+    "new_collapse_1_1": "0",
+    "comparison_records": 674
+  },
+  "reporting": "All337 states/all674 PU/DIS comparisons. Exact probability-weighted inclusion/miss/[1,1] mass and expected/min/max POPULATION-MEAN CI widths, not forecast range widths. All original CI metrics conserved against accepted O67 result. No CAL/refit/market/PartB repair claims.",
+  "freeze_rule": "DRAFT refuses before accepted JSON metric reads. Parent must read source/tests and obtain fresh refutation before a separately frozen admitted request. Current synthetic tests use wholly generated data, not the accepted input result.",
+  "preserved_draft": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r164-baseline-hoeffding-request-DRAFT-v1.json",
+    "size": 6814,
+    "sha256": "6fbda9f2e2393f6bcb810ab85fbdb311a453881cdab4842097a24a155c635423"
+  }
+}

@@ -1,0 +1,207 @@
+{
+  "schema": "codex-r164-range-uncertainty-request-v1",
+  "status": "READY_PARENT_REVIEWED",
+  "date": "2026-10-20",
+  "owner": "CODEXCONT",
+  "protocol": {
+    "names": [
+      "synthetic-range-05",
+      "synthetic-range-11",
+      "synthetic-range-04",
+      "synthetic-range-00",
+      "synthetic-range-01"
+    ],
+    "blocks": 4,
+    "forecasts": [
+      0.25,
+      0.75
+    ],
+    "duplicates": 16,
+    "rows": 640,
+    "occupied_bins": 2,
+    "allocated_bins": 3,
+    "nominal": 0.9,
+    "seed": 20261642,
+    "horizon": 24,
+    "level": 0,
+    "tier": "alts",
+    "probability_offsets": {
+      "a": -0.25,
+      "f": -0.125,
+      "fbL": 0.25,
+      "fH": 0,
+      "rec12": 0
+    },
+    "boot_q_offsets": [
+      -0.25,
+      -0.125,
+      0,
+      0.125,
+      0.25
+    ],
+    "CALb": 200,
+    "coverage_bootstrap": 500,
+    "laws": {
+      "independent": {
+        "states": 256,
+        "integer_denominator": 65536
+      },
+      "shared": {
+        "states": 81,
+        "integer_denominator": 256
+      }
+    },
+    "fixed_seed_per_world": true,
+    "part_b": {
+      "nominal": 0.9,
+      "tol": 0.05,
+      "width_pts": 10.0,
+      "b_new_ratio": 1.0,
+      "constructions": [
+        "PU",
+        "DIS",
+        "CAL",
+        "CALr",
+        "CALb",
+        "H_CD",
+        "H_CP"
+      ],
+      "descriptive_plugin_only": true
+    }
+  },
+  "policy": {
+    "rss_bytes": 1000000000,
+    "disk_reserve_bytes": 2000000000,
+    "wall_seconds": 300,
+    "output_bytes": 10000000
+  },
+  "runtime": {
+    "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+    "executable": "/Users/EBmic/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "machine": "arm64",
+    "threads": {
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1"
+    }
+  },
+  "runtime_proof_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/fresh-runtime-proof-v2/manifest.json",
+    "size": 2318,
+    "sha256": "b0111f8eb81243ee27e6514b7bf13c32135c2ef50a214e5d7d1d031800931852"
+  },
+  "helper_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/audit_r164_range_uncertainty.py",
+    "size": 19988,
+    "sha256": "8aafce14bb40e79aadb944ac384845c5aef88aca354e5bfcbe24dffc28f7deb3"
+  },
+  "test_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/test_audit_r164_range_uncertainty.py",
+    "size": 7942,
+    "sha256": "fd71993311602e020e4bf13931b0e844fbbe8039fe79a80a8f34ef2a061655f8"
+  },
+  "source_commit": "6aa64254073119c76f2b9e7a713abd601756d872",
+  "source_pins": [
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r164_ranges.py",
+      "size": 16177,
+      "sha256": "64743b5a6c99b4a8387f573dede3e8ad03c16bc3262d176d9c4b92e24a0ce7d4"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r164_score.py",
+      "size": 10829,
+      "sha256": "151b6eb0c3f8543fe6b4e11c560407eacac3ce4780ce7068f9609c5e86055142"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r164_power.py",
+      "size": 4023,
+      "sha256": "77f8f69fbd673867f2db29b30091ea523d1ee3889d8d9d67337fa54671d73098"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a_touch.py",
+      "size": 98754,
+      "sha256": "6d914066dbaff96ee55c4cf722679cdf6e242be920c9228c553fe344553b43d7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a2_touch.py",
+      "size": 101006,
+      "sha256": "0a3d892e08cfbaaf07719ae4c22e59f880382b802defa93545c998217f01e3ce"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a3_touch.py",
+      "size": 75865,
+      "sha256": "f719a3202738c4c301e13ad892f4406de4c0adc532b219359301aa50d8e205f7"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a4_touch.py",
+      "size": 65464,
+      "sha256": "e83e470defa168ed683e5ad1353d1b5e19cf24b7d875f69e881a3444ca93e925"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a5_touch.py",
+      "size": 67529,
+      "sha256": "cc6b265ebe673e86909f79d217cf241f79a2552fadc9ed752942c9a4c0c7e0b6"
+    },
+    {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a6_touch.py",
+      "size": 133980,
+      "sha256": "6da8e4f719ef164128cdceccfd6ba9dc347d3fa75e6e4e585bcd27eb0e36ed45"
+    }
+  ],
+  "output": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r164-range-uncertainty-v1",
+  "limitations": [
+    "Finite synthetic laws, conditional on fixed algorithm seed; four-block stress test, not market calibration or power.",
+    "Supplied boot_q validates downstream handling, not fh_boot parameter refits. No historical/raw/reserve inputs or forecast revision.",
+    "Target is E_world of reported group coverage; distinct from O21 group-frequency/latent-probability coverage.",
+    "Null CGM SE is retained; positive-only mean squared SE does not establish unconditional variance calibration.",
+    "Original Part B plugin descriptors are retained, not empirical/corrected power or decision false-positive rates; no CGM decision branch is invented.",
+    "Duplicate rows and series are dependent; the 337 enumerated states are weighted finite supports, not IID trials."
+  ],
+  "admission": "2026-10-20: parent read all302 helper lines,120 test lines and request; independently9 synthetic tests PASS0.969s. Separate fresh refuter9 tests PASS0.876s and separate fresh-process real-guard import closure PASS; no blockers reported. Parent authorized preparing this reviewed request and monitor only; no337-world diagnostic launch has occurred.",
+  "reference": {
+    "training_groups": 24,
+    "heldout_folds": 20,
+    "identical_series_CALb_cancellation": "Consume original 200x4 multinomial series weights before 200x3 block weights in each fold; independently compute block-only ratios.",
+    "CGM": "Direct integer numerator residuals (40*C-count)/40^2; exact net Fraction divided by40^4, preserving source reported nullable SE and cancellation artifacts separately.",
+    "analytical_controls": {
+      "PU_DIS_theta": "3/4",
+      "PU_DIS_independent_variance": "3/128",
+      "PU_DIS_shared_variance": "1/64"
+    },
+    "endpoint_identical_pairs": [
+      [
+        "PU",
+        "DIS"
+      ],
+      [
+        "CAL",
+        "CALr"
+      ],
+      [
+        "H_CD",
+        "H_CP"
+      ]
+    ],
+    "CI_caution": "Identical point/endpoints need not imply identical CI because original constructions consume sequential RNG draws.",
+    "reconciliation": "All original reported world metrics and all original Part B descriptor fields must reconcile to independent reference within128*eps64*max(1,abs(reference)); integers/categories/nulls exact.",
+    "target": "Exact weighted expectation of reported group coverage, conditional on fixed algorithm seed. Exact CI inclusion uses Fraction representation of reported binary64 endpoints; no p-value or promotion rule.",
+    "part_b": "Unchanged r164_power.part_b describes its original CI-spread/3.29 TOST plugin and deterministic width leg, including zero-SE edge. Its weighted output distribution is not empirical/corrected power or joint-decision false-positive behavior."
+  },
+  "execution": {
+    "serial_worlds": true,
+    "progress_every": 16,
+    "retained": "All337 original world JSON outputs plus complete compact metrics, exact world weights, exact CGM diagnostics and descriptive plugin distributions.",
+    "prefix": "First worlds are the bounded prefix within this fixed attempt; no automatic restart/resume or separate pilot.",
+    "failure": "Preserve fresh stage/failure.json, ordinal, stage, exception class, elapsed; failed current synthetic fixture retained.",
+    "resource_note": "Parent external monitor enforces hard wall/RSS; helper checks between stages/worlds. No runtime estimate is an observed run. Output total includes individual world JSON, result and current fixture."
+  },
+  "portable_closure": "Nine pinned original Python files, helper/test, Python/NumPy/SciPy runtime; generated synthetic fixtures only. Body guard forbids other data/network/subprocess reads. Admission hashing precedes guard; stdlib/runtime code imports admitted by path and code suffix.",
+  "preserved_draft_pin": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r164-range-uncertainty-request-DRAFT-v1.json",
+    "size": 8657,
+    "sha256": "fa3c3300179d9777b93337607aea1fa95c2277d41f6e9737a3babce3c763f480",
+    "status": "DRAFT_NOT_ADMITTED; preserved unexecuted review draft"
+  }
+}

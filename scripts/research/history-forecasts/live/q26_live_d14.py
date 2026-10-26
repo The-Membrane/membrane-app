@@ -141,8 +141,10 @@ CHAINS = {
             # about 7M blocks (probed 2026-10-25). Older history needs a key, so discovery starts at log_depth.
             "log": [("https://bsc.rpc.blxrbdn.com", 5_000), ("https://bsc-rpc.publicnode.com", 5_000),
                     ("https://bsc.publicnode.com", 5_000)], "log_depth": 6_000_000,
-            "call": ["https://bsc-rpc.publicnode.com", "https://bsc.publicnode.com", "https://bsc-dataseed.bnbchain.org",
-                     "https://bsc.drpc.org"]},
+            # 2026-10-26: BNB 09:00Z was stale on drpc 429; publicnode 403s and dataseed "missing trie node" under load.
+            # bloXroute (keyless) answers the Multicall reads; drpc is dropped.
+            "call": ["https://bsc.rpc.blxrbdn.com", "https://bsc-rpc.publicnode.com", "https://bsc.publicnode.com",
+                     "https://bsc-dataseed.bnbchain.org"]},
 }
 CHAIN_ORDER = ("ethereum", "arbitrum", "base", "optimism", "polygon", "avalanche", "bnb")
 MULTICALL3 = "0xca11bde05977b3631167028862be2a173976ca11"

@@ -498,11 +498,11 @@ def test_stale_reason_carries_http_code():
         raise AssertionError("expected Stale")
     except D.Stale as e:
         assert str(e) == "eth_call: HTTPError 403"
-    assert D.CHAINS["arbitrum"]["call"][0] == "https://arbitrum-one-rpc.publicnode.com"
+    assert D.CHAINS["arbitrum"]["call"][0] == "https://arbitrum.gateway.tenderly.co"
     assert D.CHAINS["bnb"]["log"][0][0] == "https://bsc.rpc.blxrbdn.com" and D.CHAINS["bnb"]["log_depth"] == 6_000_000
 
 
-def test_out_of_gas_and_400_split_the_multicall():
+def test_out_of_gas_splits_and_400_rotates():
     import urllib.error
     seen = []
 
@@ -521,8 +521,5 @@ def test_out_of_gas_and_400_split_the_multicall():
         raise AssertionError("expected TooBig")
     except D.TooBig:
         pass
-    try:
-        rpc.call("eth_call", [{"to": D.MULTICALL3, "data": "0x00"}, "latest"])
-        raise AssertionError("expected TooBig")
-    except D.TooBig as e:
-        assert str(e) == "400"
+    # a 400 rotates and retries; the third answer succeeds, so no TooBig and no Stale
+    assert rpc.call("eth_call", [{"to": D.MULTICALL3, "data": "0x00"}, "latest"]) == "0x"

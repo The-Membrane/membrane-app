@@ -113,8 +113,10 @@ CHAINS = {
                  "log": [("https://arbitrum.gateway.tenderly.co", 500_000), ("https://arb1.arbitrum.io/rpc", 50_000)],
                  # publicnode first: the 2026-10-25 20:13Z runner run went stale on eth_call HTTP errors with the
                  # three endpoints below; every chain that passed on the runner had publicnode first.
-                 "call": ["https://arbitrum-one-rpc.publicnode.com", "https://arbitrum.gateway.tenderly.co",
-                          "https://arb1.arbitrum.io/rpc", "https://arbitrum.drpc.org"]},
+                 # 2026-10-26: drpc answered 400 to every Arbitrum Multicall (126/126) and publicnode mostly 403;
+                 # tenderly and arb1 carry the reads (their "out of gas"/5 s aborts split the batch).
+                 "call": ["https://arbitrum.gateway.tenderly.co", "https://arb1.arbitrum.io/rpc",
+                          "https://arbitrum-one-rpc.publicnode.com"]},
     "base": {"pool": "0xa238dd80c259a72e81d7e4664a9801593f98d1c5", "start": 2_350_000, "confirm": 10,
              "log": [("https://base-rpc.publicnode.com", 50_000), ("https://base.gateway.tenderly.co", 1_000),
                      ("https://gateway.tenderly.co/public/base", 1_000)],
@@ -376,10 +378,11 @@ class Rpc:
                 err = e
             except urllib.error.HTTPError as e:
                 err = e
-                # 400 and 413 on a large Multicall: split (bounded at 8 calls). "out of gas" (an endpoint's eth_call
-                # gas cap) splits through RangeError above; 2026-10-26 Arbitrum and Avalanche were stale on it.
-                if e.code in (400, 413) and method == "eth_call":
-                    raise TooBig(str(e.code)) from None
+                # 413 on a large Multicall: split (bounded at 8 calls). "out of gas" (an endpoint's eth_call gas cap)
+                # splits through RangeError above. 400 is NOT a size signal: drpc answers 400 on 8-call batches too
+                # (2026-10-26 Arbitrum "aggregate3: too big"), so it rotates to the next endpoint like other errors.
+                if e.code == 413 and method == "eth_call":
+                    raise TooBig("413") from None
                 if e.code == 429:
                     with self.lock:
                         self.stats["errors"] += 1

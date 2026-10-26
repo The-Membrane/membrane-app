@@ -627,12 +627,17 @@ def resolve_deep(row, ctx, now, extra=None):
 
 
 def _pos_episodes(origins, y):
-    o = np.argsort(origins)
-    t, yy = np.asarray(origins)[o], np.asarray(y)[o]
-    n = 0
-    for i in range(len(t)):
-        if yy[i] == 1 and not (i > 0 and yy[i - 1] == 1 and t[i] - t[i - 1] == C.HOUR):
+    """Positive episodes = runs of positive DISTINCT origins one hour apart. Pooled rows (several levels or series at
+    one origin) count once per origin; before the 2026-10-26 fix they broke the run and inflated n_ep (ETH 12 h: 62
+    vs 10). Deviation noted on the board (Q26 live-log grading)."""
+    pos = {}
+    for t, v in zip(np.asarray(origins).tolist(), np.asarray(y).tolist()):
+        pos[t] = max(pos.get(t, 0), int(v == 1))
+    n, prev = 0, None
+    for t in sorted(pos):
+        if pos[t] == 1 and not (prev is not None and pos[prev] == 1 and t - prev == C.HOUR):
             n += 1
+        prev = t
     return n
 
 

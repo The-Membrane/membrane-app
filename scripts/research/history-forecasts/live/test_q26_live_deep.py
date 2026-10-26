@@ -436,3 +436,15 @@ class TestRealDataDeep(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PooledEpisodeCount(unittest.TestCase):
+    """2026-10-26 fix: pooled rows at one origin count once; runs need distinct origins one hour apart."""
+
+    def test_pooled_levels_count_once(self):
+        import q26_live_short as QS
+        H = C.HOUR
+        for M in (QD, QS):
+            self.assertEqual(M._pos_episodes([0, 0, 0, H, H, H], [1, 1, 1, 1, 1, 1]), 1)
+            self.assertEqual(M._pos_episodes([0, 0, 2 * H], [1, 0, 1]), 2)
+            self.assertEqual(M._pos_episodes([0, H, 2 * H], [1, 0, 1]), 2)

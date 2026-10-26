@@ -355,7 +355,7 @@ class Rpc:
             e = body["error"] or {}
             msg = (str(e.get("message", "")) + " " + str(e.get("data", ""))).lower()
             if any(s in msg for s in ("range", "limit", "too many", "more than", "too large", "exceed", "timed out",
-                                      "timeout", "response size")):
+                                      "timeout", "response size", "out of gas")):
                 raise RangeError(msg[:120])
             raise ValueError(msg[:120])
         return body["result"]
@@ -376,8 +376,10 @@ class Rpc:
                 err = e
             except urllib.error.HTTPError as e:
                 err = e
-                if e.code in (413,) and method == "eth_call":
-                    raise TooBig("413") from None
+                # 400 and 413 on a large Multicall: split (bounded at 8 calls). "out of gas" (an endpoint's eth_call
+                # gas cap) splits through RangeError above; 2026-10-26 Arbitrum and Avalanche were stale on it.
+                if e.code in (400, 413) and method == "eth_call":
+                    raise TooBig(str(e.code)) from None
                 if e.code == 429:
                     with self.lock:
                         self.stats["errors"] += 1

@@ -500,3 +500,29 @@ def test_stale_reason_carries_http_code():
         assert str(e) == "eth_call: HTTPError 403"
     assert D.CHAINS["arbitrum"]["call"][0] == "https://arbitrum-one-rpc.publicnode.com"
     assert D.CHAINS["bnb"]["log"][0][0] == "https://bsc.rpc.blxrbdn.com" and D.CHAINS["bnb"]["log_depth"] == 6_000_000
+
+
+def test_out_of_gas_and_400_split_the_multicall():
+    import urllib.error
+    seen = []
+
+    def post(url, payload, timeout):
+        n = json.loads(payload)["params"][0]["data"]
+        seen.append(len(n))
+        if len(seen) == 1:
+            return {"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": "out of gas"}}
+        if len(seen) == 2:
+            raise urllib.error.HTTPError(url, 400, "Bad Request", {}, None)
+        return {"jsonrpc": "2.0", "id": 1, "result": "0x"}
+
+    rpc = D.Rpc("arbitrum", D.CHAINS["arbitrum"], post=post, tries=2, sleep=lambda s: None)
+    try:
+        rpc.call("eth_call", [{"to": D.MULTICALL3, "data": "0x00"}, "latest"])
+        raise AssertionError("expected TooBig")
+    except D.TooBig:
+        pass
+    try:
+        rpc.call("eth_call", [{"to": D.MULTICALL3, "data": "0x00"}, "latest"])
+        raise AssertionError("expected TooBig")
+    except D.TooBig as e:
+        assert str(e) == "400"

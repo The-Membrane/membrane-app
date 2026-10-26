@@ -1,0 +1,104 @@
+{
+  "schema": "codex-r13-vol-aggregate-review-v1",
+  "admission_status": "parent_accepted",
+  "policy": {
+    "rss_bytes": 1000000000,
+    "wall_seconds": 60,
+    "disk_reserve_bytes": 2000000000,
+    "output_bytes": 1000000
+  },
+  "runtime": {
+    "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+    "executable": "/Users/EBmic/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+    "prefix": "/Users/EBmic/research-workspaces/history-forecasts-recovery-runtime",
+    "platform": "macOS-14.6.1-arm64-arm-64bit"
+  },
+  "pins": {
+    "summary": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/vol-summary-recovery-v1/dev-r131.json",
+      "size": 475897,
+      "sha256": "5d8bf5c9c57e719d5e93f6de0822851ffea27bdccfd426c955e5ed58bf7a5305"
+    },
+    "sidecar": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/vol-summary-recovery-v1/dev-r131.json.sha256",
+      "size": 65,
+      "sha256": "df5949e65bab3d6eef63347432a1bc63b6bcd5470cd31c32fd8c125a47983458"
+    },
+    "recovery_acceptance": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/parent-vol-summary-recovery-acceptance-v1.json",
+      "size": 3348,
+      "sha256": "e1ba104daf4f65f1076db45ae38066939de73586737b7c4c854992e2fcb4fc41"
+    },
+    "recal_source": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r13_recal.py",
+      "size": 51574,
+      "sha256": "927207d0c6287c1e4d37d26989533897b3402278bf1ee36cdff66f27514df1de"
+    },
+    "devcheck_source": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r13_devcheck.py",
+      "size": 14340,
+      "sha256": "d480a4e8a187e02fd5d944b5f195b5206ba466da7c238b9c5b14ab7f66c89916"
+    },
+    "tail_source": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/r12_tail.py",
+      "size": 96945,
+      "sha256": "318624b63c8ae312fdb1bc2f3c34458c57d7641c708041e02a70543f4df5bd22"
+    },
+    "vol_source": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-continuation/scripts/research/history-forecasts/a6_touch.py",
+      "size": 133980,
+      "sha256": "6da8e4f719ef164128cdceccfd6ba9dc347d3fa75e6e4e585bcd27eb0e36ed45"
+    },
+    "runtime_proof": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/fresh-runtime-proof-v2/manifest.json",
+      "size": 2318,
+      "sha256": "b0111f8eb81243ee27e6514b7bf13c32135c2ef50a214e5d7d1d031800931852"
+    },
+    "implementation": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/audit_r13_vol_aggregates.py",
+      "size": 7555,
+      "sha256": "f2fe1975824a3709011781567736297e914057687770b8ef4ae17a33748029b8"
+    },
+    "tests": {
+      "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/test_audit_r13_vol_aggregates.py",
+      "size": 4392,
+      "sha256": "9b7ae15b1607f260ad7497f53228d2af8a40b3e103a427e62e10aa7de29fd167"
+    }
+  },
+  "horizons": {
+    "1h": 1,
+    "3h": 3,
+    "12h": 12,
+    "1d": 24,
+    "3d": 72
+  },
+  "cohorts": [
+    "pooled",
+    "b12",
+    "b13a"
+  ],
+  "variants": [
+    "lsQ",
+    "lsW"
+  ],
+  "output": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r13-vol-aggregate-review-v1",
+  "fixed_scope": "ALL5 source-declared horizons\u00d7pooled/B12/B13a\u00d7fHQ(lsQ)/fHW(lsW) versus fH=30 comparisons; no favorable subset. ONLY named vol fields exported; no touch cells/raw manifest/unknown fields.",
+  "target": "Squared natural-log error of annualized future realized-volatility proxy from future close-to-close log-return RMS with original missingness rules; not QLIKE or latent-volatility loss. Pairwise common finite rows per source; hourly check-set rows excluding q2/tail per source.",
+  "arithmetic": "Recompute mean-loss difference and candidate/reference mean-loss ratio/fractional reduction; zero reference ratios null. Verify pooled row counts and weighted mean losses from B12/B13a. Cohort medians are retained separately, never pooled. Conservation tolerance64eps64*max(1,abs(a),abs(b)) only for floating summation/archived mean consistency.",
+  "legacy_fields": "Archived mean_diff,SE,p_one_sided,weeks_to_80 all retained explicitly as legacy_descriptive_UNVALIDATED. No new significance, power gate or numerical projection validation is claimed.",
+  "evidence_limits": "Archived seen-data aggregate squared error of natural-log annualized future realized-volatility proxy, not QLIKE, latent-volatility calibration, a price band, touch improvement or a fresh test. No rows/predictions/NPZ/fits. fH is the comparator; no EWMA/persistence standalone-skill comparison is available here. Legacy SE/p/power are archived descriptive UNVALIDATED statistics, not new gates. Median losses cannot be pooled from cohort medians. Source byte identity does not establish origin availability/split integrity/strict-forward validity. Existing reserve/LP/O14/NOT RUN holds remain.",
+  "absent_fields": "This producer exports median squared log errors but no >9 tail-error shares; r13_devcheck.py has a different vol_mse schema. Those unrecovered statistics cannot be inferred. No fH-vs-EWMA/persistence loss comparison or QLIKE can be recovered from these means.",
+  "pre_review_status": "Parent read complete helper/tests/DRAFT and original vol_power/cohort export/proxy source. Parent independently ran six synthetic tests PASS. Separate refuter passed six synthetic tests0.017s, verified actual DRAFT refuses before metrics. All ten artifact pins rechecked; admitted only ALL30 archived aggregate comparisons, no model fitting or row inputs.",
+  "source_anchors": {
+    "vol_power": "r13_recal.py:524-544",
+    "cohort_export": "r13_recal.py:652-660",
+    "alternate_unrecovered_schema": "r13_devcheck.py:274-282",
+    "proxy": "a6_touch.py:269-289",
+    "horizon_names": "r12_tail.py:64"
+  },
+  "preserved_draft": {
+    "path": "/Users/EBmic/research-workspaces/history-forecasts-recovery-evidence/r13-vol-aggregate-review-request-DRAFT-v1.json",
+    "size": 6073,
+    "sha256": "db29605501c7a5d328c979b15d2751622bcdc1e589bcfa86741f80ca2791da4c"
+  }
+}

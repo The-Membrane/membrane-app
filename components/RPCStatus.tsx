@@ -69,8 +69,22 @@ const RPCStatus = () => {
 
   const downMins = downSince ? Math.floor((Date.now() - downSince) / 60_000) : null
 
+  // Fixed to the viewport foot, out of document flow. The probe only fails after
+  // first paint, so an in-flow banner arrived seconds late and pushed the whole
+  // page down 48-120px (CLS 0.12-0.13 on every route when the RPC is down). The
+  // main column already keeps 180-200px of bottom padding, so nothing is covered
+  // at the end of the page.
   return (
-    <Alert status="error" borderRadius={0}>
+    <Alert
+      status="error"
+      role="alert"
+      borderRadius={0}
+      position="fixed"
+      bottom={0}
+      left={0}
+      right={0}
+      zIndex="banner"
+    >
       <AlertIcon />
       <Text>
         RPC node is unreachable. Is the chain running? (expected {DEFAULT_EVM_CHAIN.name})

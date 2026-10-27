@@ -157,19 +157,23 @@ export interface AtRiskSubtextConfig {
 }
 
 export const AT_RISK_SUBTEXT_CONFIG: AtRiskSubtextConfig = {
-  // Copy as corrected by the R31 review (board 769f616): three chains, "touches" not
-  // "liquidations", median lead about 10 h on Arbitrum and Optimism (13 h on Polygon).
+  // R35 ruling (2026-10-27): the lead is stated to the liquidation LINE (the oracle touch that
+  // starts Membrane's timer), median 4.5 h on the four development chains and on Aave V3
+  // Avalanche. The earlier "10 h before liquidation" measured a different target. A
+  // per-position estimate was tested and NOT shipped: no gain over this constant, and it
+  // overstated long times in calm markets. "much faster" stays explicit.
   template:
-    'Past data: alerts at this level came a median of {medianLeadH} hours before liquidation, ' +
-    'and about {caughtShare} simulated price touches got at least an hour of warning. Some come ' +
-    'faster, so act now if you can.',
-  medianLeadH: 10,
+    'Past data: alerts at this level reached the liquidation line a median of {medianLeadH} hours ' +
+    'later, and about {caughtShare} simulated price touches got at least an hour of warning. ' +
+    'Some come much faster, so act now if you can.',
+  medianLeadH: 4.5,
   caughtShare: '2 in 3',
   provenance: {
     data: 'development',
     dataset:
       'Aave V3 Polygon, Arbitrum, Optimism and Ethereum, 2023–2026 (simulated price touches)',
-    ruling: 'Q26-R27 60fb0e6; replications Q26-R30 1f76bc9, Q26-R31 4d6d6a0 and Q26-R33 0bc1946',
+    ruling:
+      'Q26-R27 60fb0e6; replications Q26-R30 1f76bc9, Q26-R31 4d6d6a0 and Q26-R33 0bc1946; lead Q26-R35',
     review: 'c59f67f, f6092e8, 57653f4, 769f616',
     warnedAtLeast1hShare: 0.7,
     updateFrom: ['live alert logs', 'R29 (Membrane liquidation timer)'],

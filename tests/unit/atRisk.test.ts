@@ -82,18 +82,19 @@ describe('config', () => {
       data: 'development',
       dataset:
         'Aave V3 Polygon, Arbitrum, Optimism and Ethereum, 2023–2026 (simulated price touches)',
-      ruling: 'Q26-R27 60fb0e6; replications Q26-R30 1f76bc9, Q26-R31 4d6d6a0 and Q26-R33 0bc1946',
+      ruling:
+        'Q26-R27 60fb0e6; replications Q26-R30 1f76bc9, Q26-R31 4d6d6a0 and Q26-R33 0bc1946; lead Q26-R35',
       review: 'c59f67f, f6092e8, 57653f4, 769f616',
     })
   })
 
   it('renders the subtext from a template, so the numbers can be swapped', () => {
     expect(AT_RISK_SUBTEXT.text).toBe(
-      'Past data: alerts at this level came a median of 10 hours before liquidation, and about 2 in 3 simulated price touches got at least an hour of warning. Some come faster, so act now if you can.',
+      'Past data: alerts at this level reached the liquidation line a median of 4.5 hours later, and about 2 in 3 simulated price touches got at least an hour of warning. Some come much faster, so act now if you can.',
     )
     expect(
       atRiskSubtext({ ...AT_RISK_SUBTEXT_CONFIG, medianLeadH: 6, caughtShare: '3 in 4' }),
-    ).toContain('median of 6 hours before liquidation, and about 3 in 4 simulated price touches')
+    ).toContain('median of 6 hours later, and about 3 in 4 simulated price touches')
     expect(AT_RISK_SUBTEXT.text).not.toMatch(PROBABILITY)
     expect(AT_RISK_SUBTEXT.text).not.toMatch(/you have \d+ hours/i)
   })

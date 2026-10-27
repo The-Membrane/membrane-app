@@ -31,6 +31,15 @@ Score (q26_live_d12.py score; inside the existing 00:47Z run):
             max_j (K_A,j + K_B,j) / 2 against the threshold h / alpha (Bonferroni over the subsequences).
             Downgrade CALIBRATED-WARN -> CALIBRATED (terminal) at the first crossing with the cumulative point R
             outside 0.8-1.25. The class flag is written in the ledger and in d12/classes.json for the UI.
+D12-A1 (registered 2026-10-24 before D12 day 1; deployed 2026-10-27, owner ruling Q26-S1 item 2): 54 more per-cell
+monitors (the regrade's CALIBRATED-WARN cells, A1_CELLS), same rule D12.2-D12.5, alpha 0.05 each, kept in their own
+hash-chained ledger d12/a1/ledger.jsonl so the D12 ledger, its state and its monitors are byte-identical with or without
+A1. The 6 h - 7 d added cells are scored from the D12 outcome lines from the first D12 origin (2026-10-25), day by day
+in order, with bets that use only outcomes resolved before each origin. The 1 h, 3 h and 30 d cells need new issued
+forecasts (the R16.2 (fH) path, r16_dev.task, at those T; computed after and independently of the 6 h - 7 d rows, so
+a failure there never changes the D12 issue) and start at the first origin issued by A1 code (issue key "a1"); nothing
+is backfilled. A1 has its own golden replay (d12a1_golden.json, r16_dev.task rows) recorded once on the runner in
+d12/checks/ci-replay-a1.json; A1 issues and scores only when that record passed (fail closed for A1 only).
 No address, key or secret is read or written. Public endpoint only (data-api.binance.vision).
 """
 from __future__ import annotations
@@ -68,7 +77,7 @@ SCHEMA = "q26-touch-live/d12/1"
 PREREG = {"repo": "triccs/membrane-board", "path": "design/HISTORY_TOUCH_LIVE.md", "deviation": "D12",
           "ruling": "board e06202c (owner 2026-10-24, 'Yes, with live tracking')"}
 TS = (6, 12, 24, 72, 168)
-TL = {6: "6h", 12: "12h", 24: "1d", 72: "3d", 168: "7d"}
+TL = {1: "1h", 3: "3h", 6: "6h", 12: "12h", 24: "1d", 72: "3d", 168: "7d", 720: "30d"}
 L8 = (-0.02, -0.03, -0.05, -0.07, -0.10, -0.15, -0.20, -0.30)   # r192_borrower.L8 (the running-minimum ladder)
 CELLS = ((6, -0.10), (12, -0.10), (24, -0.10), (72, -0.10), (168, -0.10), (24, -0.20), (72, -0.20), (168, -0.20))
 GROUPS = ("ETHBTC", "LARGE")
@@ -94,6 +103,25 @@ CLASS_WARN, CLASS_DOWN = "CALIBRATED-WARN", "CALIBRATED"
 REPLAY_ORIGINS = ("2025-03-15T00:00:00Z", "2026-01-20T00:00:00Z", "2026-09-01T00:00:00Z")
 LOOKAHEAD_N = 5
 BOOT_B, BOOT_SEED = 1000, 20261025
+# D12-A1 (HISTORY_TOUCH_LIVE.md D12-A1): added cells per group, same rule, separate monitors, alpha 0.05 each.
+TS_A1 = (1, 3, 720)                                   # new issued horizons (R16.2 (fH) path at these T)
+TS_ALL = (1, 3, 6, 12, 24, 72, 168, 720)
+A1_CELLS = {
+    "ETHBTC": ((1, -0.02), (1, -0.03), (3, -0.02), (3, -0.03),
+               (6, -0.02), (6, -0.03), (6, -0.05), (6, -0.07),
+               (12, -0.02), (12, -0.03), (12, -0.05), (12, -0.07), (12, -0.15),
+               (24, -0.02), (24, -0.03), (24, -0.05), (24, -0.07),
+               (72, -0.02), (72, -0.03), (72, -0.05), (72, -0.07), (72, -0.15),
+               (168, -0.02), (168, -0.03), (168, -0.05), (168, -0.07), (168, -0.15)),
+    "LARGE": ((1, -0.02), (1, -0.03), (3, -0.03), (3, -0.05), (3, -0.07),
+              (6, -0.03), (6, -0.05), (6, -0.07), (12, -0.02), (12, -0.03), (12, -0.07),
+              (24, -0.02), (24, -0.03), (24, -0.05), (24, -0.07), (24, -0.15),
+              (72, -0.02), (72, -0.03), (72, -0.05), (72, -0.07), (72, -0.15),
+              (168, -0.02), (168, -0.03), (168, -0.05), (168, -0.07), (168, -0.15),
+              (720, -0.15))}
+A1_SUB = "a1"
+A1_LV16 = {1: (-0.02, -0.03, -0.05), 3: (-0.02, -0.03, -0.05, -0.07),
+           720: (-0.15, -0.20, -0.25, -0.30, -0.40)}       # r16_dev.LV at the new horizons (golden levels)
 
 
 def default_class(g, T, k):
@@ -261,8 +289,41 @@ def make_ser(key, st, cols):
     return ser
 
 
-def series_origin(key, st, cols, origin):
-    """raw (fH), (f) and (a) at the L8 levels for every T at one origin (grid cut at the origin). None if not issuable."""
+def _horizon_row(ser, T, i, qs, lnk):
+    """raw (fH), (f) and (a) at the L8 levels for one T at origin index i (the R19.2 / R16.2 row). (row, None) or
+    (None, why)."""
+    P6 = A6.Prep6(ser, T, with_fbL=False)
+    P, n = P6.P, P6.n
+    lim = qs - T
+    if lim <= 0:
+        return None, f"no training origin at {TL[T]}"
+    tr = np.arange(n) <= lim
+    cH, _ = P6.har_coef(qs)
+    sH = P6.sigma_H(cH)
+    zH, vH = P6.z_of(sH)
+    te = np.array([i])
+    with np.errstate(invalid="ignore", divide="ignore"):
+        thrH = lnk[None, :] / (sH[te][:, None] * P.scale)
+        thrf = lnk[None, :] / (ser.sigma[te][:, None] * P.scale)
+    pf_ = M2.fhs_predict(P.z[1.0][P.valid[1.0] & tr], thrf)
+    pH = M2.fhs_predict(zH[vH & tr], thrH)
+    fb = ~np.all(np.isfinite(pH), axis=1)
+    pH[fb] = pf_[fb]
+    if not (np.all(np.isfinite(pH)) and np.all(np.isfinite(pf_))):
+        return None, f"(fH)/(f) undefined at {TL[T]}"
+    dtr = P.depth[tr & P.lab_ok]
+    dtr = dtr[np.isfinite(dtr)]
+    pa = np.stack([np.searchsorted(np.sort(dtr), lk, side="right") / max(len(dtr), 1) for lk in lnk])[None, :]
+    row = {nm: np.minimum.accumulate(np.asarray(v, float), axis=1).astype(np.float32)[0]
+           for nm, v in (("fH", pH), ("f", pf_), ("a", pa))}
+    row["fallback"] = bool(fb[0])
+    return row, None
+
+
+def series_origin(key, st, cols, origin, a1=False):
+    """raw (fH), (f) and (a) at the L8 levels for every T at one origin (grid cut at the origin). None if not issuable.
+    With a1, the D12-A1 horizons (1 h, 3 h, 30 d) are computed afterwards, each on its own: a failure there leaves the
+    6 h - 7 d rows and the issued status unchanged (recorded in A1why)."""
     ser = make_ser(key, st, cols)
     i = (origin - st) // HOUR
     assert i == ser.N, "the grid must end at the origin"
@@ -275,36 +336,26 @@ def series_origin(key, st, cols, origin):
     lnk = np.log1p(np.array(L8))
     out = {}
     for T in TS:
-        P6 = A6.Prep6(ser, T, with_fbL=False)
-        P, n = P6.P, P6.n
-        lim = qs - T
-        if lim <= 0:
-            return None, f"no training origin at {TL[T]}"
-        tr = np.arange(n) <= lim
-        cH, _ = P6.har_coef(qs)
-        sH = P6.sigma_H(cH)
-        zH, vH = P6.z_of(sH)
-        te = np.array([i])
-        with np.errstate(invalid="ignore", divide="ignore"):
-            thrH = lnk[None, :] / (sH[te][:, None] * P.scale)
-            thrf = lnk[None, :] / (ser.sigma[te][:, None] * P.scale)
-        pf_ = M2.fhs_predict(P.z[1.0][P.valid[1.0] & tr], thrf)
-        pH = M2.fhs_predict(zH[vH & tr], thrH)
-        fb = ~np.all(np.isfinite(pH), axis=1)
-        pH[fb] = pf_[fb]
-        if not (np.all(np.isfinite(pH)) and np.all(np.isfinite(pf_))):
-            return None, f"(fH)/(f) undefined at {TL[T]}"
-        dtr = P.depth[tr & P.lab_ok]
-        dtr = dtr[np.isfinite(dtr)]
-        pa = np.stack([np.searchsorted(np.sort(dtr), lk, side="right") / max(len(dtr), 1) for lk in lnk])[None, :]
-        out[T] = {nm: np.minimum.accumulate(np.asarray(v, float), axis=1).astype(np.float32)[0]
-                  for nm, v in (("fH", pH), ("f", pf_), ("a", pa))}
-        out[T]["fallback"] = bool(fb[0])
-        del P6
-    return {"S": float(ser.spot[i]), "T": out}, None
+        row, why = _horizon_row(ser, T, i, qs, lnk)
+        if row is None:
+            return None, why
+        out[T] = row
+    res = {"S": float(ser.spot[i]), "T": out}
+    if a1:
+        res["A1"], res["A1why"] = {}, {}
+        for T in TS_A1:
+            try:
+                row, why = _horizon_row(ser, T, i, qs, lnk)
+            except Exception as ex:  # noqa: BLE001  (an A1 horizon failing never changes the D12 row)
+                row, why = None, f"error {type(ex).__name__}: {str(ex)[:160]}"
+            if row is None:
+                res["A1why"][T] = why
+            else:
+                res["A1"][T] = row
+    return res, None
 
 
-def compute_series(e, origin, datasets, ldir, garble=False):
+def compute_series(e, origin, datasets, ldir, garble=False, a1=False):
     st, cols = read_dev_grid(os.path.join(datasets, e["path"]))
     if garble:                         # no-look-ahead test: every bar opening at or after the origin is garbled
         j0 = (origin - st) // HOUR
@@ -317,21 +368,21 @@ def compute_series(e, origin, datasets, ldir, garble=False):
     if len(last) == 0 or (origin - (st + HOUR * int(last[-1]))) > DELIST_DAYS * DAY:
         return None, "no kline in the 30 days before the origin (delisted or halted)"
     try:
-        return series_origin(e["key"], st, g, origin)
+        return series_origin(e["key"], st, g, origin, a1=a1)
     except Exception as ex:  # noqa: BLE001  (one series failing never stops the block; recorded as not issued)
         return None, f"error {type(ex).__name__}: {str(ex)[:160]}"
 
 
 def _job(args):
-    e, origin, datasets, ldir, garble = args
+    e, origin, datasets, ldir, garble, a1 = args
     t0 = time.time()
-    res, why = compute_series(e, origin, datasets, ldir, garble)
+    res, why = compute_series(e, origin, datasets, ldir, garble, a1)
     return e["symbol"], res, why, time.time() - t0
 
 
-def compute_origin(datasets, ldir, U, origin, workers=2, garble=False, only=None):
+def compute_origin(datasets, ldir, U, origin, workers=2, garble=False, only=None, a1=False):
     import multiprocessing as mp
-    jobs = [(e, origin, datasets, ldir, garble) for e in U["series"] if only is None or e["symbol"] in only]
+    jobs = [(e, origin, datasets, ldir, garble, a1) for e in U["series"] if only is None or e["symbol"] in only]
     res, why, sec = {}, {}, {}
     it = (map(_job, jobs) if workers <= 1 else None)
     if it is not None:
@@ -425,6 +476,7 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
     origin = now - now % DAY
     check_universe(U, datasets)
     ensure_ci_replay(a, U, log=log)
+    a1_on = ensure_ci_replay_a1(a, U, log=log)
     update_all(ldir, U, http_get=http_get, clock=clock, log=log)
     if origin < FIRST_ORIGIN:
         log(f"d12 issue: none (before the first origin {C.iso(FIRST_ORIGIN)})")
@@ -442,7 +494,7 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
     prev = verify_issue_chain(ldir)
     cov = coverage(ldir)
     t0 = time.time()
-    res, why, _ = compute_origin(datasets, ldir, U, origin, workers=a.workers)
+    res, why, _ = compute_origin(datasets, ldir, U, origin, workers=a.workers, a1=a1_on)
     for s_ in retired_symbols(ldir):
         if res.get(s_) is not None:
             res[s_], why[s_] = None, "retired earlier (30 days without a kline)"
@@ -461,6 +513,13 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
                         "a": {TL[T]: f32(r["T"][T]["a"]) for T in TS},
                         "fHfallback": {TL[T]: r["T"][T]["fallback"] for T in TS},
                         "censorAll": ca, "censorWhy": ("kline store not fetched through the origin" if ca else None)})
+            if a1_on:                         # D12-A1: the 1 h, 3 h and 30 d rows (each issued on its own)
+                A = r.get("A1", {})
+                row["a1"] = {"fH": {TL[T]: f32(A[T]["fH"]) for T in TS_A1 if T in A},
+                             "f": {TL[T]: f32(A[T]["f"]) for T in TS_A1 if T in A},
+                             "a": {TL[T]: f32(A[T]["a"]) for T in TS_A1 if T in A},
+                             "fHfallback": {TL[T]: A[T]["fallback"] for T in TS_A1 if T in A},
+                             "notIssued": {TL[T]: w_ for T, w_ in r.get("A1why", {}).items()}}
         series.append(row)
     n_iss = sum(r["issued"] for r in series)
     doc = {"schema": SCHEMA, "prereg": PREREG,
@@ -469,6 +528,10 @@ def issue(a, U, log=print, clock=time.time, http_get=None):
            "issuedAtIso": C.iso(now), "code": a.code, "levels": list(L8), "cells": [cell_name(*c) for c in CELLS],
            "universeSha256": C.sha256_file(universe_path()), "prevSha256": prev, "nIssued": n_iss,
            "modelSeconds": round(time.time() - t0, 1), "series": series}
+    if a1_on:
+        doc["a1"] = {"deviation": "D12-A1", "horizons": [TL[T] for T in TS_A1],
+                     "cells": {g: [cell_name(*c) for c in A1_CELLS[g]] for g in GROUPS},
+                     "universeSha256": U["a1"]["fileSha256"]}
     C.write_exclusive(os.path.join(issue_dir(ldir), name), gz_json(doc))
     log(f"d12 issue: {n_iss} series issued, {len(series) - n_iss} not issued")
     return 0
@@ -723,8 +786,166 @@ def score(a, U, log=print, clock=time.time, http_get=None):
             state = st_new
             n_fin += 1
     log(f"d12 scored: {n_fin} cell-days finalized, {n_pend} horizons pending, ledger {len(led)} lines")
-    write_summary(ldir, U, led, state)
+    a1_state = None
+    if ensure_ci_replay_a1(a, U, log=log):
+        a1_state = score_a1(ldir, U, led, names, docs, cov, now, log=log)
+    write_summary(ldir, U, led, state, a1_state)
     return 0
+
+
+# =====================================================================================================================
+# D12-A1: the added per-cell monitors (own ledger d12/a1/ledger.jsonl; the D12 ledger is never touched)
+# =====================================================================================================================
+def a1_units():
+    """(key, T, [level index], group) of the 54 D12-A1 per-cell monitors."""
+    return [(gkey(T, k, g), T, [L8.index(k)], g) for g in GROUPS for (T, k) in A1_CELLS[g]]
+
+
+def a1_initial_state():
+    return {key: new_group_state(T, default_class(g, T, L8[js[0]])) for key, T, js, g in a1_units()}
+
+
+def a1_ledger_path(ldir):
+    return os.path.join(ldir, D12_SUB, A1_SUB, "ledger.jsonl")
+
+
+def a1_outcomes_path(ldir, origin):
+    return os.path.join(ldir, D12_SUB, A1_SUB, "outcomes", f"outcomes-{C.utc_date(origin)[:7]}.jsonl")
+
+
+def read_a1_ledger(ldir):
+    p = a1_ledger_path(ldir)
+    out, prev = [], C.ZERO_SHA
+    if not os.path.exists(p):
+        return out, prev
+    with open(p, "rb") as f:
+        for raw in f.read().splitlines(keepends=True):
+            if not raw.strip():
+                continue
+            d = json.loads(raw)
+            if d.get("prevSha256") != prev:
+                raise SystemExit("STOP: d12 A1 ledger hash chain broken")
+            prev = C.sha256_bytes(raw)
+            out.append(d)
+    return out, prev
+
+
+def read_a1_outcomes(ldir):
+    d = os.path.join(ldir, D12_SUB, A1_SUB, "outcomes")
+    out = {}
+    if os.path.isdir(d):
+        for n in sorted(os.listdir(d)):
+            with open(os.path.join(d, n), "rb") as f:
+                for raw in f.read().splitlines(keepends=True):
+                    if raw.strip():
+                        out[C.sha256_bytes(raw)] = json.loads(raw)
+    return out
+
+
+def score_a1(ldir, U, main_led, names, docs, cov, now, log=print):
+    """Score the D12-A1 monitors day by day in order per horizon. 6 h - 7 d: from the D12 outcome line of that (day,
+    T) once the D12 ledger holds it (from the first D12 origin). 1 h, 3 h, 30 d: from the A1 rows of issue files that
+    carry them (issued by A1 code), resolved as D12.2 and written to d12/a1/outcomes/. Returns the A1 state."""
+    UA = U["a1"]
+    led, prev = read_a1_ledger(ldir)
+    main_outs = read_outcomes(ldir)
+    a1_outs = read_a1_outcomes(ldir)
+    for d_ in led:
+        o = (main_outs if d_["outcomeSource"] == "d12" else a1_outs).get(d_["outcomeSha256"])
+        if o is None or o["origin"] != d_["origin"] or o["T"] != d_["T"]:
+            raise SystemExit(f"STOP: d12 A1 outcome line named by the A1 ledger for {d_['date']} {d_['T']} is missing")
+    done = {(d_["origin"], d_["T"]) for d_ in led}
+    main_done = {(d_["origin"], d_["T"]): d_["outcomeSha256"] for d_ in main_led}
+    state = led[-1]["state"] if led else a1_initial_state()
+    units = a1_units()
+    hist = {u[0]: [] for u in units}
+    for d_ in led:
+        for gk, m in d_["groups"].items():
+            if m.get("observed"):
+                hist[gk].append((d_["dayIndex"], m["XA"], m["XB"]))
+    n_fin, n_pend = 0, 0
+    for T in TS_ALL:
+        if not any(u[1] == T for u in units):
+            continue
+        for name in names:
+            doc = docs.get(name) or read_issue(ldir, name)[0]
+            docs[name] = doc
+            t = doc["origin"]
+            if (t, TL[T]) in done:
+                continue
+            if T in TS:
+                sha = main_done.get((t, TL[T]))
+                if sha is None:
+                    n_pend += 1
+                    break                          # the D12 line of this day comes first
+                series_out, src, osha, oraw = main_outs[sha]["series"], "d12", sha, None
+            else:
+                if "a1" not in doc:
+                    continue                       # issued before the A1 pin (or with A1 closed): no A1 row
+                if now < t + T * HOUR + RESOLVE_MARGIN:
+                    n_pend += 1
+                    break
+                ys, waiting = {}, False
+                for r in doc["series"]:
+                    if not (r["issued"] and TL[T] in r.get("a1", {}).get("fH", {})):
+                        continue
+                    e = [x for x in U["series"] if x["symbol"] == r["symbol"]][0]
+                    lab = None if r.get("censorAll") else labels_for(e, ldir, t, r["S"], T, cov)
+                    if lab == "wait":
+                        if now < t + T * HOUR + GIVE_UP:
+                            waiting = True
+                            break
+                        lab = None
+                    ys[r["symbol"]] = lab
+                if waiting:
+                    n_pend += 1
+                    break
+                series_out = [{"symbol": r["symbol"], "group": r["group"], "fH": r["a1"]["fH"][TL[T]],
+                               "a": r["a1"]["a"][TL[T]], "y": ys[r["symbol"]]} for r in doc["series"]
+                              if r["symbol"] in ys]
+                oraw = (json.dumps(C.clean({"date": doc["date"], "origin": t, "T": TL[T], "series": series_out}),
+                                   separators=(",", ":")) + "\n").encode()
+                src, osha = "a1", C.sha256_bytes(oraw)
+            di = day_index_of(t)
+            line = {"schema": SCHEMA + "/a1-ledger", "deviation": "D12-A1", "date": doc["date"], "origin": t,
+                    "T": TL[T], "dayIndex": di, "groups": {}, "events": []}
+            st_new = json.loads(json.dumps(state))
+            for gk, T_u, js, g in units:
+                if T_u != T:
+                    continue
+                ecl = {jj: UA["climatology"][gk] for jj in js}
+                rows = [(r["fH"], r["y"], r["a"], ecl) for r in series_out if r["group"] == g]
+                ds = day_sums(rows, js)
+                m = dict(ds)
+                m["observed"] = ds["nLabelled"] > 0
+                if m["observed"]:
+                    h = h_of(T)
+                    hh = [x for x in hist[gk] if x[0] <= di - h]          # outcomes resolved before origin t
+                    st_g, bets, ev = monitor_step(st_new[gk], ds, di, {"A": [x[1] for x in hh],
+                                                                      "B": [x[2] for x in hh]}, UA["v0"][gk],
+                                                  doc["date"])
+                    st_new[gk] = st_g
+                    m.update(bets)
+                    m["logKA"], m["logKB"], m["logE"] = (st_g["logKA"][bets["sub"]], st_g["logKB"][bets["sub"]],
+                                                        st_g["logE"])
+                    line["events"] += [f"{gk}: {x}" for x in ev]
+                    hist[gk].append((di, ds["XA"], ds["XB"]))
+                line["groups"][gk] = m
+            line["state"] = st_new
+            line["prevSha256"] = prev
+            line["outcomeSource"] = src
+            line["outcomeSha256"] = osha
+            raw = (json.dumps(C.clean(line), separators=(",", ":"), ensure_ascii=True, allow_nan=False) + "\n").encode()
+            if oraw is not None:
+                C.append_bytes(a1_outcomes_path(ldir, t), oraw)
+            C.append_bytes(a1_ledger_path(ldir), raw)
+            prev = C.sha256_bytes(raw)
+            led.append(line)
+            done.add((t, TL[T]))
+            state = st_new
+            n_fin += 1
+    log(f"d12-a1 scored: {n_fin} cell-days finalized, {n_pend} horizons pending, ledger {len(led)} lines")
+    return {"state": state, "led": led}
 
 
 # =====================================================================================================================
@@ -779,56 +1000,82 @@ def secondaries(rows):
     return out
 
 
-def effective_cells():
-    """(group, T, k) of every cell with a live class: the 8 per-cell cells and the pooled levels, per group."""
+def effective_cells(a1=False):
+    """(group, T, k) of every cell with a live class: the 8 per-cell cells and the pooled levels, per group; with a1
+    also the D12-A1 cells (1 h, 3 h, 30 d and the added -15% levels; the others are pooled levels already)."""
     out = []
     for g in GROUPS:
-        for T in TS:
-            for k in sorted(set(POOL_LV) | {k_ for (T_, k_) in CELLS if T_ == T}, reverse=True):
+        for T in (TS_ALL if a1 else TS):
+            ks = set(POOL_LV) if T in TS else set()
+            ks |= {k_ for (T_, k_) in CELLS if T_ == T}
+            if a1:
+                ks |= {k_ for (T_, k_) in A1_CELLS[g] if T_ == T}
+            for k in sorted(ks, reverse=True):
                 out.append((g, T, k))
     return out
 
 
-def effective_classes(state):
+def cell_units(g, T, k, state, a1_state=None):
+    """The monitor units covering a cell: (unit key, its state) for the D12 per-cell and pooled units and the A1 unit."""
+    out = [(u, state[u]) for u in (gkey(T, k, g), pkey(T, g) if (k in POOL_LV and T in TS) else None)
+           if u and u in state]
+    if a1_state is not None and gkey(T, k, g) in a1_state:
+        out.append((gkey(T, k, g), a1_state[gkey(T, k, g)]))
+    return out
+
+
+def effective_classes(state, a1_state=None):
     """'{group} {T} {k%}' -> the live class: the default class, and CALIBRATED once a monitor covering the cell has
-    fired while the default is a warning class. A downgrade by the pooled monitor flags every pooled level."""
+    fired while the default is a warning class. A downgrade by the pooled monitor flags every pooled level. With
+    a1_state the D12-A1 monitors and cells are included (the D12 ledger lines never pass it)."""
     out = {}
-    for g, T, k in effective_cells():
-        units = [u for u in (gkey(T, k, g), pkey(T, g) if k in POOL_LV else None) if u and u in state]
+    for g, T, k in effective_cells(a1=a1_state is not None):
+        units = cell_units(g, T, k, state, a1_state)
         cls = default_class(g, T, k)
-        if any(state[u]["downgraded"] for u in units) and cls in (CLASS_WARN, "SKILL"):
+        if any(s_["downgraded"] for _, s_ in units) and cls in (CLASS_WARN, "SKILL"):
             cls = CLASS_DOWN
         out[f"{g} {TL[T]} {int(round(k * 100))}%"] = cls
     return out
 
 
-def write_summary(ldir, U, led, state):
+def write_summary(ldir, U, led, state, a1=None):
+    a1_state = a1["state"] if a1 else None
     dates_T = {}
     for d_ in led:
         dates_T[d_["T"]] = max(dates_T.get(d_["T"], ""), d_["date"])
-    classes = {"schema": SCHEMA + "/classes", "prereg": PREREG,
-               "rule": ("D12 + D12-A2: each cell starts at its default class; when a monitor covering it fires "
-                        "(per-cell, or the pooled -2..-10% monitor of its horizon and group), a warning class becomes "
-                        "CALIBRATED (terminal). Other classes keep their class and carry downgraded = true."),
+    rule = ("D12 + D12-A2: each cell starts at its default class; when a monitor covering it fires "
+            "(per-cell, or the pooled -2..-10% monitor of its horizon and group), a warning class becomes "
+            "CALIBRATED (terminal). Other classes keep their class and carry downgraded = true.")
+    classes = {"schema": SCHEMA + "/classes", "prereg": PREREG, "rule": rule,
                "lastLedgerDate": max(dates_T.values()) if dates_T else None, "lastLedgerDateByHorizon": dates_T,
                "monitors": {}, "cells": {}}
-    for key, T, js, g in monitor_units():
-        s_ = state[key]
+    if a1 is not None:
+        a1_dates = {}
+        for d_ in a1["led"]:
+            a1_dates[d_["T"]] = max(a1_dates.get(d_["T"], ""), d_["date"])
+        classes["rule"] = rule + (" D12-A1: 54 more per-cell monitors (same rule, own ledger d12/a1/ledger.jsonl); a "
+                                  "cell is downgraded when any monitor covering it fires.")
+        classes["a1"] = {"deviation": "D12-A1", "lastLedgerDateByHorizon": a1_dates,
+                         "lastLedgerDate": max(a1_dates.values()) if a1_dates else None}
+    units_all = [(key, T, js, g, state[key]) for key, T, js, g in monitor_units()]
+    if a1_state is not None:
+        units_all += [(key, T, js, g, a1_state[key]) for key, T, js, g in a1_units()]
+    for key, T, js, g, s_ in units_all:
         classes["monitors"][key] = {"horizon": TL[T], "levels": [L8[j] for j in js], "group": g,
                                     "kind": "pooled" if len(js) > 1 else "cell", "class": s_["class"],
                                     "defaultClass": s_["defaultClass"], "downgraded": s_["downgraded"],
                                     "downgradedAt": s_["downgradedAt"], "lastObserved": s_["lastObserved"],
                                     "observedDays": s_["days"]}
-    eff = effective_classes(state)
-    for g, T, k in effective_cells():
-        units = [u for u in (gkey(T, k, g), pkey(T, g) if k in POOL_LV else None) if u and u in state]
-        last = [state[u]["lastObserved"] for u in units if state[u]["lastObserved"]]
+    eff = effective_classes(state, a1_state)
+    for g, T, k in effective_cells(a1=a1_state is not None):
+        units = cell_units(g, T, k, state, a1_state)
+        last = [s_["lastObserved"] for _, s_ in units if s_["lastObserved"]]
         classes["cells"][f"{g} {TL[T]} {int(round(k * 100))}%"] = {
             "group": g, "assets": [e["symbol"] for e in U["series"] if e["group"] == g], "horizon": TL[T],
             "horizon_h": T, "level": k, "class": eff[f"{g} {TL[T]} {int(round(k * 100))}%"],
-            "defaultClass": default_class(g, T, k), "monitors": units,
-            "downgraded": any(state[u]["downgraded"] for u in units),
-            "downgradedAt": min([state[u]["downgradedAt"] for u in units if state[u]["downgradedAt"]], default=None),
+            "defaultClass": default_class(g, T, k), "monitors": [u for u, _ in units],
+            "downgraded": any(s_["downgraded"] for _, s_ in units),
+            "downgradedAt": min([s_["downgradedAt"] for _, s_ in units if s_["downgradedAt"]], default=None),
             "lastObserved": max(last) if last else None}
     C.write_atomic(os.path.join(ldir, D12_SUB, "classes.json"), C.dumps(classes))
     outs = read_outcomes(ldir)
@@ -867,6 +1114,29 @@ def write_summary(ldir, U, led, state):
                                   "secondaries": secondaries(acc.get(gk, []))}
         for sym in ("ETHUSDT", "BTCUSDT"):
             summ["perAsset"][f"{cell_name(T, k)} {sym}"] = secondaries(acc.get(f"{cell_name(T, k)} {sym}", []))
+    if a1 is not None:                                  # D12-A1 secondaries (report only)
+        a1_outs = read_a1_outcomes(ldir)
+        clim1 = U["a1"]["climatology"]
+        acc1 = {}
+        for d_ in a1["led"]:
+            o = (outs if d_["outcomeSource"] == "d12" else a1_outs)[d_["outcomeSha256"]]
+            T = [T_ for T_ in TS_ALL if TL[T_] == d_["T"]][0]
+            week = (d_["origin"] - FIRST_ORIGIN) // (7 * DAY)
+            for r in o["series"]:
+                if r["y"] is None:
+                    continue
+                for (T_, k) in A1_CELLS[r["group"]]:
+                    if T_ != T:
+                        continue
+                    j = L8.index(k)
+                    gk = gkey(T, k, r["group"])
+                    acc1.setdefault(gk, []).append((week, r["fH"][j], r["a"][j], clim1[gk], r["y"][j]))
+        summ["a1"] = {}
+        for gk, T, js, g in a1_units():
+            s_ = a1_state[gk]
+            summ["a1"][gk] = {"class": s_["class"], "downgraded": s_["downgraded"], "downgradedAt": s_["downgradedAt"],
+                              "days": s_["days"], "R_cum": s_.get("R"), "eValue": math.exp(s_["logE"]),
+                              "threshold": s_["threshold"], "secondaries": secondaries(acc1.get(gk, []))}
     C.write_atomic(os.path.join(ldir, D12_SUB, "summary.json"), C.dumps(summ))
 
 
@@ -948,10 +1218,101 @@ def ensure_ci_replay(a, U, log=print):
     return rec
 
 
+def a1_universe_path():
+    return os.path.join(HERE, "d12a1_universe.json")
+
+
+def a1_golden_path():
+    return os.path.join(HERE, "d12a1_golden.json")
+
+
+def load_a1_universe():
+    with open(a1_universe_path()) as f:
+        UA = json.load(f)
+    UA["fileSha256"] = C.sha256_file(a1_universe_path())
+    return UA
+
+
+def replay_a1(datasets, U, workers=2, log=print):
+    """D12-A1 instrument replay: the live A1 rows (1 h, 3 h, 30 d) on development grids cut at each replay origin vs
+    the R16.2 development rows (r16_dev.task, d12a1_golden.json) at the shared levels, bit for bit; the live label
+    from the full development grid vs the development y; no look-ahead (garbled bars at and after the origin)."""
+    G = json.load(open(a1_golden_path()))
+    n_cmp, n_eq, n_lab, n_lab_eq, bad = 0, 0, 0, 0, []
+    for oi in REPLAY_ORIGINS:
+        origin = C.A.utc(oi)
+        res, why, _ = compute_origin(datasets, None, U, origin, workers=workers, a1=True)
+        for e in U["series"]:
+            gd = G["rows"].get(oi, {}).get(e["symbol"])
+            if gd is None:
+                continue
+            r = res.get(e["symbol"])
+            st, cols = read_dev_grid(os.path.join(datasets, e["path"]))
+            j0 = (origin - st) // HOUR
+            for T in TS_A1:
+                g = gd.get(TL[T])
+                if g is None:
+                    continue
+                jj = [L8.index(k) for k in g["levels"] if k in L8]
+                gi = [q for q, k in enumerate(g["levels"]) if k in L8]
+                n_cmp += 1
+                row = None if r is None else r.get("A1", {}).get(T)
+                ok = row is not None and all(
+                    np.array_equal(np.asarray(row[nm], np.float32)[jj], np.asarray(g[nm], np.float32)[gi])
+                    for nm in ("fH", "f", "a"))
+                n_eq += ok
+                if not ok:
+                    bad.append([oi, e["symbol"], TL[T], "rows" if row is not None else str(why.get(e["symbol"]))])
+                if r is not None:
+                    y = label_from_lows(cols["low"][j0:j0 + T], r["S"], T)
+                    n_lab += 1
+                    lab_ok = y is not None and [y[j] for j in jj] == [g["y"][q] for q in gi]
+                    n_lab_eq += lab_ok
+                    if not lab_ok:
+                        bad.append([oi, e["symbol"], TL[T], "label"])
+    origin = C.A.utc(REPLAY_ORIGINS[-1])
+    look = [e["symbol"] for e in U["series"]][:LOOKAHEAD_N]
+    r0, _, _ = compute_origin(datasets, None, U, origin, workers=workers, only=set(look), a1=True)
+    rg, _, _ = compute_origin(datasets, None, U, origin, workers=workers, garble=True, only=set(look), a1=True)
+    la_ok = all(r0[s_] is not None and rg[s_] is not None and r0[s_]["S"] == rg[s_]["S"]
+                and set(r0[s_]["A1"]) == set(rg[s_]["A1"]) == set(TS_A1) and all(
+                    np.array_equal(r0[s_]["A1"][T][nm], rg[s_]["A1"][T][nm]) for T in TS_A1 for nm in ("fH", "f", "a"))
+                for s_ in look)
+    ok = n_cmp > 0 and n_eq == n_cmp and n_lab == n_cmp and n_lab_eq == n_lab and la_ok
+    out = {"deviation": "D12-A1", "replayOrigins": list(REPLAY_ORIGINS), "horizons": [TL[T] for T in TS_A1],
+           "compared": n_cmp, "rowsEqual": n_eq, "labelsCompared": n_lab, "labelsEqual": n_lab_eq,
+           "noLookAhead_series": len(look), "noLookAhead_equal": bool(la_ok), "mismatches": bad[:20],
+           "goldenSha256": C.sha256_file(a1_golden_path()), "python": sys.version.split()[0],
+           "numpy": np.__version__, "pass": bool(ok)}
+    log(f"d12-a1 replay: {n_eq} of {n_cmp} rows equal, {n_lab_eq} of {n_lab} labels equal, "
+        f"{int(la_ok) * len(look)} of {len(look)} look-ahead equal")
+    return out
+
+
+def ensure_ci_replay_a1(a, U, log=print):
+    """D12-A1 fail-closed gate (A1 only): the first A1 run on the runner records d12/checks/ci-replay-a1.json once.
+    A1 issues and scores only when that record exists and passed. The D12 block is unaffected either way."""
+    if U.get("a1") is None:
+        return False
+    p = os.path.join(C.live_dir(a.out), D12_SUB, "checks", "ci-replay-a1.json")
+    if os.path.exists(p):
+        return bool(json.load(open(p)).get("pass"))
+    if C.sha256_file(a1_golden_path()) != U["a1"]["goldenSha256"]:
+        log("d12-a1: golden replay file sha256 mismatch; A1 stays closed (no record written)")
+        return False
+    rec = replay_a1(a.datasets, U, workers=a.workers, log=log)
+    rec.update({"code": a.code, "recordedAt": C.iso(int(time.time()))})
+    C.write_exclusive(p, C.dumps(rec))
+    if not rec["pass"]:
+        log("d12-a1: CI replay failed (record written); A1 stays closed, D12 unaffected")
+    return bool(rec["pass"])
+
+
 # =====================================================================================================================
 # CLI
 # =====================================================================================================================
 D12_FILES = ("live/q26_live_d12.py", "live/d12_universe.json", "live/d12_golden.json", "live/q26_live_common.py",
+             "live/d12a1_universe.json", "live/d12a1_golden.json",
              "a2_touch.py", "a3_touch.py", "a6_touch.py", "a_touch.py", "r12_tail.py")
 
 
@@ -973,15 +1334,22 @@ def code_meta(expect_commit=None):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=("issue", "score", "replay"))
+    ap.add_argument("cmd", choices=("issue", "score", "replay", "replay-a1"))
     ap.add_argument("--datasets", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--expect-commit", default=None)
     ap.add_argument("--workers", type=int, default=2)
     a = ap.parse_args(argv)
     U = load_universe()
+    if os.path.exists(a1_universe_path()):
+        U["a1"] = load_a1_universe()          # D12-A1 (without the file the block runs exactly as D12-A2/A3)
     a.code = code_meta(a.expect_commit)
     log = (lambda *x: print(*x, flush=True))
+    if a.cmd == "replay-a1":
+        check_universe(U, a.datasets)
+        rec = replay_a1(a.datasets, U, workers=a.workers, log=log)
+        print(json.dumps(C.clean(rec), indent=1), file=sys.stderr)
+        return 0 if rec["pass"] else 1
     if a.cmd == "replay":
         check_universe(U, a.datasets)
         rec = replay(a.datasets, U, workers=a.workers, log=log)

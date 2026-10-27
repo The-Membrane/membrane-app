@@ -3,6 +3,7 @@ export { default } from './Borrow'
 
 export { WalletStrip } from './WalletStrip'
 export { MintPanel } from './MintPanel'
+export { SizingPanel } from './SizingPanel'
 export { CureTimeline } from './CureTimeline'
 export { CarryCrossSell } from './CarryCrossSell'
 export { ConfirmSheet } from './ConfirmSheet'

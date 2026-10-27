@@ -52,6 +52,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
 import argparse  # noqa: E402
 import gzip  # noqa: E402
 import hashlib  # noqa: E402
+import http.client  # noqa: E402
 import json  # noqa: E402
 import math  # noqa: E402
 import re  # noqa: E402
@@ -393,7 +394,7 @@ class Rpc:
                         self.stats["errors"] += 1
                     self.sleep(min(3.0 * (k + 1), 20.0))     # rate limited: wait longer, then rotate
                     continue
-            except (urllib.error.URLError, OSError, TimeoutError, ValueError, KeyError) as e:
+            except (urllib.error.URLError, http.client.HTTPException, OSError, TimeoutError, ValueError, KeyError) as e:
                 err = e
             with self.lock:
                 self.stats["errors"] += 1
@@ -435,7 +436,7 @@ class Rpc:
                 if s <= 1:
                     raise Stale("logs: single block too large")
                 span = max(1, s // 4)
-            except (urllib.error.URLError, OSError, TimeoutError, ValueError, KeyError) as ex:
+            except (urllib.error.URLError, http.client.HTTPException, OSError, TimeoutError, ValueError, KeyError) as ex:
                 with self.lock:
                     self.stats["errors"] += 1
                 fails += 1
@@ -744,7 +745,7 @@ def fetch_m1(sym, start_ms, now_ms, http_get=None):
             try:
                 data = json.loads(get(url))
                 break
-            except (urllib.error.URLError, OSError, TimeoutError, ValueError):
+            except (urllib.error.URLError, http.client.HTTPException, OSError, TimeoutError, ValueError):
                 time.sleep(1 + 2 * k)
         if not isinstance(data, list):
             raise ValueError(f"binance {sym}: no data")
@@ -1235,7 +1236,7 @@ def run_hour(a, log=print, now=None, http_get=None, rpc_factory=None, chains=Non
             last = max(m1) if m1 else None
             iii[s] = {"bars": bars, "G": bars.get(c - HOUR, (None, None, None))[2],
                       "spot": (m1[last] if last is not None and last >= (now - 300) * 1000 else None)}
-        except (OSError, ValueError, TimeoutError) as e:  # noqa: PERF203
+        except (http.client.HTTPException, OSError, ValueError, TimeoutError) as e:  # noqa: PERF203
             iii_fail.append(s)
             iii[s] = None
             log(f"d14 iii: {s} failed ({type(e).__name__})")

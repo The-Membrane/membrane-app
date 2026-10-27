@@ -541,3 +541,20 @@ def test_latest_state_chain_reads_latest():
         except Exception:
             pass
         assert seen and seen[0] == want
+
+
+def test_incomplete_read_rotates_instead_of_failing_the_chain():
+    # 2026-10-27 01:00Z Polygon: http.client.IncompleteRead is an HTTPException, not an OSError, so it used to
+    # escape the endpoint rotation and mark the whole chain "error" for the hour.
+    import http.client
+    seen = []
+
+    def post(url, payload, timeout):
+        seen.append(url)
+        if len(seen) == 1:
+            raise http.client.IncompleteRead(b"partial")
+        return {"jsonrpc": "2.0", "id": 1, "result": "0x"}
+
+    rpc = D.Rpc("polygon", D.CHAINS["polygon"], post=post, tries=2, sleep=lambda s: None)
+    assert rpc.call("eth_call", [{"to": D.MULTICALL3, "data": "0x00"}, "latest"]) == "0x"
+    assert len(seen) == 2

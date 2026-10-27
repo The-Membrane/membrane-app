@@ -35,7 +35,7 @@ env:
   APP_REPO: The-Membrane/membrane-app
   # D14 (2026-10-25): this job alone runs this pin. APP_SHA, D11_APP_SHA, D12_APP_SHA and D13_APP_SHA (q26-touch-live.yml)
   # are not touched.
-  D14_APP_SHA: e1b901ad222271505246fb514a55ed7b5b00f201   # D14 (membrane-board ba183cc); BNB/Arbitrum endpoint fix 2026-10-25; Multicall gas-cap split 2026-10-26; 400 rotates, Arbitrum endpoints 2026-10-26; BNB bloXroute reads; BNB latest-state reads; HTTPException (IncompleteRead) rotates 2026-10-27
+  D14_APP_SHA: 5f7e41497b56288890e9142698b379d61526f874   # D14 (membrane-board ba183cc); BNB/Arbitrum endpoint fix 2026-10-25; Multicall gas-cap split 2026-10-26; 400 rotates, Arbitrum endpoints 2026-10-26; BNB bloXroute reads; BNB latest-state reads; HTTPException (IncompleteRead) rotates 2026-10-27; oracle-gap arm 2026-10-27
   DATASETS_REPO: triccs/membrane-datasets
   D14_DIR: forecasts/q26-borrower-alert
 

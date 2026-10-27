@@ -19,10 +19,24 @@
  * supplies the random id, which is what makes the split testable.
  */
 
-export type LandingVariant = 'a' | 'b' | 'c'
+export type LandingVariant = 'a' | 'b' | 'c' | 'd'
 
 /** The two variants the test actually assigns. A is saved, never assigned. */
 export type AssignedVariant = 'b' | 'c'
+
+/**
+ * THE SUITE HEADLINE (owner direction 2026-10-27, board Q26-S1): the landing now sells the
+ * whole borrower tool suite (health bar, alerts, timer, replay, practice, sizing), not only
+ * the liquidation delay. B and C both lead with the delay, so the H1 test is paused and every
+ * reader and crawler gets D. A, B and C stay in the code and are reachable at ?v=a|b|c.
+ */
+export const SUITE_VARIANT: LandingVariant = 'd'
+
+/**
+ * THE FLIP. `false` serves SUITE_VARIANT to everyone. `true` restores the B/C split exactly as
+ * it ran from 2026-09-15 (crawlers pinned to C). One line, nothing else moves.
+ */
+export const HERO_TEST_RUNNING = false
 
 export const LANDING_VARIANT_COOKIE = 'membrane.landingVariant'
 
@@ -45,6 +59,8 @@ export interface LandingVariantInput {
   userAgent?: string | null
   /** A fresh random id for a first-time reader. Supplied by the caller so the split is testable. */
   randomId?: string | null
+  /** Whether the B/C test runs. Defaults to HERO_TEST_RUNNING; passed explicitly in tests. */
+  testRunning?: boolean
 }
 
 export interface LandingVariantResolution {
@@ -54,7 +70,7 @@ export interface LandingVariantResolution {
 }
 
 export function isLandingVariant(value: unknown): value is LandingVariant {
-  return value === 'a' || value === 'b' || value === 'c'
+  return value === 'a' || value === 'b' || value === 'c' || value === 'd'
 }
 
 export function isCrawler(userAgent?: string | null): boolean {
@@ -76,9 +92,12 @@ export function hashToVariant(id: string): AssignedVariant {
 }
 
 /**
+ * With the test paused (HERO_TEST_RUNNING false): ?v=a|b|c|d pins that variant; everyone
+ * else, crawlers included, gets SUITE_VARIANT. With the test running, as before:
+ *
  * Resolution order:
  *   0. crawler user agent  -> C, no cookie (the canonical H1 stays one headline)
- *   1. ?v=a|b|c            -> that variant, persisted (a link pins what it shows)
+ *   1. ?v=a|b|c|d          -> that variant, persisted (a link pins what it shows)
  *   2. cookie b|c          -> that variant, already persisted. An 'a' cookie is
  *                             ignored and re-assigned: A is outside the test, so a
  *                             reader who once opened ?v=a rejoins it on their next visit.
@@ -88,10 +107,14 @@ export function hashToVariant(id: string): AssignedVariant {
  * that forgets to supply one degrades to the stable headline instead of throwing.
  */
 export function resolveLandingVariant(input: LandingVariantInput): LandingVariantResolution {
-  if (isCrawler(input.userAgent)) return { variant: 'c', setCookie: false }
+  const running = input.testRunning ?? HERO_TEST_RUNNING
+  if (isCrawler(input.userAgent))
+    return { variant: running ? 'c' : SUITE_VARIANT, setCookie: false }
 
   const queried = Array.isArray(input.query) ? input.query[0] : input.query
   if (isLandingVariant(queried)) return { variant: queried, setCookie: false }
+
+  if (!running) return { variant: SUITE_VARIANT, setCookie: false }
 
   // Owner ruling 2026-09-15: randomise on every load. No cookie is read or written;
   // each request is a fresh 50/50 split and the run event carries the letter it was

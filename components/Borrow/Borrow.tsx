@@ -67,7 +67,6 @@ export const Borrow: React.FC = () => {
         ['You post', `${fmtAmount(math.postValue, asset.dp)} ${asset.sym} (${fmt(math.pv)})`],
         ['You mint', `${fmt(math.mint)} CDT — to your wallet`],
         ['Your LTV', `${math.effectiveLtv.toFixed(0)}% · cap ${math.ltvCapPercent}% · line ${(asset.M * 100).toFixed(0)}%`],
-        ['Breach odds, 12 months', math.odds < 1 ? 'under 1%' : `${math.odds.toFixed(math.odds < 10 ? 1 : 0)}%`],
         [
           'Cost of the debt, today',
           `${RATE.toFixed(1)}% / yr${math.net < 0 ? '' : ` · collateral earns ${asset.yld.toFixed(1)}%`}`,

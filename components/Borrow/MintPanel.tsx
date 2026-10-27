@@ -35,9 +35,6 @@ export interface MintPanelProps {
   onBorrow: () => void
 }
 
-const riskColor = (odds: number) =>
-  odds < 5 ? SEMANTIC_COLORS.success : odds < 20 ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.danger
-
 /**
  * The mint box: post + LTV slider + mint amount, plus the three-fact strip
  * (collateral / risk / cost) and the Borrow CTA. Ported from
@@ -55,7 +52,7 @@ export const MintPanel: React.FC<MintPanelProps> = ({
   math,
   onBorrow,
 }) => {
-  const { pv, mint, ltvCapPercent, effectiveLtv, odds, net, postValue } = math
+  const { pv, mint, ltvCapPercent, effectiveLtv, net, postValue } = math
 
   return (
     <Card variant="default" mt={SPACING.md} p={SPACING.lg}>
@@ -190,12 +187,11 @@ export const MintPanel: React.FC<MintPanelProps> = ({
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.label} letterSpacing="0.28em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
             Risk
           </Text>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.h4} color={riskColor(odds)} mt={SPACING.xs}>
-            {odds < 1 ? 'breach odds under 1%' : `breach odds ${odds.toFixed(odds < 10 ? 1 : 0)}%`}
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.h4} color={SEMANTIC_COLORS.textPrimary} mt={SPACING.xs}>
+            {effectiveLtv.toFixed(0)}% LTV · line {(asset.M * 100).toFixed(0)}%
           </Text>
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textSecondary} lineHeight={1.55}>
-            in 12 months, at {effectiveLtv.toFixed(0)}% LTV vs the {(asset.M * 100).toFixed(0)}% line · a breach opens
-            an 8h cure window
+            crossing the line opens an 8h cure window · liquidation repays to the cap, not to zero
           </Text>
         </Box>
 

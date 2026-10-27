@@ -32,6 +32,13 @@ Each hourly run (q26_live_d14.py run):
             (d > 10%), act, liquidation, closed (debt below MIN_DEBT_USD). After a touch the position is disarmed until
             it moves > 10% away, acts or is liquidated (the ruling's re-arm rule). A stale chain or a null III value
             pauses the position (no transition), never ends its episode.
+  oracle gap  Record only (added 2026-10-27; it feeds no alert, episode or touch rule). On Ethereum mainnet the R34 /
+            R38 Membrane-style oracle for ETH and BTC: Uniswap V3 observe() 1 h TWAP per route (5 routes per asset),
+            the route median, the 5 % anchor gate with the single-pool fallback (anchor in private/oracle-gap.json),
+            against input III (the D13 1 h Binance TWAP) and the Binance 1 m close, all at the same UTC minute (the
+            last minute boundary at least 60 s before the read block). The public hourly line holds per asset
+            oracle_gated, route_median, n_routes, iii, spot, gap_pct (= oracle_gated / iii - 1, a fraction),
+            gate_fired and served; no address. An RPC or Binance failure sets status "error" and nothing else.
   outputs   PRIVATE (membrane-datasets forecasts/q26-borrower-alert/private/): borrower address lists, cursors,
             episode state keyed by an internal hash of chain + address, the would-fire / outcome event log and the
             snapshot membership. Never published. PUBLIC-SAFE (forecasts/q26-borrower-alert/aave-v3/): hourly count
@@ -164,7 +171,7 @@ SEL = {"getUserAccountData": "bf92857c", "getUserConfiguration": "4417a583", "ge
        "getAssetPrice": "b3596f07", "ADDRESSES_PROVIDER": "0542975c", "getPriceOracle": "fca513a8",
        "decimals": "313ce567", "symbol": "95d89b41", "aggregate3": "82ad56cb",
        "getEModeCategoryCollateralConfig": "b286f467", "getEModeCategoryCollateralBitmap": "b0771dba",
-       "getEModeCategoryData": "6c6f6ae1"}
+       "getEModeCategoryData": "6c6f6ae1", "observe": "883bdbfd"}
 SIGS = {"getUserAccountData": "getUserAccountData(address)", "getUserConfiguration": "getUserConfiguration(address)",
         "getUserEMode": "getUserEMode(address)", "balanceOf": "balanceOf(address)",
         "getReservesList": "getReservesList()", "getReserveData": "getReserveData(address)",
@@ -173,7 +180,7 @@ SIGS = {"getUserAccountData": "getUserAccountData(address)", "getUserConfigurati
         "aggregate3": "aggregate3((address,bool,bytes)[])",
         "getEModeCategoryCollateralConfig": "getEModeCategoryCollateralConfig(uint8)",
         "getEModeCategoryCollateralBitmap": "getEModeCategoryCollateralBitmap(uint8)",
-        "getEModeCategoryData": "getEModeCategoryData(uint8)"}
+        "getEModeCategoryData": "getEModeCategoryData(uint8)", "observe": "observe(uint32[])"}
 TOPIC = {"Borrow": "0xb3d084820fb1a9decffb176436bd02558d15fac9b0ddfed8c465bc7359d7dce0",
          "Supply": "0x2b627736bca15cd5381dcf80b0bf11fd197d01a037c52b927a881a10fb73ba61",
          "Withdraw": "0x3115d1449a7b732c986cba18244e897a450f61e1bb8d589cd2e69e6c8924f9f7",
@@ -776,6 +783,157 @@ def iii_bars(m1, h0, h1):
 
 
 # =====================================================================================================================
+# oracle-gap arm (record only; no effect on alerts, episodes or touches)
+# =====================================================================================================================
+# Membrane-style oracle as in R34 / R38 (membrane-datasets history-forecasts/r38/code/build_long.py, sha256 67d35516...):
+# per-route Uniswap V3 1 h TWAP (mean tick = floor((tc(t) - tc(t - 3600)) / 3600)), the median of the surviving routes,
+# a 5 % anchor gate (anchor moves at most 5 % per hour) with the single-pool LEGACY fallback. Quote stables = USD 1.00.
+# Pool addresses are public contract constants; they are never written to a public-safe file or a log.
+OG_W = 3600
+OG_MAXDEV = 0.05
+OG_ANCHOR_STEP_S = 3000        # hourly runs drift by minutes; R38 moves the anchor every 60 grid minutes
+OG_BUDGET_S = 150
+OG_DEC = {"WETH": 18, "USDC": 6, "USDT": 6, "DAI": 18, "WBTC": 8}
+# (asset, quote, fee) -> (pool, asset_is_token0): R34 pools.json, Ethereum mainnet
+OG_POOLS = {("WETH", "USDC", 500): ("0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640", False),
+            ("WETH", "USDC", 3000): ("0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8", False),
+            ("WETH", "USDT", 500): ("0x11b815efb8f581194ae79006d24e0d814b7697f6", True),
+            ("WETH", "USDT", 3000): ("0x4e68ccd3e89f51c3074ca5072bbac773960dfa36", True),
+            ("WETH", "DAI", 3000): ("0xc2e9f25be6257c210d7adf0d4cd6e3e881ba25f8", False),
+            ("WBTC", "USDC", 500): ("0x9a772018fbd77fcd2d25657e5c547baff3fd7d16", True),
+            ("WBTC", "USDC", 3000): ("0x99ac8ca7087fa4a2a1fb6357269965a2014abc35", True),
+            ("WBTC", "USDT", 3000): ("0x9db9e0e53058c89e5b94e29621a205198648425b", True),
+            ("WBTC", "WETH", 500): ("0x4585fe77225b41b697c938b018e2ac67ac5a20c0", True),
+            ("WBTC", "WETH", 3000): ("0xcbcdf9626bc03e24f779434178a73a0b4bad62ed", True)}
+OG_ROUTES = {   # R38 build_long.ROUTES
+    "ETH": [[("WETH", "USDC", 500)], [("WETH", "USDC", 3000)], [("WETH", "USDT", 500)],
+            [("WETH", "USDT", 3000)], [("WETH", "DAI", 3000)]],
+    "BTC": [[("WBTC", "USDC", 3000)], [("WBTC", "USDC", 500)], [("WBTC", "USDT", 3000)],
+            [("WBTC", "WETH", 500), ("WETH", "USDC", 500)], [("WBTC", "WETH", 3000), ("WETH", "USDC", 500)]],
+}
+OG_LEGACY = {"ETH": ("WETH", "USDC", 500), "BTC": ("WBTC", "USDC", 3000)}
+OG_SYM = {"ETH": "ETHUSDT", "BTC": "BTCUSDT"}
+
+
+def og_observe_data(ago):
+    """calldata of UniswapV3Pool.observe(uint32[] secondsAgos)."""
+    return sel("observe") + enc_u(32) + enc_u(len(ago)) + b"".join(enc_u(a) for a in ago)
+
+
+def og_decode_tc(rb):
+    """observe() return -> tickCumulatives (int56, signed)."""
+    o = word(rb, 0)
+    n = word(rb, o // 32)
+    out = []
+    for i in range(n):
+        v = word(rb, o // 32 + 1 + i)
+        if v >= 1 << 255:
+            v -= 1 << 256
+        out.append(v)
+    return out
+
+
+def og_pool_twap(key, tc_old, tc_new, w=OG_W):
+    """R38 pool_twap: floor mean tick over w seconds -> asset price in quote units."""
+    _, a0 = OG_POOLS[key]
+    mt = (tc_new - tc_old) // w
+    sign = 1 if a0 else -1
+    return math.exp(sign * mt * math.log(1.0001)) * 10 ** (OG_DEC[key[0]] - OG_DEC[key[1]])
+
+
+def og_median(prices):
+    """Median of the surviving route prices (numpy nanmedian convention: mean of the two middle values)."""
+    v = sorted(p for p in prices if p is not None and p == p)
+    if not v:
+        return None, 0
+    n = len(v)
+    return (v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2.0), n
+
+
+def og_gate(med, legacy, st, t):
+    """One step of R38 gated() at time t (s). st: {"anchor", "at"} or None. -> (served, fired, source, new_state)."""
+    anchor = st.get("anchor") if st else None
+    at = st.get("at") if st else None
+    if med is None:
+        return legacy, False, ("legacy" if legacy is not None else "none"), st
+    within = anchor is None or abs(med - anchor) / min(med, anchor) <= OG_MAXDEV
+    if within:
+        served, fired, src = med, False, "median"
+    else:
+        served, fired, src = legacy, True, ("legacy" if legacy is not None else "none")
+    if anchor is None:
+        new = {"anchor": med, "at": t}
+    elif t - at >= OG_ANCHOR_STEP_S:
+        a2 = med if within else (anchor * (1 + OG_MAXDEV) if med > anchor else anchor * (1 - OG_MAXDEV))
+        new = {"anchor": a2, "at": t}
+    else:
+        new = st
+    return served, fired, src, new
+
+
+def og_iii_spot(m1, m):
+    """D14/D13 input III at minute boundary m (1 h geometric TWAP of the 60 1 m closes closing in (m - 3600, m]) and
+    the Binance 1 m close at m. -> (iii, spot), None where missing."""
+    closes = [m1.get((m - OG_W + 60 * j) * 1000) for j in range(60)]
+    g = TW.minute_G(TW.ln_closes(closes))[-1]
+    return (None if g is None else TW.round10(g)), closes[-1]
+
+
+def make_oracle_rpc(deadline):
+    return Rpc("ethereum", CHAINS["ethereum"], deadline=deadline, tries=6, timeout=30)
+
+
+def oracle_gap(state, now, rpc=None, http_get=None):
+    """The oracle-gap record for this run. Never raises. -> (public dict, new private state)."""
+    out = {"status": "ok"}
+    state = dict(state or {})
+    try:
+        rpc = rpc or make_oracle_rpc(time.time() + OG_BUDGET_S)
+        h = rpc.call("eth_getBlockByNumber", ["latest", False])
+        bn = int(h["number"], 16) - CHAINS["ethereum"]["confirm"]
+        bts = int(rpc.call("eth_getBlockByNumber", [hex(bn), False])["timestamp"], 16)
+        m = (bts // 60) * 60 - 60          # the last 1 m Binance close surely published before the block
+        ago = [bts - m + OG_W, bts - m]
+        keys = sorted(OG_POOLS)
+        res = rpc.aggregate3([(OG_POOLS[k][0], og_observe_data(ago)) for k in keys], bn)
+        tw = {}
+        for k, (ok, rb) in zip(keys, res):
+            try:
+                tc = og_decode_tc(rb) if ok else None
+                tw[k] = og_pool_twap(k, tc[0], tc[1]) if tc and len(tc) == 2 else None
+            except (TypeError, IndexError, OverflowError, ValueError):
+                tw[k] = None
+        out.update({"t": iso(m), "lagS": bts - m, "pools": len(keys), "poolsOk": sum(v is not None for v in tw.values())})
+    except Exception as e:  # noqa: BLE001  -- this arm never fails the run
+        why = f"stale {str(e)[:60]}" if isinstance(e, Stale) else f"error {type(e).__name__}"
+        return {"status": "error", "why": ADDR_RE.sub("0x?", why)}, state
+    assets = {}
+    for asset in ("ETH", "BTC"):
+        rp = []
+        for r in OG_ROUTES[asset]:
+            v = 1.0
+            for hop in r:
+                v = None if (v is None or tw.get(hop) is None) else v * tw[hop]
+            rp.append(v)
+        med, n = og_median(rp)
+        served, fired, src, st = og_gate(med, tw.get(OG_LEGACY[asset]), state.get(asset), m)
+        if st is not None:
+            state[asset] = st
+        iii = spot = None
+        try:
+            m1 = fetch_m1(OG_SYM[asset], (m - OG_W - 120) * 1000, (m + 120) * 1000, http_get=http_get)
+            iii, spot = og_iii_spot(m1, m)
+        except Exception as e:  # noqa: BLE001
+            out.setdefault("iiiFailed", []).append(f"{asset} {type(e).__name__}")
+        r10 = lambda x: None if x is None else TW.round10(x)  # noqa: E731
+        assets[asset] = {"oracle_gated": r10(served), "route_median": r10(med), "n_routes": n, "iii": iii,
+                         "spot": spot, "gap_pct": (None if served is None or iii is None else round(served / iii - 1.0, 8)),
+                         "gate_fired": fired, "served": src}
+    out["assets"] = assets
+    return out, state
+
+
+# =====================================================================================================================
 # episode state machine (pure; unit-tested)
 # =====================================================================================================================
 def step_episode(st, c, d, touched, acted, liquidated, closed, line=None, spot_through=False):
@@ -1180,7 +1338,7 @@ def empty_counts():
     return {"n": [0] * len(BANDS), "debt": [0.0] * len(BANDS)}
 
 
-def run_hour(a, log=print, now=None, http_get=None, rpc_factory=None, chains=None):
+def run_hour(a, log=print, now=None, http_get=None, rpc_factory=None, chains=None, oracle_rpc=None):
     """One hourly run. Writes the private state and the public-safe counts under a.out."""
     now = int(now or time.time())
     c = now - now % HOUR
@@ -1211,6 +1369,12 @@ def run_hour(a, log=print, now=None, http_get=None, rpc_factory=None, chains=Non
     with ThreadPoolExecutor(len(chains)) as ex:
         for ch, r in ex.map(one, chains):
             res[ch] = r
+    # --- oracle-gap arm (record only; isolated: it never fails the run and feeds nothing below) ---------------------
+    og_p = os.path.join(root, ROOT_REL, PRIV_SUB, "oracle-gap.json")
+    try:
+        og, og_state = oracle_gap(read_json(og_p, {}) or {}, now, rpc=oracle_rpc, http_get=http_get)
+    except Exception as e:  # noqa: BLE001
+        og, og_state = {"status": "error", "why": f"error {type(e).__name__}"}, None
     # --- input III -----------------------------------------------------------------------------------------------
     syms = set()
     for ch in chains:
@@ -1383,6 +1547,7 @@ def run_hour(a, log=print, now=None, http_get=None, rpc_factory=None, chains=Non
         states[ch] = st_new
         r["_pos"] = P
     pub["iii"] = {"symbols": sorted(syms), "failed": sorted(iii_fail)}
+    pub["oracleGap"] = og
     # --- snapshot forward log (R28 resume condition (a)) ---------------------------------------------------------
     snap = update_snapshots(snap, res, iii, iii_touched, c)
     daily_new = None
@@ -1432,6 +1597,8 @@ def run_hour(a, log=print, now=None, http_get=None, rpc_factory=None, chains=Non
         mp = os.path.join(root, ROOT_REL, PRIV_SUB, "events", time.strftime("%Y-%m", time.gmtime(c)) + ".jsonl")
         for e in priv_events:
             append_line(mp, e)
+    if og_state:
+        write_atomic(og_p, dumps(og_state))
     append_line(os.path.join(pdir, "hourly", today + ".jsonl"), pub)
     append_line(runs_p, {"c": c, "at": now, "chains": {ch: res[ch]["status"] for ch in chains}})
     # --- public log: counts only -------------------------------------------------------------------------------------
@@ -1450,6 +1617,12 @@ def run_hour(a, log=print, now=None, http_get=None, rpc_factory=None, chains=Non
         else:
             log(f"d14 chain {ch}: {L_['status']}")
     log(f"d14 iii: {len(syms)} symbols, {len(iii_fail)} failed")
+    if og.get("status") == "ok":
+        log("d14 oracle-gap: ok, " + ", ".join(
+            f"{k} gap {'n/a' if v['gap_pct'] is None else format(100 * v['gap_pct'], '+.3f') + '%'} "
+            f"routes {v['n_routes']}{' GATE' if v['gate_fired'] else ''}" for k, v in og["assets"].items()))
+    else:
+        log(f"d14 oracle-gap: {og.get('status')}")
     if daily_new:
         log(f"d14 daily: snapshot {today} written, {len(daily_new['members'])} members")
     return 0

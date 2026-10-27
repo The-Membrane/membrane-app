@@ -23,6 +23,21 @@ HOUR = 3600
 FIX = os.path.join(HERE, "d14_fixture.json")
 
 
+class _NoNetOracleRpc:
+    """Default oracle-gap RPC in tests: every call fails (no network; also exercises failure isolation)."""
+
+    def call(self, method, params, urls=None):
+        raise D.Stale(f"{method}: URLError")
+
+    def aggregate3(self, calls, block):
+        raise D.Stale("aggregate3: URLError")
+
+
+@pytest.fixture(autouse=True)
+def _no_network_oracle(monkeypatch):
+    monkeypatch.setattr(D, "make_oracle_rpc", lambda deadline: _NoNetOracleRpc())
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # constants and selectors
 # ---------------------------------------------------------------------------------------------------------------------
@@ -558,3 +573,244 @@ def test_incomplete_read_rotates_instead_of_failing_the_chain():
     rpc = D.Rpc("polygon", D.CHAINS["polygon"], post=post, tries=2, sleep=lambda s: None)
     assert rpc.call("eth_call", [{"to": D.MULTICALL3, "data": "0x00"}, "latest"]) == "0x"
     assert len(seen) == 2
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# oracle-gap arm (record only)
+# ---------------------------------------------------------------------------------------------------------------------
+# Reference copies of R38 build_long.py (membrane-datasets history-forecasts/r38/code, sha256 67d35516...): pool_twap
+# for one pool series and gated(), verbatim apart from the globals they read.
+def _r38_pool_twap(c, h, asset_is_token0, dec_a, dec_q, W):
+    N = len(c)
+    out = np.full(N, np.nan)
+    k = W // 60
+    ok = np.zeros(N, dtype=bool)
+    ok[k:] = h[k:] & h[:-k]
+    delta = np.zeros(N, dtype=np.int64)
+    delta[k:] = c[k:] - c[:-k]
+    mt = np.floor_divide(delta, W)
+    sign = 1 if asset_is_token0 else -1
+    out[ok] = np.exp(sign * mt[ok] * math.log(1.0001)) * 10 ** (dec_a - dec_q)
+    return out
+
+
+def _r38_gated(med, legacy, interval=3600, MAXDEV=0.05):
+    n = len(med)
+    served = np.full(n, np.nan)
+    anchor, at = None, None
+    step = interval // 60
+    for i in range(n):
+        m = med[i]
+        if m != m:
+            if legacy[i] == legacy[i]:
+                served[i] = legacy[i]
+            continue
+        if anchor is None or abs(m - anchor) / min(m, anchor) <= MAXDEV:
+            served[i] = m
+        elif legacy[i] == legacy[i]:
+            served[i] = legacy[i]
+        if anchor is None:
+            anchor, at = m, i
+        elif i - at >= step:
+            if abs(m - anchor) / min(m, anchor) <= MAXDEV:
+                anchor = m
+            else:
+                anchor = anchor * (1 + MAXDEV) if m > anchor else anchor * (1 - MAXDEV)
+            at = i
+    return served
+
+
+def test_og_constants_match_r38_routes():
+    hops = {h for rs in D.OG_ROUTES.values() for r in rs for h in r}
+    assert hops == set(D.OG_POOLS)
+    assert D.OG_LEGACY == {"ETH": ("WETH", "USDC", 500), "BTC": ("WBTC", "USDC", 3000)}
+    assert len(D.OG_ROUTES["ETH"]) == 5 and len(D.OG_ROUTES["BTC"]) == 5
+    assert D.OG_MAXDEV == 0.05 and D.OG_W == 3600
+    assert all(re.fullmatch(r"0x[0-9a-f]{40}", p) for p, _ in D.OG_POOLS.values())
+
+
+# fixture tick cumulatives (minute grid) -- includes negative ticks and deltas not divisible by 3600 (floor rounding)
+_TC_FIX = {("WETH", "USDC", 500): (196_000, 7), ("WETH", "USDT", 3000): (-196_100, -13),
+           ("WBTC", "USDC", 3000): (66_300, 11), ("WBTC", "WETH", 500): (66_400 - 196_000 + 120, -5),
+           ("WETH", "DAI", 3000): (-80_500, 3), ("WBTC", "USDT", 3000): (-66_350, 1)}
+
+
+def test_og_pool_twap_matches_r38_on_fixture():
+    rnd = random.Random(7)
+    for key, (tick, drift) in _TC_FIX.items():
+        N = 200
+        ticks = [tick + drift * j + rnd.randint(-40, 40) for j in range(N)]
+        c = np.zeros(N, dtype=np.int64)
+        for j in range(1, N):
+            c[j] = c[j - 1] + 60 * ticks[j] + rnd.randint(-59, 59)
+        h = np.ones(N, dtype=bool)
+        _, a0 = D.OG_POOLS[key]
+        ref = _r38_pool_twap(c, h, a0, D.OG_DEC[key[0]], D.OG_DEC[key[1]], 3600)
+        for j in range(60, N):
+            got = D.og_pool_twap(key, int(c[j - 60]), int(c[j]))
+            # same floor mean tick (exact) and price (math.exp vs numpy exp differ by at most an ulp or two)
+            assert (int(c[j]) - int(c[j - 60])) // 3600 == int(np.floor_divide(c[j] - c[j - 60], 3600))
+            assert got == pytest.approx(ref[j], rel=1e-14), (key, j)
+    # a USDC/WETH tick near 196k is ETH near 3,078 USD
+    assert D.og_pool_twap(("WETH", "USDC", 500), 0, 196_000 * 3600) == pytest.approx(3077.89, abs=0.01)
+
+
+def test_og_observe_encoding_and_decoding():
+    data = D.og_observe_data([3660, 60])
+    assert data[:4].hex() == "883bdbfd" and len(data) == 4 + 32 * 4
+    vals = [-123_456_789_012, 987_654_321]
+    enc = D.enc_u(64) + D.enc_u(160) + D.enc_u(2) + b"".join(D.enc_u(v % (1 << 256)) for v in vals) \
+        + D.enc_u(2) + D.enc_u(1) + D.enc_u(2)
+    assert D.og_decode_tc(enc) == vals
+
+
+def test_og_median_and_gate_match_r38_gated():
+    assert D.og_median([3.0, None, 1.0, 2.0, float("nan")]) == (2.0, 3)
+    assert D.og_median([4.0, 1.0, 2.0, 3.0]) == (2.5, 4)
+    assert D.og_median([None, None]) == (None, 0)
+    rnd = random.Random(3)
+    H = 300
+    med_h, leg_h = [], []
+    p = 2000.0
+    for i in range(H):
+        p *= math.exp(rnd.gauss(0, 0.01))
+        jump = 1.12 if 100 <= i < 104 else (0.9 if 200 <= i < 201 else 1.0)
+        med_h.append(None if rnd.random() < 0.05 else p * jump)
+        leg_h.append(None if rnd.random() < 0.05 else p * (1 + rnd.gauss(0, 0.001)))
+    # R38 runs on a minute grid; with the median present only at hour points its anchor moves at those points
+    med = np.full(H * 60, np.nan)
+    leg = np.full(H * 60, np.nan)
+    for i in range(H):
+        med[i * 60] = np.nan if med_h[i] is None else med_h[i]
+        leg[i * 60] = np.nan if leg_h[i] is None else leg_h[i]
+    ref = _r38_gated(med, leg)
+    st = None
+    fired_n = 0
+    for i in range(H):
+        served, fired, src, st = D.og_gate(med_h[i], leg_h[i], st, i * HOUR)
+        r = ref[i * 60]
+        assert (served is None and r != r) or served == r, i
+        fired_n += fired
+        if fired:
+            assert src in ("legacy", "none") and med_h[i] is not None
+    assert fired_n >= 2      # the 12 % jump hours fire the gate
+
+
+def _fake_oracle_rpc(bts, ticks, fail=(), revert=()):
+    """Ethereum stub: block headers and Multicall3 observe() answers from constant ticks per pool."""
+    by_pool = {D.OG_POOLS[k][0]: (k, t) for k, t in ticks.items()}
+
+    class R:
+        calls = []
+
+        def call(self, method, params, urls=None):
+            if method in fail:
+                raise D.Stale(f"{method}: HTTPError 503")
+            assert method == "eth_getBlockByNumber"
+            if params[0] == "latest":
+                return {"number": hex(1000), "timestamp": hex(bts + 36)}
+            assert int(params[0], 16) == 1000 - D.CHAINS["ethereum"]["confirm"]
+            return {"number": params[0], "timestamp": hex(bts)}
+
+        def aggregate3(self, calls, block):
+            if "aggregate3" in fail:
+                raise D.Stale("aggregate3: too big")
+            out = []
+            for tgt, data in calls:
+                k, t = by_pool[tgt]
+                n = int.from_bytes(data[36:68], "big")
+                ago = [int.from_bytes(data[68 + 32 * i:100 + 32 * i], "big") for i in range(n)]
+                if k in revert:
+                    out.append((False, b"OLD"))
+                    continue
+                tcs = [t * (bts - a) for a in ago]
+                enc = D.enc_u(64) + D.enc_u(64 + 32 + 32 * n) + D.enc_u(n) \
+                    + b"".join(D.enc_u(v % (1 << 256)) for v in tcs) + D.enc_u(n) + b"".join(D.enc_u(1) for _ in ago)
+                out.append((True, enc))
+            R.calls.append((block, ago))
+            return out
+    return R()
+
+
+_TICKS = {("WETH", "USDC", 500): 196_000, ("WETH", "USDC", 3000): 196_010, ("WETH", "USDT", 500): -195_990,
+          ("WETH", "USDT", 3000): -196_020, ("WETH", "DAI", 3000): 196_005,
+          ("WBTC", "USDC", 500): 66_400, ("WBTC", "USDC", 3000): 66_390, ("WBTC", "USDT", 3000): 66_410,
+          ("WBTC", "WETH", 500): 66_400 - 196_000 - 92_103, ("WBTC", "WETH", 3000): 66_395 - 196_000 - 92_103}
+
+
+def test_oracle_gap_end_to_end_fake_rpc():
+    bts = 1_793_000_000 - 1_793_000_000 % HOUR + 600 + 17
+    m = (bts // 60) * 60 - 60
+    rpc = _fake_oracle_rpc(bts, _TICKS)
+    og, st = D.oracle_gap({}, bts + 40, rpc=rpc, http_get=_fake_klines(3000.0, bts + 40))
+    assert og["status"] == "ok" and og["t"] == D.iso(m) and og["lagS"] == bts - m and og["poolsOk"] == 10
+    block, ago = rpc.calls[0]
+    assert block == 1000 - D.CHAINS["ethereum"]["confirm"] and ago == [bts - m + 3600, bts - m]
+    eth = og["assets"]["ETH"]
+    routes = [D.og_pool_twap(r[0], 0, _TICKS[r[0]] * 3600) for r in D.OG_ROUTES["ETH"]]
+    assert eth["n_routes"] == 5 and eth["route_median"] == TW.round10(sorted(routes)[2])
+    assert eth["oracle_gated"] == eth["route_median"] and eth["gate_fired"] is False and eth["served"] == "median"
+    assert eth["iii"] == 3000.0 and eth["spot"] == 3000.0
+    assert eth["gap_pct"] == round(TW.round10(sorted(routes)[2]) / 3000.0 - 1, 8)
+    btc = og["assets"]["BTC"]
+    assert btc["n_routes"] == 5 and 1e4 < btc["route_median"] < 1e6
+    assert st["ETH"]["at"] == m and st["ETH"]["anchor"] == sorted(routes)[2]
+    # next hour: an 11 % jump on every ETH route fires the gate and serves the legacy pool (which jumped too)
+    t2 = {k: (v + (1044 if k[0] == "WETH" and k[1] != "WETH" else 0) * (1 if D.OG_POOLS[k][1] else -1)
+              if k[0] == "WETH" else v) for k, v in _TICKS.items()}
+    og2, st2 = D.oracle_gap(st, bts + HOUR + 40, rpc=_fake_oracle_rpc(bts + HOUR, t2),
+                            http_get=_fake_klines(3000.0, bts + HOUR + 40))
+    e2 = og2["assets"]["ETH"]
+    assert e2["gate_fired"] is True and e2["served"] == "legacy" and e2["oracle_gated"] != e2["route_median"]
+    assert st2["ETH"]["anchor"] == pytest.approx(st["ETH"]["anchor"] * 1.05)
+    assert og2["assets"]["BTC"]["gate_fired"] is False
+
+
+def test_oracle_gap_partial_and_total_failure():
+    bts = 1_793_000_000 - 1_793_000_000 % HOUR + 900
+    og, st = D.oracle_gap({}, bts + 40, rpc=_fake_oracle_rpc(bts, _TICKS, revert={("WETH", "USDT", 3000)}),
+                          http_get=_fake_klines(3000.0, bts + 40))
+    assert og["status"] == "ok" and og["poolsOk"] == 9 and og["assets"]["ETH"]["n_routes"] == 4
+    # the legacy ETH/USDC 0.05 % pool missing removes one ETH route and the two BTC routes that hop through it
+    og, _ = D.oracle_gap({}, bts + 40, rpc=_fake_oracle_rpc(bts, _TICKS, revert={("WETH", "USDC", 500)}),
+                         http_get=_fake_klines(3000.0, bts + 40))
+    assert og["assets"]["ETH"]["n_routes"] == 4 and og["assets"]["BTC"]["n_routes"] == 3
+    for f in ("eth_getBlockByNumber", "aggregate3"):
+        og, st2 = D.oracle_gap({"ETH": {"anchor": 1.0, "at": 0}}, bts, rpc=_fake_oracle_rpc(bts, _TICKS, fail=(f,)))
+        assert og["status"] == "error" and "assets" not in og and st2 == {"ETH": {"anchor": 1.0, "at": 0}}
+        assert not re.search(r"0x[0-9a-fA-F]{40}", json.dumps(og))
+    # Binance down: oracle numbers stay, III and gap are null
+    def bad_get(url):
+        raise OSError("down")
+    og, _ = D.oracle_gap({}, bts + 40, rpc=_fake_oracle_rpc(bts, _TICKS), http_get=bad_get)
+    assert og["status"] == "ok" and og["assets"]["ETH"]["iii"] is None and og["assets"]["ETH"]["gap_pct"] is None
+    assert og["assets"]["ETH"]["route_median"] is not None and len(og["iiiFailed"]) == 2
+
+
+def test_run_hour_writes_oracle_gap_and_isolates_failure(tmp_path, monkeypatch):
+    root = str(tmp_path)
+    t0 = 1_793_000_000 - 1_793_000_000 % 86400 + 5 * HOUR
+    monkeypatch.setattr(D, "chain_pass", _fake_chain(10, lambda i: [0.02, 0.05, 0.2][i % 3]))
+    logs = []
+    # hour 1: the oracle RPC fails (autouse stub) -> the run and every chain are unaffected
+    assert D.run_hour(Args(root), log=logs.append, now=t0 + 600, http_get=_fake_klines(3000.0, t0 + 600)) == 0
+    # hour 2: the oracle RPC answers
+    now = t0 + HOUR + 600
+    assert D.run_hour(Args(root), log=logs.append, now=now, http_get=_fake_klines(3000.0, now),
+                      oracle_rpc=_fake_oracle_rpc(now - 30, _TICKS)) == 0
+    lines = [json.loads(x) for x in open(os.path.join(D.pub_dir(root), "hourly", D.day_of(t0) + ".jsonl"))]
+    assert lines[0]["oracleGap"]["status"] == "error" and lines[1]["oracleGap"]["status"] == "ok"
+    for L in lines:
+        assert L["chains"]["ethereum"]["status"] == "ok" and L["chains"]["bnb"]["status"] == "stale"
+    # the arm changes no alert count: the chain lines are identical to a run without it
+    assert lines[0]["chains"]["ethereum"]["bands"] == lines[1]["chains"]["ethereum"]["bands"]
+    a = lines[1]["oracleGap"]["assets"]
+    assert set(a) == {"ETH", "BTC"} and set(a["ETH"]) == {"oracle_gated", "route_median", "n_routes", "iii", "spot",
+                                                          "gap_pct", "gate_fired", "served"}
+    assert D.read_json(os.path.join(root, D.ROOT_REL, D.PRIV_SUB, "oracle-gap.json"))["ETH"]["anchor"] > 0
+    assert D.scan_public_for_addresses(root) == 0
+    pub = _public_text(root)
+    assert not any(p in pub for p, _ in D.OG_POOLS.values())
+    assert any(x.startswith("d14 oracle-gap: ok, ETH gap") for x in logs)
+    assert any(x.startswith("d14 oracle-gap: error") for x in logs)
+    assert not any(re.search(r"0x[0-9a-fA-F]{40}|[0-9a-f]{20}", ln) for ln in logs)

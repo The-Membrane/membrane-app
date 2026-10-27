@@ -87,7 +87,8 @@ const { variant } = resolveLandingVariant({
 }
 
 /**
- * The landing page is the seniority argument.
+ * The landing page sells the borrower tool suite, then makes the seniority argument
+ * (owner direction 2026-10-27, board Q26-S1: the whole suite, not only the delay).
  *
  * A stranger arriving with no wallet gets a fully populated page: where a borrower
  * sits in the loss waterfall, what that order buys them, and the 2,350 real Aave
@@ -116,8 +117,8 @@ const IndexPage = ({
             <PageSeo
                 seoClass="indexable"
                 path={`/${DEFAULT_CHAIN}`}
-                title="Membrane: Borrowers are senior here"
-                description="Four layers take a loss before it reaches a Membrane borrower: the reserve, MBRN staked under the asset, junior lenders, then senior lenders. The bad-debt cascade never writes to a position, and redemption is served by curator vaults. Every claim cites the contract line behind it."
+                title="Membrane: Borrow against your crypto with every instrument on"
+                description="A health bar that never leaves the screen, an alert before your liquidation line, a timer at the line, and a replay of any position through 10 Oct 2025. Every claim shows what it rests on."
             />
             {structuredData && (
                 <Head>

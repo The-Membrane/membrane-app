@@ -1,8 +1,11 @@
-// THE SENIORITY LANDING.
+// THE LANDING: the borrower's instrument panel, then the seniority argument.
 //
-// One argument, told in order: where a borrower sits in the loss waterfall, what that
-// order buys them, why an incumbent will leave it alone, what the debt earns, and what
-// the order did to 2,350 real liquidations.
+// Owner direction 2026-10-27 (board Q26-S1): sell the whole borrower tool suite, not only
+// the liquidation delay. So the page opens on the suite (hero + Toolkit), lets the reader
+// run the replay on their own position, and then tells the seniority argument in order:
+// where a borrower sits in the loss waterfall, what that order buys them, why an
+// incumbent will leave it alone, what the debt earns, and what the order did to 2,350
+// real liquidations.
 //
 // Every factual sentence on this surface comes from components/Seniority/facts.ts,
 // which carries a contract citation for each one. Nothing is written here.
@@ -24,6 +27,8 @@ import Close from './Close'
 import Consequences from './Consequences'
 import Hero from './Hero'
 import Mimicry from './Mimicry'
+import Replay from './Replay'
+import Toolkit from './Toolkit'
 import Waterfall from './Waterfall'
 
 export interface SeniorityLandingProps {
@@ -39,12 +44,14 @@ export const SeniorityLanding: React.FC<SeniorityLandingProps> = ({ initialDoc, 
   <Container maxW="1200px" py={SPACING.xl} px={SPACING_PATTERNS.pagePadding}>
     <VStack align="stretch" spacing={SPACING['2xl']}>
       <Hero variant={variant} />
-      <Waterfall num="01" />
-      <Consequences num="02" />
-      <Mimicry num="03" />
-      <CarryFlagship num="04" />
-      <CdtLine num="05" />
-      <Close num="06" initialDoc={initialDoc} />
+      <Toolkit num="01" />
+      <Replay num="02" variant={variant} />
+      <Waterfall num="03" />
+      <Consequences num="04" />
+      <Mimicry num="05" />
+      <CarryFlagship num="06" />
+      <CdtLine num="07" />
+      <Close num="08" initialDoc={initialDoc} />
     </VStack>
   </Container>
 )

@@ -11,13 +11,19 @@
 
 import { fmtHf, fmtPrice, fmtUsd } from './format'
 import { repayToReach, topUpToReach, type PositionMetrics } from './metrics'
-import type { Alert, PositionSnapshot, Severity } from './types'
-import { levelOf } from './types'
+import type { Alert, BorrowerStep, PositionSnapshot, Severity } from './types'
+import { levelOf, stepRank } from './types'
 
 /** Telegram's hard limit for one message. */
 export const TELEGRAM_MAX_CHARS = 4096
 
 const TAG: Record<Severity, string> = { watch: 'WATCH', warn: 'WARN', critical: 'CRITICAL' }
+
+/** Borrower steps above the ladder carry their own tag (atRisk.ts). */
+const STEP_TAG: Partial<Record<BorrowerStep, string>> = {
+  'at-risk': 'AT RISK',
+  'act-now': 'ACT NOW',
+}
 
 const shortId = (id: string) =>
   /^0x[0-9a-fA-F]{40}$/.test(id) ? `${id.slice(0, 6)}…${id.slice(-4)}` : id
@@ -42,16 +48,20 @@ export function formatPositionAlert({
 }: FormatArgs): string | null {
   if (alerts.length === 0) return null
   const worsening = alerts.filter((a) => a.transition === 'fire' || a.transition === 'escalate')
-  const top = (worsening.length ? worsening : alerts).reduce((m, a) =>
-    levelOf(a.severity) > levelOf(m.severity) ? a : m,
-  )
+  // Rank by borrower step first (act now > at risk > critical …), then by severity.
+  const rank = (a: Alert) => (a.step ? stepRank(a.step) : levelOf(a.severity))
+  const top = (worsening.length ? worsening : alerts).reduce((m, a) => (rank(a) > rank(m) ? a : m))
   const allClear = worsening.length === 0
+  const tag = (top.step && STEP_TAG[top.step]) || TAG[top.severity]
   const head = allClear
     ? `[OK] ${snapshot.venue} · ${shortId(snapshot.id)}`
-    : `[${TAG[top.severity]}] ${snapshot.venue} · ${shortId(snapshot.id)}`
+    : `[${tag}] ${snapshot.venue} · ${shortId(snapshot.id)}`
 
   const lines: string[] = [head]
-  for (const a of alerts) lines.push('', a.title, a.detail)
+  for (const a of alerts) {
+    lines.push('', a.title, a.detail)
+    if (a.subtext) lines.push(a.subtext)
+  }
 
   // The HF alert's own title already states health factor; don't say it twice.
   const hfStated = alerts.some((a) => a.ruleId === 'health-factor')

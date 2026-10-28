@@ -50,12 +50,19 @@ export interface CollateralInput {
   liquidationThreshold: number
   oracleBasis?: OracleBasis
   peg?: PegRef
+  /**
+   * Held fixed by the at-risk distance (a USD stable or a USD PT). Absent: inferred from
+   * `peg` and the symbol (atRisk.ts isStableLeg).
+   */
+  stable?: boolean
 }
 
 export interface DebtInput {
   symbol: string
   amount: number
   priceUsd: number
+  /** Held fixed by the at-risk distance. Absent: inferred from the symbol. */
+  stable?: boolean
 }
 
 export interface PositionSnapshot {
@@ -148,8 +155,31 @@ export interface GovernanceChangeEvent {
   severity?: Severity
 }
 
+/**
+ * A started Membrane liquidation timer (on-chain LiquidationTimerStarted event). STUB: no
+ * chain reader fills this yet. When present, act now shows start, expiry and the price at
+ * which liquidation is immediate.
+ */
+export interface LiquidationTimer {
+  /** Epoch seconds the timer started. */
+  startedTs: number
+  /** Epoch seconds it expires (liquidation allowed). */
+  expiresTs: number
+  /** Oracle price of the dominant collateral at which liquidation is immediate. */
+  immediateLiquidationPriceUsd: number | null
+  /** Where it came from, e.g. 'LiquidationTimerStarted · block N'. */
+  source: string
+}
+
 /** Everything outside the position the rules may read. Every field is optional. */
 export interface MarketContext {
+  /** Membrane only: a started liquidation timer for this position (stub; see LiquidationTimer). */
+  liquidationTimer?: LiquidationTimer | null
+  /**
+   * Membrane only: the immediate-liquidation window from chain state, so X = P / (1 + window).
+   * Absent: MEMBRANE_LIQUIDATION.launchWindow. Stub: no reader yet.
+   */
+  liquidationWindow?: number | null
   /** USD price of each peg underlying, e.g. { ETH: 2650 }. */
   underlyingUsd?: Record<string, number>
   /** Trailing realised volatility per collateral symbol: stdev of 1h log returns. */
@@ -171,6 +201,22 @@ export interface MarketContext {
 
 export type TransitionKind = 'fire' | 'escalate' | 'ease' | 'clear' | 'suppressed'
 
+/**
+ * The borrower's escalation ladder, lowest first. watch / warn / critical are the
+ * health-factor lines (1.30 / 1.15 / 1.05); at-risk is the R27 3% rule; act-now is spot at
+ * or through the liquidation line. One message per step per episode (atRisk.ts).
+ */
+export type BorrowerStep = 'watch' | 'warn' | 'critical' | 'at-risk' | 'act-now'
+export const BORROWER_STEPS: readonly BorrowerStep[] = [
+  'watch',
+  'warn',
+  'critical',
+  'at-risk',
+  'act-now',
+]
+/** 1..5 in the order above. */
+export const stepRank = (s: BorrowerStep): number => BORROWER_STEPS.indexOf(s) + 1
+
 export interface Alert {
   positionId: string
   ruleId: string
@@ -190,4 +236,8 @@ export interface Alert {
   title: string
   detail: string
   evidence: Record<string, number | string | null>
+  /** Borrower escalation step, on health-factor, at-risk and act-now alerts. */
+  step?: BorrowerStep
+  /** A line shown under the alert (the at-risk past-data note). */
+  subtext?: string
 }

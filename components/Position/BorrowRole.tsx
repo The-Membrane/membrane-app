@@ -4,6 +4,8 @@ import { Box } from '@chakra-ui/react'
 import { SPACING } from '@/config/spacing'
 
 import { PositionHeader } from './PositionHeader'
+import { HealthBar } from './HealthBar'
+import { HEALTH_BAR_DEMO } from './fixtures'
 import { ThroughputHero } from './ThroughputHero'
 import { DeliveriesChart } from './DeliveriesChart'
 import { IntentCountdowns } from './IntentCountdowns'
@@ -15,6 +17,7 @@ import { NotShown } from './NotShown'
 /** The Borrow role: the full position view (sections 0–5 of the proto). */
 export const BorrowRole: React.FC = () => (
   <Box>
+    <HealthBar snapshot={HEALTH_BAR_DEMO} stamp="mock" />
     <PositionHeader />
     <Box mt={SPACING.base}>
       <ThroughputHero />

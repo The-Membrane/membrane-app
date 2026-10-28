@@ -16,6 +16,7 @@ import {
   TourStep,
   Venue,
 } from './types'
+import type { PositionSnapshot } from '@/lib/positionAlerts'
 
 /** Belt deliveries — arrive NET (the loan's interest is subtracted upstream). */
 export const FEED: Delivery[] = [
@@ -358,3 +359,16 @@ export const TOUR_STEPS: TourStep[] = [
     body: 'Call outcomes before they happen and the score measures you, not the position.',
   },
 ]
+
+/**
+ * The demo borrow position as an alert-engine snapshot, for the health bar. Same figures
+ * as PositionHeader: 1.000 BTC at $95,000 (oracle = spot in the mock), $26,980 of CDT
+ * debt, liquidated past 73% LTV. Synthetic id; no address.
+ */
+export const HEALTH_BAR_DEMO: PositionSnapshot = {
+  id: 'demo-borrow',
+  ts: Date.parse('2026-08-10T00:00:00Z') / 1000,
+  venue: 'Membrane',
+  collateral: [{ symbol: 'BTC', amount: 1, oraclePriceUsd: 95000, liquidationThreshold: 0.73 }],
+  debt: [{ symbol: 'CDT', amount: 26980, priceUsd: 1, stable: true }],
+}

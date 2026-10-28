@@ -1,29 +1,11 @@
 /**
  * Pure math/formatting helpers ported from public/proto/borrow.html's inline
- * <script> (lines ~222-231). Formulas are kept byte-for-byte equivalent to
- * the proto — this is the same zero-drift touch-probability model used by
- * the daily breach surface (public/data/breach-surface.json).
+ * <script>. The proto's 12-month breach-odds formula (zero-drift GBM touch
+ * probability) was removed (Q26 S1): it was never graded against realized
+ * outcomes, and the page must not show an uncalibrated probability. Its
+ * replacement is the scored Q26 touch forecast (O-borrow-1), once it exists.
  */
 import type { CollateralAsset, EmphasisKind } from './types'
-
-/** Abramowitz & Stegun standard-normal CDF approximation. */
-export function phi(z: number): number {
-  const t = 1 / (1 + 0.2316419 * Math.abs(z))
-  const d = 0.3989423 * Math.exp((-z * z) / 2)
-  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.33027))))
-  return z > 0 ? 1 - p : p
-}
-
-/**
- * P(price touches the liquidation line within 12 months), via the reflection
- * principle on zero-drift GBM, driven by realized 12m annualized vol.
- * @param ltv LTV as a 0-100 percent number (not a 0-1 fraction).
- */
-export function odds12(ltv: number, asset: Pick<CollateralAsset, 'M' | 'vol'>): number {
-  if (ltv <= 0) return 0
-  const z = Math.log((asset.M * 100) / ltv) / asset.vol
-  return Math.min(99, 200 * phi(-z))
-}
 
 /** '$' + rounded, thousands-separated — matches the proto's fmt(n). */
 export function fmt(n: number): string {
@@ -56,8 +38,6 @@ export interface BorrowMath {
   ltvCapPercent: number
   /** The slider's LTV, clamped to the cap — this is what all the math below uses. */
   effectiveLtv: number
-  /** 12-month breach odds, percent. */
-  odds: number
   /** Net carry: collateral yield minus the borrow rate, percent/yr. */
   net: number
 }
@@ -74,9 +54,8 @@ export function computeBorrowMath(
   const postValue = parseAmountInput(postAmountRaw)
   const pv = postValue * asset.px
   const mint = (pv * effectiveLtv) / 100
-  const odds = odds12(effectiveLtv, asset)
   const net = asset.yld - rate
-  return { postValue, pv, mint, ltvCapPercent, effectiveLtv, odds, net }
+  return { postValue, pv, mint, ltvCapPercent, effectiveLtv, net }
 }
 
 export interface EmphasisSegment {

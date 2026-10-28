@@ -9,6 +9,7 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 
 import { WalletStrip } from './WalletStrip'
 import { MintPanel } from './MintPanel'
+import { SizingPanel } from './SizingPanel'
 import { CureTimeline } from './CureTimeline'
 import { CarryCrossSell } from './CarryCrossSell'
 import { ConfirmSheet } from './ConfirmSheet'
@@ -45,11 +46,14 @@ export const Borrow: React.FC = () => {
         yld: overrides.yld[a.sym] ?? a.yld,
         vol: overrides.vol[a.sym] ?? a.vol,
       })),
-    [overrides]
+    [overrides],
   )
 
   const asset = assets[selectedIndex]
-  const math = useMemo(() => computeBorrowMath(asset, postAmount, ltv, RATE), [asset, postAmount, ltv])
+  const math = useMemo(
+    () => computeBorrowMath(asset, postAmount, ltv, RATE),
+    [asset, postAmount, ltv],
+  )
 
   const handleSelect = (index: number) => {
     setSelectedIndex(index)
@@ -66,14 +70,16 @@ export const Borrow: React.FC = () => {
       rows: [
         ['You post', `${fmtAmount(math.postValue, asset.dp)} ${asset.sym} (${fmt(math.pv)})`],
         ['You mint', `${fmt(math.mint)} CDT — to your wallet`],
-        ['Your LTV', `${math.effectiveLtv.toFixed(0)}% · cap ${math.ltvCapPercent}% · line ${(asset.M * 100).toFixed(0)}%`],
+        [
+          'Your LTV',
+          `${math.effectiveLtv.toFixed(0)}% · cap ${math.ltvCapPercent}% · line ${(asset.M * 100).toFixed(0)}%`,
+        ],
         [
           'Cost of the debt, today',
           `${RATE.toFixed(1)}% / yr${math.net < 0 ? '' : ` · collateral earns ${asset.yld.toFixed(1)}%`}`,
         ],
       ],
-      note:
-        'The CDT is minted to your wallet and deployed nowhere. Repay anytime to unlock the collateral. A breach opens an 8-hour cure window; liquidation repays to the cap, not to zero.',
+      note: 'The CDT is minted to your wallet and deployed nowhere. Repay anytime to unlock the collateral. A breach opens an 8-hour cure window; liquidation repays to the cap, not to zero.',
       cta: 'Sign & mint',
       done: 'CDT in wallet',
     })
@@ -94,18 +100,40 @@ export const Borrow: React.FC = () => {
         >
           Borrow
         </Text>
-        <Text as="h1" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} color={SEMANTIC_COLORS.textPrimary} mt={SPACING.xs}>
+        <Text
+          as="h1"
+          fontFamily={TYPOGRAPHY.fontDisplay}
+          fontSize={TYPOGRAPHY.h1}
+          color={SEMANTIC_COLORS.textPrimary}
+          mt={SPACING.xs}
+        >
           Mint CDT against what you already hold.
         </Text>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary} mt={SPACING.xs} lineHeight={1.7} maxW="72ch">
-          Plain debt. The CDT arrives in your wallet and does nothing until you spend or deploy it. The version
-          where the debt earns its own interest is Carry.
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+          color={SEMANTIC_COLORS.textTertiary}
+          mt={SPACING.xs}
+          lineHeight={1.7}
+          maxW="72ch"
+        >
+          Plain debt. The CDT arrives in your wallet and does nothing until you spend or deploy it.
+          The version where the debt earns its own interest is Carry.
         </Text>
       </Box>
 
-      <MockStamp label={liveLabels.length ? `live: ${liveLabels.join(' · ')}` : 'mock wallet'} display="block" mt={SPACING.sm} />
+      <MockStamp
+        label={liveLabels.length ? `live: ${liveLabels.join(' · ')}` : 'mock wallet'}
+        display="block"
+        mt={SPACING.sm}
+      />
 
-      <WalletStrip assets={assets} selectedIndex={selectedIndex} onSelect={handleSelect} onOracleClick={setOracleSym} />
+      <WalletStrip
+        assets={assets}
+        selectedIndex={selectedIndex}
+        onSelect={handleSelect}
+        onOracleClick={setOracleSym}
+      />
 
       <MintPanel
         asset={asset}
@@ -119,11 +147,26 @@ export const Borrow: React.FC = () => {
         onBorrow={handleBorrow}
       />
 
+      <SizingPanel
+        asset={asset}
+        ltvPercent={math.effectiveLtv}
+        debt={math.mint}
+        rate={RATE}
+        rateStamp="rate · page fixture, mock"
+        refPx={overrides.ref}
+        pxFetchedAt={overrides.pxFetchedAt}
+        pxLive={overrides.px[asset.sym] != null}
+      />
+
       <CureTimeline />
       <CarryCrossSell chainName={chainName} />
 
       <ConfirmSheet isOpen={isSheetOpen} onClose={() => setIsSheetOpen(false)} data={execData} />
-      <OracleCard entry={oracleSym ? ORACLE_CARDS[oracleSym] ?? null : null} isOpen={!!oracleSym} onClose={() => setOracleSym(null)} />
+      <OracleCard
+        entry={oracleSym ? (ORACLE_CARDS[oracleSym] ?? null) : null}
+        isOpen={!!oracleSym}
+        onClose={() => setOracleSym(null)}
+      />
     </Box>
   )
 }

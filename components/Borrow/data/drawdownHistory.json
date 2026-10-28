@@ -1,0 +1,66 @@
+{
+  "what": "HISTORY, not a forecast. Non-overlapping H-day windows since 2017-09-01 in which the Binance hourly low fell at least d below the prior hourly close (daily 00:00Z origins).",
+  "source": {
+    "venue": "Binance spot ETHUSDT / BTCUSDT 1h klines (data-api.binance.vision)",
+    "span": "Sep 2017 – Oct 2026",
+    "dataFetched": "2026-10-27 to 21:00Z",
+    "datasetsRepo": "membrane-datasets",
+    "datasetsCommit": "bba8c96ee23eef45b78f2ae2b39453731e6fe2ca",
+    "countsFile": "history-forecasts/s1-sizing/review/nonchain.py -> nonchain.json (field nonoverlap)",
+    "countsSha256": "ca3772cb13ce0ba32eedf1f95fd071296cc294e226a8fffe223b29f801124036",
+    "countsNote": "nonchain.py is not committed with its output and writes it to /dev/null (its exec of history_freq.py rebinds OUT); nonchain.json is its printed dicts parsed back into JSON, run on the Binance data fetched 2026-10-27",
+    "eventsFile": "history-forecasts/s1-sizing/review/out/history_freq.json (series spot|*.events)",
+    "eventsSha256": "81551bcd9c3c0bd75f72acc8df9c8030a6f6cf09330469742efc34c17e193e69",
+    "generator": "scripts/build-drawdown-history.mjs"
+  },
+  "levels": [15, 20, 25, 30, 40],
+  "horizons": [1, 7, 30],
+  "counts": {
+    "ETH": {
+      "1": { "15": 66, "20": 22, "25": 7, "30": 4, "40": 2 },
+      "7": { "15": 124, "20": 67, "25": 43, "30": 28, "40": 6 },
+      "30": { "15": 76, "20": 59, "25": 47, "30": 34, "40": 16 }
+    },
+    "BTC": {
+      "1": { "15": 31, "20": 10, "25": 4, "30": 2, "40": 1 },
+      "7": { "15": 74, "20": 40, "25": 27, "30": 10, "40": 3 },
+      "30": { "15": 59, "20": 42, "25": 30, "30": 16, "40": 8 }
+    }
+  },
+  "stress": {
+    "ETH": {
+      "1": [
+        { "id": "mar-2020", "label": "Mar 2020", "drop": 0.48, "dropPct": 48 },
+        { "id": "aug-2024", "label": "Aug 2024", "drop": 0.2149, "dropPct": 21 },
+        { "id": "oct-2025", "label": "Oct 2025", "drop": 0.2136, "dropPct": 21 }
+      ],
+      "7": [
+        { "id": "mar-2020", "label": "Mar 2020", "drop": 0.6488, "dropPct": 65 },
+        { "id": "aug-2024", "label": "Aug 2024", "drop": 0.3637, "dropPct": 36 },
+        { "id": "oct-2025", "label": "Oct 2025", "drop": 0.2667, "dropPct": 27 }
+      ],
+      "30": [
+        { "id": "mar-2020", "label": "Mar 2020", "drop": 0.6984, "dropPct": 70 },
+        { "id": "aug-2024", "label": "Aug 2024", "drop": 0.403, "dropPct": 40 },
+        { "id": "oct-2025", "label": "Oct 2025", "drop": 0.3474, "dropPct": 35 }
+      ]
+    },
+    "BTC": {
+      "1": [
+        { "id": "mar-2020", "label": "Mar 2020", "drop": 0.4442, "dropPct": 44 },
+        { "id": "aug-2024", "label": "Aug 2024", "drop": 0.1575, "dropPct": 16 },
+        { "id": "oct-2025", "label": "Oct 2025", "drop": 0.1616, "dropPct": 16 }
+      ],
+      "7": [
+        { "id": "mar-2020", "label": "Mar 2020", "drop": 0.5858, "dropPct": 59 },
+        { "id": "aug-2024", "label": "Aug 2024", "drop": 0.2663, "dropPct": 27 },
+        { "id": "oct-2025", "label": "Oct 2025", "drop": 0.1818, "dropPct": 18 }
+      ],
+      "30": [
+        { "id": "mar-2020", "label": "Mar 2020", "drop": 0.6344, "dropPct": 63 },
+        { "id": "aug-2024", "label": "Aug 2024", "drop": 0.2821, "dropPct": 28 },
+        { "id": "oct-2025", "label": "Oct 2025", "drop": 0.2063, "dropPct": 21 }
+      ]
+    }
+  }
+}

@@ -5,9 +5,13 @@ export interface LiveMarketOverrides {
   px: Partial<Record<string, number>>
   yld: Partial<Record<string, number>>
   vol: Partial<Record<string, number>>
+  /** Underlying spot (ETH, BTC), USD — for showing a wrapper's line as an underlying-price equivalent. */
+  ref: Partial<Record<string, number>>
+  /** When the price fetch resolved (Date.toISOString()), for the `source · fetched HH:MM` stamp. */
+  pxFetchedAt: string | null
 }
 
-const EMPTY: LiveMarketOverrides = { px: {}, yld: {}, vol: {} }
+const EMPTY: LiveMarketOverrides = { px: {}, yld: {}, vol: {}, ref: {}, pxFetchedAt: null }
 
 /**
  * Best-effort live-data overlay, ported from public/proto/borrow.html's last
@@ -30,7 +34,9 @@ export function useLiveMarketData(): { overrides: LiveMarketOverrides; liveLabel
       setLiveLabels((prev) => (prev.includes(label) ? prev : [...prev, label]))
     }
 
-    fetch('https://coins.llama.fi/prices/current/coingecko:wrapped-bitcoin,coingecko:wrapped-steth')
+    fetch(
+      'https://coins.llama.fi/prices/current/coingecko:wrapped-bitcoin,coingecko:wrapped-steth,coingecko:ethereum,coingecko:bitcoin',
+    )
       .then((r) => r.json())
       .then((j) => {
         const coins = j?.coins ?? {}
@@ -40,9 +46,20 @@ export function useLiveMarketData(): { overrides: LiveMarketOverrides; liveLabel
         const px: Partial<Record<string, number>> = {}
         if (wbtc?.price) px.WBTC = Math.round(wbtc.price)
         if (wsteth?.price) px.wstETH = Math.round(wsteth.price)
-        if (Object.keys(px).length) {
-          setOverrides((prev) => ({ ...prev, px: { ...prev.px, ...px } }))
-          addLabel('WBTC/wstETH prices (coins.llama.fi)')
+        const ref: Partial<Record<string, number>> = {}
+        const eth = coins['coingecko:ethereum']
+        const btc = coins['coingecko:bitcoin']
+        if (eth?.price) ref.ETH = eth.price
+        if (btc?.price) ref.BTC = btc.price
+        if (Object.keys(px).length || Object.keys(ref).length) {
+          const pxFetchedAt = new Date().toISOString()
+          setOverrides((prev) => ({
+            ...prev,
+            px: { ...prev.px, ...px },
+            ref: { ...prev.ref, ...ref },
+            pxFetchedAt,
+          }))
+          addLabel('WBTC/wstETH/ETH/BTC prices (coins.llama.fi)')
         }
       })
       .catch(() => {})
@@ -54,11 +71,13 @@ export function useLiveMarketData(): { overrides: LiveMarketOverrides; liveLabel
         const pools: Pool[] = j?.data ?? []
         const best = (symbol: string, projects?: string[]): number | null => {
           const matches = pools.filter(
-            (p) => p.symbol === symbol && (!projects?.length || (p.project && projects.indexOf(p.project) >= 0))
+            (p) =>
+              p.symbol === symbol &&
+              (!projects?.length || (p.project && projects.indexOf(p.project) >= 0)),
           )
           const top = matches.reduce<Pool | undefined>(
             (acc, p) => (!acc || (p.tvlUsd ?? 0) > (acc.tvlUsd ?? 0) ? p : acc),
-            undefined
+            undefined,
           )
           return top?.apy ?? null
         }
@@ -82,7 +101,9 @@ export function useLiveMarketData(): { overrides: LiveMarketOverrides; liveLabel
         if (!mounted.current) return
         if (typeof v === 'number' && v > 0 && v < 3) {
           setOverrides((prev) => ({ ...prev, vol: { ...prev.vol, WBTC: v } }))
-          addLabel(`WBTC vol ${(v * 100).toFixed(1)}% (breach-surface, ${String(j?.measured_at ?? '').slice(0, 10)})`)
+          addLabel(
+            `WBTC vol ${(v * 100).toFixed(1)}% (breach-surface, ${String(j?.measured_at ?? '').slice(0, 10)})`,
+          )
         }
       })
       .catch(() => {})

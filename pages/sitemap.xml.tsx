@@ -5,13 +5,14 @@ import { SIM_ROUTE } from '@/config/simulatorMode'
 
 /**
  * /sitemap.xml as an SSR route (SEO rule R4). Only lists pages that serve real
- * content — the root `/` is excluded because it currently redirects (R2), and a
- * sitemap entry that 3xx's is a soft error in Search Console.
+ * content: a sitemap entry that 3xx's is a soft error in Search Console. So the
+ * landing is listed as `/` (owner ruling 2026-10-28: middleware.ts serves it there
+ * with a 200), and `/${DEFAULT_CHAIN}`, which now 308s to `/`, is not listed.
  *
  * Keep in sync with the per-page <Seo> overrides and pages/robots.txt.tsx.
  */
 export const INDEXABLE_PATHS = [
-  `/${DEFAULT_CHAIN}`,
+  '/',
   `/${DEFAULT_CHAIN}/borrow`,
   `/${DEFAULT_CHAIN}/carry`,
   `/${DEFAULT_CHAIN}/home`,

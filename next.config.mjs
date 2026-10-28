@@ -29,10 +29,16 @@ const nextConfig = {
   // by middleware.ts (invalid chains 404 or 308 before these run).
   async redirects() {
     return [
-      { source: '/:chain/cityscape', destination: '/:chain', permanent: true },
-      { source: '/:chain/flywheel', destination: '/:chain', permanent: true },
-      { source: '/:chain/lockdrop', destination: '/:chain', permanent: true },
-      { source: '/:chain/manic', destination: '/:chain', permanent: true },
+      // Owner ruling 2026-10-28: '/' is the landing page (middleware.ts rewrites it
+      // to pages/[chain]/index.tsx). The landing's old URL, the chain root, moves to
+      // '/' with a permanent redirect so it has one URL and no duplicate (R2, R3).
+      // The only supported chain is ethereum (config/chains.ts).
+      { source: '/ethereum', destination: '/', permanent: true },
+      // These pointed at '/:chain'; they now go straight to '/' so no redirect chains.
+      { source: '/:chain/cityscape', destination: '/', permanent: true },
+      { source: '/:chain/flywheel', destination: '/', permanent: true },
+      { source: '/:chain/lockdrop', destination: '/', permanent: true },
+      { source: '/:chain/manic', destination: '/', permanent: true },
       { source: '/:chain/isolated/:marketAddress/:symbol*', destination: '/:chain/isolated', permanent: true },
     ]
   },

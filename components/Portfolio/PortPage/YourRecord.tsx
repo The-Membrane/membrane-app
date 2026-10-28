@@ -116,7 +116,7 @@ export const YourRecord: React.FC = () => {
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={SEMANTIC_COLORS.textSecondary} lineHeight={1.65}>
             No recorded events yet — your record starts with your first position. Until then the
             reps are in the{' '}
-            <NextLink href={`/${chainName}`} style={{ textDecoration: 'underline' }}>
+            <NextLink href="/" style={{ textDecoration: 'underline' }}>
               cohort archive
             </NextLink>{' '}
             and the{' '}

@@ -795,7 +795,7 @@ export const landingEvents = pgTable(
   {
     id: bigserial('id', { mode: 'number' }).primaryKey(),
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
-    variant: text('variant').notNull(), // 'a' | 'b' | 'c'
+    variant: text('variant').notNull(), // 'a' | 'b' | 'c' | 'd'
     kind: text('kind').notNull(), // 'run' | 'connect'
     chain: text('chain'),
     addressHash: text('address_hash'), // sha256 of the checksummed address, never the address

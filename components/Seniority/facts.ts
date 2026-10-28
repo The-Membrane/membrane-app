@@ -92,7 +92,7 @@ const BC_BRIDGE = {
  * Owner ruling 2026-09-15: run the test on the H1 alone. B and C carry the same
  * sub-line and the same CTA, so whichever wins, the win is the headline.
  */
-export const HERO_VARIANTS: Record<'a' | 'b' | 'c', HeroCopy> = {
+export const HERO_VARIANTS: Record<'a' | 'b' | 'c' | 'd', HeroCopy> = {
   a: {
     ...SHARED,
     headline: 'Borrowers are senior here.',
@@ -123,6 +123,24 @@ export const HERO_VARIANTS: Record<'a' | 'b' | 'c', HeroCopy> = {
     cta: BC_CTA,
     bridge: BC_BRIDGE,
     note: 'Owner ruling 2026-09-15. C is the positive form: it states what the protocol does rather than what the reader should stop doing, which is the house rule. It is also the variant every known crawler is pinned to, so the indexed H1 is one stable headline.',
+  },
+  d: {
+    ...SHARED,
+    headline: 'Borrow against your crypto with every instrument on.',
+    /**
+     * Names the suite in the order a borrower meets it, and marks sizing as next (Q26-S1
+     * approved it; it is not built). No window percentage and no "you have 8 hours"
+     * (Q26-R29 copy rule, Q26-alert-M2): the timer is sold with the evidence of how fast
+     * past positions fell through it, not as time in hand.
+     */
+    sub: 'A health bar that never leaves the screen. An alert before your liquidation line. A timer at the line, shown with how fast past positions fell through it. Sizing that says how much to borrow is next.',
+    cta: BC_CTA,
+    bridge: {
+      ...SHARED.bridge,
+      eyebrow: 'Try it on a real day',
+      line: 'The replay runs a position through the measured 10 Oct 2025 prices, on its own venue and under Membrane’s rules: the line can start an 8-hour timer, a lower price liquidates at once, and repayment stops at the cap. Across the 748 accounts the day’s feeds can price, that closed 36% less debt than Aave did. Aave’s own close factor repays partially too.',
+    },
+    note: 'Owner direction 2026-10-27 (board Q26-S1): sell the whole borrower suite, not only the delay. D pauses the B/C test (lib/landingVariant.ts HERO_TEST_RUNNING) and is served to readers and crawlers.',
   },
 }
 
@@ -410,4 +428,127 @@ export const CLOSE = {
     cite: 'public/data/oct10-2025/evidence.json (debt.priced, debt.allIncluded, meta.cureModel, meta.sensitivity, meta.anchor, meta.excluded.byReason, cohort rows) · scripts/build-evidence.ts · contracts/LiquidationEngine.sol:2246-2248 (floor = max(liqDebtMinimum, gas stipend × CHUNK_GAS_MULT))',
   },
 
+} as const
+
+// ---------------------------------------------------------------------------
+// THE INSTRUMENT PANEL — the borrower tool suite (owner direction 2026-10-27, Q26-S1)
+// ---------------------------------------------------------------------------
+/**
+ * Status of each tool, verified against this branch, never promoted by copy:
+ *  - live       works today for any address, no wallet.
+ *  - preview    built, runs on a demo position until Membrane launches (the Position page
+ *               sits in the nav's "Coming soon" menu).
+ *  - contracts  a protocol rule in the contracts; Membrane is not launched, so the replay
+ *               is where a stranger sees it act.
+ *  - coming     approved, not built. Shown as an empty frame, never with a number.
+ */
+export type ToolStatus = 'live' | 'preview' | 'contracts' | 'coming'
+
+export const TOOL_STATUS_LABEL: Record<ToolStatus, string> = {
+  live: 'Live',
+  preview: 'Preview',
+  contracts: 'In the contracts',
+  coming: 'Coming',
+}
+
+export interface Tool {
+  id: string
+  status: ToolStatus
+  name: string
+  /** One line of mechanism, mono. */
+  line: string
+  /** What the line rests on, in plain words. Rendered as the card's single stamp line. */
+  restsOn: string
+  /** Internal source (rulings, files). Never rendered as text; carried as a tooltip. */
+  cite: string
+  /** Chain-relative route; absent for a tool that is not built. */
+  href?: string
+  linkLabel?: string
+}
+
+export const TOOLKIT = {
+  eyebrow: 'The instrument panel',
+  title: 'Everything a borrower watches, on one panel.',
+  /** Shown on every demo object. The positions are fixtures, not the reader's. */
+  demoStamp: 'demo position · not yours',
+  /**
+   * The demo position the health bar, the alert and the price ladder share. Venue
+   * 'Membrane' so the act-now copy is the R29 Membrane explainer. 1 BTC at a $95,000 oracle
+   * price, 73% liquidation threshold, debt set so the oracle sits 2% above the liquidation
+   * price: inside the R27 3% at-risk line, so the real at-risk notice renders.
+   */
+  demo: {
+    oraclePriceUsd: 95000,
+    liquidationThreshold: 0.73,
+    distanceToLine: 0.02,
+  },
+  /** The two objects that lead the panel. */
+  health: {
+    id: 'health',
+    status: 'preview',
+    name: 'Health bar and alerts',
+    line: 'Always on screen. At risk when the 1-hour oracle price is within 3% of your liquidation price, checked hourly; act now when it reaches the line. No odds are shown.',
+    restsOn:
+      'Past-data line from simulated price touches on four Aave V3 chains, 2023–2026 (development data, not live).',
+    cite: 'Board Q26-R27 (3% rule), Q26-R30/R31/R33 (replications), Q26-R35 (lead) · lib/positionAlerts/config.ts AT_RISK_SUBTEXT_CONFIG',
+    href: '/position',
+    linkLabel: 'Open the position view',
+  } as Tool,
+  timer: {
+    id: 'timer',
+    status: 'contracts',
+    name: 'Liquidation timer',
+    line: 'Three prices, not a countdown. The alert fires first, the line can start a timer, and below the lowest price there is no timer at all.',
+    restsOn:
+      'Membrane’s liquidation engine rules. Lowest price = line ÷ (1 + window), with the window at its launch default until it is read from chain.',
+    cite: 'membrane-solidity LiquidationEngine (timer, band) · copy per board Q26-R29 and Q26-alert-M2 · lib/positionAlerts/config.ts ACT_NOW_EXPLAINER, MEMBRANE_LIQUIDATION',
+    href: '/simulator',
+    linkLabel: 'Replay a position',
+  } as Tool,
+  /** The index row under the two objects. */
+  index: [
+    {
+      id: 'replay',
+      status: 'live',
+      name: 'Replay',
+      line: 'Paste any Aave, Spark, Morpho or Compound address. It runs through the measured 10 Oct 2025 prices on its venue and on Membrane.',
+      restsOn: 'Measured 10 Oct 2025 price path; public mainnet reads, no wallet.',
+      cite: 'lib/position-sim (scenario, adapters) · pages/[chain]/simulator.tsx',
+      href: '/simulator',
+      linkLabel: 'Open the simulator',
+    },
+    {
+      id: 'practice',
+      status: 'live',
+      name: 'Practice',
+      line: 'Step through the recorded 10 Oct 2025 oracle prices. Choose at each stop, then compare what you kept with doing nothing.',
+      restsOn: 'Recorded 10 Oct 2025 oracle prices.',
+      cite: 'docs/PRACTICE_MODE_DESIGN.md · pages/[chain]/practice.tsx',
+      href: '/practice',
+      linkLabel: 'Practice the day',
+    },
+    {
+      id: 'evidence',
+      status: 'live',
+      name: 'Evidence',
+      line: 'Every account Aave liquidated on 10 Oct 2025, replayed through Membrane’s engine, including the accounts where Membrane does worse.',
+      restsOn: 'The measured census of 10 Oct 2025 liquidations.',
+      cite: 'public/data/oct10-2025/evidence.json · pages/[chain]/evidence.tsx',
+      href: '/evidence',
+      linkLabel: 'Read the census',
+    },
+    {
+      id: 'sizing',
+      status: 'coming',
+      name: 'Leverage sizing',
+      line: 'How much to borrow for the time you hold: odds where they are calibrated, history counts where they are not, and “borrow at most” only where a live monitor checks the odds.',
+      restsOn: 'Approved 27 Oct 2026. Not built: no figure is shown until it is.',
+      cite: 'Board ruling Q26-S1 items 1 and 3 · knowledge/q26-ui-confidence-map.md',
+    },
+  ] as Tool[],
+  /** The empty sizing frame: the shape of the tool, with no numbers in it. */
+  sizingFrame: {
+    horizons: ['6 h', '1 d', '7 d'],
+    columns: ['odds', 'borrow at most'],
+  },
 } as const

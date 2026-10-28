@@ -38,7 +38,8 @@ import useAppState from '@/persisted-state/useAppState';
 // game goes public before any executable page. Only the wallet-free surfaces sit at the top
 // level; everything that needs a live contract is grouped under the "Coming soon" menu.
 // Keeping all 13 flat overflowed the nav and pushed the whole document sideways by 252px.
-// The chain root ('/ethereum') is the seniority landing; the Evidence tool has its own
+// '/' is the borrower-suite landing (owner ruling 2026-10-28; '/ethereum' 308s there),
+// so the logo links to '/' directly rather than through a redirect. The Evidence tool has its own
 // URL at '/evidence' and the landing links to it, so each surface has one canonical URL.
 // The old marketing home moved to /home; it was not deleted.
 // Carry-first app (owner ruling 2026-09-06, docs/research/carry-userflows.md):
@@ -182,7 +183,7 @@ const HorizontalNav = () => {
                 where it collided with the absolutely-centred mobile logo. */}
             <Box
                 as={NextLink}
-                href={`/${chainName}`}
+                href="/"
                 aria-label="Membrane home"
                 display={{ base: 'none', lg: 'flex' }}
                 alignItems="center"
@@ -585,7 +586,7 @@ const HorizontalNav = () => {
             >
                 <Box
                     as={NextLink}
-                    href={`/${chainName}`}
+                    href="/"
                     aria-label="Membrane home"
                     display="block"
                     pointerEvents="auto"

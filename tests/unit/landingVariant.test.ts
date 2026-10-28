@@ -8,8 +8,16 @@ import {
   isCrawler,
   isLandingVariant,
   landingVariantCookie,
-  resolveLandingVariant,
+  HERO_TEST_RUNNING,
+  SUITE_VARIANT,
+  resolveLandingVariant as resolveServed,
+  type LandingVariantInput,
 } from '@/lib/landingVariant'
+
+// The B/C rules below are checked with the test RUNNING, so they hold the moment the flip in
+// lib/landingVariant.ts goes back to true. The served (paused) behaviour has its own block.
+const resolveLandingVariant = (input: LandingVariantInput) =>
+  resolveServed({ testRunning: true, ...input })
 
 // THE LANDING H1 TEST's assignment (owner ruling 2026-09-15). The whole point of
 // lib/landingVariant.ts being pure is that these five rules are checkable without a
@@ -40,7 +48,7 @@ describe('resolveLandingVariant', () => {
   })
 
   it('ignores a ?v that names no variant', () => {
-    const r = resolveLandingVariant({ query: 'd', cookie: 'b', userAgent: BROWSER_UA })
+    const r = resolveLandingVariant({ query: 'e', cookie: 'b', userAgent: BROWSER_UA })
     expect(r).toEqual({ variant: expect.stringMatching(/^[bc]$/), setCookie: false })
   })
 
@@ -106,6 +114,41 @@ describe('resolveLandingVariant', () => {
   })
 })
 
+// THE SUITE HEADLINE (owner direction 2026-10-27, Q26-S1): the H1 test is paused and D is
+// served to readers and crawlers alike; a link can still pin any variant.
+describe('resolveLandingVariant with the test paused', () => {
+  const paused = (input: LandingVariantInput) => resolveServed({ testRunning: false, ...input })
+
+  it('ships paused, serving the suite headline', () => {
+    expect(HERO_TEST_RUNNING).toBe(false)
+    expect(SUITE_VARIANT).toBe('d')
+    expect(resolveServed({ userAgent: BROWSER_UA, randomId: 'x' }).variant).toBe('d')
+  })
+
+  it('gives every reader d, whatever the random id', () => {
+    for (let i = 0; i < 64; i++) {
+      expect(paused({ userAgent: BROWSER_UA, randomId: `id-${i}` })).toEqual({
+        variant: 'd',
+        setCookie: false,
+      })
+    }
+    expect(paused({ userAgent: BROWSER_UA })).toEqual({ variant: 'd', setCookie: false })
+  })
+
+  it('gives a crawler d, so the indexed H1 is the served one', () => {
+    expect(paused({ userAgent: 'Googlebot/2.1', query: 'b' })).toEqual({
+      variant: 'd',
+      setCookie: false,
+    })
+  })
+
+  it('still lets ?v pin any saved variant', () => {
+    for (const v of ['a', 'b', 'c', 'd'] as const) {
+      expect(paused({ query: v, userAgent: BROWSER_UA, randomId: 'x' }).variant).toBe(v)
+    }
+  })
+})
+
 describe('hashToVariant', () => {
   it('is stable for one id', () => {
     expect(hashToVariant('seed')).toBe(hashToVariant('seed'))
@@ -138,9 +181,9 @@ describe('landingVariantCookie', () => {
 })
 
 describe('isLandingVariant', () => {
-  it('accepts a, b and c and nothing else', () => {
-    expect(['a', 'b', 'c'].every(isLandingVariant)).toBe(true)
-    for (const v of ['', 'd', 'A', 'bc', null, undefined, 1, {}]) {
+  it('accepts a, b, c and d and nothing else', () => {
+    expect(['a', 'b', 'c', 'd'].every(isLandingVariant)).toBe(true)
+    for (const v of ['', 'e', 'A', 'bc', null, undefined, 1, {}]) {
       expect(isLandingVariant(v)).toBe(false)
     }
   })

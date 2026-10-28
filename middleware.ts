@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DEFAULT_CHAIN, supportedChains } from '@/config/chains'
-import { LANDING_SIM_MODE, SIM_ROUTE } from '@/config/simulatorMode'
 
 /**
  * Server-side answer to the two soft-404 holes found in docs/GEO_AUDIT.md:
@@ -42,13 +41,18 @@ export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
     const [, first, ...rest] = pathname.split('/')
 
-    // Redirect root at the edge. Keeping this out of getServerSideProps avoids
-    // booting the full _app wallet dependency graph in a Vercel function just
-    // to compute a fixed destination. Cloning the URL preserves query params.
+    // Owner ruling 2026-10-28: '/' is the landing page — the one page that shows the
+    // borrower suite. Serve it here with a 200 (docs/SEO_RULESET.md R2: the root
+    // serves content, never a bare redirect) by rewriting internally to the chain
+    // root, pages/[chain]/index.tsx, which sets its canonical to '/'. The browser
+    // URL stays '/'. The old chain-root URL, /ethereum, 308s back to '/' from
+    // next.config.mjs redirects() (R3), so the landing has exactly one URL.
+    // The simulator, which '/' used to 307 to, keeps its own route.
+    // Cloning the URL preserves query params (?v= pins a headline variant).
     if (first === '') {
         const url = request.nextUrl.clone()
-        url.pathname = `/${DEFAULT_CHAIN}${SIM_ROUTE[LANDING_SIM_MODE]}`
-        return NextResponse.redirect(url, 307)
+        url.pathname = `/${DEFAULT_CHAIN}`
+        return NextResponse.rewrite(url)
     }
 
     // Valid chain or known top-level route: let Next.js route it.
@@ -60,7 +64,9 @@ export function middleware(request: NextRequest) {
     // permanently so crawlers update their index.
     if (LEGACY_CHAINS.has(first)) {
         const url = request.nextUrl.clone()
-        url.pathname = `/ethereum${rest.length ? `/${rest.join('/')}` : ''}`
+        // A bare legacy chain (/osmosis) goes straight to '/', not to /ethereum,
+        // which would 308 again to '/' — R2: never chain redirects.
+        url.pathname = rest.length ? `/${DEFAULT_CHAIN}/${rest.join('/')}` : '/'
         return NextResponse.redirect(url, 308)
     }
 

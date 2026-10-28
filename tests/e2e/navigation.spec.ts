@@ -166,7 +166,8 @@ test.describe('Navigation', () => {
       await page.goto(`/${CHAIN}/portfolio`)
 
       await page.click('nav[aria-label="breadcrumb"] >> text=Home')
-      await expect(page).toHaveURL(new RegExp(`/${CHAIN}$`))
+      // Home is '/' (owner ruling 2026-10-28); /ethereum 308s there.
+      await expect(page).toHaveURL(/\/$/)
     })
   })
 
@@ -213,7 +214,8 @@ test.describe('Navigation', () => {
       await page.goto(`/${CHAIN}/portfolio`)
 
       await page.click('[data-testid="logo"]')
-      await expect(page).toHaveURL(new RegExp(`/${CHAIN}$`))
+      // Home is '/' (owner ruling 2026-10-28); /ethereum 308s there.
+      await expect(page).toHaveURL(/\/$/)
     })
   })
 })

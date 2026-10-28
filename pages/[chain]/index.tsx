@@ -41,7 +41,7 @@ const structuredData = SITE_URL
     : null
 
 // EVM-only: a single chain path (/ethereum). Stale bookmarks (/osmosis, /neutron)
-// land here with an invalid chain — redirect server-side to /ethereum before any HTML
+// land here with an invalid chain — redirect server-side to '/' before any HTML
 // is sent, so there's no client-side flash and crawlers see the real destination
 // directly (nextjs-no-client-side-redirect fix: getServerSideProps redirect).
 export const getServerSideProps: GetServerSideProps = async (context) => {
@@ -50,7 +50,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const isValidChain = supportedChains.some((c) => c.name === chainName)
 
     if (!isValidChain) {
-        return { redirect: { destination: `/${DEFAULT_CHAIN}`, permanent: false } }
+        // Straight to '/', the landing's one URL: /${DEFAULT_CHAIN} would 308 again (R2).
+        return { redirect: { destination: '/', permanent: false } }
     }
 
     // Server-render the SUMMARY (meta/debt/time/byAsset, ~2KB) so a crawler and the
@@ -87,7 +88,8 @@ const { variant } = resolveLandingVariant({
 }
 
 /**
- * The landing page is the seniority argument.
+ * The landing page sells the borrower tool suite, then makes the seniority argument
+ * (owner direction 2026-10-27, board Q26-S1: the whole suite, not only the delay).
  *
  * A stranger arriving with no wallet gets a fully populated page: where a borrower
  * sits in the loss waterfall, what that order buys them, and the 2,350 real Aave
@@ -97,9 +99,10 @@ const { variant } = resolveLandingVariant({
  * per-address simulator is at /[chain]/simulator.
  *
  * seoClass is `indexable` (not `internal`) because this is the entry page a
- * stranger should find via search — docs/SEO_RULESET.md Rule 0. `path` is passed
- * explicitly so the canonical + og:url resolve to the chain root rather than to
- * whatever URL the visitor happened to arrive on.
+ * stranger should find via search — docs/SEO_RULESET.md Rule 0. Owner ruling
+ * 2026-10-28: '/' is the landing page. middleware.ts rewrites '/' to this route and
+ * next.config.mjs 308s /ethereum to '/', so `path` is '/': the canonical and og:url
+ * name the root, whatever internal path rendered the page.
  *
  * The server-rendered summary is still read here: the Close band mounts the Evidence
  * DebtLens on it, so a crawler sees real figures rather than a spinner (R1).
@@ -115,9 +118,9 @@ const IndexPage = ({
         <>
             <PageSeo
                 seoClass="indexable"
-                path={`/${DEFAULT_CHAIN}`}
-                title="Membrane: Borrowers are senior here"
-                description="Four layers take a loss before it reaches a Membrane borrower: the reserve, MBRN staked under the asset, junior lenders, then senior lenders. The bad-debt cascade never writes to a position, and redemption is served by curator vaults. Every claim cites the contract line behind it."
+                path="/"
+                title="Membrane: Borrow against your crypto with every instrument on"
+                description="A health bar that never leaves the screen, an alert before your liquidation line, a timer at the line, and a replay of any position through 10 Oct 2025. Every claim shows what it rests on."
             />
             {structuredData && (
                 <Head>

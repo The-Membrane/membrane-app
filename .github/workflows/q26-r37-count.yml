@@ -5,7 +5,7 @@
 # metric; the confirmatory grade is refused by the code unless the stopping rule allows that ASOF, and this job never
 # requests it. Owner approved 2026-10-28.
 # OFF SWITCH: the job runs unless the repository variable R37_COUNT_ENABLED is exactly `false`.
-# Code integrity: the run refuses unless every file under history-forecasts/r37/ matches its SHA256SUMS.
+# Code integrity: the run refuses unless every code/*.py file and REGISTRATION.md matches its SHA256SUMS entry.
 # Credential: DATASETS_TOKEN reaches only the datasets checkout (persist-credentials: false) and the push
 #   (per-command extraheader). Keyless Binance data API only.
 # PUBLIC LOGS: exit status, line counts and the count-only summary (counts, minima_met). No artifacts.
@@ -60,9 +60,12 @@ jobs:
         id: gitcfg
         run: echo "sha256=$(sha256sum datasets/.git/config | cut -c1-64)" >> "$GITHUB_OUTPUT"
 
-      - name: Verify the registered R37 files (SHA256SUMS)
+      - name: Verify the registered R37 code and registration (SHA256SUMS; review/ files are not in git)
         working-directory: datasets/history-forecasts/r37
-        run: sha256sum -c --quiet SHA256SUMS && echo "r37 sums ok"
+        run: |
+          n=$(grep -cE '  \./(code/[^/]+\.py|REGISTRATION\.md)$' SHA256SUMS)
+          [ "$n" -ge 12 ] || { echo "too few code entries in SHA256SUMS: $n"; exit 1; }
+          grep -E '  \./(code/[^/]+\.py|REGISTRATION\.md)$' SHA256SUMS | sha256sum -c --quiet && echo "r37 sums ok ($n files)"
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7
         with:

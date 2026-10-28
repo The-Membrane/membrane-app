@@ -1,6 +1,9 @@
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 
+import { DEFAULT_CHAIN } from '@/config/chains'
+import { canonicalUrl } from '@/helpers/canonicalUrl'
+
 /**
  * Server-rendered SEO tags (docs/SEO ruleset R3+R5). Rendered once in _app with
  * route-derived defaults; indexable pages render it again with specific copy —
@@ -28,8 +31,8 @@ type SeoProps = {
 
 const Seo = ({ title, description = DEFAULT_DESCRIPTION, path, image = DEFAULT_OG_IMAGE }: SeoProps) => {
   const router = useRouter()
-  const routePath = (path ?? router.asPath ?? '/').split(/[?#]/)[0]
-  const canonical = SITE_URL ? `${SITE_URL}${routePath === '/' ? '' : routePath}` || SITE_URL : undefined
+  const chain = typeof router.query?.chain === 'string' ? router.query.chain : DEFAULT_CHAIN
+  const canonical = canonicalUrl(SITE_URL, path ?? router.asPath ?? '/', chain)
   const imageUrl = image.startsWith('http') ? image : SITE_URL ? `${SITE_URL}${image}` : undefined
 
   return (

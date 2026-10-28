@@ -67,7 +67,7 @@ export const StatusLine: React.FC<{ children: React.ReactNode; tone?: 'muted' | 
   <Text
     fontFamily={TYPOGRAPHY.fontMono}
     fontSize="12px"
-    color={tone === 'danger' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary}
+    color={tone === 'danger' ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textSecondary}
     mt={SPACING.lg}
   >
     {children}

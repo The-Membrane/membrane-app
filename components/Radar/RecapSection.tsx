@@ -187,7 +187,7 @@ const AlertsBlock: React.FC<{ address: string }> = ({ address }) => {
             <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
               {(a.clearedAt ?? a.firedAt).slice(0, 10)} · {a.venue}
             </Text>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={a.open ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={a.open ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textSecondary}>
               {a.text}
             </Text>
           </Grid>
@@ -284,7 +284,7 @@ export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
           </Button>
         </HStack>
         {watchError && (
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.danger} mt={SPACING.sm}>
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.dangerText} mt={SPACING.sm}>
             {watchError}
           </Text>
         )}
@@ -299,7 +299,7 @@ export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
         </Text>
       )}
       {error && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.danger} mt={SPACING.md}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.dangerText} mt={SPACING.md}>
           {(error as Error).message}
         </Text>
       )}

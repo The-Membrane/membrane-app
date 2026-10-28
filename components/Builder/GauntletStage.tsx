@@ -147,7 +147,7 @@ const AuditTable: React.FC<{ stage: Stage }> = ({ stage }) => {
           <Text {...cell} {...tabular} textAlign="right" color={SEMANTIC_COLORS.textSecondary} display={{ base: 'none', md: 'block' }}>
             {(r.liq * 100).toFixed(0)}%
           </Text>
-          <Text {...cell} {...tabular} textAlign="right" color={r.ret <= 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary}>
+          <Text {...cell} {...tabular} textAlign="right" color={r.ret <= 0 ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textSecondary}>
             {a.stale ? (
               <>
                 <Text as="span" color={SEMANTIC_COLORS.warning}>
@@ -159,7 +159,7 @@ const AuditTable: React.FC<{ stage: Stage }> = ({ stage }) => {
               usd(r.ret)
             )}
           </Text>
-          <Text {...cell} fontSize="10px" lineHeight={1.45} color={r.ret <= 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textTertiary} gridColumn={{ base: '1 / -1', md: 'auto' }}>
+          <Text {...cell} fontSize="10px" lineHeight={1.45} color={r.ret <= 0 ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textTertiary} gridColumn={{ base: '1 / -1', md: 'auto' }}>
             {r.why}
           </Text>
         </Box>
@@ -214,7 +214,7 @@ const AuditTable: React.FC<{ stage: Stage }> = ({ stage }) => {
             <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.2em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
               Sold as bitcoin
             </Text>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="18px" {...tabular} color={gap > 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="18px" {...tabular} color={gap > 0 ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.success}>
               {gap > 0 ? usd(gap) : '$0'}
             </Text>
             <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textSecondary}>
@@ -309,7 +309,7 @@ const Ghosts: React.FC<{ rows: GhostRow[]; playerR: Resolution; playerLabel: str
           return (
             <Box key={i} display="grid" gridTemplateColumns={{ base: '1fr 62px', md: 'minmax(150px,1fr) 62px minmax(200px,2.2fr)' }} gap={SPACING.sm} px={SPACING.sm} py="3px" borderTop="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" lineHeight={1.35} alignItems="baseline">
               <Text color={r.you ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary}>{r.label}</Text>
-              <Text fontSize="9px" letterSpacing="0.18em" color={r.R.survived ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}>
+              <Text fontSize="9px" letterSpacing="0.18em" color={r.R.survived ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}>
                 {r.R.survived ? 'SURVIVED' : 'DIED'}
               </Text>
               <Text color={SEMANTIC_COLORS.textSecondary} {...tabular} gridColumn={{ base: '1 / -1', md: 'auto' }}>
@@ -443,7 +443,7 @@ export const GauntletStage: React.FC<GauntletStageProps> = ({
     )}
 
     {/* ticker */}
-    <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="clamp(26px, 5vw, 44px)" {...tabular} letterSpacing="-0.02em" lineHeight={1} color={stage.tickHurt ? SEMANTIC_COLORS.danger : stage.tickGold ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.success}>
+    <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="clamp(26px, 5vw, 44px)" {...tabular} letterSpacing="-0.02em" lineHeight={1} color={stage.tickHurt ? SEMANTIC_COLORS.dangerText : stage.tickGold ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.success}>
       {stage.tickText}
     </Text>
     <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10.5px" color={SEMANTIC_COLORS.textTertiary}>

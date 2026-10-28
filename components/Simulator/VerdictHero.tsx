@@ -215,12 +215,16 @@ function verdict(
     second,
     figure: usdSigned(delta),
     caption,
-    firstColor: o.source.liquidated ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary,
+    firstColor: o.source.liquidated ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textPrimary,
     // BONE, not green. Line 2 is what Membrane also took; colouring it as a win is the
     // exact thing this rewrite removes.
     secondColor: SEMANTIC_COLORS.textPrimary,
     figureColor:
-      delta > 0 ? SEMANTIC_COLORS.success : delta < 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary,
+      delta > 0
+        ? SEMANTIC_COLORS.success
+        : delta < 0
+          ? SEMANTIC_COLORS.dangerText
+          : SEMANTIC_COLORS.textPrimary,
   }
 }
 
@@ -246,7 +250,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
     delta > 0
       ? SEMANTIC_COLORS.success
       : delta < 0
-        ? SEMANTIC_COLORS.danger
+        ? SEMANTIC_COLORS.dangerText
         : SEMANTIC_COLORS.textPrimary
 
   // The gate: a priced borrow AND a real deployment. Otherwise the cost story is
@@ -268,6 +272,15 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
   const carryFirst = carryPriced && mode === 'carry' && !historyFirst
   const src = comparison?.position.label ?? ''
   const whose = isDemo ? 'this' : 'your'
+
+  // RESERVED SPACE while the demo run computes. The landing hero (compact) in demo
+  // always gets a comparison a few hundred ms after first paint; the Oct 10 verdict
+  // block then appeared above the address bar and pushed it down 216-303px, the bulk
+  // of the landing's mobile CLS. Hold the measured block height (its four grid rows
+  // collapse to one, so one 16px row gap less) until it lands. Not for a pasted
+  // address (may never resolve), carry mode (a different block), or on error.
+  const reserveVerdict =
+    !v && compact && isDemo && mode !== 'carry' && (errors ?? []).length === 0
 
   return (
     <Box
@@ -375,7 +388,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               letterSpacing="-0.015em"
               sx={{ textWrap: 'balance' }}
             >
-              <Text as="span" color={SEMANTIC_COLORS.danger}>
+              <Text as="span" color={SEMANTIC_COLORS.dangerText}>
                 {src} charges {whose} carry {usd(carry.annualCostUsd)} a year, even when the venue pays nothing.
               </Text>{' '}
               {/* The 14 days is the owner's own figure (owner statement 2026-09-12);
@@ -395,7 +408,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                 fontSize={compact ? '40px' : 'clamp(36px, 6vw, 64px)'}
                 lineHeight={1.02}
                 {...tabular}
-                color={SEMANTIC_COLORS.danger}
+                color={SEMANTIC_COLORS.dangerText}
               >
                 −{usd(carry.fixedCostOnCoveredUsd)}/yr
               </Text>
@@ -483,7 +496,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                 lineHeight={1.55}
                 maxW="70ch"
               >
-                <Text as="span" color={SEMANTIC_COLORS.danger}>
+                <Text as="span" color={SEMANTIC_COLORS.dangerText}>
                   {src} also charges {whose} carry {usd(carry.fixedCostOnCoveredUsd)} a year in
                   fixed interest on the deployed {usd(carry.coveredDebtUsd)}, paid or not.
                 </Text>{' '}
@@ -498,6 +511,15 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
           </>
         )}
 
+        {reserveVerdict && (
+          <Box
+            data-testid="sim-verdict-pending"
+            aria-hidden
+            w="100%"
+            minH={{ base: '287px', xs: '271px', sm: '245px', md: '200px' }}
+          />
+        )}
+
         <AddressBar {...addressBar} />
 
         {(errors ?? []).map((e) => (
@@ -505,7 +527,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
             key={e}
             fontFamily={TYPOGRAPHY.fontMono}
             fontSize="11.5px"
-            color={SEMANTIC_COLORS.danger}
+            color={SEMANTIC_COLORS.dangerText}
             lineHeight={1.6}
           >
             {e}

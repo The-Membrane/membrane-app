@@ -242,7 +242,7 @@ export const YourSizeLine: React.FC<{ points: CurvePoint[]; sizeUsd: number; siz
             ? `beyond quoted depth (last quote ${fmtUsd(r.lastQuotedUsd)} at ${fmtPct(r.lastQuotedPct)})`
             : 'no quote'
   return (
-    <Mono size={size} color={r.kind === 'beyond-quoted-depth' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success}>
+    <Mono size={size} color={r.kind === 'beyond-quoted-depth' ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.success}>
       exit your {fmtUsd(sizeUsd)} in one swap: {text}
     </Mono>
   )

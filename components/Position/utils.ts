@@ -20,7 +20,19 @@ export const CLASS_COLOR: Record<VenueClass, string> = {
   lst: SEMANTIC_COLORS.info,
 }
 
-/** rgba() from a token + alpha — resolves the token first, then keeps decorative fills sourced from tokens. */
+/**
+ * A token at an alpha, for DOM styles (bg, borderColor, gradients).
+ *
+ * Pure CSS (`color-mix`), so the server and the client emit the same string and
+ * the emotion className matches on hydration. withAlpha() resolves the token
+ * through getComputedStyle, which is '#000000' on the server and the real hex in
+ * the browser: in a render path that is a hydration className mismatch.
+ * Use this in render; keep withAlpha() for Canvas, which cannot read var().
+ */
+export const cssAlpha = (token: string, a: number): string =>
+  `color-mix(in srgb, ${token} ${+(a * 100).toFixed(2)}%, transparent)`
+
+/** rgba() from a token + alpha — resolves the token first. Canvas only: see cssAlpha() for render paths. */
 export const withAlpha = (hex: string, a: number): string => {
   const resolved = resolveColor(hex)
   // Border tokens resolve to rgb()/rgba(); recompose with the requested alpha.
@@ -125,7 +137,7 @@ export const renderEmphasis = (text: string): React.ReactNode[] => {
       nodes.push(
         React.createElement(
           'b',
-          { key: key++, style: { fontWeight: 400, color: SEMANTIC_COLORS.danger } },
+          { key: key++, style: { fontWeight: 400, color: SEMANTIC_COLORS.dangerText } },
           inner
         )
       )

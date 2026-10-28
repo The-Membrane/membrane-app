@@ -50,7 +50,7 @@ export const HonestPart: React.FC<Props> = ({ st, c }) => {
         <RiskCard k="Bitcoin would need to reach" value={usd(c.trigger)} note="for that clock to start at all" />
         <RiskCard
           k="Yield covers interest"
-          value={<Text as="span" color={cover >= 1 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}>{`${cover.toFixed(1)}×`}</Text>}
+          value={<Text as="span" color={cover >= 1 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}>{`${cover.toFixed(1)}×`}</Text>}
           note="while the venue holds its rate"
         />
       </Box>

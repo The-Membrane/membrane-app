@@ -62,6 +62,17 @@ export const SEMANTIC_COLORS = {
   danger: 'var(--m-danger)', // Blood red / deep blood
 
   /**
+   * Danger as TEXT - the text-safe twin of `danger`
+   * `danger` (#cf4034) is a fill/border color: as text on the dark surfaces it
+   * measures only 4.0-4.2:1, below WCAG AA for small text. `dangerText`
+   * (#e0564a dark, #a52f2a light) holds >= 5.09:1 on bgPrimary, bgSecondary
+   * and bgTertiary in both themes.
+   * Used for: any text, icon or glyph colored danger. Keep `danger` for
+   * backgrounds, bars, borders and chart marks.
+   */
+  dangerText: 'var(--m-danger-text)',
+
+  /**
    * Info state - informational, neutral information
    * Used for: Info messages, tooltips, helper text
    */
@@ -183,6 +194,7 @@ export const COLOR_USAGE_GUIDELINES = {
     'Destructive actions (delete, remove)',
     'Failed transactions',
   ],
+  dangerText: ['Danger-colored text and icons (use instead of danger for color=)'],
   info: ['Informational tooltips', 'Helper text', 'Neutral notifications', 'Educational content'],
 
   // Emphasis colors

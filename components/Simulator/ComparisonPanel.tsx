@@ -124,12 +124,12 @@ const EngineColumn: React.FC<{ run: SimRun; title: string; accent: string }> = (
       <Row
         label="liquidations"
         value={liquidations(run).toLocaleString('en-US')}
-        color={liquidations(run) > 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}
+        color={liquidations(run) > 0 ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textPrimary}
       />
       <Row
         label="penalties"
         value={usd(run.penaltyPaidUsd)}
-        color={run.penaltyPaidUsd > 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}
+        color={run.penaltyPaidUsd > 0 ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textPrimary}
       />
     </Box>
   </Box>
@@ -166,7 +166,7 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
         lineHeight={1.6}
         color={
           outcome.membrane.liquidated
-            ? SEMANTIC_COLORS.danger
+            ? SEMANTIC_COLORS.dangerText
             : outcome.source.liquidated
               ? SEMANTIC_COLORS.warning
               : SEMANTIC_COLORS.textPrimary

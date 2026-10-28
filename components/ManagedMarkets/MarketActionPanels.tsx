@@ -423,7 +423,7 @@ const PositionInfoCard = ({
                 </HStack>
                 <HStack justify="space-between">
                     <Text {...ROW_LABEL}>Liquidation Price</Text>
-                    <Text {...NUMERIC} color={SEMANTIC_COLORS.danger}>
+                    <Text {...NUMERIC} color={SEMANTIC_COLORS.dangerText}>
                         {liquidationPrice ? `$${Formatter.priceDynamicDecimals(num(liquidationPrice).toNumber(), 6)}` : '-'}
                     </Text>
                 </HStack>

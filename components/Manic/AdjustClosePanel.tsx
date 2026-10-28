@@ -79,7 +79,7 @@ export const AdjustClosePanel: React.FC<AdjustClosePanelProps> = ({
                             <Text
                                 fontSize={TYPOGRAPHY.h4}
                                 fontWeight={TYPOGRAPHY.bold}
-                                color={SEMANTIC_COLORS.danger}
+                                color={SEMANTIC_COLORS.dangerText}
                                 fontFamily={TYPOGRAPHY.fontMono}
                                 sx={{ fontVariantNumeric: 'tabular-nums' }}
                             >
@@ -112,11 +112,11 @@ export const AdjustClosePanel: React.FC<AdjustClosePanelProps> = ({
             <Button
                 size="lg"
                 onClick={handleCloseSubmit}
-                color={SEMANTIC_COLORS.danger}
+                color={SEMANTIC_COLORS.dangerText}
                 borderColor={SEMANTIC_COLORS.danger}
                 transition={TRANSITIONS.colors}
                 _hover={{
-                    color: SEMANTIC_COLORS.danger,
+                    color: SEMANTIC_COLORS.dangerText,
                     borderColor: SEMANTIC_COLORS.danger,
                     bg: SEMANTIC_COLORS.bgTertiary,
                 }}

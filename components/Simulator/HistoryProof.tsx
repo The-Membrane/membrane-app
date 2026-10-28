@@ -66,9 +66,9 @@ export function verdictTag(e: HistoryEpisode): { text: string; color: string } {
     case 'partial':
       return { text: `liquidated anyway — ${times}`, color: SEMANTIC_COLORS.warning }
     case 'broke':
-      return { text: `BROKE the 4% band — ${times}`, color: SEMANTIC_COLORS.danger }
+      return { text: `BROKE the 4% band — ${times}`, color: SEMANTIC_COLORS.dangerText }
     case 'worse':
-      return { text: `worse on Membrane — ${times}`, color: SEMANTIC_COLORS.danger }
+      return { text: `worse on Membrane — ${times}`, color: SEMANTIC_COLORS.dangerText }
     default:
       return { text: 'unpriced — not counted', color: SEMANTIC_COLORS.textTertiary }
   }
@@ -214,7 +214,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize="12.5px"
-          color={SEMANTIC_COLORS.danger}
+          color={SEMANTIC_COLORS.dangerText}
           lineHeight={1.6}
         >
           {data?.error ?? 'The liquidation-history scan could not be read.'}
@@ -375,7 +375,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
             {detailsOpen ? 'Hide' : 'Show'} {episodes.length} episode detail
             {episodes.length === 1 ? '' : 's'}
             {h.totals.worseCount > 0 && (
-              <Text as="span" color={SEMANTIC_COLORS.danger}>
+              <Text as="span" color={SEMANTIC_COLORS.dangerText}>
                 {' '}
                 · {h.totals.worseCount} worse on Membrane
               </Text>
@@ -446,7 +446,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
                         kept === null
                           ? SEMANTIC_COLORS.textTertiary
                           : kept < 0
-                            ? SEMANTIC_COLORS.danger
+                            ? SEMANTIC_COLORS.dangerText
                             : SEMANTIC_COLORS.success
                       }
                     >
@@ -485,7 +485,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
                 fontSize="12px"
-                color={SEMANTIC_COLORS.danger}
+                color={SEMANTIC_COLORS.dangerText}
                 lineHeight={1.6}
               >
                 On {h.totals.worseCount} episode{h.totals.worseCount === 1 ? '' : 's'} the Membrane

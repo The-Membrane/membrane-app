@@ -347,10 +347,10 @@ export function WhitelistedAddressInput({
             <IconButton
               size="sm"
               variant="ghost"
-              color={SEMANTIC_COLORS.danger}
+              color={SEMANTIC_COLORS.dangerText}
               borderRadius={0}
               transition={TRANSITIONS.colors}
-              _hover={{ color: SEMANTIC_COLORS.danger, bg: SEMANTIC_COLORS.bgSecondary }}
+              _hover={{ color: SEMANTIC_COLORS.dangerText, bg: SEMANTIC_COLORS.bgSecondary }}
               _active={ACTIVE_EFFECTS.dim}
               _focus={FOCUS_STYLES.ring}
               aria-label="Remove address"
@@ -527,10 +527,10 @@ export function WhitelistedCollateralSupplierInput({
             <IconButton
               size="sm"
               variant="ghost"
-              color={SEMANTIC_COLORS.danger}
+              color={SEMANTIC_COLORS.dangerText}
               borderRadius={0}
               transition={TRANSITIONS.colors}
-              _hover={{ color: SEMANTIC_COLORS.danger, bg: SEMANTIC_COLORS.bgSecondary }}
+              _hover={{ color: SEMANTIC_COLORS.dangerText, bg: SEMANTIC_COLORS.bgSecondary }}
               _active={ACTIVE_EFFECTS.dim}
               _focus={FOCUS_STYLES.ring}
               aria-label="Remove supplier"

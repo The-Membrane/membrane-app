@@ -202,7 +202,7 @@ export const MintPanel: React.FC<MintPanelProps> = ({
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
             fontSize={TYPOGRAPHY.h4}
-            color={net >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
+            color={net >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}
             mt={SPACING.xs}
           >
             {net >= 0 ? `+${net.toFixed(1)}` : net.toFixed(1)}% / yr net

@@ -12,7 +12,7 @@ import { MockStamp } from '@/components/demo'
 
 import { Eyebrow } from './primitives'
 import { BENCH_SOLD, SERIES } from './fixtures'
-import { drawChart, withAlpha } from './utils'
+import { drawChart, cssAlpha } from './utils'
 import { BenchMode, ChartRange } from './types'
 
 const RANGES: { r: ChartRange; label: string }[] = [
@@ -79,7 +79,7 @@ export const DeliveriesChart: React.FC = () => {
     return () => window.removeEventListener('resize', paint)
   }, [range, bench, mode])
 
-  const grid = withAlpha(SEMANTIC_COLORS.textPrimary, 0.045)
+  const grid = cssAlpha(SEMANTIC_COLORS.textPrimary, 0.045)
 
   return (
     <Card mt={SPACING.base} id="chartCard">

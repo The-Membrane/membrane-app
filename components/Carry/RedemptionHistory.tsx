@@ -90,7 +90,7 @@ export const RedemptionHistory: React.FC<RedemptionHistoryProps> = ({ onOpenOrac
                   {fill.toFixed(1)}%
                 </Text>{' '}
                 ({usd(x.srv)} of {usd(x.req)}, 90d) · slashed{' '}
-                <Text as="span" color={slashBad ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}>
+                <Text as="span" color={slashBad ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textPrimary}>
                   {x.slash}
                   {slashBad ? ' · ' + usd(x.slashAmt) : ''}
                 </Text>{' '}
@@ -100,7 +100,7 @@ export const RedemptionHistory: React.FC<RedemptionHistoryProps> = ({ onOpenOrac
                 </Text>{' '}
                 ·{' '}
                 {x.ban ? (
-                  <Text as="span" color={SEMANTIC_COLORS.danger}>
+                  <Text as="span" color={SEMANTIC_COLORS.dangerText}>
                     BANNED
                   </Text>
                 ) : (

@@ -114,7 +114,7 @@ export const AcquisitionSettingsSection: React.FC<SectionComponentProps> = ({ on
                             <Text fontSize="xs" color={SEMANTIC_COLORS.textSecondary}>
                                 Total Ratio
                             </Text>
-                            <Text fontSize="xs" color={totalRatio >= 99 && totalRatio <= 101 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger} fontWeight="bold">
+                            <Text fontSize="xs" color={totalRatio >= 99 && totalRatio <= 101 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText} fontWeight="bold">
                                 {totalRatio.toFixed(2)}%
                             </Text>
                         </HStack>

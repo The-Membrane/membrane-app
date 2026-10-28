@@ -304,7 +304,7 @@ export const FactoryFloor: React.FC<FactoryFloorProps> = ({ slots, intent, calc,
               py="2px"
               cursor="pointer"
               transition={TRANSITIONS.colors}
-              _hover={{ color: SEMANTIC_COLORS.danger }}
+              _hover={{ color: SEMANTIC_COLORS.dangerText }}
               _focusVisible={FOCUS_STYLES.ring}
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation()

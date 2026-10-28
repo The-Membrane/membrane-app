@@ -25,6 +25,12 @@ const KIND_COLOR: Record<SimEvent['kind'], string> = {
   frozen: SEMANTIC_COLORS.textSecondary,
 }
 
+/** The label colours: KIND_COLOR, with the AA-safe text red for liquidation. */
+const KIND_TEXT_COLOR: Record<SimEvent['kind'], string> = {
+  ...KIND_COLOR,
+  liquidation: SEMANTIC_COLORS.dangerText,
+}
+
 const HEAD = {
   fontFamily: TYPOGRAPHY.fontMono,
   fontSize: '9px',
@@ -80,14 +86,14 @@ const EventRows: React.FC<{ run: SimRun; title: string; zone: string | undefined
             flexWrap="wrap"
             alignItems="baseline"
           >
-            <Text {...HEAD} color={KIND_COLOR[e.kind]} minW="76px">
+            <Text {...HEAD} color={KIND_TEXT_COLOR[e.kind]} minW="76px">
               {e.kind}
             </Text>
             <Cell color={SEMANTIC_COLORS.textSecondary}>{fmtLocalDayClock(e.ts, zone)}</Cell>
             <Cell>repaid {usd(e.repaidUsd)}</Cell>
             <Cell>seized {usd(e.seizedUsd)}</Cell>
             <Cell>recalled {usd(e.recalledUsd)}</Cell>
-            <Cell color={e.penaltyUsd > 0 ? SEMANTIC_COLORS.danger : undefined}>
+            <Cell color={e.penaltyUsd > 0 ? SEMANTIC_COLORS.dangerText : undefined}>
               fee {usd(e.penaltyUsd)}
             </Cell>
             <Cell color={SEMANTIC_COLORS.textSecondary}>ltv {pct(e.ltv)}</Cell>

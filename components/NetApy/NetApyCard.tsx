@@ -157,7 +157,7 @@ export const NetApyCard: React.FC<NetApyCardProps> = ({ venue, defaultSizeUsd = 
       </Box>
 
       {q.isError ? (
-        <Mono color={SEMANTIC_COLORS.danger} size="11.5px">
+        <Mono color={SEMANTIC_COLORS.dangerText} size="11.5px">
           {(q.error as Error).message}
         </Mono>
       ) : !b ? (
@@ -176,7 +176,7 @@ export const NetApyCard: React.FC<NetApyCardProps> = ({ venue, defaultSizeUsd = 
             </Mono>
           </Box>
           {b.checks.reverts ? (
-            <Mono color={SEMANTIC_COLORS.danger}>This size reverts on-chain: {b.checks.reverts}.</Mono>
+            <Mono color={SEMANTIC_COLORS.dangerText}>This size reverts on-chain: {b.checks.reverts}.</Mono>
           ) : null}
 
           {/* The breakdown. Each row: op · label · value · claim class. */}

@@ -186,7 +186,7 @@ const PetCreation: React.FC = () => {
           )}
 
           {createPet.isError && (
-            <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.danger}>
+            <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.dangerText}>
               {(createPet.error as Error)?.message ?? 'Create failed'}
             </Text>
           )}

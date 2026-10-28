@@ -93,7 +93,7 @@ export const VenueLog: React.FC = () => {
                     fontSize="9px"
                     letterSpacing="0.14em"
                     textTransform="uppercase"
-                    color={isAlarm && !e.cleared ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textTertiary}
+                    color={isAlarm && !e.cleared ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textTertiary}
                     textAlign={{ base: 'left', md: 'right' }}
                   >
                     {e.provenance}

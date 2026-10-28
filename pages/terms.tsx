@@ -75,7 +75,7 @@ const TermsPage = () => {
             <Text
               fontFamily="mono"
               fontSize={TYPOGRAPHY.small}
-              color={SEMANTIC_COLORS.danger}
+              color={SEMANTIC_COLORS.dangerText}
             >
               The terms could not be loaded. Reload the page, or read them directly at{' '}
               <Box as="a" href="/TOS.md" color={SEMANTIC_COLORS.primary} textDecoration="underline">

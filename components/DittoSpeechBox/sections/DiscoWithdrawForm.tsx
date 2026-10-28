@@ -268,7 +268,7 @@ export const DiscoWithdrawForm: React.FC<DiscoUnstakeFormProps> = ({
             <VStack spacing={SPACING.sm} align="stretch">
                 <Text
                     fontSize={TYPOGRAPHY.xs}
-                    color={revenueLossPerDay > 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textTertiary}
+                    color={revenueLossPerDay > 0 ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textTertiary}
                     fontFamily={TYPOGRAPHY.fontMono}
                     letterSpacing="0.05em"
                     textAlign="center"

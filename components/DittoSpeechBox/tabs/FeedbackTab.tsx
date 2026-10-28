@@ -120,7 +120,7 @@ export const FeedbackTab: React.FC = () => {
           resize="none"
           {...inputStyles}
         />
-        <FormErrorMessage color={SEMANTIC_COLORS.danger} fontSize={TYPOGRAPHY.xs}>
+        <FormErrorMessage color={SEMANTIC_COLORS.dangerText} fontSize={TYPOGRAPHY.xs}>
           Required
         </FormErrorMessage>
       </FormControl>
@@ -142,7 +142,7 @@ export const FeedbackTab: React.FC = () => {
             </option>
           ))}
         </Select>
-        <FormErrorMessage color={SEMANTIC_COLORS.danger} fontSize={TYPOGRAPHY.xs}>
+        <FormErrorMessage color={SEMANTIC_COLORS.dangerText} fontSize={TYPOGRAPHY.xs}>
           Required
         </FormErrorMessage>
       </FormControl>
@@ -164,7 +164,7 @@ export const FeedbackTab: React.FC = () => {
             </option>
           ))}
         </Select>
-        <FormErrorMessage color={SEMANTIC_COLORS.danger} fontSize={TYPOGRAPHY.xs}>
+        <FormErrorMessage color={SEMANTIC_COLORS.dangerText} fontSize={TYPOGRAPHY.xs}>
           Required
         </FormErrorMessage>
       </FormControl>
@@ -178,7 +178,7 @@ export const FeedbackTab: React.FC = () => {
           borderRadius={0}
           p={2}
         >
-          <Text color={SEMANTIC_COLORS.danger} fontSize={TYPOGRAPHY.xs}>
+          <Text color={SEMANTIC_COLORS.dangerText} fontSize={TYPOGRAPHY.xs}>
             {result.error}
           </Text>
         </Box>

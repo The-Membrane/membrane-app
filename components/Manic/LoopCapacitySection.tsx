@@ -79,7 +79,7 @@ export const LoopCapacitySection: React.FC<LoopCapacitySectionProps> = ({
                 </Text>
                 <Text
                     fontSize={TYPOGRAPHY.small}
-                    color={requiredCapacity <= transmuterUSDCBalance ? SEMANTIC_COLORS.info : SEMANTIC_COLORS.danger}
+                    color={requiredCapacity <= transmuterUSDCBalance ? SEMANTIC_COLORS.info : SEMANTIC_COLORS.dangerText}
                     fontFamily={TYPOGRAPHY.fontMono}
                     fontWeight={TYPOGRAPHY.bold}
                     sx={{ fontVariantNumeric: 'tabular-nums' }}

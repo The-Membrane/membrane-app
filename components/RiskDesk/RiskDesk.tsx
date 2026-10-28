@@ -55,7 +55,7 @@ export const RiskDesk: React.FC = () => {
       )}
       {q.isError && (
         <Box mt={SPACING.lg} border="1px solid" borderColor={SEMANTIC_COLORS.danger} p={SPACING.base}>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.danger}>
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.dangerText}>
             No local chain at {LOCAL_RPC_URL}.
           </Text>
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.textTertiary} mt={1}>

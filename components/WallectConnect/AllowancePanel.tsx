@@ -66,7 +66,7 @@ const AllowancePanel = () => {
             variant="link"
             size="xs"
             fontFamily={TYPOGRAPHY.fontMono}
-            color={SEMANTIC_COLORS.danger}
+            color={SEMANTIC_COLORS.dangerText}
             isLoading={tx.isPending}
             onClick={() => tx.mutate(revokeAllMsgs)}
             transition={TRANSITIONS.colors}

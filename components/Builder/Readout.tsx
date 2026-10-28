@@ -95,7 +95,7 @@ export const Readout: React.FC<ReadoutProps> = ({
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize="19px"
           {...tabular}
-          color={c.p.length === 0 ? SEMANTIC_COLORS.textPrimary : c.net >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
+          color={c.p.length === 0 ? SEMANTIC_COLORS.textPrimary : c.net >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}
         >
           {c.p.length === 0 && c.net === 0 ? '—' : (c.net >= 0 ? '+' : '') + usd(c.net)}
         </Text>
@@ -120,7 +120,7 @@ export const Readout: React.FC<ReadoutProps> = ({
           <Box position="absolute" top="-2px" bottom="-2px" w="1px" bg={SEMANTIC_COLORS.danger} left={MAX_BORROW * 100 + '%'} />
           <Box position="absolute" top="-2px" bottom="-2px" w="1px" bg={SEMANTIC_COLORS.danger} left={liqLine * 100 + '%'} />
         </Box>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={cut ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textTertiary}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={cut ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textTertiary}>
           borrow cap {(MAX_BORROW * 100).toFixed(0)}% · liquidated past {(liqLine * 100).toFixed(0)}%{cut ? ' (CUT)' : ''} · a breach
           repays you back to {(MAX_BORROW * 100).toFixed(0)}%
         </Text>

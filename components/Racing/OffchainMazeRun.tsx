@@ -207,7 +207,7 @@ const OffchainMazeRun: React.FC<{ onCreatePet?: () => void }> = ({ onCreatePet }
   if (state.isError) {
     return (
       <Card variant="default" w="100%">
-        <Text {...mono} color={SEMANTIC_COLORS.danger}>
+        <Text {...mono} color={SEMANTIC_COLORS.dangerText}>
           Game backend unavailable. The offchain race needs the database configured.
         </Text>
       </Card>
@@ -284,7 +284,7 @@ const OffchainMazeRun: React.FC<{ onCreatePet?: () => void }> = ({ onCreatePet }
               </Button>
             </HStack>
             {createPet.isError && (
-              <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.danger}>
+              <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.dangerText}>
                 {createPet.error?.message}
               </Text>
             )}
@@ -388,7 +388,7 @@ const OffchainMazeRun: React.FC<{ onCreatePet?: () => void }> = ({ onCreatePet }
               Start Race · 5 energy
             </Button>
             {startRace.isError && (
-              <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.danger}>
+              <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.dangerText}>
                 {startRace.error?.message}
               </Text>
             )}

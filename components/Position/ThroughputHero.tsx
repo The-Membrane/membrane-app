@@ -116,8 +116,13 @@ const VenueRow: React.FC<{ v: Venue }> = ({ v }) => {
         as="button"
         type="button"
         aria-expanded={open}
-        gridTemplateColumns="14px 1fr auto auto auto 16px"
-        gap="10px"
+        // Phone: the 76px share bar drops out (its column with it) so the row's
+        // min-content fits a 375px viewport instead of widening the whole card.
+        gridTemplateColumns={{
+          base: '14px minmax(7ch,1fr) auto auto 16px',
+          sm: '14px minmax(0,1fr) auto auto auto 16px',
+        }}
+        gap={{ base: SPACING.sm, sm: '10px' }}
         alignItems="baseline"
         w="100%"
         p="11px 10px"
@@ -133,10 +138,22 @@ const VenueRow: React.FC<{ v: Venue }> = ({ v }) => {
         _hover={{ '& .vn': { color: SEMANTIC_COLORS.success } }}
       >
         <Box as="span" display="inline-block" w="9px" h="9px" alignSelf="center" bg={CLASS_COLOR[v.cls]} />
-        <Box as="span" className="vn" transition={TRANSITIONS.colors}>
+        <Box
+          as="span"
+          className="vn"
+          minW={0}
+          overflowWrap="break-word"
+          transition={TRANSITIONS.colors}
+        >
           {v.nm}
         </Box>
-        <Box as="span" position="relative" w="76px" h="5px" alignSelf="center" bg="color-mix(in srgb, var(--m-text-primary) 7%, transparent)" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
+        <Box
+          as="span"
+          display={{ base: 'none', sm: 'block' }}
+          position="relative"
+          w="76px"
+          h="5px"
+          alignSelf="center" bg="color-mix(in srgb, var(--m-text-primary) 7%, transparent)" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
           <Box as="span" position="absolute" left={0} top={0} bottom={0} w={v.share} bg={CLASS_COLOR[v.cls]} />
         </Box>
         <Box as="span" fontSize="10.5px" color={SEMANTIC_COLORS.textSecondary}>
@@ -227,8 +244,11 @@ const BeltCanvas: React.FC = () => {
 /** Section 1 — throughput hero + belt + delivery feed. */
 export const ThroughputHero: React.FC = () => {
   return (
-    <Grid gridTemplateColumns={{ base: '1fr', lg: 'minmax(0,1.35fr) minmax(0,1fr)' }} gap={SPACING.base}>
-      <Card>
+    <Grid
+      gridTemplateColumns={{ base: 'minmax(0,1fr)', lg: 'minmax(0,1.35fr) minmax(0,1fr)' }}
+      gap={SPACING.base}
+    >
+      <Card minW={0}>
         <Eyebrow>
           01 / Throughput <MockStamp />
         </Eyebrow>
@@ -276,7 +296,7 @@ export const ThroughputHero: React.FC = () => {
         </HStack>
       </Card>
 
-      <Card>
+      <Card minW={0}>
         <Eyebrow>
           Belt deliveries <MockStamp />
         </Eyebrow>
@@ -284,7 +304,7 @@ export const ThroughputHero: React.FC = () => {
           {FEED.map((f, i) => (
             <Grid
               key={i}
-              gridTemplateColumns="auto 1fr auto"
+              gridTemplateColumns="auto minmax(0,1fr) auto"
               gap="10px"
               alignItems="baseline"
               py="9px"

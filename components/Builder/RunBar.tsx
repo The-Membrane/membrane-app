@@ -101,7 +101,7 @@ export const RunBar: React.FC<RunBarProps> = ({ scenarios, run, practice, maxRea
         <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.2em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
           Net made
         </Text>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="17px" {...tabular} color={netMade >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="17px" {...tabular} color={netMade >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}>
           {(netMade >= 0 ? '+' : '') + usd(netMade)}
         </Text>
       </Box>

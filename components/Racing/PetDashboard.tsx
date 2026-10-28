@@ -100,7 +100,7 @@ const PetDashboard: React.FC<{ pet: PetWithId; sessionLive: boolean }> = ({ pet,
             </Text>
           )}
           {feed.isError && (
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.danger} mt={SPACING.xs}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.dangerText} mt={SPACING.xs}>
               {(feed.error as Error)?.message ?? 'Feed failed'}
             </Text>
           )}

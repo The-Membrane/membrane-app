@@ -72,7 +72,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ seedId, scenarios, his
           <Text {...tabular} textAlign="right" color={r.floors >= total ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.warning}>
             {r.floors} / {total}
           </Text>
-          <Text {...tabular} textAlign="right" color={r.net >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}>
+          <Text {...tabular} textAlign="right" color={r.net >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.dangerText}>
             {(r.net >= 0 ? '+' : '') + usd(r.net)}
           </Text>
           <Text {...tabular} textAlign="right" color={SEMANTIC_COLORS.textTertiary} display={{ base: 'none', md: 'block' }}>

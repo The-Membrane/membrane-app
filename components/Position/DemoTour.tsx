@@ -81,7 +81,7 @@ export const DemoTour: React.FC = () => {
         cursor="pointer"
         p="2px 5px"
         transition={TRANSITIONS.colors}
-        _hover={{ color: SEMANTIC_COLORS.danger }}
+        _hover={{ color: SEMANTIC_COLORS.dangerText }}
         onClick={dismiss}
       >
         ×

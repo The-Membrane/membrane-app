@@ -76,7 +76,7 @@ const Risk = () => {
           <Text
             fontSize={TYPOGRAPHY.h3}
             fontWeight={TYPOGRAPHY.bold}
-            color={count > 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success}
+            color={count > 0 ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.success}
           >
             {count}
           </Text>

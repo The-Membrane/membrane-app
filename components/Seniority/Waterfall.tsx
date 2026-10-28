@@ -69,14 +69,16 @@ const StepCell: React.FC<{
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize={TYPOGRAPHY.body}
           fontWeight={TYPOGRAPHY.medium}
-          color={tone === 'danger' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}
+          color={tone === 'danger' ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textPrimary}
         >
           {step.label}
         </Text>
         {tag ? <Tag>{tag}</Tag> : null}
       </HStack>
 
-      <Eyebrow color={tone === 'danger' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary}>
+      <Eyebrow
+        color={tone === 'danger' ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.textSecondary}
+      >
         {step.who}
       </Eyebrow>
 

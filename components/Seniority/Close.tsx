@@ -90,7 +90,7 @@ export const Close: React.FC<{ initialDoc?: EvidenceDoc | null; num?: string }> 
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
             fontSize={TYPOGRAPHY.small}
-            color={SEMANTIC_COLORS.danger}
+            color={SEMANTIC_COLORS.dangerText}
           >
             Could not load the dataset ({error}). Nothing is rendered rather than showing invented
             numbers.

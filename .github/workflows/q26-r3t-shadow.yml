@@ -1,0 +1,154 @@
+# Q26-P1 R3T FORWARD SHADOW LOG -- membrane-datasets history-forecasts/p1-step2/REGISTRATION.md (sha256
+# 6d68e6c26bf93d79261870a279d0ed9e078670aa60fd2d8db1e5c17433d70ffa), section 6. Code registered at commit 38b433ef,
+# CODE-SHA256SUMS sha256 cc095f72bb0be4183a59e97fe071abede5f6b212788987dbe7370b2050e1736c.
+# RECORD-ONLY: once a day it appends the previous UTC day's inputs to a hash-chained store: the 24 hourly ETHUSDT and
+# BTCUSDT candles (OHLCV), hours present, the sha256 of each raw API payload, the last Aave V3 Ethereum Core USDC/USDT
+# ReserveDataUpdated <= day end (index and variable borrow rate), rate misses, the sha256 of each store file, the code
+# commit, and prev = sha256 of the previous record. It computes NO rule decision, sigma trigger, liquidation or outcome.
+# Nothing is shown to users and no alert is sent.
+#
+# T_REG GATE: the job does nothing before 2026-11-02T00:00Z (T_REG, REGISTRATION section 0). The first run on or after
+#   T_REG seeds the store from T_REG - 32 days (2026-10-01, the sigma seed) through the last complete UTC day. A missed
+#   day is backfilled by the next run from the same public history (section 6). If T_REG moves under the R9 validity
+#   rule, the pin and this gate move only by a dated board note.
+# OFF SWITCH: the job runs unless the repository variable R3T_SHADOW_ENABLED is exactly `false`. Disabling this
+#   workflow in the Actions tab also stops it. Turning it off loses no history (the next run backfills).
+# Code: membrane-app research/history-forecasts at the PINNED full commit R3T_APP_SHA. The runner refuses to log unless
+#   shadow_log.py and fetch_cf_rates.py are byte-identical to the registered code and the checkout is the pin.
+# Data: triccs/membrane-datasets (private), forecasts/q26-r3t-shadow/ only.
+# Credential: DATASETS_TOKEN (existing secret of the q26-datasets environment) reaches only the datasets checkout
+#   (persist-credentials: false) and the push (per-command extraheader through GIT_CONFIG_* variables, global and
+#   system git config ignored). The code step never receives it. Keyless public RPC endpoints and the keyless Binance
+#   data API only.
+# PUBLIC LOGS: the run's own output is written to a runner temp file and deleted; the log shows the exit status, line
+#   counts and whitelisted count-only lines. No artifacts.
+# A failed run commits nothing; the next run backfills the missing days.
+
+name: q26-r3t-shadow
+
+on:
+  schedule:
+    - cron: "37 0 * * *"   # daily 00:37Z, after 00:30Z for the previous day (off the :17/:47 touch-live and :23 runs)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: q26-r3t-shadow
+  cancel-in-progress: false
+
+env:
+  APP_REPO: The-Membrane/membrane-app
+  R3T_APP_SHA: e86cf7221fe7a54b7e56e3cac651a148fc94ddd8   # registered logger + runner (research/history-forecasts)
+  T_REG: "2026-11-02T00:00:00Z"
+  DATASETS_REPO: triccs/membrane-datasets
+  R3T_DIR: forecasts/q26-r3t-shadow
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  r3t:
+    if: ${{ !cancelled() && vars.R3T_SHADOW_ENABLED != 'false' && github.repository == 'The-Membrane/membrane-app' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 150   # the first run seeds 32 days (about 70 s per day on public endpoints)
+    environment: q26-datasets
+    steps:
+      - name: T_REG gate (no checkout, no credential before T_REG)
+        id: gate
+        run: |
+          if [ "$(date -u +%s)" -lt "$(date -u -d "$T_REG" +%s)" ]; then
+            echo "before T_REG $T_REG: nothing to do"; echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out membrane-datasets (main, sparse, R3T shadow store only)
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.DATASETS_REPO }}
+          token: ${{ secrets.DATASETS_TOKEN }}
+          ref: main
+          path: datasets
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /forecasts/q26-r3t-shadow/
+
+      - name: Record the datasets git config (checked again before the push)
+        if: steps.gate.outputs.go == 'true'
+        id: gitcfg
+        run: echo "sha256=$(sha256sum datasets/.git/config | cut -c1-64)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out membrane-app at the pinned commit
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.APP_REPO }}
+          ref: ${{ env.R3T_APP_SHA }}
+          path: app
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/research/history-forecasts
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7
+        if: steps.gate.outputs.go == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: R3T daily shadow log (standard library only, record-only)
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          set +x
+          out="$RUNNER_TEMP/q26-r3t.log"; rc=0
+          python -I app/scripts/research/history-forecasts/live/q26_r3t_shadow.py run \
+            --out datasets --expect-commit "$R3T_APP_SHA" >"$out" 2>&1 || rc=$?
+          # Public log: status and counts only. The run's own output is withheld and deleted.
+          echo "exit $rc; output withheld: $(wc -l <"$out") lines, Traceback $(grep -c '^Traceback' "$out" || true)"
+          grep -E '^r3t run: logged [0-9]{4}-[0-9]{2}-[0-9]{2}\.\.[0-9]{4}-[0-9]{2}-[0-9]{2}, [0-9]+ days, ETH hours [0-9]+/[0-9]+, BTC hours [0-9]+/[0-9]+, rate rows [0-9]+, rate misses [0-9]+$' "$out" || true
+          grep -E '^r3t run: none \(through [0-9]{4}-[0-9]{2}-[0-9]{2} already logged\)$' "$out" || true
+          grep -E '^r3t run: refused \(before T_REG [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z\)$' "$out" || true
+          grep -E '^r3t run: refused \(((shadow_log\.py|fetch_cf_rates\.py) differs from the registered code|r3t_shadow_SHA256SUMS differs from the registered hashes|checkout is not the pinned commit)\)$' "$out" || true
+          grep -E '^r3t checks: chain [0-9]+ records verified, code sums ok$' "$out" || true
+          rm -f "$out"
+          exit "$rc"
+
+      - name: Commit forecasts/q26-r3t-shadow/ and push to membrane-datasets main (pull --rebase, up to 3 retries)
+        if: steps.gate.outputs.go == 'true'
+        working-directory: datasets
+        env:
+          GITCFG_SHA256: ${{ steps.gitcfg.outputs.sha256 }}
+          DATASETS_TOKEN: ${{ secrets.DATASETS_TOKEN }}
+          GIT_CONFIG_GLOBAL: /dev/null   # as D12-A2: no global or system git config in the push step
+          GIT_CONFIG_NOSYSTEM: "1"
+        run: |
+          set +x
+          if [ "$(sha256sum .git/config | cut -c1-64)" != "$GITCFG_SHA256" ]; then
+            echo "datasets .git/config changed after checkout; not pushing"; exit 1
+          fi
+          git config user.name "q26-live-bot"
+          git config user.email "q26-live-bot@users.noreply.github.com"
+          git add -- "$R3T_DIR"
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -q -m "forecasts/q26-r3t-shadow: daily $(date -u +%Y-%m-%dT%H:%MZ) (Q26-P1 R3T forward shadow, record-only, app ${R3T_APP_SHA:0:7})" -- "$R3T_DIR"
+          echo "committed $(git show --name-only --format= HEAD | wc -l) file(s)"
+          auth="$(printf 'x-access-token:%s' "$DATASETS_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          unset DATASETS_TOKEN
+          # Per-command config: the header and a disabled hooks path (command-line precedence over .git/config).
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          export GIT_CONFIG_KEY_1="core.hooksPath" GIT_CONFIG_VALUE_1="/dev/null"
+          for attempt in 1 2 3 4; do   # the first try plus up to 3 retries
+            if git pull -q --rebase origin main && git push -q origin HEAD:main; then
+              echo "pushed on attempt $attempt"; exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 15))
+          done
+          echo "push failed after 3 retries"; exit 1

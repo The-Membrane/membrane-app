@@ -30,6 +30,7 @@ import { MarketsSheet } from './MarketsSheet'
 import { BorrowBoard } from './BorrowBoard'
 import { StressReplay, type StressDoc } from './StressReplay'
 import { VaultYields } from './VaultYields'
+import { UnwindCost } from './UnwindCost'
 import { CarryAtRates, CrashHistory, RulesCheck, WhatIfSimulator } from './XrayExtras'
 
 // Liquidation map + Position X-ray (board Q26-TERMINAL-MAP). Protocol-scoped blocks
@@ -591,6 +592,8 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null; stress?: StressDo
       <StressReplay doc={stress} />
 
       <VaultYields />
+
+      <UnwindCost />
 
       <Caveats
         items={[

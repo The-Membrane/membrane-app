@@ -421,3 +421,16 @@ describe('competitor vaults', async () => {
     expect(v.map((x) => `${x.name}:${x.version}`)).toEqual(['B:V2', 'A:V2'])
   })
 })
+
+describe('greedy unwind split', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  it('fills the deeper venue first and splits when the first saturates', async () => {
+    // venue A: constant product with reserves 100/100; venue B: 1000/1000
+    const cp = (r: number) => async (x: number) => (r * x) / (r + x)
+    const small = await M.greedySplit([cp(100), cp(1000)], 1, 10)
+    expect(small.shares[1]).toBeGreaterThan(0.8)
+    const big = await M.greedySplit([cp(100), cp(1000)], 400, 40)
+    expect(big.shares[0]).toBeGreaterThan(0)
+    expect(big.out).toBeGreaterThan(await cp(1000)(400)) // splitting beats one venue
+  })
+})

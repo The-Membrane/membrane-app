@@ -452,3 +452,25 @@ export function usableVaults(rows: VaultRow[], minTvlUsd = 10_000_000, limit = 1
   }
   return [...byName.values()].sort((a, b) => b.tvlUsd - a.tvlUsd).slice(0, limit)
 }
+
+/** A venue's total output for an input amount (units of the asset sold); must be monotone. */
+export type QuoteFn = (amountIn: number) => Promise<number>
+
+/**
+ * Greedy split of `total` across venues in `chunks` steps: each chunk goes to the venue whose
+ * marginal output is highest. Returns total output and the share sent to each venue.
+ */
+export async function greedySplit(venues: QuoteFn[], total: number, chunks = 20) {
+  const filled = venues.map(() => 0)
+  const outAt = venues.map(() => 0)
+  const step = total / chunks
+  for (let i = 0; i < chunks; i++) {
+    const next = await Promise.all(venues.map((q, v) => q(filled[v] + step).catch(() => -Infinity)))
+    let best = 0
+    for (let v = 1; v < venues.length; v++)
+      if (next[v] - outAt[v] > next[best] - outAt[best]) best = v
+    filled[best] += step
+    outAt[best] = next[best]
+  }
+  return { out: outAt.reduce((a, x) => a + x, 0), shares: filled.map((f) => f / total) }
+}

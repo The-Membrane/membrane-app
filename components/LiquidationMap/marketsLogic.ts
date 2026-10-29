@@ -174,3 +174,31 @@ export function kinkHeadroom(debt: number, available: number, opt: number) {
     withdrawalsToKink: opt > 0 ? Math.max(0, total - debt / opt) : null,
   }
 }
+
+/** Base asset an exchange-rate feed is quoted against, from its description. */
+export function feedBase(desc: string | null): string | null {
+  if (!desc) return null
+  const d = desc.toUpperCase()
+  if (d.includes('ETH')) return 'WETH'
+  if (d.includes('USDT')) return 'USDT'
+  if (d.includes('USDC')) return 'USDC'
+  if (d.includes('BTC')) return 'WBTC'
+  return null
+}
+
+/** Annualized log growth of price(asset)/price(base) over windowDays. */
+export function ratioYield(
+  now: number,
+  nowBase: number,
+  old: number,
+  oldBase: number,
+  windowDays: number,
+) {
+  if (!(now > 0 && nowBase > 0 && old > 0 && oldBase > 0)) return null
+  return (Math.log(now / nowBase / (old / oldBase)) * 365) / windowDays
+}
+
+/** Loop return on equity at leverage L (assets / equity): yield·L − borrow·(L − 1). */
+export function loopReturn(yieldApr: number, borrowApr: number, leverage: number) {
+  return yieldApr * leverage - borrowApr * (leverage - 1)
+}

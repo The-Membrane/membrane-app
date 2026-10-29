@@ -238,3 +238,17 @@ describe('what-if edge cases', async () => {
     expect(ratio.healthFactor!).toBeCloseTo(0.945, 9)
   })
 })
+
+describe('carry board helpers', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  it('feed base, ratio yield, loop return', () => {
+    expect(M.feedBase('Capped weETH / eETH(ETH) / USD')).toBe('WETH')
+    expect(M.feedBase('Capped sUSDe / USDT / USD')).toBe('USDT')
+    expect(M.feedBase('ETH / USD')).toBe('WETH')
+    expect(M.feedBase(null)).toBeNull()
+    const y = M.ratioYield(2100 * Math.exp(0.03 * (30 / 365)), 2000, 2100, 2000, 30)
+    expect(y!).toBeCloseTo(0.03, 9)
+    expect(M.ratioYield(0, 1, 1, 1, 30)).toBeNull()
+    expect(M.loopReturn(0.03, 0.02, 5)).toBeCloseTo(0.07, 12)
+  })
+})

@@ -28,7 +28,16 @@ type Row = {
   rateAt95: number | null
   borrowsToKinkUsd: number | null
 }
-type Doc = { readAt: string; block: number; rows: Row[] }
+type Carry = {
+  collateral: string
+  borrow: string
+  yieldApr: number
+  borrowApr: number
+  spread: number
+  at3x: number
+  at5x: number
+}
+type Doc = { readAt: string; block: number; rows: Row[]; carry?: Carry[]; carryWindowDays?: number }
 
 const pct = (v: number | null, dp = 1) => (v === null ? '—' : `${(v * 100).toFixed(dp)}%`)
 const age = (s: number | null) =>
@@ -159,6 +168,79 @@ export const MarketsSheet: React.FC = () => {
                 })}
               </Box>
             </Box>
+            {doc.carry && doc.carry.length ? (
+              <Box pt={SPACING.base}>
+                <Eyebrow>Loop carry today · yield minus borrow</Eyebrow>
+                <Box
+                  as="table"
+                  w="100%"
+                  mt={SPACING.sm}
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize={TYPOGRAPHY.xs}
+                >
+                  <Box as="thead">
+                    <Box as="tr" color={SEMANTIC_COLORS.textTertiary}>
+                      <Box {...th} textAlign="left">
+                        LOOP
+                      </Box>
+                      <Box {...th}>YIELD {doc.carryWindowDays}D</Box>
+                      <Box {...th}>BORROW</Box>
+                      <Box {...th}>SPREAD</Box>
+                      <Box {...th}>AT 3X</Box>
+                      <Box {...th}>AT 5X</Box>
+                    </Box>
+                  </Box>
+                  <Box as="tbody">
+                    {doc.carry.map((c) => (
+                      <Box
+                        as="tr"
+                        key={c.collateral}
+                        borderTop="1px solid"
+                        borderColor={SEMANTIC_COLORS.hairline}
+                        color={SEMANTIC_COLORS.textPrimary}
+                      >
+                        <Box as="td" py={SPACING.xs}>
+                          {c.collateral} / {c.borrow}
+                        </Box>
+                        <Box as="td" textAlign="right">
+                          {pct(c.yieldApr, 2)}
+                        </Box>
+                        <Box as="td" textAlign="right">
+                          {pct(c.borrowApr, 2)}
+                        </Box>
+                        <Box
+                          as="td"
+                          textAlign="right"
+                          color={
+                            c.spread < 0 ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.success
+                          }
+                        >
+                          {c.spread >= 0 ? '+' : ''}
+                          {pct(c.spread, 2)}
+                        </Box>
+                        <Box as="td" textAlign="right">
+                          {pct(c.at3x, 1)}
+                        </Box>
+                        <Box as="td" textAlign="right">
+                          {pct(c.at5x, 1)}
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize={TYPOGRAPHY.xs}
+                  color={SEMANTIC_COLORS.textTertiary}
+                  mt={SPACING.xs}
+                >
+                  Yield = {doc.carryWindowDays}-day growth of the collateral&apos;s oracle ratio to
+                  the borrowed asset, plus supply APR. Return on equity at 3x / 5x leverage before
+                  fees and swap costs. A negative spread means leverage lowers the return. Trailing,
+                  not a forecast.
+                </Text>
+              </Box>
+            ) : null}
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.xs}

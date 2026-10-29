@@ -1,10 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 import { isStable } from '@/components/LiquidationMap/xrayLogic'
-import { borrowRate, feedKind, kinkHeadroom } from '@/components/LiquidationMap/marketsLogic'
+import {
+  borrowRate,
+  feedBase,
+  feedKind,
+  kinkHeadroom,
+  loopReturn,
+  ratioYield,
+} from '@/components/LiquidationMap/marketsLogic'
 import {
   BINANCE_SYMBOL,
   readMarket,
+  readPastPrices,
   readReserveDetails,
   readSpot,
 } from '@/pages/api/_lib/aaveReads'
@@ -59,6 +67,46 @@ export default async function handler(_req: NextApiRequest, res: NextApiResponse
       ]
     })
     rows.sort((a, b) => b.suppliedUsd - a.suppliedUsd)
+
+    // Loop carry board: yield-bearing collateral (exchange-rate feeds) against its base asset's
+    // borrow rate. Yield = 30 d growth of the oracle ratio to the base (archive read).
+    const WINDOW_D = 30
+    let carry: unknown[] = []
+    try {
+      const past = await readPastPrices(m, WINDOW_D)
+      const bySym = new Map(m.reserves.map((r) => [r.symbol, r]))
+      carry = rows
+        .filter((row) => row.feedKind === 'exchange-rate (capped)')
+        .flatMap((row) => {
+          const r = bySym.get(row.symbol)
+          const base = bySym.get(feedBase(row.feed) ?? '')
+          if (!r || !base) return []
+          const y = ratioYield(
+            Number(r.price),
+            Number(base.price),
+            Number(past.get(r.asset) ?? 0n),
+            Number(past.get(base.asset) ?? 0n),
+            WINDOW_D,
+          )
+          if (y === null) return []
+          const yieldApr = y + r.supplyApr
+          return [
+            {
+              collateral: row.symbol,
+              borrow: base.symbol,
+              yieldApr,
+              borrowApr: base.borrowApr,
+              spread: yieldApr - base.borrowApr,
+              at3x: loopReturn(yieldApr, base.borrowApr, 3),
+              at5x: loopReturn(yieldApr, base.borrowApr, 5),
+              collateralSuppliedUsd: row.suppliedUsd,
+            },
+          ]
+        })
+        .sort((a, b) => b.collateralSuppliedUsd - a.collateralSuppliedUsd)
+    } catch {
+      carry = []
+    }
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120')
     return res.status(200).json({
       chain: 'ethereum',
@@ -67,6 +115,8 @@ export default async function handler(_req: NextApiRequest, res: NextApiResponse
       kind: 'measured',
       source: 'Aave V3 Ethereum Pool, AaveOracle, feeds and rate strategies; Binance spot',
       rows,
+      carry,
+      carryWindowDays: 30,
     })
   } catch {
     return res.status(502).json({ error: 'chain read failed' })

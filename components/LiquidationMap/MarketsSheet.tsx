@@ -37,6 +37,7 @@ type Carry = {
   at3x: number
   at5x: number
   pegGapPct: number | null
+  history: { weeks: number; median: number; negativeWeeks: number } | null
 }
 type Doc = { readAt: string; block: number; rows: Row[]; carry?: Carry[]; carryWindowDays?: number }
 
@@ -197,6 +198,8 @@ export const MarketsSheet: React.FC = () => {
                       <Box {...th}>AT 3X</Box>
                       <Box {...th}>AT 5X</Box>
                       <Box {...th}>MARKET VS ORACLE</Box>
+                      <Box {...th}>26W MEDIAN</Box>
+                      <Box {...th}>NEG WEEKS</Box>
                     </Box>
                   </Box>
                   <Box as="tbody">
@@ -236,6 +239,22 @@ export const MarketsSheet: React.FC = () => {
                         <Box as="td" textAlign="right" color={SEMANTIC_COLORS.textSecondary}>
                           {c.pegGapPct === null ? 'no deep pool' : pct(c.pegGapPct, 2)}
                         </Box>
+                        <Box as="td" textAlign="right">
+                          {c.history
+                            ? `${c.history.median >= 0 ? '+' : ''}${pct(c.history.median, 2)}`
+                            : '—'}
+                        </Box>
+                        <Box
+                          as="td"
+                          textAlign="right"
+                          color={
+                            c.history && c.history.negativeWeeks * 2 > c.history.weeks
+                              ? SEMANTIC_COLORS.dangerText
+                              : SEMANTIC_COLORS.textSecondary
+                          }
+                        >
+                          {c.history ? `${c.history.negativeWeeks} of ${c.history.weeks}` : '—'}
+                        </Box>
                       </Box>
                     ))}
                   </Box>
@@ -250,7 +269,8 @@ export const MarketsSheet: React.FC = () => {
                   the borrowed asset, plus supply APR. Return on equity at 3x / 5x leverage before
                   fees and swap costs. A negative spread means leverage lowers the return. Market vs
                   oracle = the deepest Uniswap V3 pool&apos;s price over the oracle exchange rate;
-                  thin pools are not used. Trailing, not a forecast.
+                  thin pools are not used. 26W = weekly spreads over 26 weeks (archive reads).
+                  Trailing, not a forecast.
                 </Text>
               </Box>
             ) : null}

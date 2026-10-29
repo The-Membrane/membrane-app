@@ -393,3 +393,17 @@ describe('peg monitor', async () => {
     expect(M.pegGap([{ fee: 100, liquidity: 0, lstInBase: 1 }], 1.08)).toBeNull()
   })
 })
+
+describe('spread history stats', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  it('median, negatives, range', () => {
+    expect(M.spreadStats([])).toBeNull()
+    expect(M.spreadStats([0.003, -0.01, 0.004, 0.002, -0.001])).toEqual({
+      weeks: 5,
+      median: 0.002,
+      negativeWeeks: 2,
+      min: -0.01,
+      max: 0.004,
+    })
+  })
+})

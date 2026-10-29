@@ -416,3 +416,16 @@ export function pegGap(pools: PoolRead[], oracleRatio: number, minLiquidity = 1e
   if (!deep || !(oracleRatio > 0)) return null
   return { fee: deep.fee, marketRatio: deep.lstInBase, gapPct: deep.lstInBase / oracleRatio - 1 }
 }
+
+/** Median, negative count and range of a spread series (weekly points). */
+export function spreadStats(spreads: number[]) {
+  if (!spreads.length) return null
+  const s = [...spreads].sort((a, b) => a - b)
+  return {
+    weeks: spreads.length,
+    median: s[Math.floor(s.length / 2)],
+    negativeWeeks: spreads.filter((x) => x < 0).length,
+    min: s[0],
+    max: s[s.length - 1],
+  }
+}

@@ -395,3 +395,54 @@ export async function readUniPools(asset: Address, base: Address, c: PublicClien
   )
   return out
 }
+
+const spreadCache = new Map<string, { at: number; spreads: number[] }>()
+
+/**
+ * Weekly loop spread history (archive reads, cached 6 h): for each of `weeks`+1 weekly points,
+ * the 30-day oracle-ratio yield of `asset` vs `base` minus `base`'s borrow rate at that block.
+ */
+export async function readSpreadHistory(m: Market, asset: Address, base: Address, weeks = 26) {
+  const key = `${m.pool}:${asset}:${base}:${weeks}`
+  const hit = spreadCache.get(key)
+  if (hit && Date.now() - hit.at < 6 * 3_600_000) return hit.spreads
+  const c = getArchiveClient()
+  const perDay = 7200n
+  const spreads: number[] = []
+  for (let w = weeks; w >= 0; w--) {
+    const b = m.block - BigInt(w * 7) * perDay
+    const b30 = b - 30n * perDay
+    try {
+      const [p1, p0, rd] = await Promise.all([
+        c.readContract({
+          address: m.oracle,
+          abi: ORACLE_ABI,
+          functionName: 'getAssetsPrices',
+          args: [[asset, base]],
+          blockNumber: b,
+        }),
+        c.readContract({
+          address: m.oracle,
+          abi: ORACLE_ABI,
+          functionName: 'getAssetsPrices',
+          args: [[asset, base]],
+          blockNumber: b30,
+        }),
+        c.readContract({
+          address: m.pool,
+          abi: POOL_ABI,
+          functionName: 'getReserveData',
+          args: [base],
+          blockNumber: b,
+        }),
+      ])
+      const y =
+        (Math.log(Number(p1[0]) / Number(p1[1]) / (Number(p0[0]) / Number(p0[1]))) * 365) / 30
+      spreads.push(y - Number(rd[4]) / 1e27)
+    } catch {
+      /* a missing week is skipped, not filled */
+    }
+  }
+  spreadCache.set(key, { at: Date.now(), spreads })
+  return spreads
+}

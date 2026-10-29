@@ -9,6 +9,7 @@ import {
   loopReturn,
   pegGap,
   ratioYield,
+  spreadStats,
 } from '@/components/LiquidationMap/marketsLogic'
 import {
   BINANCE_SYMBOL,
@@ -16,6 +17,7 @@ import {
   readPastPrices,
   readUniPools,
   readReserveDetails,
+  readSpreadHistory,
   readSpot,
 } from '@/pages/api/_lib/aaveReads'
 
@@ -116,6 +118,7 @@ export default async function handler(_req: NextApiRequest, res: NextApiResponse
               at5x: loopReturn(yieldApr, base.borrowApr, 5),
               collateralSuppliedUsd: row.suppliedUsd,
               pegGapPct: peg?.gapPct ?? null,
+              history: spreadStats(await readSpreadHistory(m, r.asset, base.asset).catch(() => [])),
               pegPoolFee: peg?.fee ?? null,
             },
           ]

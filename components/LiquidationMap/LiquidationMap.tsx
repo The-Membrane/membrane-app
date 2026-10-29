@@ -28,6 +28,7 @@ import { BAND_NAMES } from './xrayLogic'
 import type { Breaches } from './marketsLogic'
 import { MarketsSheet } from './MarketsSheet'
 import { BorrowBoard } from './BorrowBoard'
+import { StressReplay, type StressDoc } from './StressReplay'
 import { CarryAtRates, CrashHistory, RulesCheck, WhatIfSimulator } from './XrayExtras'
 
 // Liquidation map + Position X-ray (board Q26-TERMINAL-MAP). Protocol-scoped blocks
@@ -168,7 +169,10 @@ const BandChart: React.FC<{ bands: Record<Layer, number[]>; layers: Layer[] }> =
   )
 }
 
-export const LiquidationMap: React.FC<{ doc: LayersDoc | null }> = ({ doc }) => {
+export const LiquidationMap: React.FC<{ doc: LayersDoc | null; stress?: StressDoc | null }> = ({
+  doc,
+  stress = null,
+}) => {
   const { isDemo, address } = useDemoMode()
   const [view, setView] = useState<'all' | Layer>('price')
   const [chain, setChain] = useState<string>('all')
@@ -580,6 +584,8 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null }> = ({ doc }) => 
       <MarketsSheet />
 
       <BorrowBoard />
+
+      <StressReplay doc={stress} />
 
       <Caveats
         items={[

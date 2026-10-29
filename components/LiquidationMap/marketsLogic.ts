@@ -202,3 +202,83 @@ export function ratioYield(
 export function loopReturn(yieldApr: number, borrowApr: number, leverage: number) {
   return yieldApr * leverage - borrowApr * (leverage - 1)
 }
+
+/** Compound v3 per-second rate (1e18) → APR. */
+export function cometApr(perSecond: bigint): number {
+  return (Number(perSecond) * 31_536_000) / 1e18
+}
+
+export type VenueQuote = {
+  asset: string
+  venue: string
+  borrowApr: number
+  availableUsd: number
+  utilization: number | null
+}
+
+/** Quotes grouped by asset, cheapest first; `spread` = this venue minus the cheapest. */
+export function rankQuotes(quotes: VenueQuote[]) {
+  const by = new Map<string, VenueQuote[]>()
+  for (const q of quotes) by.set(q.asset, [...(by.get(q.asset) ?? []), q])
+  return [...by.entries()].map(([asset, qs]) => {
+    const sorted = [...qs].sort((a, b) => a.borrowApr - b.borrowApr)
+    const best = sorted[0].borrowApr
+    return { asset, quotes: sorted.map((q) => ({ ...q, spread: q.borrowApr - best })) }
+  })
+}
+
+export type HourBar = { t: number; open: number; high: number; low: number; close: number }
+
+export type ReplayOutcome = {
+  aave: { liquidated: boolean; hour: number | null }
+  membrane: {
+    outcome: 'survived' | 'immediate' | 'timer'
+    hour: number | null
+    timerStartHour: number | null
+  }
+}
+
+/**
+ * Replays one crash window on a fixed liquidation line under two rule sets (no user action):
+ *  - Aave: liquidated at the first hour whose LOW touches the line (near-spot oracle).
+ *  - Membrane (LiquidationEngine at 70f965e): a 1 h average price (proxy: the hour's OHLC
+ *    mean); at or below line / (1 + band) → immediate; at or below the line → an 8 h timer
+ *    starts; at or below the line again in hours 8–16 of the timer → liquidated; at 16 h a
+ *    stale timer lapses. Timer clearing by a keeper is not assumed.
+ * Hours are counted from the first bar.
+ */
+export function replayCrash(
+  bars: HourBar[],
+  line: number,
+  band = 0.04,
+  timerH = 8,
+  lapseH = 16,
+): ReplayOutcome {
+  const aaveHour = bars.findIndex((b) => b.low <= line)
+  let timer: number | null = null
+  let firstTimer: number | null = null
+  let mem: ReplayOutcome['membrane'] = { outcome: 'survived', hour: null, timerStartHour: null }
+  for (let h = 0; h < bars.length; h++) {
+    const b = bars[h]
+    const twap = (b.open + b.high + b.low + b.close) / 4
+    if (twap <= line / (1 + band)) {
+      mem = { outcome: 'immediate', hour: h, timerStartHour: firstTimer }
+      break
+    }
+    if (timer !== null && h - timer >= lapseH) timer = null
+    if (twap <= line) {
+      if (timer === null) {
+        timer = h
+        firstTimer ??= h
+      } else if (h - timer >= timerH) {
+        mem = { outcome: 'timer', hour: h, timerStartHour: timer }
+        break
+      }
+    }
+  }
+  if (mem.outcome === 'survived') mem = { ...mem, timerStartHour: firstTimer }
+  return {
+    aave: { liquidated: aaveHour >= 0, hour: aaveHour >= 0 ? aaveHour : null },
+    membrane: mem,
+  }
+}

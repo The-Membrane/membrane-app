@@ -3,7 +3,7 @@ import { isAddress, type Address } from 'viem'
 
 import { effectiveLt, isStable, xrayMetrics } from '@/components/LiquidationMap/xrayLogic'
 import { sameBand } from '@/components/LiquidationMap/liqmapLogic'
-import { carryGap, historyBreaches } from '@/components/LiquidationMap/marketsLogic'
+import { carryGap, historyBreaches, replayCrash } from '@/components/LiquidationMap/marketsLogic'
 import {
   BINANCE_SYMBOL,
   ERC20_ABI,
@@ -11,6 +11,7 @@ import {
   POOL_ABI,
   getClient,
   readDailyBars,
+  readHourBars,
   readLayers,
   readMarket,
   readPastPrices,
@@ -101,9 +102,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         const bars = await readDailyBars(sym)
         if (bars.length > 60) {
+          const h = historyBreaches(bars, x.distance, [1, 7, 30], 5)
+          // Replay the worst distinct 7-day crashes that crossed this distance, opening the
+          // same position (same distance) at the close before each crash.
+          const d = x.distance
+          const events = h['7d'].worst.filter((e) => e.drop >= d)
+          const replays = await Promise.all(
+            events.map(async (e) => {
+              const start = Date.parse(e.start) - 86_400_000
+              const prior = bars.find((b) => b.t === start)
+              if (!prior) return null
+              const hours = await readHourBars(sym, start + 86_400_000, 8 * 24)
+              const r = replayCrash(hours, prior.close * (1 - d))
+              return { start: e.start, drop: e.drop, ...r }
+            }),
+          )
           history = {
             source: `Binance ${sym} 1d since ${new Date(bars[0].t).toISOString().slice(0, 10)}`,
-            ...historyBreaches(bars, x.distance),
+            '1d': { ...h['1d'], worst: h['1d'].worst.slice(0, 3) },
+            '7d': { ...h['7d'], worst: h['7d'].worst.slice(0, 3) },
+            '30d': { ...h['30d'], worst: h['30d'].worst.slice(0, 3) },
+            replays: replays.filter(Boolean),
           }
         }
       } catch {

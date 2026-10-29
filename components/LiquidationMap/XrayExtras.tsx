@@ -17,12 +17,33 @@ import type { XrayReserve } from './xrayLogic'
 
 const pct = (v: number | null, dp = 1) => (v === null ? '—' : `${(v * 100).toFixed(dp)}%`)
 
+type Replay = {
+  start: string
+  drop: number
+  aave: { liquidated: boolean; hour: number | null }
+  membrane: {
+    outcome: 'survived' | 'immediate' | 'timer'
+    hour: number | null
+    timerStartHour: number | null
+  }
+}
+
+const memLabel = (m: Replay['membrane']) =>
+  m.outcome === 'survived'
+    ? m.timerStartHour === null
+      ? 'not reached'
+      : `timer h${m.timerStartHour}, survived`
+    : m.outcome === 'immediate'
+      ? `immediate h${m.hour}${m.timerStartHour !== null ? ` (timer h${m.timerStartHour})` : ''}`
+      : `timer h${m.timerStartHour} → h${m.hour}`
+
 export const CrashHistory: React.FC<{
-  history: (Breaches & { source: string }) | null
+  history: (Breaches & { source: string; replays?: Replay[] }) | null
   distance: number | null
 }> = ({ history, distance }) => {
   if (!history || distance === null) return null
   const w = ['1d', '7d', '30d'].filter((k) => history[k])
+  const replays = history.replays ?? []
   return (
     <VStack align="stretch" spacing={SPACING.sm}>
       <Eyebrow>Past moves that would have crossed {pct(distance)}</Eyebrow>
@@ -45,6 +66,92 @@ export const CrashHistory: React.FC<{
         Every day starts one window, so windows overlap. A count of history, not a probability ·{' '}
         {history.source}
       </Text>
+      {replays.length ? (
+        <Box pt={SPACING.sm}>
+          <Eyebrow>Replay: this position in past crashes, Aave vs Membrane rules</Eyebrow>
+          <Box
+            as="table"
+            w="100%"
+            mt={SPACING.xs}
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.xs}
+          >
+            <Box as="thead">
+              <Box as="tr" color={SEMANTIC_COLORS.textTertiary}>
+                <Box as="th" textAlign="left" fontWeight="normal" py={SPACING.xs}>
+                  CRASH
+                </Box>
+                <Box as="th" textAlign="right" fontWeight="normal">
+                  7D DROP
+                </Box>
+                <Box as="th" textAlign="right" fontWeight="normal">
+                  AAVE
+                </Box>
+                <Box as="th" textAlign="right" fontWeight="normal">
+                  MEMBRANE
+                </Box>
+                <Box as="th" textAlign="right" fontWeight="normal">
+                  EXTRA TIME
+                </Box>
+              </Box>
+            </Box>
+            <Box as="tbody">
+              {replays.map((r) => {
+                const memHour = r.membrane.outcome === 'survived' ? null : r.membrane.hour
+                const extra =
+                  r.aave.hour === null
+                    ? '—'
+                    : memHour === null
+                      ? 'not liquidated'
+                      : `${memHour - r.aave.hour >= 0 ? '+' : ''}${memHour - r.aave.hour} h`
+                return (
+                  <Box
+                    as="tr"
+                    key={r.start}
+                    borderTop="1px solid"
+                    borderColor={SEMANTIC_COLORS.hairline}
+                    color={SEMANTIC_COLORS.textPrimary}
+                  >
+                    <Box as="td" py={SPACING.xs}>
+                      {r.start}
+                    </Box>
+                    <Box as="td" textAlign="right">
+                      {pct(r.drop, 0)}
+                    </Box>
+                    <Box as="td" textAlign="right">
+                      {r.aave.liquidated ? `liquidated h${r.aave.hour}` : 'not reached'}
+                    </Box>
+                    <Box as="td" textAlign="right">
+                      {memLabel(r.membrane)}
+                    </Box>
+                    <Box
+                      as="td"
+                      textAlign="right"
+                      color={
+                        extra.startsWith('-') ? SEMANTIC_COLORS.dangerText : SEMANTIC_COLORS.success
+                      }
+                    >
+                      {extra}
+                    </Box>
+                  </Box>
+                )
+              })}
+            </Box>
+          </Box>
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.xs}
+            color={SEMANTIC_COLORS.textTertiary}
+            mt={SPACING.xs}
+          >
+            Same distance, opened at the close before each crash, no action taken. Aave: first
+            hourly low at the line (near-spot oracle). Membrane (LiquidationEngine rules): 1-hour
+            average price (proxy: hourly OHLC mean); below line/1.04 immediate; at the line an 8 h
+            timer, liquidated on a re-dip in hours 8–16; no keeper clearing assumed. Extra time =
+            hours Membrane gives before liquidation. Binance 1 h bars; history, not a forecast.
+          </Text>
+        </Box>
+      ) : null}
     </VStack>
   )
 }

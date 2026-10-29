@@ -27,6 +27,7 @@ import { LAYERS, layerBands, topAssets, usd2, type Layer, type LayersDoc } from 
 import { BAND_NAMES } from './xrayLogic'
 import type { Breaches } from './marketsLogic'
 import { MarketsSheet } from './MarketsSheet'
+import { BorrowBoard } from './BorrowBoard'
 import { CarryAtRates, CrashHistory, WhatIfSimulator } from './XrayExtras'
 
 // Liquidation map + Position X-ray (board Q26-TERMINAL-MAP). Protocol-scoped blocks
@@ -572,6 +573,8 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null }> = ({ doc }) => 
       </VStack>
 
       <MarketsSheet />
+
+      <BorrowBoard />
 
       <Caveats
         items={[

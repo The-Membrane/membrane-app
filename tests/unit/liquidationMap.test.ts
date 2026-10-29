@@ -252,3 +252,49 @@ describe('carry board helpers', async () => {
     expect(M.loopReturn(0.03, 0.02, 5)).toBeCloseTo(0.07, 12)
   })
 })
+
+describe('cross-venue borrow board', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  it('comet APR and ranking', () => {
+    expect(M.cometApr(1_000_000_000n)).toBeCloseTo(0.031536, 9)
+    const r = M.rankQuotes([
+      { asset: 'USDT', venue: 'Compound', borrowApr: 0.091, availableUsd: 1, utilization: 0.91 },
+      { asset: 'USDT', venue: 'Aave', borrowApr: 0.053, availableUsd: 1, utilization: 0.93 },
+      { asset: 'WETH', venue: 'Aave', borrowApr: 0.019, availableUsd: 1, utilization: 0.8 },
+    ])
+    const usdt = r.find((x) => x.asset === 'USDT')!
+    expect(usdt.quotes[0].venue).toBe('Aave')
+    expect(usdt.quotes[1].spread).toBeCloseTo(0.038, 9)
+  })
+})
+
+describe('crash replay: Aave vs Membrane rules', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  const bar = (p: number, low = p) => ({ t: 0, open: p, high: p, low, close: p })
+
+  it('a wick through the line liquidates on Aave but not under the 1 h average + timer', () => {
+    const bars = [bar(100), bar(100, 89), bar(100), bar(100)] // one-hour wick to 89, line 90
+    const r = M.replayCrash(bars, 90)
+    expect(r.aave).toEqual({ liquidated: true, hour: 1 })
+    expect(r.membrane.outcome).toBe('survived')
+    expect(r.membrane.timerStartHour).toBeNull()
+  })
+
+  it('a deep average below line/1.04 is immediate', () => {
+    const r = M.replayCrash([bar(100), bar(86)], 90)
+    expect(r.membrane).toMatchObject({ outcome: 'immediate', hour: 1 })
+  })
+
+  it('timer starts at the line and liquidates on a re-dip in hours 8-16', () => {
+    const bars = [bar(89.5), ...Array.from({ length: 7 }, () => bar(95)), bar(89.5)]
+    const r = M.replayCrash(bars, 90)
+    expect(r.membrane).toMatchObject({ outcome: 'timer', hour: 8, timerStartHour: 0 })
+  })
+
+  it('recovery before hour 8 and no re-dip in 8-16: survives; a stale timer lapses at 16 h', () => {
+    const bars = [bar(89.5), ...Array.from({ length: 20 }, () => bar(95)), bar(89.5)]
+    const r = M.replayCrash(bars, 90)
+    expect(r.membrane.outcome).toBe('survived')
+    expect(r.membrane.timerStartHour).toBe(0)
+  })
+})

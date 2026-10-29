@@ -56,7 +56,13 @@ export type MarketReserve = {
   supplyApr: number
   borrowApr: number
 }
-export type Market = { block: bigint; at: number; oracle: Address; reserves: MarketReserve[] }
+export type Market = {
+  pool: Address
+  block: bigint
+  at: number
+  oracle: Address
+  reserves: MarketReserve[]
+}
 
 let client: PublicClient | null = null
 export function getClient(): PublicClient {
@@ -91,21 +97,28 @@ function getArchiveClient(): PublicClient {
   return archive
 }
 
-let market: Market | null = null
+// SparkLend Pool on Ethereum (an Aave V3 fork with the same Pool interface).
+export const SPARK_POOL = '0xC13e21B648A5Ee794902342038FF3aDAB66BE987' as Address
+
+const markets = new Map<Address, Market>()
 const MARKET_TTL_MS = 60_000
 
-export async function readMarket(c: PublicClient = getClient()): Promise<Market> {
+export async function readMarket(
+  c: PublicClient = getClient(),
+  pool: Address = POOL,
+): Promise<Market> {
+  const market = markets.get(pool)
   if (market && Date.now() - market.at < MARKET_TTL_MS) return market
   const block = await c.getBlockNumber()
   const [list, provider] = await Promise.all([
     c.readContract({
-      address: POOL,
+      address: pool,
       abi: POOL_ABI,
       functionName: 'getReservesList',
       blockNumber: block,
     }),
     c.readContract({
-      address: POOL,
+      address: pool,
       abi: POOL_ABI,
       functionName: 'ADDRESSES_PROVIDER',
       blockNumber: block,
@@ -121,7 +134,7 @@ export async function readMarket(c: PublicClient = getClient()): Promise<Market>
     c.multicall({
       contracts: list.map(
         (a) =>
-          ({ address: POOL, abi: POOL_ABI, functionName: 'getReserveData', args: [a] }) as const,
+          ({ address: pool, abi: POOL_ABI, functionName: 'getReserveData', args: [a] }) as const,
       ),
       blockNumber: block,
     }),
@@ -163,8 +176,9 @@ export async function readMarket(c: PublicClient = getClient()): Promise<Market>
       },
     ]
   })
-  market = { block, at: Date.now(), oracle, reserves }
-  return market
+  const fresh = { pool, block, at: Date.now(), oracle, reserves }
+  markets.set(pool, fresh)
+  return fresh
 }
 
 /** Oracle prices about `days` ago (archive read). Keyed by asset. */
@@ -190,10 +204,11 @@ export type ReserveDetail = {
   rate: RateParams | null
 }
 
-let details: { at: number; block: bigint; byAsset: Map<Address, ReserveDetail> } | null = null
+const detailCache = new Map<Address, { block: bigint; byAsset: Map<Address, ReserveDetail> }>()
 
 export async function readReserveDetails(m: Market, c: PublicClient = getClient()) {
-  if (details && details.block === m.block) return details.byAsset
+  const hit = detailCache.get(m.pool)
+  if (hit && hit.block === m.block) return hit.byAsset
   const R = m.reserves
   const src = await c.multicall({
     contracts: R.map(
@@ -247,7 +262,7 @@ export async function readReserveDetails(m: Market, c: PublicClient = getClient(
         : null,
     })
   })
-  details = { at: Date.now(), block: m.block, byAsset }
+  detailCache.set(m.pool, { block: m.block, byAsset })
   return byAsset
 }
 
@@ -320,4 +335,20 @@ export function readLayers(): LayersDoc | null {
     layers = null
   }
   return layers
+}
+
+/** Binance 1 h bars from startMs, `hours` long (one request, ≤ 1000). */
+export async function readHourBars(symbol: string, startMs: number, hours: number) {
+  const r = await fetch(
+    `${BINANCE}/klines?symbol=${symbol}&interval=1h&startTime=${startMs}&limit=${Math.min(1000, hours)}`,
+  )
+  if (!r.ok) throw new Error('klines failed')
+  const data = (await r.json()) as (string | number)[][]
+  return data.map((k) => ({
+    t: Number(k[0]),
+    open: Number(k[1]),
+    high: Number(k[2]),
+    low: Number(k[3]),
+    close: Number(k[4]),
+  }))
 }

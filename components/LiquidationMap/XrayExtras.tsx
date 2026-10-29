@@ -146,9 +146,10 @@ export const CrashHistory: React.FC<{
           >
             Same distance, opened at the close before each crash, no action taken. Aave: first
             hourly low at the line (near-spot oracle). Membrane (LiquidationEngine rules): 1-hour
-            average price (proxy: hourly OHLC mean); below line/1.04 immediate; at the line an 8 h
-            timer, liquidated on a re-dip in hours 8–16; no keeper clearing assumed. Extra time =
-            hours Membrane gives before liquidation. Binance 1 h bars; history, not a forecast.
+            average price (proxy: hourly OHLC mean; within 4 h of a 1-minute geometric average on
+            five BTC crashes); below line/1.04 immediate; at the line an 8 h timer, liquidated on a
+            re-dip in hours 8–16; no keeper clearing assumed. Extra time = hours Membrane gives
+            before liquidation. Binance 1 h bars; history, not a forecast.
           </Text>
         </Box>
       ) : null}

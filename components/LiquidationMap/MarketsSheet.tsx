@@ -36,6 +36,7 @@ type Carry = {
   spread: number
   at3x: number
   at5x: number
+  pegGapPct: number | null
 }
 type Doc = { readAt: string; block: number; rows: Row[]; carry?: Carry[]; carryWindowDays?: number }
 
@@ -195,6 +196,7 @@ export const MarketsSheet: React.FC = () => {
                       <Box {...th}>SPREAD</Box>
                       <Box {...th}>AT 3X</Box>
                       <Box {...th}>AT 5X</Box>
+                      <Box {...th}>MARKET VS ORACLE</Box>
                     </Box>
                   </Box>
                   <Box as="tbody">
@@ -231,6 +233,9 @@ export const MarketsSheet: React.FC = () => {
                         <Box as="td" textAlign="right">
                           {pct(c.at5x, 1)}
                         </Box>
+                        <Box as="td" textAlign="right" color={SEMANTIC_COLORS.textSecondary}>
+                          {c.pegGapPct === null ? 'no deep pool' : pct(c.pegGapPct, 2)}
+                        </Box>
                       </Box>
                     ))}
                   </Box>
@@ -243,8 +248,9 @@ export const MarketsSheet: React.FC = () => {
                 >
                   Yield = {doc.carryWindowDays}-day growth of the collateral&apos;s oracle ratio to
                   the borrowed asset, plus supply APR. Return on equity at 3x / 5x leverage before
-                  fees and swap costs. A negative spread means leverage lowers the return. Trailing,
-                  not a forecast.
+                  fees and swap costs. A negative spread means leverage lowers the return. Market vs
+                  oracle = the deepest Uniswap V3 pool&apos;s price over the oracle exchange rate;
+                  thin pools are not used. Trailing, not a forecast.
                 </Text>
               </Box>
             ) : null}

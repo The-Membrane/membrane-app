@@ -7,12 +7,14 @@ import {
   feedKind,
   kinkHeadroom,
   loopReturn,
+  pegGap,
   ratioYield,
 } from '@/components/LiquidationMap/marketsLogic'
 import {
   BINANCE_SYMBOL,
   readMarket,
   readPastPrices,
+  readUniPools,
   readReserveDetails,
   readSpot,
 } from '@/pages/api/_lib/aaveReads'
@@ -75,9 +77,9 @@ export default async function handler(_req: NextApiRequest, res: NextApiResponse
     try {
       const past = await readPastPrices(m, WINDOW_D)
       const bySym = new Map(m.reserves.map((r) => [r.symbol, r]))
-      carry = rows
+      const carryRows = rows
         .filter((row) => row.feedKind === 'exchange-rate (capped)')
-        .flatMap((row) => {
+        .map(async (row) => {
           const r = bySym.get(row.symbol)
           const base = bySym.get(feedBase(row.feed) ?? '')
           if (!r || !base) return []
@@ -90,6 +92,19 @@ export default async function handler(_req: NextApiRequest, res: NextApiResponse
           )
           if (y === null) return []
           const yieldApr = y + r.supplyApr
+          // Market vs oracle: the deepest Uniswap V3 pool against the base (WETH or WBTC pairs only;
+          // all assets here use 18 decimals except WBTC, so BTC pairs are skipped).
+          let peg: ReturnType<typeof pegGap> = null
+          if (base.symbol === 'WETH') {
+            try {
+              peg = pegGap(
+                await readUniPools(r.asset, base.asset),
+                Number(r.price) / Number(base.price),
+              )
+            } catch {
+              peg = null
+            }
+          }
           return [
             {
               collateral: row.symbol,
@@ -100,9 +115,13 @@ export default async function handler(_req: NextApiRequest, res: NextApiResponse
               at3x: loopReturn(yieldApr, base.borrowApr, 3),
               at5x: loopReturn(yieldApr, base.borrowApr, 5),
               collateralSuppliedUsd: row.suppliedUsd,
+              pegGapPct: peg?.gapPct ?? null,
+              pegPoolFee: peg?.fee ?? null,
             },
           ]
         })
+      carry = (await Promise.all(carryRows))
+        .flat()
         .sort((a, b) => b.collateralSuppliedUsd - a.collateralSuppliedUsd)
     } catch {
       carry = []

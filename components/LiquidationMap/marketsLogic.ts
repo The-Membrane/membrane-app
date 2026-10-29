@@ -397,3 +397,22 @@ export function debtChangeForDistance(
   }
   return debt * (lo - 1)
 }
+
+/** Uniswap V3 sqrtPriceX96 → price of token0 in token1 (both 18 decimals). */
+export function sqrtToPrice(sqrtPriceX96: bigint): number {
+  return (Number(sqrtPriceX96) / 2 ** 96) ** 2
+}
+
+export type PoolRead = { fee: number; liquidity: number; lstInBase: number }
+
+/**
+ * Market-vs-oracle gap from the deepest pool. Pools with in-range liquidity below minLiquidity
+ * return junk prices (an empty osETH pool reads −6.9 %), so they are not used.
+ */
+export function pegGap(pools: PoolRead[], oracleRatio: number, minLiquidity = 1e21) {
+  const deep = pools
+    .filter((p) => p.liquidity >= minLiquidity)
+    .sort((a, b) => b.liquidity - a.liquidity)[0]
+  if (!deep || !(oracleRatio > 0)) return null
+  return { fee: deep.fee, marketRatio: deep.lstInBase, gapPct: deep.lstInBase / oracleRatio - 1 }
+}

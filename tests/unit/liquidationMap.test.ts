@@ -375,3 +375,21 @@ describe('safe borrow size', async () => {
     expect(M.debtChangeForDistance(pos, 0.0)!).toBeCloseTo(1000, 3)
   })
 })
+
+describe('peg monitor', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  it('uses the deepest pool and ignores empty ones', () => {
+    expect(M.sqrtToPrice(2n ** 96n)).toBe(1)
+    const g = M.pegGap(
+      [
+        { fee: 100, liquidity: 0, lstInBase: 1.0076 },
+        { fee: 500, liquidity: 2.25e24, lstInBase: 1.10617 },
+        { fee: 3000, liquidity: 2.4e14, lstInBase: 1.097 },
+      ],
+      1.10677,
+    )
+    expect(g!.fee).toBe(500)
+    expect(g!.gapPct).toBeCloseTo(1.10617 / 1.10677 - 1, 12)
+    expect(M.pegGap([{ fee: 100, liquidity: 0, lstInBase: 1 }], 1.08)).toBeNull()
+  })
+})

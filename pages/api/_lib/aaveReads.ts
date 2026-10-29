@@ -352,3 +352,46 @@ export async function readHourBars(symbol: string, startMs: number, hours: numbe
     close: Number(k[4]),
   }))
 }
+
+const UNIV3_FACTORY = '0x1F98431c8aD98523631AE4a59f267346ea31F984' as Address
+const FACTORY_ABI = parseAbi(['function getPool(address,address,uint24) view returns (address)'])
+const POOL_V3_ABI = parseAbi([
+  'function slot0() view returns (uint160,int24,uint16,uint16,uint16,uint8,bool)',
+  'function token0() view returns (address)',
+  'function liquidity() view returns (uint128)',
+])
+const ZERO = '0x0000000000000000000000000000000000000000'
+
+/** Uniswap V3 pools of asset/base at the 0.01, 0.05 and 0.3 % tiers: in-range liquidity and price of asset in base. */
+export async function readUniPools(asset: Address, base: Address, c: PublicClient = getClient()) {
+  const fees = [100, 500, 3000]
+  const pools = await Promise.all(
+    fees.map((f) =>
+      c.readContract({
+        address: UNIV3_FACTORY,
+        abi: FACTORY_ABI,
+        functionName: 'getPool',
+        args: [asset, base, f],
+      }),
+    ),
+  )
+  const out: { fee: number; liquidity: number; lstInBase: number }[] = []
+  await Promise.all(
+    pools.map(async (p, i) => {
+      if (p === ZERO) return
+      const [s0, t0, L] = await Promise.all([
+        c.readContract({ address: p, abi: POOL_V3_ABI, functionName: 'slot0' }),
+        c.readContract({ address: p, abi: POOL_V3_ABI, functionName: 'token0' }),
+        c.readContract({ address: p, abi: POOL_V3_ABI, functionName: 'liquidity' }),
+      ])
+      const px = (Number(s0[0]) / 2 ** 96) ** 2
+      if (!(px > 0)) return
+      out.push({
+        fee: fees[i],
+        liquidity: Number(L),
+        lstInBase: t0.toLowerCase() === asset.toLowerCase() ? px : 1 / px,
+      })
+    }),
+  )
+  return out
+}

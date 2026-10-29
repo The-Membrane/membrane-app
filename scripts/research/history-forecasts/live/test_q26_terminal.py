@@ -108,3 +108,59 @@ def test_carry_gap_pair_loop_rising_and_falling():
     dn = T.carry_metrics(m, det, old, {}, {"0x01": 0.05})
     assert dn["carryGapPerYear"] == pytest.approx(0.02, abs=1e-4)
     assert dn["daysToHf1AtCurrentRates"] == pytest.approx(math.log(1.05) / 0.02 * 365, rel=1e-2)
+
+
+def test_layered_map_routes_each_position_to_its_layer():
+    m = _market(WETH=2000, weETH=2100, USDC=1)
+    dets = [_det(WETH=(10, 0), USDC=(0, 15000)),       # price, 6.25 %
+            _det(weETH=(10, 0), WETH=(0, 8)),          # pair, 4.76 %
+            _det(USDC=(1000, 780)),                    # stable, 2.5 %
+            _det(WETH=(10, 0), USDC=(0, 1000))]        # price, far: not banded
+    old = {"0x01": int(2000e8), "0x02": int(2100e8)}
+    lm = T.layered_map(m, dets, (old, {}, {"0x01": 0.05}))
+    assert lm["layers"]["price"]["WETH"]["n"] == [0, 0, 0, 0, 1]
+    assert lm["layers"]["pair"]["weETH"]["n"] == [0, 0, 0, 1, 0]
+    assert lm["layers"]["stable"]["stable-only"]["n"] == [0, 0, 1, 0, 0]
+    assert lm["totalUsd"] == {"price": 15000, "pair": 16000, "stable": 780}
+    assert lm["pairCarryUsd"]["le30d"] == 0 and lm["pairCarryUsd"]["90to365d"] == 16000   # ln(1.05)/0.05 = 356 d
+
+
+def test_oracle_rows_kind_gap_and_age():
+    m = _market(WETH=2000, weETH=2100, USDC=1)
+    rows = T.oracle_rows(m, {}, {"0x01": "ETH / USD", "0x02": "Capped weETH / eETH(ETH) / USD", "0x03": "Capped USDT/USD"},
+                         {"0x01": 900}, {"ETHUSDT": 2010.0}, 1000)
+    by = {r["symbol"]: r for r in rows}
+    assert by["WETH"]["kind"] == "market feed" and by["WETH"]["ageS"] == 100
+    assert by["WETH"]["gapPct"] == pytest.approx(2000 / 2010 - 1, abs=1e-5)
+    assert by["weETH"]["kind"] == "exchange-rate (capped)"
+    assert by["USDC"]["kind"] == "capped peg" and by["USDC"]["gapPct"] is None
+
+
+def test_exit_rows_utilization_and_cap():
+    m = _market(WETH=2000, weETH=2100, USDC=1)
+    rows = T.exit_rows(m, {"0x03": 1000 * 10 ** 6, "0x01": 10 ** 18}, {"0x03": 100 * 10 ** 6, "0x01": 2 * 10 ** 18},
+                       {"0x03": 0.04}, {"0x03": 0.05})
+    by = {r["symbol"]: r for r in rows}
+    assert by["USDC"]["withdrawableUsd"] == 100 and by["USDC"]["utilization"] == pytest.approx(0.9)
+    assert by["WETH"]["withdrawableUsd"] == 2000      # capped at supplied (donations above supply)
+
+
+def test_rate_headroom_weth_shape():
+    p = (0.92, 0.0, 0.022, 0.60)                      # steep synthetic slope2 (live WETH 2026-10-29: 0.06)
+    assert T.util_for_rate(0.0194, *p) == pytest.approx(0.92 * 0.0194 / 0.022)
+    assert T.util_for_rate(0.0231, *p) == pytest.approx(0.92 + 0.0011 * 0.08 / 0.60)
+    h = T.rate_headroom(1000.0, 0.0194, p, 0.0231)
+    total = 1000 / (0.92 * 0.0194 / 0.022)
+    assert h["withdrawalsToTarget"] == pytest.approx(total - 1000 / h["utilAtTarget"], abs=0.01)
+    assert h["newBorrowsToTarget"] == pytest.approx(h["utilAtTarget"] * total - 1000, abs=0.01)
+    assert h["rateAt95"] == pytest.approx(0.022 + 0.60 * 0.03 / 0.08)
+
+
+def test_history_breaches_counts_and_worst():
+    day = 86400 * 1000
+    bars = [(i * day, 100.0, 99.0) for i in range(20)]
+    bars[10] = (10 * day, 90.0, 85.0)                 # one crash day: low 15 % under the prior close
+    h = T.history_breaches(bars, 0.10, windows=(1, 7))
+    assert h["1d"]["windows"] == 19 and h["1d"]["breaches"] == 1
+    assert h["7d"]["breaches"] == 7                   # every 7 d window starting days 3..9 contains day 10
+    assert h["1d"]["worst"][0]["drop"] == pytest.approx(0.15)

@@ -119,6 +119,45 @@ def daily_closes(sym, days=VOL_DAYS, http_get=None):
     return [float(k[4]) for k in data if int(k[6]) < now_ms]      # closed days only
 
 
+def daily_bars(sym, start_ms, http_get=None):
+    """Closed Binance 1 d bars from start_ms -> [(open_ms, close, low)]."""
+    get = http_get or (lambda u: urllib.request.urlopen(urllib.request.Request(u, headers={"user-agent": D.UA}),
+                                                         timeout=30).read())
+    out, t, now_ms = [], start_ms, int(time.time() * 1000)
+    while True:
+        data = json.loads(get(f"{D.BINANCE_API}?symbol={sym}&interval=1d&startTime={t}&limit=1000"))
+        out += [(int(k[0]), float(k[4]), float(k[3])) for k in data if int(k[6]) < now_ms]
+        if len(data) < 1000:
+            return out
+        t = int(data[-1][0]) + DAY_S * 1000
+
+
+def history_breaches(bars, d, windows=(1, 7, 30), worst=3):
+    """Measured history: for each window w (days), the windows whose low fell >= d below the close before it.
+    Counts non-overlapping-start windows (every day starts one). Not a probability."""
+    res = {}
+    for w in windows:
+        n = hits = 0
+        drops = []
+        for i in range(len(bars) - w):
+            c0 = bars[i][1]
+            lo = min(b[2] for b in bars[i + 1:i + 1 + w])
+            dd = 1 - lo / c0
+            n += 1
+            hits += dd >= d
+            drops.append((dd, bars[i + 1][0]))
+        drops.sort(reverse=True)
+        top, seen = [], []
+        for dd, t in drops:                              # worst distinct episodes (starts > w days apart)
+            if all(abs(t - u) > w * DAY_S * 1000 for u in seen):
+                top.append({"drop": round(dd, 4), "start": time.strftime("%Y-%m-%d", time.gmtime(t / 1000))})
+                seen.append(t)
+            if len(top) == worst:
+                break
+        res[f"{w}d"] = {"windows": n, "breaches": hits, "worst": top}
+    return res
+
+
 def ewma_daily_vol(closes, lam=EWMA_LAMBDA):
     r = [math.log(b / a) for a, b in zip(closes, closes[1:]) if a > 0 and b > 0]
     if len(r) < 20:
@@ -244,6 +283,14 @@ def xray(chain, address, lm=None, rpc=None, http_get=None):
         except Exception:
             vol = None
     out = xray_metrics(market, det, lm, vol)
+    if out["riskType"] == "price" and sym and out["distance"]:
+        try:
+            bars = daily_bars(sym, int(time.mktime((2019, 1, 1, 0, 0, 0, 0, 0, 0))) * 1000, http_get=http_get)
+            out["history"] = {"source": f"Binance {sym} 1d, since {time.strftime('%Y-%m-%d', time.gmtime(bars[0][0] / 1000))}",
+                              "note": "past windows whose low fell at least this far; history, not a probability",
+                              **history_breaches(bars, out["distance"])}
+        except Exception:
+            out["history"] = None
     if out["riskType"] == "pair" and chain in ARCHIVE_CALL:
         try:
             out.update(carry_metrics(market, det, *read_carry_inputs(rpc, cfg, chain, market, block)))
@@ -254,6 +301,222 @@ def xray(chain, address, lm=None, rpc=None, http_get=None):
     return out
 
 
+def classify(market, det):
+    """-> (riskType, distance, mainCollateral, debtUsd) with the same rules as xray_metrics."""
+    x = xray_metrics(market, det)
+    return x["riskType"], x["distance"], x["mainCollateral"], x["debtUsd"]
+
+
+def layered_map(market, dets, carry=None):
+    """Full liquidation map over all three layers from detail reads (no address kept):
+    {layer: {asset: {"debtUsd": [5], "n": [5]}}}, plus carry buckets of pair debt when carry inputs are given."""
+    out = {"price": {}, "pair": {}, "stable": {}}
+    cb = {"hfRises": 0.0, "le30d": 0.0, "30to90d": 0.0, "90to365d": 0.0, "gt1y": 0.0, "unknown": 0.0}
+    for det in dets:
+        risk, d, asset, debt = classify(market, det)
+        b = D.band_of(d) if d is not None and 0 < d <= D.X_BAND else None
+        if b is None:
+            continue
+        t = out[risk].setdefault(asset, {"debtUsd": [0.0] * len(D.BANDS), "n": [0] * len(D.BANDS)})
+        t["debtUsd"][b] += debt
+        t["n"][b] += 1
+        if risk == "pair" and carry:
+            c = carry_metrics(market, det, *carry)
+            g, days = c.get("carryGapPerYear"), c.get("daysToHf1AtCurrentRates")
+            k = ("unknown" if g is None else "hfRises" if g <= 0 else "le30d" if days is not None and days <= 30
+                 else "30to90d" if days is not None and days <= 90 else "90to365d" if days is not None and days <= 365
+                 else "gt1y")
+            cb[k] += debt
+    for layer in out.values():
+        for v in layer.values():
+            v["debtUsd"] = [round(x) for x in v["debtUsd"]]
+    res = {"layers": out, "totalUsd": {k: round(sum(sum(v["debtUsd"]) for v in L.values())) for k, L in out.items()}}
+    if carry:
+        res["pairCarryUsd"] = {k: round(v) for k, v in cb.items()}
+    return res
+
+
+def scan_chain(root, chain, deadline_s=850, rpc=None):
+    """Live full scan of one chain's D14 borrower list (datasets root) -> layered map, aggregates only."""
+    cfg = D.CHAINS[chain]
+    rpc = rpc or D.Rpc(chain, cfg, deadline=time.time() + deadline_s)
+    addrs = list(dict.fromkeys(a.lower() for a in D.load_addresses(root, chain)))
+    block = (rpc.head() - cfg["confirm"])
+    market = D.read_market(rpc, cfg, block)
+    acc = D.scan_accounts(rpc, cfg["pool"], addrs, block)
+    near = [a for a, x in zip(addrs, acc) if x and x[1] >= D.MIN_DEBT_USD * 1e8 and x[3] < 1e18 / (1 - D.X_BAND)]
+    dets = list(D.read_details(rpc, market, cfg["pool"], near, block).values())
+    carry = None
+    if chain in ARCHIVE_CALL:
+        try:
+            carry = read_carry_inputs(rpc, cfg, chain, market, block)
+        except Exception:
+            carry = None
+    res = layered_map(market, dets, carry)
+    res.update({"schema": "q26-terminal/layered/1", "chain": chain, "block": block, "readAt": D.iso(int(time.time())),
+                "borrowers": len(addrs), "read": sum(1 for x in acc if x), "near": len(near), "detailed": len(dets),
+                "kind": "measured", "source": SOURCE})
+    return res
+
+
+# =====================================================================================================================
+# oracle transparency
+# =====================================================================================================================
+OSEL = {"getSourceOfAsset": "92bf2be0", "description": "7284e416", "latestRoundData": "feaf968c"}
+
+
+def _abi_string(raw):
+    try:
+        n = D.word(raw, 1)
+        return raw[64:64 + n].decode(errors="ignore") or None
+    except Exception:
+        return None
+
+
+def feed_kind(desc):
+    if not desc:
+        return "unknown"
+    d = desc.lower()
+    if d.startswith("capped") and "/" in d:
+        return "exchange-rate (capped)" if d.count("/") >= 2 or "(" in d else "capped peg"
+    return "market feed"
+
+
+def oracle_rows(market, sources, descs, rounds, spot, now):
+    """Pure: per reserve -> feed description, kind, oracle price, Binance spot gap, seconds since feed update."""
+    rows = []
+    for a, r in market["reserves"].items():
+        px = r["price"] / 1e8 if r["price"] else None
+        sym = D.III_SYMBOL.get(r["symbol"])
+        sp = spot.get(sym) if sym else None
+        upd = rounds.get(a)
+        rows.append({"symbol": r["symbol"], "feed": descs.get(a), "kind": feed_kind(descs.get(a)), "oracleUsd": px,
+                     "spotUsd": sp, "gapPct": round(px / sp - 1, 5) if px and sp else None,
+                     "ageS": now - upd if upd else None})
+    return sorted(rows, key=lambda x: x["symbol"].lower())
+
+
+def oracle_table(chain, rpc=None, http_get=None):
+    cfg = D.CHAINS[chain]
+    rpc = rpc or D.Rpc(chain, cfg, deadline=time.time() + 300)
+    block = rpc.head() - cfg["confirm"]
+    market = D.read_market(rpc, cfg, block)
+    assets = market["assets"]
+    sel = lambda n: bytes.fromhex(OSEL[n])  # noqa: E731
+    src = rpc.aggregate3([(market["oracle"], sel("getSourceOfAsset") + D.enc_addr(a)) for a in assets], block)
+    sources = {a: D.as_addr(D.word(x)) for a, (ok, x) in zip(assets, src) if ok}
+    calls = []
+    for a in assets:
+        calls += [(sources.get(a, D.MULTICALL3), sel("description")), (sources.get(a, D.MULTICALL3), sel("latestRoundData"))]
+    res = rpc.aggregate3(calls, block)
+    descs, rounds = {}, {}
+    for j, a in enumerate(assets):
+        okd, bd = res[2 * j]
+        okr, br = res[2 * j + 1]
+        descs[a] = _abi_string(bd) if okd else None
+        rounds[a] = D.word(br, 3) if okr and br and len(br) >= 160 else None
+    get = http_get or (lambda u: urllib.request.urlopen(urllib.request.Request(u, headers={"user-agent": D.UA}),
+                                                         timeout=30).read())
+    spot = {}
+    for sym in sorted({D.III_SYMBOL[r["symbol"]] for r in market["reserves"].values() if r["symbol"] in D.III_SYMBOL}):
+        try:
+            spot[sym] = float(json.loads(get(f"https://data-api.binance.vision/api/v3/ticker/price?symbol={sym}"))["price"])
+        except Exception:
+            pass
+    now = int(time.time())
+    return {"schema": "q26-terminal/oracles/1", "chain": chain, "block": block, "readAt": D.iso(now), "kind": "measured",
+            "rows": oracle_rows(market, sources, descs, rounds, spot, now),
+            "notes": ["gapPct = Aave oracle / Binance spot - 1 at read time", "ageS = seconds since the feed's last round "
+                      "(adapters without latestRoundData show null)"]}
+
+
+# =====================================================================================================================
+# exit capacity
+# =====================================================================================================================
+def exit_rows(market, supplied, available, sup_apr, bor_apr):
+    """Pure: per reserve -> supplied and withdrawable now (USD), utilization, supply/borrow APR."""
+    rows = []
+    for a, r in market["reserves"].items():
+        if not r["price"] or a not in supplied:
+            continue
+        unit = r["price"] / 1e8 / 10 ** int(r["dec"])
+        s_, av = supplied[a] * unit, available.get(a, 0) * unit
+        rows.append({"symbol": r["symbol"], "suppliedUsd": round(s_), "withdrawableUsd": round(min(av, s_)),
+                     "utilization": round(1 - av / s_, 4) if s_ else None,
+                     "supplyApr": round(sup_apr.get(a, 0.0), 5), "borrowApr": round(bor_apr.get(a, 0.0), 5)})
+    return sorted(rows, key=lambda x: -x["suppliedUsd"])
+
+
+def exit_table(chain, rpc=None):
+    cfg = D.CHAINS[chain]
+    rpc = rpc or D.Rpc(chain, cfg, deadline=time.time() + 300)
+    block = rpc.head() - cfg["confirm"]
+    market = D.read_market(rpc, cfg, block)
+    R, assets = market["reserves"], market["assets"]
+    calls = []
+    for a in assets:
+        calls += [(R[a]["aToken"], bytes.fromhex("18160ddd")), (a, D.sel("balanceOf") + D.enc_addr(R[a]["aToken"])),
+                  (cfg["pool"], D.sel("getReserveData") + D.enc_addr(a))]
+    res = rpc.aggregate3(calls, block)
+    sup, av, sa, ba = {}, {}, {}, {}
+    for j, a in enumerate(assets):
+        (o1, b1), (o2, b2), (o3, b3) = res[3 * j:3 * j + 3]
+        if o1 and o2:
+            sup[a], av[a] = D.word(b1), D.word(b2)
+        if o3:
+            sa[a], ba[a] = D.word(b3, 2) / 1e27, D.word(b3, 4) / 1e27
+    return {"schema": "q26-terminal/exit/1", "chain": chain, "block": block, "readAt": D.iso(int(time.time())),
+            "kind": "measured", "rows": exit_rows(market, sup, av, sa, ba),
+            "notes": ["withdrawable = underlying held by the aToken now; a supplier larger than it waits for repayments "
+                      "or liquidations"]}
+
+
+# =====================================================================================================================
+# rate headroom (Aave V3 DefaultReserveInterestRateStrategyV2)
+# =====================================================================================================================
+def borrow_rate(u, opt, base, s1, s2):
+    return base + s1 * min(u, opt) / opt + (s2 * (u - opt) / (1 - opt) if u > opt else 0.0)
+
+
+def util_for_rate(target, opt, base, s1, s2):
+    """Smallest utilization whose borrow rate reaches target (None if never)."""
+    if target <= base:
+        return 0.0
+    if target <= base + s1:
+        return opt * (target - base) / s1
+    if s2 <= 0:
+        return None
+    u = opt + (target - base - s1) * (1 - opt) / s2
+    return u if u <= 1 else None
+
+
+def rate_headroom(debt, rate_now, params, target):
+    """Pure. debt in asset units; rate_now the live variable borrow rate; params (opt, base, s1, s2) as fractions;
+    target the borrow rate to reach. Utilization now is implied from the rate (Aave uses virtual balances).
+    -> utilization now / at target, and the withdrawals or new borrows (asset units) that move it there."""
+    opt, base, s1, s2 = params
+    u_now = util_for_rate(rate_now, *params)
+    u_t = util_for_rate(target, *params)
+    if not u_now or u_t is None:
+        return {"utilNow": u_now, "utilAtTarget": u_t}
+    total = debt / u_now
+    return {"utilNow": round(u_now, 5), "utilAtTarget": round(u_t, 5),
+            "withdrawalsToTarget": round(max(0.0, total - debt / u_t), 2) if u_t > 0 else None,
+            "newBorrowsToTarget": round(max(0.0, u_t * total - debt), 2),
+            "rateAt95": round(borrow_rate(0.95, *params), 5)}
+
+
+def read_rate_params(rpc, cfg, market, block, asset):
+    rd = rpc.aggregate3([(cfg["pool"], D.sel("getReserveData") + D.enc_addr(asset))], block)[0][1]
+    strat, rate = D.as_addr(D.word(rd, 11)), D.word(rd, 4) / 1e27
+    r = rpc.aggregate3([(strat, bytes.fromhex("131e889c") + D.enc_addr(asset)),       # getInterestRateData(address)
+                        (market["reserves"][asset]["vDebt"], bytes.fromhex("18160ddd"))], block)
+    if not r[0][0]:
+        return None
+    opt, base, s1, s2 = (D.word(r[0][1], i) / 1e27 for i in range(4))
+    return {"params": (opt, base, s1, s2), "rate": rate, "debt": D.word(r[1][1]) / 10 ** int(market["reserves"][asset]["dec"])}
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -261,6 +524,13 @@ def main(argv=None):
     a.add_argument("hourly_dir")
     a.add_argument("--arm", default="oracle")
     a.add_argument("--top", type=int, default=8)
+    c = sub.add_parser("layers")
+    c.add_argument("datasets_root")
+    c.add_argument("chain", choices=sorted(D.CHAINS))
+    o = sub.add_parser("oracles")
+    o.add_argument("chain", choices=sorted(D.CHAINS))
+    e = sub.add_parser("exit")
+    e.add_argument("chain", choices=sorted(D.CHAINS))
     b = sub.add_parser("xray")
     b.add_argument("chain", choices=sorted(D.CHAINS))
     b.add_argument("address")
@@ -268,6 +538,12 @@ def main(argv=None):
     args = ap.parse_args(argv)
     if args.cmd == "liqmap":
         print(json.dumps(liqmap(load_rows(args.hourly_dir), args.arm, args.top), indent=1))
+    elif args.cmd == "oracles":
+        print(json.dumps(oracle_table(args.chain), indent=1))
+    elif args.cmd == "exit":
+        print(json.dumps(exit_table(args.chain), indent=1))
+    elif args.cmd == "layers":
+        print(json.dumps(scan_chain(args.datasets_root, args.chain), indent=1))
     else:
         lm = liqmap(load_rows(args.hourly_dir)) if args.hourly_dir else None
         print(json.dumps(xray(args.chain, args.address, lm), indent=1))

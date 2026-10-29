@@ -126,3 +126,115 @@ describe('layered map', () => {
     expect(sameBand(doc, 'ethereum', 'pair', 'rsETH', 2)).toBeNull()
   })
 })
+
+describe('markets logic (ports of q26_terminal.py)', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+
+  it('feed kinds', () => {
+    expect(M.feedKind('ETH / USD')).toBe('market feed')
+    expect(M.feedKind('Capped weETH / eETH(ETH) / USD')).toBe('exchange-rate (capped)')
+    expect(M.feedKind('Capped USDT/USD')).toBe('capped peg')
+    expect(M.feedKind(null)).toBe('unknown')
+  })
+
+  it('rate curve and headroom (live WETH strategy 2026-10-29)', () => {
+    const p = { opt: 0.92, base: 0, s1: 0.022, s2: 0.06 }
+    expect(M.utilForRate(0.0194, p)).toBeCloseTo((0.92 * 0.0194) / 0.022, 9)
+    expect(M.borrowRate(0.95, p)).toBeCloseTo(0.0445, 9)
+    const h = M.rateHeadroom(1000, 0.0194, p, 0.0231)
+    const total = 1000 / ((0.92 * 0.0194) / 0.022)
+    expect(h.utilAtTarget).toBeCloseTo(0.92 + (0.0011 * 0.08) / 0.06, 9)
+    expect(h.withdrawalsToTarget!).toBeCloseTo(total - 1000 / h.utilAtTarget!, 6)
+    expect(h.newBorrowsToTarget!).toBeCloseTo(h.utilAtTarget! * total - 1000, 6)
+  })
+
+  it('kink headroom from balances', () => {
+    const k = M.kinkHeadroom(800, 200, 0.9)
+    expect(k.utilization).toBeCloseTo(0.8, 9)
+    expect(k.borrowsToKink).toBeCloseTo(100, 9)
+    expect(k.withdrawalsToKink).toBeCloseTo(1000 - 800 / 0.9, 9)
+    expect(M.kinkHeadroom(950, 50, 0.9).borrowsToKink).toBe(0)
+  })
+
+  it('history breaches', () => {
+    const day = 86_400_000
+    const bars = Array.from({ length: 20 }, (_, i) => ({ t: i * day, close: 100, low: 99 }))
+    bars[10] = { t: 10 * day, close: 90, low: 85 }
+    const h = M.historyBreaches(bars, 0.1, [1, 7])
+    expect(h['1d']).toMatchObject({ windows: 19, breaches: 1 })
+    expect(h['7d'].breaches).toBe(7)
+    expect(h['1d'].worst[0].drop).toBeCloseTo(0.15, 9)
+  })
+
+  it('carry gap: rising and falling', () => {
+    const legs = (borrowApr: number) => [
+      { collateralUsd: 21000, debtUsd: 0, yieldApr: 0.03, supplyApr: 0, borrowApr: 0 },
+      { collateralUsd: 0, debtUsd: 16000, yieldApr: 0, supplyApr: 0, borrowApr },
+    ]
+    expect(M.carryGap(legs(0.02), 1.05)).toMatchObject({ daysToHf1: null })
+    expect(M.carryGap(legs(0.02), 1.05).carryGapPerYear).toBeCloseTo(-0.01, 9)
+    const dn = M.carryGap(legs(0.05), 1.05)
+    expect(dn.carryGapPerYear).toBeCloseTo(0.02, 9)
+    expect(dn.daysToHf1).toBeCloseTo((Math.log(1.05) / 0.02) * 365, 6)
+  })
+
+  it('what-if: price move, repay, add collateral', () => {
+    const base = [
+      { ...r('WETH', 2000, 20000, 0), stable: false },
+      { ...r('USDC', 1, 0, 15000), stable: true },
+    ]
+    expect(
+      M.applyWhatIf(base, { priceMovePct: -6.25, repayUsd: 0, addCollateralUsd: 0 }, 'WETH')
+        .healthFactor,
+    ).toBeCloseTo(1, 9)
+    expect(
+      M.applyWhatIf(base, { priceMovePct: 0, repayUsd: 5000, addCollateralUsd: 0 }, 'WETH')
+        .healthFactor,
+    ).toBeCloseTo(1.6, 9)
+    expect(
+      M.applyWhatIf(base, { priceMovePct: 0, repayUsd: 0, addCollateralUsd: 5000 }, 'WETH')
+        .healthFactor,
+    ).toBeCloseTo(20000 / 15000, 9)
+  })
+})
+
+describe('what-if edge cases', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  const s = (
+    symbol: string,
+    priceUsd: number,
+    collateralUsd: number,
+    debtUsd: number,
+    stable: boolean,
+  ) => ({
+    ...r(symbol, priceUsd, collateralUsd, debtUsd),
+    stable,
+  })
+
+  it('a price move does not move the line: below HF 1 the liquidation price stays put', () => {
+    const base = [s('WETH', 2000, 20000, 0, false), s('USDC', 1, 0, 15000, true)]
+    const under = M.applyWhatIf(
+      base,
+      { priceMovePct: -12, repayUsd: 0, addCollateralUsd: 0 },
+      'WETH',
+    )
+    expect(under.healthFactor!).toBeLessThan(1)
+    expect(under.liquidationPrice!).toBeCloseTo(1875, 6)
+  })
+
+  it('ratio loop: a common move changes nothing, a ratio move does', () => {
+    const loop = [s('weETH', 2100, 21000, 0, false), s('WETH', 2000, 0, 16000, false)]
+    const common = M.applyWhatIf(
+      loop,
+      { priceMovePct: -10, repayUsd: 0, addCollateralUsd: 0 },
+      'weETH',
+    )
+    expect(common.healthFactor!).toBeCloseTo(1.05, 9)
+    const ratio = M.applyWhatIf(
+      loop,
+      { priceMovePct: -10, repayUsd: 0, addCollateralUsd: 0, ratioOnly: true },
+      'weETH',
+    )
+    expect(ratio.healthFactor!).toBeCloseTo(0.945, 9)
+  })
+})

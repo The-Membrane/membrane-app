@@ -1,172 +1,26 @@
-import fs from 'node:fs'
-import path from 'node:path'
 import type { NextApiRequest, NextApiResponse } from 'next'
-import {
-  createPublicClient,
-  fallback,
-  http,
-  isAddress,
-  parseAbi,
-  type Address,
-  type PublicClient,
-} from 'viem'
-import { mainnet } from 'viem/chains'
+import { isAddress, type Address } from 'viem'
 
+import { effectiveLt, isStable, xrayMetrics } from '@/components/LiquidationMap/xrayLogic'
+import { sameBand } from '@/components/LiquidationMap/liqmapLogic'
+import { carryGap, historyBreaches } from '@/components/LiquidationMap/marketsLogic'
 import {
-  effectiveLt,
-  ltFromConfig,
-  xrayMetrics,
-  type XrayReserve,
-} from '@/components/LiquidationMap/xrayLogic'
-import { sameBand, type LayersDoc } from '@/components/LiquidationMap/liqmapLogic'
+  BINANCE_SYMBOL,
+  ERC20_ABI,
+  POOL,
+  POOL_ABI,
+  getClient,
+  readDailyBars,
+  readLayers,
+  readMarket,
+  readPastPrices,
+} from '@/pages/api/_lib/aaveReads'
 
 // GET /api/xray/[address] — Position X-ray for one Aave V3 Ethereum account
 // (board Q26-TERMINAL-MAP). LIVE chain reads at request time; nothing modelled.
 // The address is used for the read only: it is never logged or stored.
 
-const POOL = '0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2' as Address // Aave V3 Ethereum core
-
-const POOL_ABI = parseAbi([
-  'function getReservesList() view returns (address[])',
-  'function ADDRESSES_PROVIDER() view returns (address)',
-  'function getUserConfiguration(address) view returns (uint256)',
-  'function getUserEMode(address) view returns (uint256)',
-  'function getUserAccountData(address) view returns (uint256,uint256,uint256,uint256,uint256,uint256)',
-  'function getReserveData(address) view returns ((uint256,uint128,uint128,uint128,uint128,uint128,uint40,uint16,address,address,address,address,uint128,uint128,uint128))',
-  'function getEModeCategoryCollateralConfig(uint8) view returns ((uint16,uint16,uint16))',
-  'function getEModeCategoryCollateralBitmap(uint8) view returns (uint128)',
-])
-const PROVIDER_ABI = parseAbi(['function getPriceOracle() view returns (address)'])
-const ORACLE_ABI = parseAbi(['function getAssetsPrices(address[]) view returns (uint256[])'])
-const ERC20_ABI = parseAbi([
-  'function symbol() view returns (string)',
-  'function decimals() view returns (uint8)',
-  'function balanceOf(address) view returns (uint256)',
-])
-
-type Market = {
-  block: bigint
-  at: number
-  reserves: {
-    asset: Address
-    symbol: string
-    decimals: number
-    id: number
-    ltBps: number
-    aToken: Address
-    vDebt: Address
-    price: bigint
-  }[]
-}
-
-let client: PublicClient | null = null
-function getClient(): PublicClient {
-  if (client) return client
-  const env = (process.env.RECORDER_RPC_URL ?? '')
-    .split(',')
-    .map((u) => u.trim())
-    .filter(Boolean)
-  const urls = [
-    ...env,
-    'https://ethereum-rpc.publicnode.com',
-    'https://eth.drpc.org',
-    'https://rpc.mevblocker.io',
-  ]
-  client = createPublicClient({
-    chain: mainnet,
-    transport: fallback(
-      urls.map((u) => http(u, { timeout: 15_000 })),
-      { rank: false },
-    ),
-  }) as PublicClient
-  return client
-}
-
-let market: Market | null = null
-const MARKET_TTL_MS = 60_000
-
-async function readMarket(c: PublicClient): Promise<Market> {
-  if (market && Date.now() - market.at < MARKET_TTL_MS) return market
-  const block = await c.getBlockNumber()
-  const [list, provider] = await Promise.all([
-    c.readContract({
-      address: POOL,
-      abi: POOL_ABI,
-      functionName: 'getReservesList',
-      blockNumber: block,
-    }),
-    c.readContract({
-      address: POOL,
-      abi: POOL_ABI,
-      functionName: 'ADDRESSES_PROVIDER',
-      blockNumber: block,
-    }),
-  ])
-  const oracle = await c.readContract({
-    address: provider,
-    abi: PROVIDER_ABI,
-    functionName: 'getPriceOracle',
-    blockNumber: block,
-  })
-  const [rd, sym, dec, prices] = await Promise.all([
-    c.multicall({
-      contracts: list.map(
-        (a) =>
-          ({ address: POOL, abi: POOL_ABI, functionName: 'getReserveData', args: [a] }) as const,
-      ),
-      blockNumber: block,
-    }),
-    c.multicall({
-      contracts: list.map((a) => ({ address: a, abi: ERC20_ABI, functionName: 'symbol' }) as const),
-      blockNumber: block,
-    }),
-    c.multicall({
-      contracts: list.map(
-        (a) => ({ address: a, abi: ERC20_ABI, functionName: 'decimals' }) as const,
-      ),
-      blockNumber: block,
-    }),
-    c.readContract({
-      address: oracle,
-      abi: ORACLE_ABI,
-      functionName: 'getAssetsPrices',
-      args: [list],
-      blockNumber: block,
-    }),
-  ])
-  const reserves = list.flatMap((asset, i) => {
-    const r = rd[i]
-    if (r.status !== 'success') return []
-    const t = r.result
-    return [
-      {
-        asset,
-        symbol: sym[i].status === 'success' ? (sym[i].result as string) : asset.slice(0, 8),
-        decimals: dec[i].status === 'success' ? Number(dec[i].result) : 18,
-        id: Number(t[7]),
-        ltBps: ltFromConfig(t[0]),
-        aToken: t[8],
-        vDebt: t[10],
-        price: prices[i],
-      },
-    ]
-  })
-  market = { block, at: Date.now(), reserves }
-  return market
-}
-
-let layers: LayersDoc | null = null
-function readLayers(): LayersDoc | null {
-  if (layers) return layers
-  try {
-    layers = JSON.parse(
-      fs.readFileSync(path.join(process.cwd(), 'public/data/liquidation-map/layers.json'), 'utf8'),
-    )
-  } catch {
-    layers = null
-  }
-  return layers
-}
+const YIELD_WINDOW_D = 30
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const raw = String(req.query.address ?? '')
@@ -215,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { address: r.vDebt, abi: ERC20_ABI, functionName: 'balanceOf', args: [user] } as const,
       ]),
     })
-    const reserves: XrayReserve[] = used.map((r, j) => {
+    const reserves = used.map((r, j) => {
       const isColl = ((cfg >> BigInt(2 * r.id + 1)) & 1n) === 1n
       const a = bals[2 * j].status === 'success' ? (bals[2 * j].result as bigint) : 0n
       const d = bals[2 * j + 1].status === 'success' ? (bals[2 * j + 1].result as bigint) : 0n
@@ -227,6 +81,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         lt: effectiveLt(r.ltBps, r.id, em),
         collateralUsd: isColl ? (Number(a) / unit) * px : 0,
         debtUsd: (Number(d) / unit) * px,
+        stable: isStable(r.symbol),
+        asset: r.asset,
+        supplyApr: r.supplyApr,
+        borrowApr: r.borrowApr,
       }
     })
     const x = xrayMetrics(reserves)
@@ -235,6 +93,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       doc && x.bandIndex !== null
         ? sameBand(doc, 'ethereum', x.riskType, x.mainCollateral, x.bandIndex)
         : null
+
+    // Price risk: past windows that crossed this distance (Binance daily history).
+    let history = null
+    const sym = BINANCE_SYMBOL[x.mainCollateral]
+    if (x.riskType === 'price' && sym && x.distance) {
+      try {
+        const bars = await readDailyBars(sym)
+        if (bars.length > 60) {
+          history = {
+            source: `Binance ${sym} 1d since ${new Date(bars[0].t).toISOString().slice(0, 10)}`,
+            ...historyBreaches(bars, x.distance),
+          }
+        }
+      } catch {
+        history = null
+      }
+    }
+
+    // Ratio loops: carry gap at today's rates (30 d oracle-ratio growth vs WETH as the yield).
+    let carry = null
+    if (x.riskType === 'pair') {
+      try {
+        const past = await readPastPrices(m, YIELD_WINDOW_D)
+        const weth = m.reserves.find((r) => r.symbol === 'WETH')
+        const wNow = weth ? Number(weth.price) : 0
+        const wOld = weth ? Number(past.get(weth.asset) ?? 0n) : 0
+        const yieldApr = (asset: Address, stable: boolean) => {
+          const now = Number(m.reserves.find((r) => r.asset === asset)?.price ?? 0n)
+          const old = Number(past.get(asset) ?? 0n)
+          if (stable || !now || !old || !wNow || !wOld) return 0
+          return (Math.log(now / wNow / (old / wOld)) * 365) / YIELD_WINDOW_D
+        }
+        carry = {
+          ...carryGap(
+            reserves.map((r) => ({
+              collateralUsd: r.collateralUsd,
+              debtUsd: r.debtUsd,
+              yieldApr: yieldApr(r.asset, r.stable),
+              supplyApr: r.supplyApr,
+              borrowApr: r.borrowApr,
+            })),
+            x.healthFactor,
+          ),
+          note: `collateral: ${YIELD_WINDOW_D} d oracle-ratio growth vs WETH + supply APR; debt: borrow APR; today's rates held constant`,
+        }
+      } catch {
+        carry = null
+      }
+    }
+
     const aaveHf = acct[5] >= 2n ** 255n ? null : Number(acct[5]) / 1e18
     res.setHeader('Cache-Control', 'private, max-age=30')
     return res.status(200).json({
@@ -249,11 +157,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sameBand: crowd
         ? { ...crowd, asOf: doc?.chains.find((ch) => ch.chain === 'ethereum')?.readAt }
         : null,
+      history,
+      carry,
       reserves: reserves.map((r) => ({
         symbol: r.symbol,
+        priceUsd: r.priceUsd,
         collateralUsd: r.collateralUsd,
         debtUsd: r.debtUsd,
         lt: r.lt,
+        stable: r.stable,
+        borrowApr: r.borrowApr,
       })),
     })
   } catch {

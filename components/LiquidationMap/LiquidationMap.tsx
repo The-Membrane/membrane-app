@@ -25,6 +25,9 @@ import useDemoMode from '@/hooks/useDemoMode'
 
 import { LAYERS, layerBands, topAssets, usd2, type Layer, type LayersDoc } from './liqmapLogic'
 import { BAND_NAMES } from './xrayLogic'
+import type { Breaches } from './marketsLogic'
+import { MarketsSheet } from './MarketsSheet'
+import { CarryAtRates, CrashHistory, WhatIfSimulator } from './XrayExtras'
 
 // Liquidation map + Position X-ray (board Q26-TERMINAL-MAP). Protocol-scoped blocks
 // (the map) are a measured snapshot in both states; the X-ray is wallet-scoped and
@@ -60,7 +63,16 @@ type XrayResponse = {
   debtUsd: number
   eMode: number
   sameBand: { debtUsd: number; positions: number; asOf?: string } | null
-  reserves: { symbol: string; collateralUsd: number; debtUsd: number; lt: number }[]
+  reserves: {
+    symbol: string
+    priceUsd: number
+    collateralUsd: number
+    debtUsd: number
+    lt: number
+    stable: boolean
+  }[]
+  history?: (Breaches & { source: string }) | null
+  carry?: { carryGapPerYear: number | null; daysToHf1: number | null } | null
   error?: string
 }
 
@@ -75,13 +87,13 @@ const DEMO_XRAY: XrayResponse = {
   liquidationPrice: null,
   oraclePrice: null,
   mainCollateral: 'weETH',
-  collateralUsd: 82_400,
+  collateralUsd: 86_700,
   debtUsd: 79_800,
   eMode: 1,
   sameBand: null,
   reserves: [
-    { symbol: 'weETH', collateralUsd: 82_400, debtUsd: 0, lt: 0.95 },
-    { symbol: 'WETH', collateralUsd: 0, debtUsd: 79_800, lt: 0 },
+    { symbol: 'weETH', priceUsd: 2567, collateralUsd: 86_700, debtUsd: 0, lt: 0.95, stable: false },
+    { symbol: 'WETH', priceUsd: 2319, collateralUsd: 0, debtUsd: 79_800, lt: 0, stable: false },
   ],
 }
 
@@ -467,7 +479,15 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null }> = ({ doc }) => 
                     shown.healthFactor !== null && shown.healthFactor < 1.05 ? 'bad' : 'default'
                   }
                 />
-                <Stat label="Distance" value={pct(shown.distance)} sub={shown.band ?? undefined} />
+                <Stat
+                  label="Distance"
+                  value={
+                    shown.healthFactor !== null && shown.healthFactor < 1
+                      ? 'past the line'
+                      : pct(shown.distance)
+                  }
+                  sub={shown.band ?? undefined}
+                />
                 <Stat
                   label={shown.riskType === 'price' ? 'Liquidation price' : 'Trigger'}
                   value={
@@ -527,6 +547,15 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null }> = ({ doc }) => 
                   ))}
                 </Box>
               </Box>
+              <CrashHistory history={shown.history ?? null} distance={shown.distance} />
+              <CarryAtRates carry={shown.carry ?? null} />
+              {shown.debtUsd > 0 ? (
+                <WhatIfSimulator
+                  reserves={shown.reserves}
+                  main={shown.mainCollateral}
+                  ratioOnly={shown.riskType === 'pair'}
+                />
+              ) : null}
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
                 fontSize={TYPOGRAPHY.xs}
@@ -540,6 +569,8 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null }> = ({ doc }) => 
           </Card>
         ) : null}
       </VStack>
+
+      <MarketsSheet />
 
       <Caveats
         items={[

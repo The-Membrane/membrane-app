@@ -153,7 +153,9 @@ export function xrayMetrics(reserves: XrayReserve[]): XrayResult {
     distance: d,
     distanceJointPrice: dj,
     distanceCollateralOnly: dc,
-    liquidationPrice: riskType === 'price' && d !== null && px ? px * (1 - d) : null,
+    // The price line itself: px (1 + k*). Below HF 1, k* > 0 and the line sits above today's price.
+    liquidationPrice:
+      riskType === 'price' && kstar !== null && kstar > -1 && px ? px * (1 + kstar) : null,
     oraclePrice: px,
     band:
       bandIndex !== null ? BAND_NAMES[bandIndex] : d !== null && d > MAX_BAND ? 'over 10%' : null,

@@ -328,6 +328,7 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null }> = ({ doc }) => 
             <Eyebrow>02 / Largest collateral groups</Eyebrow>
             <Box
               as="table"
+              minW="640px"
               w="100%"
               mt={SPACING.md}
               fontFamily={TYPOGRAPHY.fontMono}

@@ -90,7 +90,13 @@ export const MarketsSheet: React.FC = () => {
           </Text>
         ) : (
           <>
-            <Box as="table" w="100%" fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs}>
+            <Box
+              as="table"
+              w="100%"
+              minW="860px"
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.xs}
+            >
               <Box as="thead">
                 <Box as="tr" color={SEMANTIC_COLORS.textTertiary}>
                   <Box {...th} textAlign="left">
@@ -173,6 +179,7 @@ export const MarketsSheet: React.FC = () => {
                 <Eyebrow>Loop carry today · yield minus borrow</Eyebrow>
                 <Box
                   as="table"
+                  minW="520px"
                   w="100%"
                   mt={SPACING.sm}
                   fontFamily={TYPOGRAPHY.fontMono}

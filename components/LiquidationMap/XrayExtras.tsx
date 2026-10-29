@@ -8,7 +8,15 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 
 import { Eyebrow, Stat } from '@/components/Evidence/atoms'
 
-import { DEFAULT_RULES, applyWhatIf, checkRules, type Breaches, type Rules } from './marketsLogic'
+import {
+  DEFAULT_RULES,
+  applyWhatIf,
+  checkRules,
+  debtChangeForDistance,
+  distanceForShare,
+  type Breaches,
+  type Rules,
+} from './marketsLogic'
 import type { XrayReserve } from './xrayLogic'
 
 // X-ray add-ons: crash history (price risk), carry at today's rates (ratio loops)
@@ -316,7 +324,9 @@ export const RulesCheck: React.FC<{
   healthFactor: number | null
   distance: number | null
   past7d: { windows: number; breaches: number } | null
-}> = ({ healthFactor, distance, past7d }) => {
+  curve?: { d: number; share: number }[] | null
+  reserves?: (XrayReserve & { stable: boolean })[]
+}> = ({ healthFactor, distance, past7d, curve = null, reserves = [] }) => {
   const [rules, setRules] = useState<Rules>(DEFAULT_RULES)
   useEffect(() => setRules(loadRules()), [])
   const update = (k: keyof Rules, v: string) => {
@@ -375,6 +385,9 @@ export const RulesCheck: React.FC<{
           </Text>
         </HStack>
       ))}
+      {curve && reserves.length ? (
+        <SafeSize rules={rules} curve={curve} reserves={reserves} />
+      ) : null}
       <Text
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize={TYPOGRAPHY.xs}
@@ -383,5 +396,33 @@ export const RulesCheck: React.FC<{
         Saved in this browser only. A check, not an automation: nothing is enforced or sent.
       </Text>
     </VStack>
+  )
+}
+
+/** Your rules as a size: repay or room to borrow to meet the stricter of min distance and max crossings. */
+const SafeSize: React.FC<{
+  rules: Rules
+  curve: { d: number; share: number }[]
+  reserves: (XrayReserve & { stable: boolean })[]
+}> = ({ rules, curve, reserves }) => {
+  const dCross = distanceForShare(curve, rules.maxPast7dCrossPct / 100)
+  const target = Math.max(rules.minDistancePct / 100, dCross ?? 0)
+  const change = dCross === null ? null : debtChangeForDistance(reserves, target)
+  return (
+    <Text
+      fontFamily={TYPOGRAPHY.fontMono}
+      fontSize={TYPOGRAPHY.small}
+      color={SEMANTIC_COLORS.textPrimary}
+    >
+      {dCross === null
+        ? `No distance up to 60% keeps past crossings at ${rules.maxPast7dCrossPct}% or less.`
+        : change === null
+          ? '—'
+          : `To meet both: distance ${(target * 100).toFixed(0)}% → ${
+              change < 0
+                ? `repay about $${Math.round(-change).toLocaleString('en-US')}`
+                : `room to borrow about $${Math.round(change).toLocaleString('en-US')} more`
+            } (debt scaled pro rata).`}
+    </Text>
   )
 }

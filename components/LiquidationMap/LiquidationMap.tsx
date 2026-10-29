@@ -73,7 +73,7 @@ type XrayResponse = {
     lt: number
     stable: boolean
   }[]
-  history?: (Breaches & { source: string }) | null
+  history?: (Breaches & { source: string; curve?: { d: number; share: number }[] }) | null
   carry?: { carryGapPerYear: number | null; daysToHf1: number | null } | null
   error?: string
 }
@@ -557,6 +557,8 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null; stress?: StressDo
                 healthFactor={shown.healthFactor}
                 distance={shown.distance}
                 past7d={shown.history?.['7d'] ?? null}
+                curve={shown.riskType === 'price' ? (shown.history?.curve ?? null) : null}
+                reserves={shown.reserves}
               />
               <CrashHistory history={shown.history ?? null} distance={shown.distance} />
               <CarryAtRates carry={shown.carry ?? null} />

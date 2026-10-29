@@ -356,3 +356,44 @@ export function checkRules(
     },
   ]
 }
+
+/** Share of past 7-day windows whose low fell at least d, for a grid of distances. */
+export function breachCurve(bars: Bar[], grid: number[], window = 7) {
+  return grid.map((d) => {
+    const b = historyBreaches(bars, d, [window], 0)[`${window}d`]
+    return { d, share: b.windows ? b.breaches / b.windows : 0 }
+  })
+}
+
+/** Smallest distance on the curve whose past crossing share is at or below target (null if none). */
+export function distanceForShare(
+  curve: { d: number; share: number }[],
+  target: number,
+): number | null {
+  const hit = curve.find((p) => p.share <= target)
+  return hit ? hit.d : null
+}
+
+/**
+ * Debt change (USD, + = room to borrow, − = repay) that puts the position at targetDistance,
+ * scaling all debt pro rata. Bisection on the scale; distance falls as debt rises.
+ */
+export function debtChangeForDistance(
+  reserves: (XrayReserve & { stable: boolean })[],
+  targetDistance: number,
+): number | null {
+  const debt = reserves.reduce((a, r) => a + r.debtUsd, 0)
+  if (!(debt > 0)) return null
+  const dist = (f: number) =>
+    xrayMetrics(reserves.map((r) => ({ ...r, debtUsd: r.debtUsd * f }))).distance
+  let lo = 0
+  let hi = 1
+  while ((dist(hi) ?? 0) > targetDistance && hi < 1e6) hi *= 2
+  if ((dist(hi) ?? 0) > targetDistance) return null
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2
+    if ((dist(mid) ?? 1) > targetDistance) lo = mid
+    else hi = mid
+  }
+  return debt * (lo - 1)
+}

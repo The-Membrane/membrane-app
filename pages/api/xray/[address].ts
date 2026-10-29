@@ -3,7 +3,12 @@ import { isAddress, type Address } from 'viem'
 
 import { effectiveLt, isStable, xrayMetrics } from '@/components/LiquidationMap/xrayLogic'
 import { sameBand } from '@/components/LiquidationMap/liqmapLogic'
-import { carryGap, historyBreaches, replayCrash } from '@/components/LiquidationMap/marketsLogic'
+import {
+  breachCurve,
+  carryGap,
+  historyBreaches,
+  replayCrash,
+} from '@/components/LiquidationMap/marketsLogic'
 import {
   BINANCE_SYMBOL,
   ERC20_ABI,
@@ -123,6 +128,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             '7d': { ...h['7d'], worst: h['7d'].worst.slice(0, 3) },
             '30d': { ...h['30d'], worst: h['30d'].worst.slice(0, 3) },
             replays: replays.filter(Boolean),
+            // Past 7-day crossing share by distance (1–60 %), for the rules panel's safe size.
+            curve: breachCurve(
+              bars,
+              Array.from({ length: 60 }, (_, i) => (i + 1) / 100),
+            ),
           }
         }
       } catch {

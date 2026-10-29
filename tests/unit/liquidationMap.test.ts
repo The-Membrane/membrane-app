@@ -355,3 +355,23 @@ describe('rules check', async () => {
     expect(M.checkRules(M.DEFAULT_RULES, { healthFactor: null, distance: null })[0].pass).toBe(true)
   })
 })
+
+describe('safe borrow size', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  it('curve, target distance and debt change', () => {
+    const day = 86_400_000
+    const bars = Array.from({ length: 40 }, (_, i) => ({ t: i * day, close: 100, low: 99 }))
+    bars[20] = { t: 20 * day, close: 80, low: 75 }
+    const curve = M.breachCurve(bars, [0.01, 0.1, 0.3])
+    expect(curve[0].share).toBeGreaterThan(curve[1].share)
+    expect(curve[2].share).toBe(0)
+    expect(M.distanceForShare(curve, 0)).toBe(0.3)
+    // 10 WETH @2000, LT 0.8 = 16000 cLT; 15000 USDC debt (d = 6.25 %). For d = 25 %: debt = 12000.
+    const pos = [
+      { ...r('WETH', 2000, 20000, 0), stable: false },
+      { ...r('USDC', 1, 0, 15000), stable: true },
+    ]
+    expect(M.debtChangeForDistance(pos, 0.25)!).toBeCloseTo(-3000, 3)
+    expect(M.debtChangeForDistance(pos, 0.0)!).toBeCloseTo(1000, 3)
+  })
+})

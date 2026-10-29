@@ -429,3 +429,26 @@ export function spreadStats(spreads: number[]) {
     max: s[s.length - 1],
   }
 }
+
+export type VaultRow = {
+  name: string
+  asset: string
+  netApy: number
+  tvlUsd: number
+  version: 'V1' | 'V2'
+}
+
+/**
+ * Curator vaults depositors can compare: at least minTvlUsd, a sane net APY (0–50 %), one row per
+ * name (V2 wins over a same-named V1). Most Morpho deposits moved to V2 vaults; reading V1 alone
+ * understates the competition (Steakhouse USDC V1 $64M vs Steakhouse Prime USDC V2 $106M).
+ */
+export function usableVaults(rows: VaultRow[], minTvlUsd = 10_000_000, limit = 12) {
+  const ok = rows.filter((v) => v.tvlUsd >= minTvlUsd && v.netApy >= 0 && v.netApy < 0.5)
+  const byName = new Map<string, VaultRow>()
+  for (const v of ok) {
+    const prev = byName.get(v.name)
+    if (!prev || (v.version === 'V2' && prev.version === 'V1')) byName.set(v.name, v)
+  }
+  return [...byName.values()].sort((a, b) => b.tvlUsd - a.tvlUsd).slice(0, limit)
+}

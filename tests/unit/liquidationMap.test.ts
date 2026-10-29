@@ -407,3 +407,17 @@ describe('spread history stats', async () => {
     })
   })
 })
+
+describe('competitor vaults', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  it('filters small and absurd vaults, prefers V2, sorts by size', () => {
+    const v = M.usableVaults([
+      { name: 'A', asset: 'USDC', netApy: 0.05, tvlUsd: 1e8, version: 'V1' },
+      { name: 'A', asset: 'USDC', netApy: 0.051, tvlUsd: 9e7, version: 'V2' },
+      { name: 'B', asset: 'USDT', netApy: 0.04, tvlUsd: 2e8, version: 'V2' },
+      { name: 'C', asset: 'USDC', netApy: 0.07, tvlUsd: 5e6, version: 'V2' },
+      { name: 'D', asset: 'USDC', netApy: 30, tvlUsd: 5e8, version: 'V1' },
+    ])
+    expect(v.map((x) => `${x.name}:${x.version}`)).toEqual(['B:V2', 'A:V2'])
+  })
+})

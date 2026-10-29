@@ -97,3 +97,14 @@ def test_stable_collateral_covering_debt_is_stable_not_price():
     x = T.xray_metrics(m, _det(USDC=(1000, 700), WETH=(0.001, 0)))
     assert x["riskType"] == "stable" and x["distanceJointPrice"] is None
     assert x["distance"] == pytest.approx(1 - 700 / 801.6, abs=1e-5)
+
+
+def test_carry_gap_pair_loop_rising_and_falling():
+    m = _market(WETH=2000, weETH=2100, USDC=1)
+    det = _det(weETH=(10, 0), WETH=(0, 8))                       # HF 1.05
+    old = {"0x01": int(2000e8), "0x02": int(2100e8 / math.exp(0.03 * 30 / 365))}   # weETH/WETH grew 3 %/yr
+    up = T.carry_metrics(m, det, old, {}, {"0x01": 0.02})
+    assert up["carryGapPerYear"] == pytest.approx(-0.01, abs=1e-4) and up["daysToHf1AtCurrentRates"] is None
+    dn = T.carry_metrics(m, det, old, {}, {"0x01": 0.05})
+    assert dn["carryGapPerYear"] == pytest.approx(0.02, abs=1e-4)
+    assert dn["daysToHf1AtCurrentRates"] == pytest.approx(math.log(1.05) / 0.02 * 365, rel=1e-2)

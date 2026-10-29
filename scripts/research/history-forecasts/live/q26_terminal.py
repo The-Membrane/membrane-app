@@ -178,6 +178,55 @@ def xray_metrics(market, det, lm=None, vol=None):
     return out
 
 
+ARCHIVE_CALL = {"ethereum": ["https://mainnet.gateway.tenderly.co"]}   # keyless endpoint that serves past-block eth_call
+YIELD_WINDOW_D = 30
+
+
+def carry_metrics(market, det, old_price, supply_apr, borrow_apr, window_d=YIELD_WINDOW_D, base="WETH"):
+    """HF log-drift at today's rates: collateral growth (oracle-ratio growth vs `base` over window_d + supply APR)
+    minus debt growth (borrow APR + the debt asset's own ratio growth). Measured rates held constant; a scenario
+    arithmetic, not a forecast. -> {"carryGapPerYear": debt growth - collateral growth, "daysToHf1AtCurrentRates"}"""
+    R = market["reserves"]
+    b = next((a for a, r in R.items() if r["symbol"] == base), None)
+
+    def ry(a):
+        if b is None or D.is_stable(R[a]["symbol"]) or not old_price.get(a) or not old_price.get(b):
+            return 0.0
+        return math.log((R[a]["price"] / R[b]["price"]) / (old_price[a] / old_price[b])) * 365 / window_d
+    cv = dv = cy = dy = 0.0
+    for a, (c, d) in det["bal"].items():
+        r = R[a]
+        if not r["price"]:
+            continue
+        px = r["price"] / 1e8 / 10 ** int(r["dec"])
+        if c:
+            cv += c * px
+            cy += c * px * (ry(a) + supply_apr.get(a, 0.0))
+        if d:
+            dv += d * px
+            dy += d * px * (borrow_apr.get(a, 0.0) + ry(a))
+    if not (cv and dv):
+        return {}
+    gap = dy / dv - cy / cv
+    hf = D.position_metrics(market, det)["hf"]
+    days = math.log(hf) / gap * 365 if gap > 0 and 1 < hf < math.inf else None
+    return {"carryGapPerYear": round(gap, 5), "daysToHf1AtCurrentRates": None if days is None else round(days, 1),
+            "carryNote": f"collateral: {window_d}d oracle-ratio growth vs {base} + supply APR; debt: borrow APR; "
+                         "today's rates held constant (scenario arithmetic, not a forecast)"}
+
+
+def read_carry_inputs(rpc, cfg, chain, market, block, window_d=YIELD_WINDOW_D):
+    assets = market["assets"]
+    rr = rpc.aggregate3([(cfg["pool"], D.sel("getReserveData") + D.enc_addr(a)) for a in assets], block)
+    sup = {a: D.word(x, 2) / 1e27 for a, (ok, x) in zip(assets, rr) if ok}
+    bor = {a: D.word(x, 4) / 1e27 for a, (ok, x) in zip(assets, rr) if ok}
+    old_block = block - int(window_d * DAY_S / 12)
+    data = D.aggregate3_data([(market["oracle"], D.sel("getAssetPrice") + D.enc_addr(a)) for a in assets])
+    raw = rpc.call("eth_call", [{"to": D.MULTICALL3, "data": data}, hex(old_block)], urls=ARCHIVE_CALL[chain])
+    old = {a: D.word(x) for a, (ok, x) in zip(assets, D.aggregate3_decode(raw)) if ok}
+    return old, sup, bor
+
+
 def xray(chain, address, lm=None, rpc=None, http_get=None):
     cfg = D.CHAINS[chain]
     rpc = rpc or D.Rpc(chain, cfg, deadline=time.time() + 300)
@@ -195,6 +244,11 @@ def xray(chain, address, lm=None, rpc=None, http_get=None):
         except Exception:
             vol = None
     out = xray_metrics(market, det, lm, vol)
+    if out["riskType"] == "pair" and chain in ARCHIVE_CALL:
+        try:
+            out.update(carry_metrics(market, det, *read_carry_inputs(rpc, cfg, chain, market, block)))
+        except Exception:
+            out["carryGapPerYear"] = None
     out.update({"chain": chain, "block": block, "readAt": D.iso(int(time.time())), "source": SOURCE,
                 "volSource": f"Binance {sym} 1d closes, {VOL_DAYS}d, EWMA {EWMA_LAMBDA}" if vol else None})
     return out

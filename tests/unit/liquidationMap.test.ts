@@ -298,3 +298,45 @@ describe('crash replay: Aave vs Membrane rules', async () => {
     expect(r.membrane.timerStartHour).toBe(0)
   })
 })
+
+describe('Morpho filtering', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  it('drops spam markets and converts APY to APR', () => {
+    const keep = M.usableMorpho([
+      {
+        loan: 'USDC',
+        collateral: 'PAXG',
+        lltv: 0.915,
+        borrowApy: 2979.96,
+        liquidityUsd: 0,
+        utilization: 1,
+      },
+      {
+        loan: 'USDC',
+        collateral: 'cbBTC',
+        lltv: 0.86,
+        borrowApy: 0.0502,
+        liquidityUsd: 34e6,
+        utilization: 0.9,
+      },
+      {
+        loan: 'USDC',
+        collateral: 'tiny',
+        lltv: 0.86,
+        borrowApy: 0.05,
+        liquidityUsd: 2e5,
+        utilization: 0.5,
+      },
+      {
+        loan: 'USDC',
+        collateral: null,
+        lltv: 0,
+        borrowApy: 0.01,
+        liquidityUsd: 5e6,
+        utilization: 0.1,
+      },
+    ])
+    expect(keep.map((m) => m.collateral)).toEqual(['cbBTC'])
+    expect(M.apyToApr(0.0502)).toBeCloseTo(Math.log(1.0502), 12)
+  })
+})

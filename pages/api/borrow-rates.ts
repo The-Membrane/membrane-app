@@ -1,7 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { parseAbi, type Address } from 'viem'
 
-import { cometApr, rankQuotes, type VenueQuote } from '@/components/LiquidationMap/marketsLogic'
+import {
+  apyToApr,
+  cometApr,
+  rankQuotes,
+  usableMorpho,
+  type MorphoMarket,
+  type VenueQuote,
+} from '@/components/LiquidationMap/marketsLogic'
 import {
   POOL,
   SPARK_POOL,
@@ -11,7 +18,8 @@ import {
 } from '@/pages/api/_lib/aaveReads'
 
 // GET /api/borrow-rates — where each asset is cheapest to borrow right now on
-// Ethereum: Aave V3, SparkLend and Compound v3, with the cash available to
+// Ethereum: Aave V3, SparkLend, Compound v3 and listed Morpho markets (each tied to
+// one collateral, named in the venue), with the cash available to
 // borrow at each. LIVE reads; protocol-scoped. Rates are variable and move with
 // utilization: a quote, not a fixed price.
 
@@ -89,12 +97,58 @@ export default async function handler(_req: NextApiRequest, res: NextApiResponse
       }),
     )
 
+    // Morpho Blue: isolated markets, one collateral each. Public API, listed markets only,
+    // then usableMorpho drops spam and empty markets. APY is converted to APR.
+    try {
+      const addrs = aave.reserves.filter((r) => ASSETS.includes(r.symbol)).map((r) => r.asset)
+      const query = `{ markets(first: 200, orderBy: BorrowAssetsUsd, orderDirection: Desc, where: { chainId_in: [1], listed: true, loanAssetAddress_in: ${JSON.stringify(addrs)} }) { items { loanAsset { symbol } collateralAsset { symbol } lltv state { borrowApy liquidityAssetsUsd utilization } } } }`
+      const r = await fetch('https://blue-api.morpho.org/graphql', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ query }),
+      })
+      type Item = {
+        loanAsset: { symbol: string }
+        collateralAsset: { symbol: string } | null
+        lltv: string
+        state: { borrowApy: number; liquidityAssetsUsd: number; utilization: number } | null
+      }
+      const items =
+        ((await r.json()) as { data?: { markets?: { items?: Item[] } } }).data?.markets?.items ?? []
+      const markets: MorphoMarket[] = items.flatMap((i) =>
+        i.state
+          ? [
+              {
+                loan: i.loanAsset.symbol,
+                collateral: i.collateralAsset?.symbol ?? null,
+                lltv: Number(i.lltv) / 1e18,
+                borrowApy: i.state.borrowApy,
+                liquidityUsd: i.state.liquidityAssetsUsd,
+                utilization: i.state.utilization,
+              },
+            ]
+          : [],
+      )
+      for (const m of usableMorpho(markets)) {
+        quotes.push({
+          asset: m.loan,
+          venue: `Morpho · ${m.collateral} ${Math.round(m.lltv * 1000) / 10}%`,
+          borrowApr: apyToApr(m.borrowApy),
+          availableUsd: m.liquidityUsd,
+          utilization: m.utilization,
+        })
+      }
+    } catch {
+      /* Morpho left out on failure, never guessed */
+    }
+
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120')
     return res.status(200).json({
       chain: 'ethereum',
       readAt: new Date().toISOString(),
       kind: 'measured',
-      source: 'Aave V3 and SparkLend Pools, Compound v3 Comets (Ethereum), live reads',
+      source:
+        'Aave V3 and SparkLend Pools, Compound v3 Comets (Ethereum), live reads; Morpho Blue public API (listed markets)',
       assets: rankQuotes(quotes).sort((a, b) => ASSETS.indexOf(a.asset) - ASSETS.indexOf(b.asset)),
     })
   } catch {

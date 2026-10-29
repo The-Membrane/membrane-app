@@ -282,3 +282,34 @@ export function replayCrash(
     membrane: mem,
   }
 }
+
+/** Per-second-compounded APY → equivalent APR (continuous), so venues compare on one basis. */
+export function apyToApr(apy: number): number {
+  return Math.log1p(apy)
+}
+
+export type MorphoMarket = {
+  loan: string
+  collateral: string | null
+  lltv: number
+  borrowApy: number
+  liquidityUsd: number
+  utilization: number
+}
+
+/**
+ * Keeps Morpho markets a borrower could use: real cash (≥ minLiquidityUsd), not pinned at 100 %
+ * utilization, and a sane rate (< 100 % APY). The public API also returns spam markets with fake
+ * oracles (e.g. tens of billions "borrowed" at a 2,980x APY); those fail every test here.
+ */
+export function usableMorpho(markets: MorphoMarket[], minLiquidityUsd = 1_000_000, perLoan = 3) {
+  const ok = markets.filter(
+    (m) =>
+      m.collateral && m.liquidityUsd >= minLiquidityUsd && m.utilization < 0.999 && m.borrowApy < 1,
+  )
+  const by = new Map<string, MorphoMarket[]>()
+  for (const m of ok) by.set(m.loan, [...(by.get(m.loan) ?? []), m])
+  return [...by.values()].flatMap((list) =>
+    list.sort((a, b) => b.liquidityUsd - a.liquidityUsd).slice(0, perLoan),
+  )
+}

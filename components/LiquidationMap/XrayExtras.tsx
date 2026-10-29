@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Box, HStack, Input, SimpleGrid, Text, VStack } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
@@ -8,7 +8,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 
 import { Eyebrow, Stat } from '@/components/Evidence/atoms'
 
-import { applyWhatIf, type Breaches } from './marketsLogic'
+import { DEFAULT_RULES, applyWhatIf, checkRules, type Breaches, type Rules } from './marketsLogic'
 import type { XrayReserve } from './xrayLogic'
 
 // X-ray add-ons: crash history (price risk), carry at today's rates (ratio loops)
@@ -295,6 +295,92 @@ export const WhatIfSimulator: React.FC<{
         {ratioOnly
           ? 'Collateral moves against the debt asset (the ratio); repayment is spread over the debt pro rata.'
           : 'Every non-stable price moves together, stables fixed; repayment is spread over the debt pro rata.'}
+      </Text>
+    </VStack>
+  )
+}
+
+const RULES_KEY = 'membrane.xrayRules'
+
+function loadRules(): Rules {
+  try {
+    const raw = window.localStorage.getItem(RULES_KEY)
+    return raw ? { ...DEFAULT_RULES, ...(JSON.parse(raw) as Partial<Rules>) } : DEFAULT_RULES
+  } catch {
+    return DEFAULT_RULES
+  }
+}
+
+/** Your own rules, checked against this read. Stored only in this browser; nothing is enforced or sent. */
+export const RulesCheck: React.FC<{
+  healthFactor: number | null
+  distance: number | null
+  past7d: { windows: number; breaches: number } | null
+}> = ({ healthFactor, distance, past7d }) => {
+  const [rules, setRules] = useState<Rules>(DEFAULT_RULES)
+  useEffect(() => setRules(loadRules()), [])
+  const update = (k: keyof Rules, v: string) => {
+    const n = Number(v)
+    if (!Number.isFinite(n)) return
+    const next = { ...rules, [k]: n }
+    setRules(next)
+    try {
+      window.localStorage.setItem(RULES_KEY, JSON.stringify(next))
+    } catch {
+      /* private mode: rules last for this visit only */
+    }
+  }
+  const results = checkRules(rules, { healthFactor, distance, past7d })
+  return (
+    <VStack align="stretch" spacing={SPACING.sm}>
+      <Eyebrow>Your rules</Eyebrow>
+      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={SPACING.base}>
+        <Field
+          label="Min health factor"
+          value={String(rules.minHealthFactor)}
+          onChange={(v) => update('minHealthFactor', v)}
+          suffix=""
+        />
+        <Field
+          label="Min distance"
+          value={String(rules.minDistancePct)}
+          onChange={(v) => update('minDistancePct', v)}
+          suffix="%"
+        />
+        <Field
+          label="Max past crossings"
+          value={String(rules.maxPast7dCrossPct)}
+          onChange={(v) => update('maxPast7dCrossPct', v)}
+          suffix="%"
+        />
+      </SimpleGrid>
+      {results.map((r) => (
+        <HStack
+          key={r.rule}
+          justify="space-between"
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+        >
+          <Text color={SEMANTIC_COLORS.textSecondary}>{r.rule}</Text>
+          <Text
+            color={
+              r.pass === null
+                ? SEMANTIC_COLORS.textTertiary
+                : r.pass
+                  ? SEMANTIC_COLORS.success
+                  : SEMANTIC_COLORS.dangerText
+            }
+          >
+            {r.pass === null ? 'n/a' : r.pass ? 'pass' : 'fail'} · {r.detail}
+          </Text>
+        </HStack>
+      ))}
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize={TYPOGRAPHY.xs}
+        color={SEMANTIC_COLORS.textTertiary}
+      >
+        Saved in this browser only. A check, not an automation: nothing is enforced or sent.
       </Text>
     </VStack>
   )

@@ -340,3 +340,18 @@ describe('Morpho filtering', async () => {
     expect(M.apyToApr(0.0502)).toBeCloseTo(Math.log(1.0502), 12)
   })
 })
+
+describe('rules check', async () => {
+  const M = await import('@/components/LiquidationMap/marketsLogic')
+  it('passes, fails and cannot-judge', () => {
+    const r = M.checkRules(M.DEFAULT_RULES, {
+      healthFactor: 1.05,
+      distance: 0.099,
+      past7d: { windows: 2851, breaches: 463 },
+    })
+    expect(r.map((x) => x.pass)).toEqual([false, true, false])
+    const loop = M.checkRules(M.DEFAULT_RULES, { healthFactor: 1.2, distance: 0.03, past7d: null })
+    expect(loop.map((x) => x.pass)).toEqual([true, false, null])
+    expect(M.checkRules(M.DEFAULT_RULES, { healthFactor: null, distance: null })[0].pass).toBe(true)
+  })
+})

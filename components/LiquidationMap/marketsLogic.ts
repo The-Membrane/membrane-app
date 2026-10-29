@@ -313,3 +313,46 @@ export function usableMorpho(markets: MorphoMarket[], minLiquidityUsd = 1_000_00
     list.sort((a, b) => b.liquidityUsd - a.liquidityUsd).slice(0, perLoan),
   )
 }
+
+export type Rules = { minHealthFactor: number; minDistancePct: number; maxPast7dCrossPct: number }
+export const DEFAULT_RULES: Rules = {
+  minHealthFactor: 1.1,
+  minDistancePct: 5,
+  maxPast7dCrossPct: 10,
+}
+
+export type RuleResult = { rule: string; pass: boolean | null; detail: string }
+
+/**
+ * A user's own rules checked against one X-ray read. null = the rule cannot be judged for this
+ * position (e.g. no price history for a loop). Checked in the browser; nothing is enforced.
+ */
+export function checkRules(
+  r: Rules,
+  x: {
+    healthFactor: number | null
+    distance: number | null
+    past7d?: { windows: number; breaches: number } | null
+  },
+): RuleResult[] {
+  const hf = x.healthFactor
+  const d = x.distance
+  const share = x.past7d && x.past7d.windows > 0 ? x.past7d.breaches / x.past7d.windows : null
+  return [
+    {
+      rule: `Health factor ≥ ${r.minHealthFactor}`,
+      pass: hf === null ? true : hf >= r.minHealthFactor,
+      detail: hf === null ? 'no debt' : hf.toFixed(3),
+    },
+    {
+      rule: `Distance ≥ ${r.minDistancePct}%`,
+      pass: d === null ? null : d * 100 >= r.minDistancePct,
+      detail: d === null ? '—' : `${(d * 100).toFixed(1)}%`,
+    },
+    {
+      rule: `Past 7-day windows crossing it ≤ ${r.maxPast7dCrossPct}%`,
+      pass: share === null ? null : share * 100 <= r.maxPast7dCrossPct,
+      detail: share === null ? 'no price history' : `${(share * 100).toFixed(1)}%`,
+    },
+  ]
+}

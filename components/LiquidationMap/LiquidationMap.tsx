@@ -28,7 +28,7 @@ import { BAND_NAMES } from './xrayLogic'
 import type { Breaches } from './marketsLogic'
 import { MarketsSheet } from './MarketsSheet'
 import { BorrowBoard } from './BorrowBoard'
-import { CarryAtRates, CrashHistory, WhatIfSimulator } from './XrayExtras'
+import { CarryAtRates, CrashHistory, RulesCheck, WhatIfSimulator } from './XrayExtras'
 
 // Liquidation map + Position X-ray (board Q26-TERMINAL-MAP). Protocol-scoped blocks
 // (the map) are a measured snapshot in both states; the X-ray is wallet-scoped and
@@ -549,6 +549,11 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null }> = ({ doc }) => 
                   ))}
                 </Box>
               </Box>
+              <RulesCheck
+                healthFactor={shown.healthFactor}
+                distance={shown.distance}
+                past7d={shown.history?.['7d'] ?? null}
+              />
               <CrashHistory history={shown.history ?? null} distance={shown.distance} />
               <CarryAtRates carry={shown.carry ?? null} />
               {shown.debtUsd > 0 ? (

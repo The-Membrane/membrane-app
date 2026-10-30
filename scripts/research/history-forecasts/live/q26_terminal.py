@@ -576,7 +576,7 @@ def main(argv=None):
                     per.append(json.load(fh))
             except (OSError, ValueError):
                 per.append(None)
-        print(json.dumps(layers_doc(per), indent=1))
+        sys.stdout.write(json.dumps(layers_doc(per), separators=(",", ":")))   # compact, as the shipped file
     elif args.cmd == "layers":
         print(json.dumps(scan_chain(args.datasets_root, args.chain), indent=1))
     else:

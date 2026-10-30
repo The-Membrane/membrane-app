@@ -215,6 +215,19 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null; stress?: StressDo
     }
   }, [])
 
+  // Deep link from a Telegram position alert: ?address=0x… opens that X-ray.
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('address')
+      if (q && /^0x[0-9a-fA-F]{40}$/.test(q)) {
+        setInput(q)
+        runXray(q)
+      }
+    } catch {
+      /* no query: nothing to open */
+    }
+  }, [runXray])
+
   useEffect(() => {
     if (!isDemo && address) {
       setInput(address)

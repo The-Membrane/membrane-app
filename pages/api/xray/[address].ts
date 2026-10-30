@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { isAddress, type Address } from 'viem'
 
-import { effectiveLt, isStable, xrayMetrics } from '@/components/LiquidationMap/xrayLogic'
 import { sameBand } from '@/components/LiquidationMap/liqmapLogic'
 import {
   breachCurve,
@@ -11,15 +10,12 @@ import {
 } from '@/components/LiquidationMap/marketsLogic'
 import {
   BINANCE_SYMBOL,
-  ERC20_ABI,
-  POOL,
-  POOL_ABI,
   getClient,
   readDailyBars,
   readHourBars,
   readLayers,
-  readMarket,
   readPastPrices,
+  readPosition,
 } from '@/pages/api/_lib/aaveReads'
 
 // GET /api/xray/[address] — Position X-ray for one Aave V3 Ethereum account
@@ -34,66 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const user = raw as Address
   try {
     const c = getClient()
-    const m = await readMarket(c)
-    const [cfg, emode, acct] = await Promise.all([
-      c.readContract({
-        address: POOL,
-        abi: POOL_ABI,
-        functionName: 'getUserConfiguration',
-        args: [user],
-      }),
-      c.readContract({ address: POOL, abi: POOL_ABI, functionName: 'getUserEMode', args: [user] }),
-      c.readContract({
-        address: POOL,
-        abi: POOL_ABI,
-        functionName: 'getUserAccountData',
-        args: [user],
-      }),
-    ])
-    const used = m.reserves.filter((r) => ((cfg >> BigInt(2 * r.id)) & 3n) !== 0n)
-    let em: { ltBps: number; bitmap: bigint } | null = null
-    if (emode > 0n) {
-      const [conf, bm] = await Promise.all([
-        c.readContract({
-          address: POOL,
-          abi: POOL_ABI,
-          functionName: 'getEModeCategoryCollateralConfig',
-          args: [Number(emode)],
-        }),
-        c.readContract({
-          address: POOL,
-          abi: POOL_ABI,
-          functionName: 'getEModeCategoryCollateralBitmap',
-          args: [Number(emode)],
-        }),
-      ])
-      em = { ltBps: Number(conf[1]), bitmap: bm }
-    }
-    const bals = await c.multicall({
-      contracts: used.flatMap((r) => [
-        { address: r.aToken, abi: ERC20_ABI, functionName: 'balanceOf', args: [user] } as const,
-        { address: r.vDebt, abi: ERC20_ABI, functionName: 'balanceOf', args: [user] } as const,
-      ]),
-    })
-    const reserves = used.map((r, j) => {
-      const isColl = ((cfg >> BigInt(2 * r.id + 1)) & 1n) === 1n
-      const a = bals[2 * j].status === 'success' ? (bals[2 * j].result as bigint) : 0n
-      const d = bals[2 * j + 1].status === 'success' ? (bals[2 * j + 1].result as bigint) : 0n
-      const px = Number(r.price) / 1e8
-      const unit = 10 ** r.decimals
-      return {
-        symbol: r.symbol,
-        priceUsd: px,
-        lt: effectiveLt(r.ltBps, r.id, em),
-        collateralUsd: isColl ? (Number(a) / unit) * px : 0,
-        debtUsd: (Number(d) / unit) * px,
-        stable: isStable(r.symbol),
-        asset: r.asset,
-        supplyApr: r.supplyApr,
-        borrowApr: r.borrowApr,
-      }
-    })
-    const x = xrayMetrics(reserves)
+    const { market: m, emode, reserves, x } = await readPosition(user, c)
     const doc = readLayers()
     const crowd =
       doc && x.bandIndex !== null

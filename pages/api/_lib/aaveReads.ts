@@ -3,7 +3,12 @@ import path from 'node:path'
 import { createPublicClient, fallback, http, parseAbi, type Address, type PublicClient } from 'viem'
 import { mainnet } from 'viem/chains'
 
-import { ltFromConfig } from '@/components/LiquidationMap/xrayLogic'
+import {
+  effectiveLt,
+  isStable,
+  ltFromConfig,
+  xrayMetrics,
+} from '@/components/LiquidationMap/xrayLogic'
 import type { LayersDoc } from '@/components/LiquidationMap/liqmapLogic'
 import type { Bar, RateParams } from '@/components/LiquidationMap/marketsLogic'
 
@@ -445,4 +450,70 @@ export async function readSpreadHistory(m: Market, asset: Address, base: Address
   }
   spreadCache.set(key, { at: Date.now(), spreads })
   return spreads
+}
+
+/** One account's Aave V3 Ethereum position: reserves it uses and the X-ray metrics.
+ *  Shared by /api/xray and the Telegram position alerts (scripts/lib/telegramBot.mjs). */
+export async function readPosition(user: Address, c: PublicClient = getClient()) {
+  const m = await readMarket(c)
+  const [cfg, emode, acct] = await Promise.all([
+    c.readContract({
+      address: POOL,
+      abi: POOL_ABI,
+      functionName: 'getUserConfiguration',
+      args: [user],
+    }),
+    c.readContract({ address: POOL, abi: POOL_ABI, functionName: 'getUserEMode', args: [user] }),
+    c.readContract({
+      address: POOL,
+      abi: POOL_ABI,
+      functionName: 'getUserAccountData',
+      args: [user],
+    }),
+  ])
+  const used = m.reserves.filter((r) => ((cfg >> BigInt(2 * r.id)) & 3n) !== 0n)
+  let em: { ltBps: number; bitmap: bigint } | null = null
+  if (emode > 0n) {
+    const [conf, bm] = await Promise.all([
+      c.readContract({
+        address: POOL,
+        abi: POOL_ABI,
+        functionName: 'getEModeCategoryCollateralConfig',
+        args: [Number(emode)],
+      }),
+      c.readContract({
+        address: POOL,
+        abi: POOL_ABI,
+        functionName: 'getEModeCategoryCollateralBitmap',
+        args: [Number(emode)],
+      }),
+    ])
+    em = { ltBps: Number(conf[1]), bitmap: bm }
+  }
+  const bals = await c.multicall({
+    contracts: used.flatMap((r) => [
+      { address: r.aToken, abi: ERC20_ABI, functionName: 'balanceOf', args: [user] } as const,
+      { address: r.vDebt, abi: ERC20_ABI, functionName: 'balanceOf', args: [user] } as const,
+    ]),
+  })
+  const reserves = used.map((r, j) => {
+    const isColl = ((cfg >> BigInt(2 * r.id + 1)) & 1n) === 1n
+    const a = bals[2 * j].status === 'success' ? (bals[2 * j].result as bigint) : 0n
+    const d = bals[2 * j + 1].status === 'success' ? (bals[2 * j + 1].result as bigint) : 0n
+    const px = Number(r.price) / 1e8
+    const unit = 10 ** r.decimals
+    return {
+      symbol: r.symbol,
+      priceUsd: px,
+      lt: effectiveLt(r.ltBps, r.id, em),
+      collateralUsd: isColl ? (Number(a) / unit) * px : 0,
+      debtUsd: (Number(d) / unit) * px,
+      stable: isStable(r.symbol),
+      asset: r.asset,
+      supplyApr: r.supplyApr,
+      borrowApr: r.borrowApr,
+    }
+  })
+  const x = xrayMetrics(reserves)
+  return { market: m, emode, reserves, x }
 }

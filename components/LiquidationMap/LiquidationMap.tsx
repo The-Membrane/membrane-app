@@ -28,6 +28,7 @@ import { BAND_NAMES } from './xrayLogic'
 import type { Breaches } from './marketsLogic'
 import { MarketsSheet } from './MarketsSheet'
 import { BorrowBoard } from './BorrowBoard'
+import { AlertRules } from './AlertRules'
 import { StressReplay, type StressDoc } from './StressReplay'
 import { VaultYields } from './VaultYields'
 import { UnwindCost } from './UnwindCost'
@@ -182,6 +183,7 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null; stress?: StressDo
   const [xray, setXray] = useState<XrayResponse | null>(null)
   const [xrayErr, setXrayErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [readAddr, setReadAddr] = useState<string | null>(null)
 
   const chains = useMemo(() => (chain === 'all' ? undefined : [chain]), [chain])
   const bands = useMemo(() => (doc ? layerBands(doc, chains) : null), [doc, chains])
@@ -203,8 +205,10 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null; stress?: StressDo
       const body = (await r.json()) as XrayResponse
       if (!r.ok) throw new Error(body.error ?? 'read failed')
       setXray(body)
+      setReadAddr(addr)
     } catch (e) {
       setXray(null)
+      setReadAddr(null)
       setXrayErr(e instanceof Error ? e.message : 'read failed')
     } finally {
       setLoading(false)
@@ -219,6 +223,9 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null; stress?: StressDo
   }, [isDemo, address, runXray])
 
   const shown = xray ?? (isDemo ? DEMO_XRAY : null)
+  const recheck = useCallback(() => {
+    if (readAddr) runXray(readAddr)
+  }, [readAddr, runXray])
   const validInput = /^0x[0-9a-fA-F]{40}$/.test(input.trim())
 
   return (
@@ -564,6 +571,17 @@ export const LiquidationMap: React.FC<{ doc: LayersDoc | null; stress?: StressDo
               />
               <CrashHistory history={shown.history ?? null} distance={shown.distance} />
               <CarryAtRates carry={shown.carry ?? null} />
+              {shown.debtUsd > 0 ? (
+                <AlertRules
+                  address={xray ? readAddr : null}
+                  input={{
+                    distance: shown.distance,
+                    healthFactor: shown.healthFactor,
+                    daysToHf1: shown.carry?.daysToHf1 ?? null,
+                  }}
+                  onRecheck={recheck}
+                />
+              ) : null}
               {shown.debtUsd > 0 ? (
                 <WhatIfSimulator
                   reserves={shown.reserves}

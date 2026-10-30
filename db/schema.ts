@@ -822,7 +822,7 @@ export const alertSubscriptions = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     chatId: text('chat_id').notNull(),
-    address: text('address').notNull(), // checksummed 0x…, present in strat_watches
+    address: text('address').notNull(), // checksummed 0x…; venue alarms need it in strat_watches
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     stoppedAt: timestamp('stopped_at', { withTimezone: true }), // /stop; null = active
   },
@@ -847,6 +847,25 @@ export const alertDeliveries = pgTable(
   (table) => [
     primaryKey({ columns: [table.subscriptionId, table.alarmId, table.moment] }),
     check('alert_deliveries_moment_check', sql`${table.moment} IN ('fired', 'cleared')`),
+  ],
+)
+
+// Personal position alerts (owner ruling 2026-10-30): last level sent per subscription.
+// Mirror of scripts/apply-alert-subscriptions-ddl.mjs — keep them in lockstep.
+export const positionAlertState = pgTable(
+  'position_alert_state',
+  {
+    subscriptionId: uuid('subscription_id')
+      .primaryKey()
+      .references(() => alertSubscriptions.id, { onDelete: 'cascade' }),
+    level: text('level').notNull(), // 'ok' | 'warn' | 'critical' | 'act-now'
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'position_alert_state_level_check',
+      sql`${table.level} IN ('ok', 'warn', 'critical', 'act-now')`,
+    ),
   ],
 )
 

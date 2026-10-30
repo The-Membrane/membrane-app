@@ -124,7 +124,6 @@ export async function handleUpdate(update, { sql, logic, footerFor }) {
     const [w] = await sql`
       SELECT created_at AS "createdAt", entry_positions AS "entryPositions", last_scanned AS "lastScanned"
       FROM strat_watches WHERE address = ${cmd.address} LIMIT 1`
-    if (!w) return { chatId: chat, text: logic.replyText({ kind: 'not_watched', address: cmd.address }) }
     // Cap ACTIVE subscriptions per chat (a re-/start of an address already
     // watched does not count against it).
     const [cnt] = await sql`
@@ -139,6 +138,8 @@ export async function handleUpdate(update, { sql, logic, footerFor }) {
       ON CONFLICT (chat_id, address) DO UPDATE SET
         created_at = CASE WHEN alert_subscriptions.stopped_at IS NULL THEN alert_subscriptions.created_at ELSE now() END,
         stopped_at = NULL`
+    // Not tracked on Radar: position alerts only (owner ruling 2026-10-30).
+    if (!w) return { chatId: chat, text: logic.replyText({ kind: 'subscribed_position', address: cmd.address }) }
     const watch = toWatch(w)
     const alarmRows = await sql`
       SELECT id, venue, kind, severity, evidence, fired_at AS "firedAt", cleared_at AS "clearedAt"
@@ -376,5 +377,71 @@ export async function sendAddressAlerts(sql, { logic, coverage, config, fetchImp
     }
   }
   log(`telegram alerts: planned ${plan.length}, sent ${sent}, failed ${failed}`)
+  return { sent, failed }
+}
+
+/**
+ * PERSONAL POSITION ALERTS (owner ruling 2026-10-30: on the Radar bot, Telegram).
+ * One Aave V3 Ethereum read per distinct subscribed address, the level logic in
+ * components/Radar/positionAlertLogic.ts, state in position_alert_state. The level is
+ * claimed with a compare-and-set before the send and restored if the send fails, so a
+ * concurrent tick never double-sends. Logs counts only: no address, no health factor.
+ * deps: { logic (positionAlertLogic), readPosition (address -> PositionRead), config, fetchImpl?, log? }
+ */
+export async function sendPositionAlerts(
+  sql,
+  { logic, readPosition, config, fetchImpl = fetch, log = console.log },
+) {
+  if (!config.enabled) return { sent: 0, failed: 0 }
+  const subRows = await sql`
+    SELECT id, chat_id AS "chatId", address FROM alert_subscriptions WHERE stopped_at IS NULL`
+  if (subRows.length === 0) return { sent: 0, failed: 0 }
+  const subscriptions = subRows.map((r) => ({
+    id: String(r.id),
+    chatId: String(r.chatId),
+    address: r.address,
+  }))
+  const stateRows = await sql`
+    SELECT subscription_id AS "subscriptionId", level FROM position_alert_state
+    WHERE subscription_id = ANY(${subscriptions.map((s) => s.id)})`
+  const levels = Object.fromEntries(stateRows.map((r) => [String(r.subscriptionId), r.level]))
+  const reads = {}
+  let readFailed = 0
+  for (const a of [...new Set(subscriptions.map((s) => s.address))]) {
+    try {
+      reads[a] = await readPosition(a)
+    } catch {
+      reads[a] = null
+      readFailed++
+    }
+  }
+  const plan = logic.planPositionAlerts({ subscriptions, levels, reads })
+  let sent = 0
+  let failed = 0
+  let moved = 0
+  for (const p of plan) {
+    const claimed = await sql`
+      INSERT INTO position_alert_state (subscription_id, level) VALUES (${p.subscriptionId}, ${p.next})
+      ON CONFLICT (subscription_id) DO UPDATE SET level = ${p.next}, updated_at = now()
+      WHERE position_alert_state.level = ${p.prev}
+      RETURNING subscription_id`
+    if (claimed.length === 0) continue // another run already moved this level
+    moved++
+    if (!p.text) continue
+    const r = await sendMessage(config.token, p.chatId, p.text, fetchImpl)
+    if (r.ok) {
+      sent++
+      continue
+    }
+    failed++
+    await sql`UPDATE position_alert_state SET level = ${p.prev}, updated_at = now()
+      WHERE subscription_id = ${p.subscriptionId} AND level = ${p.next}`
+    if (isGone(r)) {
+      await sql`UPDATE alert_subscriptions SET stopped_at = now() WHERE chat_id = ${p.chatId} AND stopped_at IS NULL`
+    }
+  }
+  log(
+    `position alerts: ${subscriptions.length} subscription(s), ${Object.keys(reads).length - readFailed} read ok, ${readFailed} read failed, ${moved} level change(s), sent ${sent}, failed ${failed}`,
+  )
   return { sent, failed }
 }

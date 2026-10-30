@@ -1,0 +1,129 @@
+# Q26 liquidation map -- daily refresh of public/data/liquidation-map/layers.json (the /[chain]/liquidations page).
+# Owner approval 2026-10-30 ("you can do anything that you're waiting for a reply on"; board Q26-TERMINAL-MAP).
+# It runs `q26_terminal.py layers` on the 7 Aave V3 chains over the D14 borrower lists, merges the complete scans with
+# `layers-doc` and commits the merged file to TARGET_BRANCH. A chain whose scan fails or is partial is left out of
+# that day's file (never shown partial). If every chain fails, nothing is committed.
+#
+# OFF SWITCH: the job runs unless the repository variable LIQMAP_REFRESH_ENABLED is exactly `false`
+#   (Settings -> Secrets and variables -> Actions -> Variables). Disabling this workflow in the Actions tab also stops it.
+# Code: membrane-app at the PINNED full commit LIQMAP_APP_SHA (moves only by a dated note on the board).
+# Data in: triccs/membrane-datasets (private), forecasts/q26-borrower-alert/ (the D14 borrower lists), read only.
+# Data out: layers.json holds aggregates only (USD per band, counts, block). No address, no position.
+# Credential: DATASETS_TOKEN (existing secret of the q26-datasets environment) reaches only the datasets checkout
+#   (persist-credentials: false); this job never pushes to datasets. The app push uses the job's own github.token.
+# PUBLIC LOGS: each scan's stderr goes to a runner temp file that is deleted; the log shows exit codes and counts only.
+#   Keyless public RPC endpoints only.
+
+name: q26-liqmap-refresh
+
+on:
+  schedule:
+    - cron: "41 4 * * *"   # daily 04:41 UTC (off the :00 rush, the :17/:47 touch-live and the :23 borrower-alert runs)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: q26-liqmap-refresh
+  cancel-in-progress: false
+
+env:
+  APP_REPO: The-Membrane/membrane-app
+  LIQMAP_APP_SHA: 301caa011944c64803eaa34c8708f8f2865a34f7   # 2026-10-30: q26_terminal.py layers + layers-doc (compact)
+  DATASETS_REPO: triccs/membrane-datasets
+  TARGET_BRANCH: evm-migration
+  MAP_FILE: public/data/liquidation-map/layers.json
+  CHAINS: ethereum arbitrum base optimism polygon avalanche bnb
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  refresh:
+    if: ${{ vars.LIQMAP_REFRESH_ENABLED != 'false' && github.repository == 'The-Membrane/membrane-app' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: q26-datasets
+    permissions:
+      contents: write
+    steps:
+      - name: Check out membrane-datasets (main, sparse, D14 block only, read only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.DATASETS_REPO }}
+          token: ${{ secrets.DATASETS_TOKEN }}
+          ref: main
+          path: datasets
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /forecasts/q26-borrower-alert/
+
+      - name: Check out membrane-app at the pinned commit (scripts only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.APP_REPO }}
+          ref: ${{ env.LIQMAP_APP_SHA }}
+          path: code
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/research/history-forecasts
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7
+        with:
+          python-version: "3.12"
+
+      - name: Scan the 7 chains in parallel, then merge (standard library only)
+        run: |
+          set +x
+          live=code/scripts/research/history-forecasts/live
+          scans="$RUNNER_TEMP/scans"; mkdir -p "$scans"
+          for c in $CHAINS; do
+            ( python "$live/q26_terminal.py" layers datasets "$c" >"$scans/$c.json" 2>"$scans/$c.err"; echo $? >"$scans/$c.rc" ) &
+          done
+          wait
+          for c in $CHAINS; do
+            echo "scan $c: exit $(cat "$scans/$c.rc"), stderr $(wc -l <"$scans/$c.err") lines"
+          done
+          python "$live/q26_terminal.py" layers-doc $(for c in $CHAINS; do echo "$scans/$c.json"; done) \
+            >"$RUNNER_TEMP/layers.json"
+          python - "$RUNNER_TEMP/layers.json" <<'EOF'
+          import json, re, sys
+          d = json.load(open(sys.argv[1]))
+          raw = open(sys.argv[1]).read()
+          assert not re.search(r"0x[0-9a-fA-F]{40}", raw), "address pattern in the merged file"
+          print("merged:", len(d["chains"]), "chains:", " ".join(c["chain"] for c in d["chains"]))
+          sys.exit(0 if d["chains"] else 3)
+          EOF
+          rm -rf "$scans"
+
+      - name: Check out the target branch of membrane-app
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          path: app
+          fetch-depth: 1
+
+      - name: Commit the refreshed map to the target branch (pull --rebase, up to 3 retries)
+        working-directory: app
+        run: |
+          set +x
+          if [ ! -f "$MAP_FILE" ]; then echo "$TARGET_BRANCH has no $MAP_FILE yet; not pushing"; exit 0; fi
+          cp "$RUNNER_TEMP/layers.json" "$MAP_FILE"
+          git config user.name "q26-live-bot"
+          git config user.email "q26-live-bot@users.noreply.github.com"
+          git add -- "$MAP_FILE"
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -q -m "data(liquidation-map): daily refresh $(date -u +%Y-%m-%d) (app ${LIQMAP_APP_SHA:0:7})" -- "$MAP_FILE"
+          for attempt in 1 2 3 4; do
+            if git pull -q --rebase origin "$TARGET_BRANCH" && git push -q origin "HEAD:$TARGET_BRANCH"; then
+              echo "pushed on attempt $attempt"; exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 15))
+          done
+          echo "push failed after 3 retries"; exit 1

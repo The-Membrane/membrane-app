@@ -164,3 +164,14 @@ def test_history_breaches_counts_and_worst():
     assert h["1d"]["windows"] == 19 and h["1d"]["breaches"] == 1
     assert h["7d"]["breaches"] == 7                   # every 7 d window starting days 3..9 contains day 10
     assert h["1d"]["worst"][0]["drop"] == pytest.approx(0.15)
+
+
+def test_layers_doc_keeps_complete_scans_only_and_drops_counts():
+    ok = {"schema": "q26-terminal/layered/1", "chain": "base", "block": 1, "readAt": "x", "borrowers": 5, "read": 5,
+          "near": 2, "detailed": 2, "layers": {}, "totalUsd": {"price": 10}, "kind": "measured", "source": "s"}
+    big = dict(ok, chain="ethereum", totalUsd={"price": 99})
+    partial = dict(ok, chain="bnb", read=4)
+    d = T.layers_doc([ok, None, partial, big, {"schema": "other"}])
+    assert [c["chain"] for c in d["chains"]] == ["base", "ethereum"]   # input order kept
+    assert "read" not in d["chains"][0] and "detailed" not in d["chains"][0]
+    assert d["schema"] == "q26-terminal/layers-doc/1" and "2 chains" in d["source"]

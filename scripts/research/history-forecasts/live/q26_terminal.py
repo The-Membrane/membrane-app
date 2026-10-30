@@ -517,6 +517,30 @@ def read_rate_params(rpc, cfg, market, block, asset):
     return {"params": (opt, base, s1, s2), "rate": rate, "debt": D.word(r[1][1]) / 10 ** int(market["reserves"][asset]["dec"])}
 
 
+LAYERS_DOC_NOTES = [
+ "Debt with health factor at or below 1/0.9 and debt of at least $100, banded by distance to health factor 1.",
+ "price: a common drop of every non-stable price reaches HF 1. pair: non-stable debt against correlated collateral; distance = collateral-only move (1 - 1/HF). stable: stablecoin positions; distance = collateral-only move.",
+ "On Ethereum, Aave prices weETH, rsETH, wstETH and osETH with capped exchange-rate oracles and USDe as USDT/USD: a market depeg does not move them.",
+ "pairCarryUsd (Ethereum): pair debt by days to HF 1 if today's rates hold; hfRises = the staking yield beats the borrow rate. Arithmetic on measured rates, not a forecast.",
+ "Snapshot, not live. Aggregates only; no address."
+]
+LAYERS_DOC_KEYS = ("chain", "block", "readAt", "borrowers", "near", "layers", "totalUsd", "pairCarryUsd")
+
+
+def layers_doc(per_chain):
+    """Pure: per-chain `layers` scans -> the app's public/data/liquidation-map/layers.json. Aggregates only.
+    A chain scan that is missing, failed or read less than all its borrowers is left out (never shown partial)."""
+    chains = []
+    for r in per_chain:
+        if not r or r.get("schema") != "q26-terminal/layered/1" or r.get("read") != r.get("borrowers"):
+            continue
+        chains.append({k: r[k] for k in LAYERS_DOC_KEYS if k in r})
+    return {"schema": "q26-terminal/layers-doc/1", "kind": "measured",
+            "source": "Aave V3 core Pools on %d chains, full scan of known borrowers (keyless public RPC), membrane-app "
+                      "research/history-forecasts q26_terminal.py layers" % len(chains),
+            "notes": LAYERS_DOC_NOTES, "chains": chains}
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -527,6 +551,8 @@ def main(argv=None):
     c = sub.add_parser("layers")
     c.add_argument("datasets_root")
     c.add_argument("chain", choices=sorted(D.CHAINS))
+    m = sub.add_parser("layers-doc")
+    m.add_argument("scans", nargs="+")
     o = sub.add_parser("oracles")
     o.add_argument("chain", choices=sorted(D.CHAINS))
     e = sub.add_parser("exit")
@@ -542,6 +568,15 @@ def main(argv=None):
         print(json.dumps(oracle_table(args.chain), indent=1))
     elif args.cmd == "exit":
         print(json.dumps(exit_table(args.chain), indent=1))
+    elif args.cmd == "layers-doc":
+        per = []
+        for f in args.scans:
+            try:
+                with open(f) as fh:
+                    per.append(json.load(fh))
+            except (OSError, ValueError):
+                per.append(None)
+        print(json.dumps(layers_doc(per), indent=1))
     elif args.cmd == "layers":
         print(json.dumps(scan_chain(args.datasets_root, args.chain), indent=1))
     else:

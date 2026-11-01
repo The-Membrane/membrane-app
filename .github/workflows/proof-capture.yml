@@ -1,0 +1,141 @@
+# Proof capture -- when the market breaks, freeze the evidence (owner request 2026-11-01: "an automatic capture of
+# proof for price crashes ... eventually the proof capture for whatever event"). Code: scripts/proof-capture/.
+#
+# Hourly: run the detectors in scripts/proof-capture/detectors.json (BTC -5%/1h or -10%/8h, ETH -7%/1h or -13%/8h,
+#   USDe < 0.98, USDC < 0.99 on Binance 1m). A trigger opens an event (triggers within 6h join one event). Each event
+#   takes stages at +0h, +8h, +24h, +72h: 1m prices, Chainlink rounds, Aave V3 + Morpho Blue liquidations, Aave
+#   USDC/USDT cash, and a receipt of what liquidated borrowers paid. A new event type = a new detector entry.
+# Manual test: Actions -> proof-capture -> Run workflow with `force` set (opens a manual event and takes stage +0h).
+#
+# OFF SWITCH: runs unless the repository variable PROOF_CAPTURE_ENABLED is exactly `false`. Disabling the workflow in
+#   the Actions tab also stops it.
+# Code: this repo at the PINNED full commit PROOF_APP_SHA (moves only by a reviewed commit to this file).
+# Data: triccs/membrane-datasets (private), proofs/ only. Files are created exclusively and never rewritten, except
+#   proofs/state.json and each event's receipt.md / PROVENANCE.md.
+# Credentials: DATASETS_TOKEN (existing secret of the q26-datasets environment) reaches only the datasets checkout
+#   (persist-credentials: false) and the push (per-command extraheader through GIT_CONFIG_* variables). Optional
+#   PROOF_TELEGRAM_BOT_TOKEN / PROOF_TELEGRAM_CHAT_ID send an aggregate-only alert; without them the alert is skipped.
+# PUBLIC LOGS: the script's output goes to a runner temp file that is deleted; the log shows whitelisted count lines
+#   only (detector fired/quiet, stages taken, liquidation counts). No address, no key. No artifacts.
+
+name: proof-capture
+
+on:
+  schedule:
+    - cron: "53 * * * *"   # hourly at :53 (off the :00 rush and the :17/:23/:41/:47 q26 runs)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Open a manual event with this label (leave empty for a normal pass)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Detect only; capture and commit nothing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proof-capture
+  cancel-in-progress: false
+
+env:
+  APP_REPO: The-Membrane/membrane-app
+  PROOF_APP_SHA: a7b542af519a71375a560c43215dbe04bb2abff6   # 2026-11-01: scripts/proof-capture v1 (detectors + stages + receipt)
+  DATASETS_REPO: triccs/membrane-datasets
+  OUT_DIR: proofs
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  capture:
+    if: ${{ vars.PROOF_CAPTURE_ENABLED != 'false' && github.repository == 'The-Membrane/membrane-app' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: q26-datasets
+    steps:
+      - name: Check out membrane-datasets (main, sparse, proofs/ only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.DATASETS_REPO }}
+          token: ${{ secrets.DATASETS_TOKEN }}
+          ref: main
+          path: datasets
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /proofs/
+
+      - name: Record the datasets git config (checked again before the push)
+        id: gitcfg
+        run: echo "sha256=$(sha256sum datasets/.git/config | cut -c1-64)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out membrane-app at the pinned commit (scripts only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.APP_REPO }}
+          ref: ${{ env.PROOF_APP_SHA }}
+          path: app
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/proof-capture
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7
+        with:
+          python-version: "3.12"
+
+      - name: Detect and capture
+        env:
+          FORCE: ${{ inputs.force }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          PROOF_TELEGRAM_BOT_TOKEN: ${{ secrets.PROOF_TELEGRAM_BOT_TOKEN }}
+          PROOF_TELEGRAM_CHAT_ID: ${{ secrets.PROOF_TELEGRAM_CHAT_ID }}
+        run: |
+          set +x
+          out="$RUNNER_TEMP/proof-run.log"; rc=0
+          args=(--out datasets)
+          [ -n "$FORCE" ] && args+=(--force "$FORCE")
+          [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
+          python app/scripts/proof-capture/proof_capture.py "${args[@]}" >"$out" 2>&1 || rc=$?
+          echo "exit $rc; output withheld: $(wc -l <"$out") lines, Traceback $(grep -c '^Traceback' "$out" || true)"
+          grep -E '^(self-test ok|detector [a-z0-9-]+ (FIRED|quiet|unavailable)|event open: |stage \+[0-9]+h taken: |alert (sent|skipped|failed)|dry-run: |done: )' "$out" || true
+          rm -f "$out"
+          exit "$rc"
+
+      - name: Commit proofs/ and push to membrane-datasets main (pull --rebase, up to 3 retries)
+        if: ${{ inputs.dry_run != true }}
+        working-directory: datasets
+        env:
+          GITCFG_SHA256: ${{ steps.gitcfg.outputs.sha256 }}
+          DATASETS_TOKEN: ${{ secrets.DATASETS_TOKEN }}
+        run: |
+          set +x
+          if [ "$(sha256sum .git/config | cut -c1-64)" != "$GITCFG_SHA256" ]; then
+            echo "datasets .git/config changed after checkout; not pushing"; exit 1
+          fi
+          git config user.name "proof-capture-bot"
+          git config user.email "proof-capture-bot@users.noreply.github.com"
+          git add -- "$OUT_DIR"
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -q -m "proofs: $(date -u +%Y-%m-%dT%H:%MZ) (proof-capture, app ${PROOF_APP_SHA:0:7})" -- "$OUT_DIR"
+          echo "committed $(git show --name-only --format= HEAD | wc -l) file(s)"
+          auth="$(printf 'x-access-token:%s' "$DATASETS_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          unset DATASETS_TOKEN
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          export GIT_CONFIG_KEY_1="core.hooksPath" GIT_CONFIG_VALUE_1="/dev/null"
+          for attempt in 1 2 3 4; do   # the first try plus up to 3 retries
+            if git pull -q --rebase origin main && git push -q origin HEAD:main; then
+              echo "pushed on attempt $attempt"; exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 15))
+          done
+          echo "push failed after 3 retries"; exit 1

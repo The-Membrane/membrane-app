@@ -1,0 +1,26 @@
+{
+  "_doc": "Proof-capture detectors. One entry per event type. A detector only decides WHEN to capture; every event gets the same staged capture (prices, oracle rounds, Aave/Morpho liquidations, venue liquidity) and receipt. Add a new event type by adding an entry with a known `kind` (price_drop, depeg). Thresholds: price_drop ~ the 1-in-1,000 hourly/8-hourly move (BTC 1h p99.9 -5.9%, 8h -15%; ETH 1h -7.7%, 8h -20% on 2018-2026 1m data), set a little inside it so the job fires on the 2-4 events a year that move liquidations, not on noise.",
+  "detectors": [
+    {"id": "btc-drop", "kind": "price_drop", "symbol": "BTCUSDT", "windows": [{"minutes": 60, "drop": 0.05}, {"minutes": 480, "drop": 0.10}]},
+    {"id": "eth-drop", "kind": "price_drop", "symbol": "ETHUSDT", "windows": [{"minutes": 60, "drop": 0.07}, {"minutes": 480, "drop": 0.13}]},
+    {"id": "usde-depeg", "kind": "depeg", "symbol": "USDEUSDT", "below": 0.98},
+    {"id": "usdc-depeg", "kind": "depeg", "symbol": "USDCUSDT", "below": 0.99}
+  ],
+  "capture": {
+    "stages_hours": [0, 8, 24, 72],
+    "lookback_hours": 24,
+    "merge_window_hours": 6,
+    "cooldown_hours": 24,
+    "kline_symbols": ["BTCUSDT", "ETHUSDT", "USDEUSDT", "USDCUSDT"],
+    "chainlink_feeds": {
+      "ETH/USD": "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419",
+      "BTC/USD": "0xf4030086522a5beea4988f8ca5b36dbc97bee88c"
+    },
+    "aave_pool": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+    "morpho_blue": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+    "aave_venues": {
+      "USDC": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "USDT": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+    }
+  }
+}

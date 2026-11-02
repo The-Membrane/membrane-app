@@ -1,0 +1,814 @@
+{
+ "schemaVersion": 2,
+ "week": "2026-W45",
+ "asOf": 1793634394,
+ "anchorBlock": "26328008",
+ "table": {
+  "USDC": {
+   "bySize": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04670797750467835,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04760886942083555,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WSTETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.0484063,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 USDC",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.04700660905310674,
+      "1m": 0.04767624140676424,
+      "10m": 0.054396165360152814
+     },
+     "borrowUsd": 2206533116.215116
+    },
+    {
+     "venue": "SparkLend USDC",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.04670797750467835,
+      "1m": 0.04760886942083555,
+      "10m": null
+     },
+     "borrowUsd": 47655431.049621
+    },
+    {
+     "venue": "Morpho cbBTC/USDC 86%",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.1486080781248429,
+      "1m": 0.15378069968252056,
+      "10m": 0.2068055674959368
+     },
+     "borrowUsd": 280150887.399368
+    },
+    {
+     "venue": "Morpho WBTC/USDC 86%",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.06941475289376221,
+      "1m": 0.07996555788418978,
+      "10m": 0.1913716121031038
+     },
+     "borrowUsd": 122429817.177933
+    },
+    {
+     "venue": "Morpho wstETH/USDC 86%",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.05973163079994368,
+      "1m": 0.10165360137153247,
+      "10m": null
+     },
+     "borrowUsd": 30457859.422132
+    },
+    {
+     "venue": "Morpho WSTETH/USDC 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0484063,
+      "1m": 0.0484063,
+      "10m": 0.0484063
+     },
+     "borrowUsd": 11959338
+    },
+    {
+     "venue": "Morpho WETH/USDC 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0486341,
+      "1m": 0.0486341,
+      "10m": 0.0486341
+     },
+     "borrowUsd": 9021870
+    },
+    {
+     "venue": "Morpho CBBTC/USDC 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0959386,
+      "1m": 0.0959386,
+      "10m": 0.0959386
+     },
+     "borrowUsd": 244610606
+    },
+    {
+     "venue": "Morpho WEETH/USDC 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0517091,
+      "1m": 0.0517091,
+      "10m": 0.0517091
+     },
+     "borrowUsd": 35153565
+    }
+   ]
+  },
+  "USDT": {
+   "bySize": {
+    "100k": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.036680700000000004,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.036680700000000004,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.036680700000000004,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 USDT",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.059513893692664806,
+      "1m": 0.060133860460132436,
+      "10m": 0.06635351549549492
+     },
+     "borrowUsd": 2429982731.1159
+    },
+    {
+     "venue": "SparkLend USDT",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.04312935395137951,
+      "1m": 0.05231907483750439,
+      "10m": 0.1487888249906524
+     },
+     "borrowUsd": 292738120.917927
+    },
+    {
+     "venue": "Morpho wstETH/USDT 86%",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.036697342451882956,
+      "1m": 0.03693265859192704,
+      "10m": 0.039288759607933314
+     },
+     "borrowUsd": 104598149.744145
+    },
+    {
+     "venue": "Morpho WBTC/USDT 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0368522,
+      "1m": 0.0368522,
+      "10m": 0.0368522
+     },
+     "borrowUsd": 5034958
+    },
+    {
+     "venue": "Morpho WBTC/USDT 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.036680700000000004,
+      "1m": 0.036680700000000004,
+      "10m": 0.036680700000000004
+     },
+     "borrowUsd": 86903028
+    },
+    {
+     "venue": "Morpho CBBTC/USDT 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0367903,
+      "1m": 0.0367903,
+      "10m": 0.0367903
+     },
+     "borrowUsd": 8655326
+    }
+   ]
+  },
+  "USDe": {
+   "bySize": {
+    "100k": {
+     "venue": "Aave v3 USDe",
+     "stable": "USDe",
+     "apy": 0.06836198337289087,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "Aave v3 USDe",
+     "stable": "USDe",
+     "apy": 0.06837176710128161,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Aave v3 USDe",
+     "stable": "USDe",
+     "apy": 0.06846960931312392,
+     "labelClass": "projected",
+     "source": "onchain"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 USDe",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.06836198337289087,
+      "1m": 0.06837176710128161,
+      "10m": 0.06846960931312392
+     },
+     "borrowUsd": 12343911.587984333
+    }
+   ]
+  },
+  "USDS": {
+   "bySize": {
+    "100k": {
+     "venue": "SparkLend USDS",
+     "stable": "USDS",
+     "apy": 0.0461059889727315,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDS",
+     "stable": "USDS",
+     "apy": 0.046153695655567234,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "SparkLend USDS",
+     "stable": "USDS",
+     "apy": 0.04663088215931663,
+     "labelClass": "projected",
+     "source": "onchain"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "SparkLend USDS",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.0461059889727315,
+      "1m": 0.046153695655567234,
+      "10m": 0.04663088215931663
+     },
+     "borrowUsd": 889473042.4070742
+    }
+   ]
+  },
+  "GHO": {
+   "bySize": {
+    "100k": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.03821749961999131,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.03821749961999131,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.03821749961999131,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 Prime Instance GHO",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.03821749961999131,
+      "1m": 0.03821749961999131,
+      "10m": 0.03821749961999131
+     },
+     "borrowUsd": 28928534
+    },
+    {
+     "venue": "Aave v3 GHO",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.04602785990871694,
+      "1m": 0.04602785990871694,
+      "10m": 0.04602785990871694
+     },
+     "borrowUsd": 102269482
+    }
+   ]
+  },
+  "PYUSD": {
+   "bySize": {
+    "100k": {
+     "venue": "SparkLend PYUSD",
+     "stable": "PYUSD",
+     "apy": 0.040654768350266775,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "SparkLend PYUSD",
+     "stable": "PYUSD",
+     "apy": 0.040654768350266775,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "SparkLend PYUSD",
+     "stable": "PYUSD",
+     "apy": 0.040654768350266775,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 PYUSD",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.05746929917090644,
+      "1m": 0.05746929917090644,
+      "10m": 0.05746929917090644
+     },
+     "borrowUsd": 6461977
+    },
+    {
+     "venue": "Morpho WEETH/PYUSD 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.060020300000000006,
+      "1m": 0.060020300000000006,
+      "10m": 0.060020300000000006
+     },
+     "borrowUsd": 13079153
+    },
+    {
+     "venue": "SparkLend PYUSD",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.040654768350266775,
+      "1m": 0.040654768350266775,
+      "10m": 0.040654768350266775
+     },
+     "borrowUsd": 22160368
+    }
+   ]
+  },
+  "USDtb": {
+   "bySize": {
+    "100k": {
+     "venue": "Aave v3 USDTB",
+     "stable": "USDtb",
+     "apy": 0.04070815530924693,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "Aave v3 USDTB",
+     "stable": "USDtb",
+     "apy": 0.04070815530924693,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Aave v3 USDTB",
+     "stable": "USDtb",
+     "apy": 0.04070815530924693,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 USDTB",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.04070815530924693,
+      "1m": 0.04070815530924693,
+      "10m": 0.04070815530924693
+     },
+     "borrowUsd": 9024439
+    }
+   ]
+  },
+  "RLUSD": {
+   "bySize": {
+    "100k": {
+     "venue": "Morpho WBTC/RLUSD 86%",
+     "stable": "RLUSD",
+     "apy": 0.0253005,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "Morpho WBTC/RLUSD 86%",
+     "stable": "RLUSD",
+     "apy": 0.0253005,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Morpho WBTC/RLUSD 86%",
+     "stable": "RLUSD",
+     "apy": 0.0253005,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "SparkLend RLUSD",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.04168271416501029,
+      "1m": 0.04168271416501029,
+      "10m": 0.04168271416501029
+     },
+     "borrowUsd": 18501085
+    },
+    {
+     "venue": "Morpho WBTC/RLUSD 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0253005,
+      "1m": 0.0253005,
+      "10m": 0.0253005
+     },
+     "borrowUsd": 22587120
+    },
+    {
+     "venue": "Morpho WEETH/RLUSD 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0453412,
+      "1m": 0.0453412,
+      "10m": 0.0453412
+     },
+     "borrowUsd": 68225943
+    }
+   ]
+  },
+  "DAI": {
+   "bySize": {
+    "100k": {
+     "venue": "SparkLend DAI",
+     "stable": "DAI",
+     "apy": 0.04732134021485619,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "SparkLend DAI",
+     "stable": "DAI",
+     "apy": 0.04732134021485619,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "SparkLend DAI",
+     "stable": "DAI",
+     "apy": 0.04732134021485619,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "SparkLend DAI",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.04732134021485619,
+      "1m": 0.04732134021485619,
+      "10m": 0.04732134021485619
+     },
+     "borrowUsd": 209147418
+    },
+    {
+     "venue": "Aave v3 DAI",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.04763547898754113,
+      "1m": 0.04763547898754113,
+      "10m": 0.04763547898754113
+     },
+     "borrowUsd": 107670719
+    }
+   ]
+  }
+ },
+ "agreement": {
+  "USDC": {
+   "onchain": 0.04670797750467835,
+   "defillama": 0.046607938537188434,
+   "diffPp": 0.010003896748991825
+  },
+  "USDT": {
+   "onchain": 0.036697342451882956,
+   "defillama": 0.0366662,
+   "diffPp": 0.003114245188295256
+  }
+ },
+ "rejectedSample": [
+  {
+   "venue": "Aave v3 USDS",
+   "reason": "under $5M borrowed ($257,862)"
+  },
+  {
+   "venue": "Euler eUSDC-2",
+   "reason": "euler-v2 is not an eligible benchmark venue (Aave v3 Core/Prime, SparkLend, listed blue-chip Morpho)"
+  },
+  {
+   "venue": "Euler eUSDT-2",
+   "reason": "euler-v2 is not an eligible benchmark venue (Aave v3 Core/Prime, SparkLend, listed blue-chip Morpho)"
+  },
+  {
+   "venue": "Morpho XAUE/XAUT 77%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho PT-SRUSDAT-14JAN2027/USDC 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho YFI/USDC 77%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho WSTETH/TGBP 86%",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Aave v3 Prime Instance EZETH",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Morpho EDGEUSDX/USDC 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho PAXG/TGBP 77%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho NGI-/USDC 62.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho SUSDAI/AUSD 86%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho PT-SUSDS-26NOV2026/USDS 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho MHYPER/USDC 77%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho WSTETH/AUSD 86%",
+   "reason": "under $5M borrowed ($14,217)"
+  },
+  {
+   "venue": "SparkLend SUSDS",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Morpho WEETH/USDT 86%",
+   "reason": "under $5M borrowed ($1,082,264)"
+  },
+  {
+   "venue": "Morpho SUSDE/AUSD 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "SparkLend TBTC",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Aave v3 WETH",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Morpho SUSDAI/USDT 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho USDE/DAI 86%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho AGUAUSDCGC/USDC 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho FXSAVE/USDC 86%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Aave v3 Prime Instance USDS",
+   "reason": "under $5M borrowed ($42,471)"
+  },
+  {
+   "venue": "Aave v3 USDS",
+   "reason": "under $5M borrowed ($257,857)"
+  },
+  {
+   "venue": "Aave v3 RETH",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Morpho CBBTC/AUSD 86%",
+   "reason": "under $5M borrowed ($9,336)"
+  },
+  {
+   "venue": "Morpho PST/USDC 86%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho PT-USD3-17DEC2026/USDC 86%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho WEETH/USDC 86%",
+   "reason": "under $5M borrowed ($768,163)"
+  },
+  {
+   "venue": "Morpho PRIME/PYUSD 86%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho SYRUPUSDC/AUSD 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Aave v3 Prime Instance TETH",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Aave v3 Prime Instance WSTETH",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Aave v3 Aave Horizon Market USDC",
+   "reason": "permissioned market (Aave Horizon)"
+  },
+  {
+   "venue": "Morpho V-WMTUSDT/USDT 86%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho CARRYTRADEUSDTRYLEVERAGE/USDC 62.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Aave v3 AAVE",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "SparkLend WEETH",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Morpho SUSDE/USDTB 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho SYRUPUSDT/USDT 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho USP/USDC 86%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho V-WMTWBTC/WBTC 86%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho SUSDS/USDT 96.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho PT-FXSAVE-29OCT2026/USDC 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho USDE/DAI 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho SUSDE/DAI 94.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Aave v3 FBTC",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "SparkLend WBTC",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Morpho PT-STRUSD-26NOV2026/USDC 86%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Aave v3 RLUSD",
+   "reason": "under $5M borrowed ($2,183,149)"
+  },
+  {
+   "venue": "Morpho CBBTC/WETH 91.5%",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Morpho WSTETH/EURC 86%",
+   "reason": "loan asset is not a listed USD stable"
+  },
+  {
+   "venue": "Morpho PT-SUSDAT-14JAN2027/USDC 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Aave v3 Prime Instance USDC",
+   "reason": "under $5M borrowed ($4,233,610)"
+  },
+  {
+   "venue": "Aave v3 Aave Horizon Market VBILL",
+   "reason": "permissioned market (Aave Horizon)"
+  },
+  {
+   "venue": "Morpho WFALCONX/USDC 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho MF-ONE/USDC 91.5%",
+   "reason": "Morpho collateral is not blue-chip (WETH, wstETH, WBTC, cbBTC, weETH, rETH)"
+  },
+  {
+   "venue": "Morpho CBBTC/EURCV 86%",
+   "reason": "loan asset is not a listed USD stable"
+  }
+ ],
+ "rejectedCount": 265
+}

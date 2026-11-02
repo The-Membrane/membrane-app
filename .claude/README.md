@@ -15,7 +15,6 @@ This file contains ALL design system standards that must be followed.
 - Master Audit: [`../docs/DESIGN_AUDIT.md`](../docs/DESIGN_AUDIT.md)
 - Spacing Standards: [`../docs/SPACING_AUDIT.md`](../docs/SPACING_AUDIT.md)
 - Animations: [`../docs/MICRO_INTERACTIONS_GUIDE.md`](../docs/MICRO_INTERACTIONS_GUIDE.md)
-- Testing: [`../docs/PLAYWRIGHT_SETUP.md`](../docs/PLAYWRIGHT_SETUP.md)
 - Performance: [`../docs/PERFORMANCE_AUDIT.md`](../docs/PERFORMANCE_AUDIT.md)
 
 ### Config Files

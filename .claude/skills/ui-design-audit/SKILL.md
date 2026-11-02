@@ -211,8 +211,8 @@ skill). Non-negotiable constraints while fixing:
 ### Step 5 — Verify
 
 Re-screenshot the same routes/states (`audit-after.png`), read both images, and confirm each
-high/medium finding visibly changed. Run the smoke tests
-(`pnpm test:e2e tests/e2e/smoke.spec.ts`) if interactive structure changed. Close with a
+high/medium finding visibly changed. Run the unit tests
+(`tests/unit/`) if interactive structure changed. Close with a
 before/after summary tied to the findings table: every finding is either fixed (with
 file:line of the fix) or explicitly deferred with a reason.
 

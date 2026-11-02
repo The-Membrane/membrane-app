@@ -9,7 +9,7 @@ import {
 
 /**
  * Off-screen 1200x675 share card for a radar result — the same visual language
- * as the venue weather cards (scripts/make-share-card.mjs): bone-on-black,
+ * as the venue weather cards: bone-on-black,
  * serif headline, mono numbers, provenance footer so the image self-documents.
  * Rendered off-viewport and exported via services/shareableCard
  * exportElementAsImage (html-to-image). Inline styles on purpose: the export

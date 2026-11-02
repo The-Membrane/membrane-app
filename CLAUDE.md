@@ -528,25 +528,8 @@ import { FOCUS_STYLES } from '@/config/transitions'
 
 ## 🧪 Testing
 
-### Playwright E2E Tests
-
-**When adding new features, update tests:**
-
-```tsx
-// Location: tests/e2e/
-
-// Add to smoke tests if critical user flow
-test('new feature works', async ({ page }) => {
-  await page.goto('/neutron')
-  // Test logic
-})
-
-// Run tests before committing
-// pnpm test:e2e tests/e2e/smoke.spec.ts
-```
-
 **Testing Rules:**
-- ✅ Run smoke tests before major changes
+- ✅ Run unit tests (`tests/unit/`) before major changes
 - ✅ Test on multiple devices (chrome, mobile)
 - ✅ Verify no console errors
 - ✅ Check layout shifts (CLS < 0.1)
@@ -733,7 +716,7 @@ Before submitting any PR, verify:
 - [ ] No inline styles that bypass design system
 - [ ] Tested on mobile, tablet, desktop
 - [ ] No console errors
-- [ ] Smoke tests passing
+- [ ] Unit tests passing
 
 ---
 
@@ -744,7 +727,6 @@ Before submitting any PR, verify:
 - `docs/SPACING_AUDIT.md` - Spacing standards
 - `docs/MODAL_PADDING_AUDIT.md` - Modal standards
 - `docs/MICRO_INTERACTIONS_GUIDE.md` - Animation guide
-- `docs/PLAYWRIGHT_SETUP.md` - Testing guide
 - `docs/BUTTON_PATTERNS.md` - Button usage
 - `docs/COMPONENT_GUIDE.md` - Component reference
 - `.claude/skills/branding-guidelines/SKILL.md` - Full Living Typeface brand guide

@@ -11,6 +11,8 @@ import { getAddress } from 'viem'
 
 import { alarmConsequence } from '@/components/Carry/venueLogLogic'
 import { heldVenues, isUnreadDepthAlarm, matchAlerts, type AlarmLike, type WatchLike } from '@/components/Radar/alertLogic'
+import { eventHeadline, provenanceLine } from '@/lib/userAlerts/feed'
+import { base64urlToHex, FEED_TOKEN_RE, TELEGRAM_LINK_PREFIX, type Direction, type Metric } from '@/lib/userAlerts/metrics'
 
 /** Re-exported so the injected-logic callers (scripts/lib/telegramBot.mjs) reach it. */
 export { heldVenues }
@@ -20,11 +22,21 @@ export const MAX_PER_CHAT_PER_RUN = 20
 
 export type Command =
   | { kind: 'subscribe'; address: string }
+  | { kind: 'link_thresholds'; token: string }
   | { kind: 'stop' }
   | { kind: 'list' }
   | { kind: 'help' }
 
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
+/** `th_` + the feed token's 32 bytes as base64url (43 chars): 46 ≤ Telegram's 64. */
+const THRESHOLD_LINK_RE = new RegExp(`^${TELEGRAM_LINK_PREFIX}([A-Za-z0-9_-]{43})$`)
+
+/** The feed token a `/start th_…` payload carries, or null. */
+export const thresholdTokenFromPayload = (arg: string): string | null => {
+  const m = THRESHOLD_LINK_RE.exec(arg)
+  const hex = m ? base64urlToHex(m[1]) : null
+  return hex && FEED_TOKEN_RE.test(hex) ? hex : null
+}
 
 /**
  * One chat message → one command. Accepts the group form `/start@bot_name`.
@@ -36,7 +48,9 @@ export const parseCommand = (text: unknown): Command => {
   const [head = '', arg = ''] = text.trim().split(/\s+/)
   const cmd = head.toLowerCase().replace(/@[a-z0-9_]+$/, '')
   if (cmd === '/start') {
-    return ADDRESS_RE.test(arg) ? { kind: 'subscribe', address: getAddress(arg) } : { kind: 'help' }
+    if (ADDRESS_RE.test(arg)) return { kind: 'subscribe', address: getAddress(arg) }
+    const token = thresholdTokenFromPayload(arg)
+    return token ? { kind: 'link_thresholds', token } : { kind: 'help' }
   }
   if (cmd === '/stop') return { kind: 'stop' }
   if (cmd === '/list') return { kind: 'list' }
@@ -54,9 +68,12 @@ export const shortAddr = (address: string): string => `${address.slice(0, 6)}…
 export type Reply =
   | { kind: 'subscribed'; address: string; held: string[]; openTexts: string[]; footer: string }
   | { kind: 'not_watched'; address: string }
-  | { kind: 'stopped'; count: number }
-  | { kind: 'list'; addresses: string[] }
+  | { kind: 'stopped'; count: number; feeds?: number }
+  | { kind: 'list'; addresses: string[]; feeds?: number }
   | { kind: 'full'; max: number }
+  | { kind: 'th_linked'; active: number }
+  | { kind: 'th_unknown' }
+  | { kind: 'th_full'; max: number }
   | { kind: 'help' }
 
 /** Plain text, no markdown. "Data compiled by Membrane." appears once, in the welcome. */
@@ -99,16 +116,34 @@ export const replyText = (r: Reply): string => {
     }
     case 'not_watched':
       return `Track this address on Radar first: ${radarLink(r.address)}`
-    case 'stopped':
-      return r.count > 0
-        ? `Stopped. This chat no longer gets alerts for ${r.count} address${r.count === 1 ? '' : 'es'}.`
-        : 'This chat was not watching any address.'
+    case 'stopped': {
+      const feeds = r.feeds ?? 0
+      if (r.count === 0 && feeds === 0) return 'This chat was not watching any address.'
+      const parts = [
+        r.count > 0 ? `${r.count} address${r.count === 1 ? '' : 'es'}` : null,
+        feeds > 0 ? `${feeds} alert feed${feeds === 1 ? '' : 's'}` : null,
+      ].filter(Boolean)
+      return `Stopped. This chat no longer gets alerts for ${parts.join(' and ')}.`
+    }
     case 'full':
       return `This chat already watches ${r.max} addresses. /stop to reset.`
-    case 'list':
-      return r.addresses.length
+    case 'list': {
+      const feedLine = r.feeds ? `Your alert feeds linked here: ${r.feeds}.` : null
+      const body = r.addresses.length
         ? `This chat watches:\n${r.addresses.map((a) => `- ${shortAddr(a)} ${radarLink(a)}`).join('\n')}`
         : 'This chat watches no address. Open Radar, track an address, then tap "telegram".'
+      return feedLine ? `${body}\n\n${feedLine}` : body
+    }
+    case 'th_linked':
+      return [
+        `Linked. This chat gets a message when one of your ${r.active} alert${r.active === 1 ? '' : 's'} is reached or clears.`,
+        'Values are checked about hourly. Your RSS feed keeps working.',
+        'Data compiled by Membrane · /stop ends every alert in this chat (feeds and Radar addresses)',
+      ].join('\n\n')
+    case 'th_unknown':
+      return 'That alert link is not valid. Set an alert on Membrane, then tap its telegram link.'
+    case 'th_full':
+      return `This chat already has ${r.max} alert feeds. /stop to reset.`
     case 'help':
     default:
       return [
@@ -220,6 +255,78 @@ export const planDeliveries = (args: {
   const perChat = new Map<string, number>()
   const out: Delivery[] = []
   const dropped = new Map<string, number>()
+  for (const d of candidates) {
+    const n = perChat.get(d.chatId) ?? 0
+    if (n >= cap) {
+      dropped.set(d.chatId, (dropped.get(d.chatId) ?? 0) + 1)
+      continue
+    }
+    perChat.set(d.chatId, n + 1)
+    out.push(d)
+  }
+  for (const [chatId, n] of dropped) args.onOverflow?.(chatId, n)
+  return out
+}
+
+// --- user threshold alerts ("Alert me at X") ---------------------------------
+// A chat linked to an owner's feed (/start th_<token>) gets one message per
+// crossed/cleared event recorded after it linked. Sent by
+// scripts/lib/telegramBot.mjs sendThresholdAlerts, which ships DARK until
+// TELEGRAM_ALERTS_WEBHOOK_SECRET is set.
+
+export type ChatLink = { ownerId: string; chatId: string; createdAt: string }
+
+export type ThresholdEventRow = {
+  id: string
+  ownerId: string
+  thresholdId: string
+  kind: 'crossed' | 'cleared'
+  value: number
+  at: string
+  asOf: string
+  source: string
+  metric: Metric
+  subject: string
+  direction: Direction
+  threshold: number
+}
+
+export type ThresholdDelivery = { eventId: string; chatId: string; text: string; at: string }
+
+/** Plain text, no markdown: the event, its source and as-of, how to stop. */
+export const thresholdMessage = (e: ThresholdEventRow): string =>
+  [eventHeadline(e), provenanceLine(e.source, e.asOf), '/stop ends every alert in this chat'].join('\n')
+
+/**
+ * Which (event, chat) messages to send this run.
+ *  - Active links only; an event goes to every chat linked to its owner.
+ *  - No backfill: only events recorded AFTER the chat linked.
+ *  - Never a pair already in `delivered` (the user_alert_deliveries ledger).
+ *  - Oldest first; at most MAX_PER_CHAT_PER_RUN per chat, the rest wait for the next run.
+ */
+export const planThresholdDeliveries = (args: {
+  links: ChatLink[]
+  events: ThresholdEventRow[]
+  delivered: Array<{ eventId: string; chatId: string }>
+  onOverflow?: (chatId: string, dropped: number) => void
+  cap?: number
+}): ThresholdDelivery[] => {
+  const cap = args.cap ?? MAX_PER_CHAT_PER_RUN
+  const done = new Set(args.delivered.map((d) => `${d.eventId}|${d.chatId}`))
+  const chatsByOwner = new Map<string, ChatLink[]>()
+  for (const l of args.links) chatsByOwner.set(l.ownerId, [...(chatsByOwner.get(l.ownerId) ?? []), l])
+  const candidates: ThresholdDelivery[] = []
+  for (const e of args.events) {
+    for (const l of chatsByOwner.get(e.ownerId) ?? []) {
+      if (Date.parse(e.at) <= Date.parse(l.createdAt)) continue
+      if (done.has(`${e.id}|${l.chatId}`)) continue
+      candidates.push({ eventId: e.id, chatId: l.chatId, text: thresholdMessage(e), at: e.at })
+    }
+  }
+  candidates.sort((x, y) => Date.parse(x.at) - Date.parse(y.at))
+  const perChat = new Map<string, number>()
+  const dropped = new Map<string, number>()
+  const out: ThresholdDelivery[] = []
   for (const d of candidates) {
     const n = perChat.get(d.chatId) ?? 0
     if (n >= cap) {

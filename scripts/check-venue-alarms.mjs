@@ -271,7 +271,7 @@ try {
   } else {
     const { require: tsxRequire } = await import('tsx/cjs/api')
     const logic = tsxRequire('../components/Radar/telegramLogic.ts', import.meta.url)
-    tg = { bot, config: tgConfig, logic, venues: loadConfig() }
+    tg = { bot, config: tgConfig, logic, venues: loadConfig(), tsxRequire }
   }
 } catch (e) {
   console.log(`telegram alerts: setup failed (non-fatal) — ${e?.message ?? e}`)
@@ -296,5 +296,24 @@ if (tg) {
     })
   } catch (e) {
     console.log(`telegram alerts: send failed (non-fatal) — ${e?.message ?? e}`)
+  }
+}
+
+// --- USER THRESHOLD ALERTS ("Alert me at X") --------------------------------
+// DARK until the owner sets TELEGRAM_ALERTS_WEBHOOK_SECRET (with the bot env):
+// nothing below runs, nothing is read, nothing is sent. Once set, the owners whose
+// alert feed a chat linked (/start th_<token>) are checked against current values
+// (lib/userAlerts/tick.ts — the same evaluate-on-read as the RSS feed) and each new
+// crossed/cleared event is sent once per linked chat. Non-fatal.
+if (tg && tg.config.webhookSecret) {
+  try {
+    const userAlerts = tg.tsxRequire('../lib/userAlerts/tick.ts', import.meta.url)
+    await tg.bot.sendThresholdAlerts(sql, {
+      logic: tg.logic,
+      config: tg.config,
+      evaluate: (ownerIds) => userAlerts.evaluateLinkedOwners(sql, ownerIds),
+    })
+  } catch (e) {
+    console.log(`telegram threshold alerts: failed (non-fatal) — ${e?.name ?? 'error'}`)
   }
 }

@@ -5,9 +5,10 @@ rows = []
 for f in sorted(os.listdir(d)):
     if f == "PROVENANCE.md": continue
     p = os.path.join(d, f); h = hashlib.sha256(open(p, "rb").read()).hexdigest(); rows.append((f, os.path.getsize(p), h))
-hourly = os.path.join(d, "hourly.jsonl"); n = err = 0; t0 = t1 = None
+hourly = os.path.join(d, "hourly.jsonl.gz"); n = err = 0; t0 = t1 = None
+import gzip
 if os.path.exists(hourly):
-    for l in open(hourly):
+    for l in gzip.open(hourly, "rt"):
         r = json.loads(l); n += 1; err += "err" in r; t0 = r["t"] if t0 is None else min(t0, r["t"]); t1 = r["t"] if t1 is None else max(t1, r["t"])
 iso = lambda t: dt.datetime.fromtimestamp(t, dt.UTC).strftime("%Y-%m-%dT%H:%MZ") if t else "-"
 txt = f"""# pair-loop — provenance

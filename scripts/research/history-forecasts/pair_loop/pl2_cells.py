@@ -8,7 +8,7 @@ price-history/lst-rates-1d.json (wstETH stEthPerToken daily, the staking-yield r
   score    the registered score: (a), (e), (fU), (fU+) per cell with one-way block bootstrap, class per R19.3d + 5-block floor
 Aggregates only. No address exists in these inputs.
 """
-import argparse, json, math, os, sys
+import argparse, gzip, json, math, os, sys
 import numpy as np
 
 RAY = 1e27
@@ -30,7 +30,7 @@ def Phi(x):
 
 # ----------------------------------------------------------------------------------------------------- inputs
 def load_hourly(path):
-    rows = [json.loads(l) for l in open(path) if l.strip()]
+    rows = [json.loads(l) for l in (gzip.open(path + ".gz", "rt") if os.path.exists(path + ".gz") else open(path)) if l.strip()]
     rows = [r for r in rows if "err" not in r and r.get("r", {}).get("WETH", {}).get("vbi", 0) > 0]
     rows.sort(key=lambda r: r["t"])
     t = np.array([r["t"] for r in rows], dtype=np.int64)
@@ -48,7 +48,7 @@ def load_hourly(path):
 
 
 def load_strategy(path):
-    rows = [json.loads(l) for l in open(path) if l.strip()]
+    rows = [json.loads(l) for l in (gzip.open(path + ".gz", "rt") if os.path.exists(path + ".gz") else open(path)) if l.strip()]
     rows = [r for r in rows if "err" not in r and r.get("a", {}).get("WETH", {}).get("optimal")]
     rows.sort(key=lambda r: r["T"])
     T = np.array([r["T"] for r in rows], dtype=np.int64)

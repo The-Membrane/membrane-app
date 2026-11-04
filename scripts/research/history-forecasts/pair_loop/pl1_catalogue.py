@@ -4,7 +4,7 @@
   exceed     WETH borrow-APR exceedance table (hours and 28-day blocks above fixed levels and above staking yield + m)
 Aggregates only. Reads membrane-datasets pair-loop/hourly.jsonl, aave-liquidations/aave_liquidations.jsonl.gz, price-history/lst-rates-1d.json.
 """
-import argparse, collections, datetime as dt, gzip, json, os
+import argparse, gzip, collections, datetime as dt, gzip, json, os
 import numpy as np
 import pl2_cells as P
 
@@ -23,7 +23,7 @@ def iso(t): return dt.datetime.fromtimestamp(int(t), dt.UTC).strftime("%Y-%m-%dT
 
 
 def rows_of(path):
-    rows = [json.loads(l) for l in open(path) if l.strip()]
+    rows = [json.loads(l) for l in (gzip.open(path + ".gz", "rt") if os.path.exists(path + ".gz") else open(path)) if l.strip()]
     rows = [r for r in rows if "err" not in r]
     rows.sort(key=lambda r: r["t"])
     return rows

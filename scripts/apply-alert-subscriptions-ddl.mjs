@@ -28,7 +28,8 @@ const sql = neon(url)
 
 // alert_subscriptions — one row per (Telegram chat, watched address). /stop sets
 // stopped_at; a re-subscribe clears it and restarts created_at (no backfill of the
-// stopped gap). The address must already be in strat_watches (checked by the bot).
+// stopped gap). Any address: one in strat_watches also gets venue alarms; every
+// subscription gets position alerts (owner ruling 2026-10-30).
 await sql`CREATE TABLE IF NOT EXISTS alert_subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   chat_id text NOT NULL,
@@ -55,6 +56,15 @@ await sql`CREATE TABLE IF NOT EXISTS alert_bot_state (
   value text NOT NULL
 )`
 
+// position_alert_state — PERSONAL POSITION ALERTS (owner ruling 2026-10-30): the last
+// level sent per subscription ('ok' | 'warn' | 'critical' | 'act-now'). Moved with a
+// compare-and-set before each send (scripts/lib/telegramBot.mjs sendPositionAlerts).
+await sql`CREATE TABLE IF NOT EXISTS position_alert_state (
+  subscription_id uuid PRIMARY KEY REFERENCES alert_subscriptions(id) ON DELETE CASCADE,
+  level text NOT NULL CHECK (level IN ('ok', 'warn', 'critical', 'act-now')),
+  updated_at timestamptz NOT NULL DEFAULT now()
+)`
+
 const [{ s }] = await sql`SELECT count(*)::int AS s FROM alert_subscriptions WHERE stopped_at IS NULL`
 const [{ d }] = await sql`SELECT count(*)::int AS d FROM alert_deliveries`
-console.log(`alert_subscriptions ready — active: ${s}; alert_deliveries: ${d}; alert_bot_state ready`)
+console.log(`alert_subscriptions ready — active: ${s}; alert_deliveries: ${d}; alert_bot_state and position_alert_state ready`)

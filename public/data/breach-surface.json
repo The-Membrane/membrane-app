@@ -1,6 +1,6 @@
 {
  "version": 1,
- "measured_at": "2026-11-06T14:16:36.172Z",
+ "measured_at": "2026-11-07T13:00:33.089Z",
  "params": {
   "line": 0.73,
   "window": 0.04,
@@ -14,7 +14,7 @@
   "antithetic": true
  },
  "realized_vol": {
-  "vol": 0.41112005256996187,
+  "vol": 0.4108352434808543,
   "source": "coingecko:90d-daily",
   "points": 91
  },

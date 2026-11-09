@@ -1,7 +1,8 @@
 {
- "lastAttempt": 1793634394,
- "week": "2026-W45",
- "ok": true,
- "reason": null,
+ "lastAttempt": 1794240837,
+ "week": "2026-W46",
+ "ok": false,
+ "held": true,
+ "reason": "gate 4 (churn): ranked count 9 → 15 (67% > 50%)",
  "lastGoodWeek": "2026-W45"
 }

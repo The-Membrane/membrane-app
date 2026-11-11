@@ -1,0 +1,9 @@
+{
+  "$comment": "Per-rule violation ceilings for scripts/ci/factory-lint.sh. Numbers only move DOWN. Measured at base 1038051b.",
+  "design-no-banned-color": 619,
+  "design-no-inline-transition": 59,
+  "design-no-raw-color": 885,
+  "design-no-raw-spacing": 673,
+  "no-await-in-loop": 59,
+  "no-duplicate-exec-phase": 3
+}

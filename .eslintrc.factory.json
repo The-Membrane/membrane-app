@@ -1,0 +1,31 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "ecmaFeatures": { "jsx": true }
+  },
+  "env": { "browser": true, "node": true, "es2022": true },
+  "ignorePatterns": ["**/*.test.*", "**/*.spec.*", "**/__tests__/**", "**/*.stories.*", "**/*.d.ts"],
+  "rules": {
+    "no-duplicate-exec-phase": ["error", { "canonical": "components/Borrow/types.ts" }]
+  },
+  "overrides": [
+    {
+      "files": ["components/**/*.tsx", "components/**/*.jsx", "pages/**/*.tsx", "pages/**/*.jsx"],
+      "rules": {
+        "design-no-raw-spacing": "error",
+        "design-no-raw-color": "error",
+        "design-no-banned-color": "error",
+        "design-no-inline-transition": "error"
+      }
+    },
+    {
+      "files": ["hooks/**", "services/**", "lib/**", "helpers/**"],
+      "rules": {
+        "no-await-in-loop": "error"
+      }
+    }
+  ]
+}

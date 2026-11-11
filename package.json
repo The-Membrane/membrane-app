@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix --quiet",
+    "lint:factory": "bash scripts/ci/factory-lint.sh",
     "typecheck": "tsc --noEmit",
     "ci:quality": "bash scripts/ci/quality-gate.sh",
     "codegen": "tsx ./scripts/codegen",

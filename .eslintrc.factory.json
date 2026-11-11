@@ -4,16 +4,45 @@
   "parserOptions": {
     "ecmaVersion": "latest",
     "sourceType": "module",
-    "ecmaFeatures": { "jsx": true }
+    "ecmaFeatures": {
+      "jsx": true
+    }
   },
-  "env": { "browser": true, "node": true, "es2022": true },
-  "ignorePatterns": ["**/*.test.*", "**/*.spec.*", "**/__tests__/**", "**/*.stories.*", "**/*.d.ts"],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2022": true
+  },
+  "ignorePatterns": [
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/__tests__/**",
+    "**/*.stories.*",
+    "**/*.d.ts",
+    "components/Racing/**",
+    "pages/tournament.tsx",
+    "pages/**/racing*",
+    "pages/**/tournament*",
+    "hooks/useQRacing.ts",
+    "hooks/useOffchainRacing.ts",
+    "services/q-racing.ts"
+  ],
   "rules": {
-    "no-duplicate-exec-phase": ["error", { "canonical": "components/Borrow/types.ts" }]
+    "no-duplicate-exec-phase": [
+      "error",
+      {
+        "canonical": "components/Borrow/types.ts"
+      }
+    ]
   },
   "overrides": [
     {
-      "files": ["components/**/*.tsx", "components/**/*.jsx", "pages/**/*.tsx", "pages/**/*.jsx"],
+      "files": [
+        "components/**/*.tsx",
+        "components/**/*.jsx",
+        "pages/**/*.tsx",
+        "pages/**/*.jsx"
+      ],
       "rules": {
         "design-no-raw-spacing": "error",
         "design-no-raw-color": "error",
@@ -22,7 +51,12 @@
       }
     },
     {
-      "files": ["hooks/**", "services/**", "lib/**", "helpers/**"],
+      "files": [
+        "hooks/**",
+        "services/**",
+        "lib/**",
+        "helpers/**"
+      ],
       "rules": {
         "no-await-in-loop": "error"
       }

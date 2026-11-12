@@ -1,0 +1,152 @@
+/**
+ * THE NEWS EDITION — the newspaper token layer (owner rulings T20 / Q11, 2026-10-09/10).
+ *
+ * Scope: ONLY while a `.news-edition` root is mounted (today: /[chain]/simulator, via
+ * <Simulator edition="news">). The selectors hang off `:root:has(.news-edition)`, so
+ * the layer reaches everything the landing paints — its own tree, the site nav above
+ * it, the html/body paper, and the Chakra portals (popovers, menus) that render
+ * outside the page root. Unmount the root and every rule here stops matching: the
+ * app's global dark and light themes in styles/themes.css are never edited.
+ *
+ * Two editions, following the app's own switch ([data-membrane-theme]):
+ *   DAY   = Parchment. The news roles ARE the light theme's tokens, so the day layer
+ *           only names them (--news-* → var(--m-*)) and bridges nothing.
+ *   NIGHT = lamplight (owner ruling 2026-10-10): paper-tinted blacks after the FT, no
+ *           grain, never pure white text. Its --news-* roles are the ruled hexes, and
+ *           the --m-* app tokens are bridged onto them so every existing component on
+ *           the page follows without being rewritten.
+ *
+ * GREEN MEANS MONEY. --news-up (profit, gains, "you keep", protected-debt bars) is a
+ * different token from --news-accent (section heads) in both editions; at night they
+ * are moss and champagne gold. The bridge maps --m-success → up and --m-primary →
+ * accent, which is why landing money figures use SEMANTIC_COLORS.success.
+ *
+ * Canvas code cannot resolve var(); helpers/resolveToken.ts reads <html>, which is
+ * where these properties live, so a canvas painted on this page resolves them too.
+ */
+
+/* Redaction bold for headlines and the wordmark. The tracked redaction-700.woff2 has
+   no @font-face in styles/fonts.css (bold Redaction is synthesized app-wide), and
+   adding one there would change every bold heading in the app. A separate family
+   name keeps the true bold inside the news edition only. */
+@font-face {
+  font-family: 'Redaction News';
+  src: url('/fonts/redaction/redaction-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Redaction News';
+  src: url('/fonts/redaction/redaction-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---- DAY EDITION — Parchment (styles/themes.css light) ------------------------ */
+:root[data-membrane-theme='light']:has(.news-edition) {
+  --news-paper: var(--m-bg-primary); /* #f1eee6 */
+  --news-card: var(--m-bg-secondary); /* #fffdf8 card stock */
+  --news-raised: var(--m-bg-tertiary); /* #f8f5ed alert-card fill */
+  --news-ink: var(--m-text-primary); /* #241f17 */
+  --news-ink-2: var(--m-text-secondary); /* #51483d */
+  --news-muted: var(--m-text-tertiary); /* #6c6255 */
+  --news-rule: var(--m-border-subtle);
+  --news-rule-strong: var(--m-border-strong);
+  --news-rule-faint: var(--m-border-faint);
+  --news-accent: var(--m-primary); /* #326215 moss section heads */
+  --news-up: var(--m-success); /* #326215 money */
+  --news-cta: #9bdc4f; /* phosphor fill, dark ink text (Grammar: CTA fill) */
+  --news-on-cta: var(--m-text-primary);
+  --news-danger: var(--m-danger); /* #a52f2a */
+  --news-risk: var(--m-risk-caution); /* #8a451a */
+  --news-warning: var(--m-warning); /* #725410 */
+  --news-info: var(--m-info); /* #0f6b4b */
+  --news-chart: var(--m-success);
+  --news-chart-2: var(--m-risk-caution);
+}
+
+/* ---- NIGHT EDITION — lamplight (owner ruling 2026-10-10) ---------------------- */
+/* themes.css treats a missing attribute as dark, so night is "not light". */
+:root:not([data-membrane-theme='light']):has(.news-edition) {
+  --news-paper: #1a1817;
+  --news-card: #262321;
+  --news-raised: #2c2926;
+  --news-ink: #f2e8dc;
+  --news-ink-2: #dcd0c2;
+  --news-muted: #a89d92;
+  --news-rule: #3d3835;
+  /* Not in the ruling table: the heavier hairline (buttons, section seams) is the ink
+     at 28% over the paper, the same construction as the app's dark border-strong. */
+  --news-rule-strong: rgba(242, 232, 220, 0.28);
+  --news-rule-faint: rgba(242, 232, 220, 0.08);
+  --news-accent: #e3c27a; /* champagne gold section heads */
+  --news-up: #9cc97a; /* moss: profit, gains, "you keep", protected-debt bars */
+  --news-cta: #9cc97a;
+  --news-on-cta: #1a120c;
+  --news-danger: #ef7a6b;
+  --news-risk: #e5764f;
+  --news-warning: #f39c3e;
+  --news-info: #46d39a;
+  --news-chart: #9cc97a;
+  --news-chart-2: #d9925a; /* canvas LandingLamplight chart2 */
+
+  /* The bridge: every app token on this page resolves to its news role. */
+  --m-bg-primary: var(--news-paper);
+  --m-bg-secondary: var(--news-card);
+  --m-bg-tertiary: var(--news-raised);
+  --m-text-primary: var(--news-ink);
+  --m-text-secondary: var(--news-ink-2);
+  --m-text-tertiary: var(--news-muted);
+  --m-border-subtle: var(--news-rule);
+  --m-border-medium: var(--news-rule);
+  --m-border-strong: var(--news-rule-strong);
+  --m-border-faint: var(--news-rule-faint);
+  --m-success: var(--news-up);
+  --m-primary: var(--news-accent);
+  --m-secondary: var(--news-info);
+  --m-danger: var(--news-danger);
+  --m-risk-caution: var(--news-risk);
+  --m-warning: var(--news-warning);
+  --m-info: var(--news-info);
+  --m-overlay: rgba(26, 24, 23, 0.72);
+  color-scheme: dark;
+}
+
+/* ---- The page root ---------------------------------------------------------------- */
+.news-edition {
+  background-color: var(--news-paper);
+  color: var(--news-ink);
+}
+
+.news-edition a:focus-visible,
+.news-edition button:focus-visible,
+.news-edition input:focus-visible,
+.news-edition summary:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Sticky site nav: an anchor jump must not land a section head under it. */
+.news-edition [data-news-section] {
+  scroll-margin-top: 88px;
+}
+
+/* ---- The site nav, restyled ONLY while the edition is mounted --------------------- */
+/* HorizontalNav is rendered by the shared Layout above the page, so it is outside the
+   .news-edition root. It carries a data-site-nav hook (no style of its own); every rule
+   below needs the edition to be on the page, so other pages render it unchanged. The
+   nav has no money in it, so its "success" (active/hover) is the section-head colour. */
+:root:has(.news-edition) [data-site-nav] {
+  --m-success: var(--news-accent);
+  /* The bar and its overflow fade both paint bg-secondary: make that the paper. */
+  --m-bg-secondary: var(--news-paper);
+  background-color: var(--news-paper);
+  border-bottom-color: var(--news-ink);
+}
+:root:has(.news-edition) [data-site-nav] a {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}

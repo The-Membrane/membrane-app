@@ -1,0 +1,19 @@
+# Standalone Foundry project for the Q41 migration periphery (MembraneBundlerAdapter).
+# Dependencies are linked, not vendored: run ./setup.sh first (see it for the pinned SHAs).
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+cache_path = "cache"
+libs = ["lib"]
+via_ir = true
+optimizer = true
+optimizer_runs = 200
+evm_version = "cancun"
+# Bundler3 uses transient storage; Cdp exceeds EIP-170 (known, membrane-solidity launch campaign).
+ignored_error_codes = ["transient-storage", "code-size"]
+auto_detect_remappings = false
+block_gas_limit = 9999999999999
+dynamic_test_linking = true
+fs_permissions = [{ access = "read-write", path = "./deployments" }, { access = "read", path = "./out" }]

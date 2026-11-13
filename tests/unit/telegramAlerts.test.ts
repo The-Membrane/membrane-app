@@ -196,11 +196,12 @@ const footerFor = async () => 'this alarm cannot yet see: X'
 const silent = () => {}
 
 describe('handleUpdate', () => {
-  it('asks to track on Radar first when the address is not watched', async () => {
+  it('subscribes an address Radar does not track to position alerts only (owner ruling 2026-10-30)', async () => {
     const { sql, calls } = fakeSql(() => [])
     const out = await handleUpdate({ message: { chat: { id: 7 }, text: `/start ${ADDR}` } }, { sql, logic, footerFor })
-    expect(out?.text).toContain('Track this address on Radar first')
-    expect(calls.some((c) => c.q.startsWith('INSERT'))).toBe(false)
+    expect(out?.text).toContain('Aave V3 Ethereum position is read every hour')
+    expect(calls.find((c) => c.q.startsWith('INSERT INTO alert_subscriptions'))?.values).toEqual(['7', ADDR])
+    expect(calls.some((c) => c.q.includes('FROM venue_alarms'))).toBe(false)
   })
 
   it('subscribes a watched address and lists what is open now', async () => {

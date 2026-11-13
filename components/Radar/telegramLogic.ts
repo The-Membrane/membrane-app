@@ -54,6 +54,7 @@ export const shortAddr = (address: string): string => `${address.slice(0, 6)}…
 export type Reply =
   | { kind: 'subscribed'; address: string; held: string[]; openTexts: string[]; footer: string }
   | { kind: 'not_watched'; address: string }
+  | { kind: 'subscribed_position'; address: string }
   | { kind: 'stopped'; count: number }
   | { kind: 'list'; addresses: string[] }
   | { kind: 'full'; max: number }
@@ -77,6 +78,9 @@ export const WATCHED_RISKS = [
 const LENDING_RISK = 'its lending market is almost fully lent out'
 const isLendingVenue = (v: string) => v.startsWith('aave')
 
+/** Personal position alerts (owner ruling 2026-10-30), sent by sendPositionAlerts. */
+export const POSITION_LINE =
+  'Its Aave V3 Ethereum position is read every hour. This chat gets a message when the health factor falls below 1.15 (warn) or 1.05 (critical), when it comes within 3% of liquidation (act now), and once when it recovers.'
 
 export const replyText = (r: Reply): string => {
   switch (r.kind) {
@@ -92,11 +96,19 @@ export const replyText = (r: Reply): string => {
             ? `Right now: no alarm on ${venues}.`
             : null,
         `This chat gets a message when an alarm starts or ends on ${venues ?? 'a venue this address holds'}:\n${[...WATCHED_RISKS, ...(r.held.some(isLendingVenue) ? [LENDING_RISK] : [])].map((w) => `- ${w}`).join('\n')}`,
+        POSITION_LINE,
         `Radar profile: ${radarLink(r.address)}`,
         'Data compiled by Membrane · /stop to unsubscribe · /list to see what this chat watches',
       ].filter(Boolean)
       return lines.join('\n\n')
     }
+    case 'subscribed_position':
+      return [
+        `Watching ${shortAddr(r.address)}.`,
+        POSITION_LINE,
+        `Radar can also watch the venues it holds: ${radarLink(r.address)}`,
+        '/stop to unsubscribe · /list to see what this chat watches',
+      ].join('\n\n')
     case 'not_watched':
       return `Track this address on Radar first: ${radarLink(r.address)}`
     case 'stopped':
@@ -112,7 +124,7 @@ export const replyText = (r: Reply): string => {
     case 'help':
     default:
       return [
-        'Membrane venue alerts.',
+        'Membrane venue and position alerts.',
         'Subscribe from Radar: track an address, then tap "telegram" in its alerts block.',
         `${SITE}/ethereum/radar`,
         '/list shows what this chat watches. /stop unsubscribes.',

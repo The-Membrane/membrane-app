@@ -298,3 +298,19 @@ if (tg) {
     console.log(`telegram alerts: send failed (non-fatal) — ${e?.message ?? e}`)
   }
 }
+// Personal position alerts on the same bot (owner ruling 2026-10-30). Non-fatal.
+if (tg) {
+  try {
+    const { require: tsxRequire } = await import('tsx/cjs/api')
+    const posLogic = tsxRequire('../components/Radar/positionAlertLogic.ts', import.meta.url)
+    const aave = tsxRequire('../pages/api/_lib/aaveReads.ts', import.meta.url)
+    const client = aave.getClient()
+    await tg.bot.sendPositionAlerts(sql, {
+      logic: posLogic,
+      readPosition: async (address) => (await aave.readPosition(address, client)).x,
+      config: tg.config,
+    })
+  } catch (e) {
+    console.log(`position alerts: failed (non-fatal) — ${e?.message ?? e}`)
+  }
+}
